@@ -49,6 +49,12 @@ roots a b c = let d = b*b - 4*a*c
 
 type Spectrum = (Float, Float, Float) -- RGB for now
 
+black :: Spectrum
+black = (0, 0, 0)
+
+white :: Spectrum
+white = (1, 1, 1)
+
 --- intersections
 
 epsilon :: Float
@@ -98,16 +104,16 @@ stareDownZAxis (px, py) =
   in ((0, 0, posZ), normalize dir)
 
 ---
---- a integrator takes a ray, a shape and a number of light sources and computes a final color
+--- an integrator takes a ray, a shape and a number of light sources and computes a final color
 ---
 type Integrator = Ray -> Shape -> [Light] -> Spectrum
 
 
---- the debug integrator
+--- the debug integrator visualizes the normals of the shapes that were hit
 debug :: Integrator
 debug ray shape _ =
   let intersections = intersect ray shape
-      color [] = (0, 0, 0)
+      color [] = black
       color ((_, (_, (nx, ny, nz), _)):xs) = (abs nx, abs ny, abs nz)
   in color intersections
 
