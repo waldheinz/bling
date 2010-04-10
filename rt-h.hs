@@ -1,5 +1,7 @@
 --- RT - H
 
+import Maybe
+
 --- basic maths stuff used everywhere
 
 type Flt = Float
@@ -65,13 +67,28 @@ epsilon = 0.001
 type Normal = Vector
 type Intersection = (Point, Normal, Ray)
 
+intPos :: Intersection -> Point -- extracts the position from an Intersection
+intPos (pos, _, _) = pos
+
+intNorm :: Intersection -> Normal -- extracts the Normal from an Intersection
+intNorm (_, n, _) = n
+
 data Shape
   = Sphere Float Point --- a sphere has a radius and a position
   | Plane Float Normal -- a plane has a distance from origin and a normal
   | Group [Shape]
   
 --- a scene is a Shape (most probably a group) and some light sources
+
+---
+--- scene definition
+---
+
 data Scene = Scene Shape [Light]
+
+--- extracts the lights from a scene
+sceneLights :: Scene -> [Light]
+sceneLights (Scene _ lights) = lights
 
 --- extracts the closest intersection from a list of intersections
 closest :: [(Float, Intersection)] -> Intersection
@@ -171,10 +188,13 @@ debug ray (Scene shape _) = color ray intersections
 geomFac :: Normal -> Normal -> Float
 geomFac n1 n2 = max 0 ((neg n1) `dot` n2)
 
---- samples all light sources by sampling individual light sources and adding up the results
+--- samples all lights by sampling individual lights and summing up the results
 sampleAllLights :: Scene -> Intersection -> [Light] -> Spectrum
 sampleAllLights _ _ [] = black -- no light source means black
 sampleAllLights s i (l:xs) = add (sampleLight s i l) (sampleAllLights s i xs) -- sum up contribution
+
+---sampleOneLight :: Scene -> Intersection -> Spectrum
+--sampleOneLight 
 
 --- samples one light source
 sampleLight :: Scene -> Intersection -> Light -> Spectrum
@@ -183,7 +203,7 @@ sampleLight scene i (Directional ld s) = sampleDirLight scene i ld s
 --- samples a directional light source
 sampleDirLight :: Scene -> Intersection -> Normal -> Spectrum -> Spectrum
 sampleDirLight (Scene sceneShape _) (pos, sn, ray) ld s
-  | visible = unCond
+  | visible = unCond -- TODO: first check the color, if non-black check the visibility
   | otherwise = black
   where
     unCond = scalMul s (geomFac ld sn)
@@ -191,6 +211,16 @@ sampleDirLight (Scene sceneShape _) (pos, sn, ray) ld s
     testRay = (add pos (scalMul ld epsilon), ld)
     
 --- pathtracer
+
+pathTracer :: Integrator
+pathTracer r scene@(Scene shape lights)
+  | isNothing mint = black
+  | otherwise = pathTracer' scene (fromJust mint)
+  where
+    mint = nearest r shape
+
+pathTracer' :: Scene -> Intersection -> Spectrum
+pathTracer' scene int = sampleAllLights scene int (sceneLights scene)
 
 --- whitted - style integrator
 whitted :: Integrator
@@ -233,7 +263,7 @@ makeImage resX resY =
       fResY = fromIntegral resY
       pixels = ndcs resX resY
       rays = map stareDownZAxis pixels
-      trace ray = (whitted ray myScene)
+      trace ray = (pathTracer ray myScene)
       colours = map trace rays
   in makePgm resX resY colours
 
