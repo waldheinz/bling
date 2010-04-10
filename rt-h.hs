@@ -106,10 +106,16 @@ intGroup :: Ray -> [Shape] -> [ (Float, Intersection) ]
 intGroup _ [] = []
 intGroup ray (shape:rest) = (intersect ray shape) ++ (intGroup ray rest)
 
+---
+--- Lights
+---
+
 data Light
-  = Directional Vector Spectrum
+  = Directional Normal Spectrum
   
--- file input / output
+---
+--- file input / output
+---
 
 makePgm :: Int -> Int -> [ Spectrum ] -> String
 makePgm width height xs = "P3\n" ++ show width ++ " " ++ show height ++ "\n255\n" ++ stringify(xs)
@@ -146,7 +152,24 @@ debug ray shape _ = color ray intersections
     color _ xs = showNormal (closest xs)
     showNormal (_, normal, _) =  showDir normal
     showDir (dx, dy, dz) = (abs dx, abs dy, abs dz)
-  
+
+sampleAllLights :: Intersection -> [Light] -> Spectrum
+sampleAllLights _ [] = black -- no light source means black
+sampleAllLights i (l:xs) = add (sampleLight i l) (sampleAllLights i xs)
+
+sampleLight :: Intersection -> Light -> Spectrum
+sampleLight _ _ = white
+
+--- whitted - style integrator
+
+whitted :: Integrator
+whitted ray shape lights = light ints
+  where
+    ints = intersect ray shape
+    light [] = black -- background is black
+    light xs = sampleAllLights (closest xs) lights
+    
+
 -- creates the normalized device coordinates from xres and yres
 ndcs :: Int -> Int -> [ (Float, Float) ]
 ndcs resX resY =
@@ -162,13 +185,16 @@ myScene = Group [
   (Sphere 0.75 ( 0.5, 0,   0)),
   (Plane (-1) (0, 1, 0))]
 
+myLights :: [Light]
+myLights = [ (Directional (0, -1, 0) white) ]
+
 makeImage :: Int -> Int -> String
 makeImage resX resY =
   let fResX = fromIntegral resX
       fResY = fromIntegral resY
       pixels = ndcs resX resY
       rays = map stareDownZAxis pixels
-      trace ray = (debug ray myScene [])
+      trace ray = (whitted ray myScene myLights)
       colours = map trace rays
   in makePgm resX resY colours
 
