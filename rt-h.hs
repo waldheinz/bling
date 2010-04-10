@@ -79,7 +79,7 @@ closest xs = snd (foldl select (head xs) (tail xs))
 
 intersect :: Ray -> Shape -> [ (Float, Intersection) ]
 intersect ray (Sphere r c) = intSphere ray r c
-intersect ray (Group shapes) = intersectGroup ray shapes
+intersect ray (Group shapes) = intGroup ray shapes
 
 intSphere :: Ray -> Float -> Point -> [ (Float, Intersection) ]
 intSphere ray@(origin, rayDir) r center = map (\t -> (t, intAt t)) times
@@ -93,9 +93,9 @@ intSphere ray@(origin, rayDir) r center = map (\t -> (t, intAt t)) times
     intAt t = (hitPoint t, normalAt t, ray)
     normalAt t = normalize ((hitPoint t) `sub` center)
 
-intersectGroup :: Ray -> [Shape] -> [ (Float, Intersection) ]
-intersectGroup _ [] = []
-intersectGroup ray (shape:rest) = (intersect ray shape) ++ (intersectGroup ray rest)
+intGroup :: Ray -> [Shape] -> [ (Float, Intersection) ]
+intGroup _ [] = []
+intGroup ray (shape:rest) = (intersect ray shape) ++ (intGroup ray rest)
 
 data Light
   = Directional Vector Spectrum
