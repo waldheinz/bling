@@ -32,7 +32,7 @@ cross :: Vector -> Vector -> Vector
 cross (a,b,c) (x,y,z) = (b*z + c*y, -(a*z + c*x), a*y + b*x)
 
 dot :: Vector -> Vector -> Float
-dot (x,y,z) (a,b,c) = x*a + b*y + c*z
+dot (x,y,z) (a,b,c) = x*a + y*b + z*c;
 
 normalize :: Vector -> Vector
 normalize v
@@ -78,15 +78,20 @@ closest xs = snd (foldl select (head xs) (tail xs))
       | otherwise = (t2, i2)
 
 intersect :: Ray -> Shape -> [ (Float, Intersection) ]
-intersect ray@(base, dir) (Sphere r center) =                     --- intersect a sphere
-  let a = sqLen dir
-      b = 2 * ( dir `dot` (base `sub` center))
-      c = (sqLen (base `sub` center)) - (r * r)
-      times = filter (> epsilon) (roots a b c)
-      normalAt t = normalize ((positionAt ray t) `sub` center)
-      intersectionAt t = (normalAt t, positionAt ray t, ray)
-  in map (\t -> (t, intersectionAt t)) times
+intersect ray (Sphere r c) = intSphere ray r c
 intersect ray (Group shapes) = intersectGroup ray shapes
+
+intSphere :: Ray -> Float -> Point -> [ (Float, Intersection) ]
+intSphere ray@(origin, rayDir) r center = map (\t -> (t, intAt t)) times
+  where
+    dir = origin `sub` center
+    a = sqLen rayDir
+    b = 2 * (rayDir `dot` dir)
+    c = (sqLen dir) - (r * r)
+    times = filter (> epsilon) (roots a b c)
+    hitPoint = positionAt ray
+    intAt t = (hitPoint t, normalAt t, ray)
+    normalAt t = normalize ((hitPoint t) `sub` center)
 
 intersectGroup :: Ray -> [Shape] -> [ (Float, Intersection) ]
 intersectGroup _ [] = []
@@ -113,10 +118,10 @@ type Camera = (Float, Float) -> Ray
 
 --- a very simple perspective camera that stares down the z-axis
 stareDownZAxis :: Camera
-stareDownZAxis (px, py) =
-  let posZ = -4
-      dir = ((px - 0.5) * 4, (py - 0.5) * 4, -posZ)
-  in ((0, 0, posZ), normalize dir)
+stareDownZAxis (px, py) = ((0, 0, posZ), normalize dir)
+  where
+    posZ = -4
+    dir = ((px - 0.5) * 4, (py - 0.5) * 4, -posZ)
 
 ---
 --- an integrator takes a ray, a shape and a number of light sources and computes a final color
@@ -125,12 +130,13 @@ type Integrator = Ray -> Shape -> [Light] -> Spectrum
 
 --- the debug integrator visualizes the normals of the shapes that were hit
 debug :: Integrator
-debug ray shape _ = color intersections
+debug ray shape _ = color ray intersections
   where
     intersections = intersect ray shape
-    color [] = black -- no intersection means background colour
-    color xs = showNormal (closest xs)
-    showNormal (_, (nx, ny, nz), _) =  (abs nx, abs ny, abs nz)
+    color (_, dir) [] = showDir dir -- if no shape was hit show the direction of the ray
+    color _ xs = showNormal (closest xs)
+    showNormal (_, normal, _) =  showDir normal
+    showDir (dx, dy, dz) = (abs dx, abs dy, abs dz)
   
 -- creates the normalized device coordinates from xres and yres
 ndcs :: Int -> Int -> [ (Float, Float) ]
@@ -143,8 +149,8 @@ ndcs resX resY =
 
 myScene :: Shape
 myScene = Group [
-  (Sphere 1.0 (-0.5, 0, 0)),
-  (Sphere 1.0 (0.5, 0, 0)) ]
+  (Sphere 1.25 (-0.5, 0, 0.5)),
+  (Sphere 1.00 ( 0.5, 0,   0))]
 
 makeImage :: Int -> Int -> String
 makeImage resX resY =
