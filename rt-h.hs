@@ -100,7 +100,7 @@ intSphere ray@(origin, rayDir) r center = map (\t -> (t, intAt t)) times
     times = filter (> epsilon) (roots a b c)
     hitPoint = positionAt ray
     intAt t = (hitPoint t, normalAt t, ray)
-    normalAt t = normalize ((hitPoint t) `sub` center)
+    normalAt t = normalize (center `sub` (hitPoint t))
 
 intGroup :: Ray -> [Shape] -> [ (Float, Intersection) ]
 intGroup _ [] = []
@@ -153,23 +153,33 @@ debug ray shape _ = color ray intersections
     showNormal (_, normal, _) =  showDir normal
     showDir (dx, dy, dz) = (abs dx, abs dy, abs dz)
 
+geomFac :: Normal -> Normal -> Float
+geomFac n1 n2 = max 0 ((neg n1) `dot` n2)
+
+--- samples all light sources by sampling individual light sources and adding up the results
 sampleAllLights :: Intersection -> [Light] -> Spectrum
 sampleAllLights _ [] = black -- no light source means black
-sampleAllLights i (l:xs) = add (sampleLight i l) (sampleAllLights i xs)
+sampleAllLights i (l:xs) = add (sampleLight i l) (sampleAllLights i xs) -- sum up contribution
 
+--- samples one light source
 sampleLight :: Intersection -> Light -> Spectrum
-sampleLight _ _ = white
+sampleLight i (Directional ld s) = sampleDirLight i ld s
+
+--- samples a directional light source
+sampleDirLight :: Intersection -> Normal -> Spectrum -> Spectrum
+sampleDirLight (pos, sn, ray) ld s = scalMul s (geomFac ld sn)
 
 --- whitted - style integrator
-
 whitted :: Integrator
 whitted ray shape lights = light ints
   where
     ints = intersect ray shape
     light [] = black -- background is black
-    light xs = sampleAllLights (closest xs) lights
+    light xs = light' (closest xs) lights
+      where
+	light' int@(_, ns, (_, rd)) lights = scalMul (sampleAllLights int lights) (geomFac ns (neg rd))
+	
     
-
 -- creates the normalized device coordinates from xres and yres
 ndcs :: Int -> Int -> [ (Float, Float) ]
 ndcs resX resY =
@@ -186,7 +196,10 @@ myScene = Group [
   (Plane (-1) (0, 1, 0))]
 
 myLights :: [Light]
-myLights = [ (Directional (0, -1, 0) white) ]
+myLights = [
+  (Directional (normalize ( 1, -1, 0)) (0.9, 0.5, 0.5)),
+  (Directional (normalize ( 0, -1, -1)) (0.5, 0.9, 0.5)),
+  (Directional (normalize (-1, -1, 0)) (0.5, 0.5, 0.9))]
 
 makeImage :: Int -> Int -> String
 makeImage resX resY =
