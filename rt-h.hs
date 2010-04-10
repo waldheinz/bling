@@ -34,7 +34,7 @@ cross (a,b,c) (x,y,z) = (b*z + c*y, -(a*z + c*x), a*y + b*x)
 dot :: Vector -> Vector -> Float
 dot (x,y,z) (a,b,c) = x*a + y*b + z*c;
 
-normalize :: Vector -> Vector
+normalize :: Vector -> Normal
 normalize v
   | (sqLen v) /= 0 = scalMul v (1 / len v)
   | otherwise = (0, 0, 0)
@@ -67,6 +67,7 @@ type Intersection = (Point, Normal, Ray)
 
 data Shape
   = Sphere Float Point --- a sphere has a radius and a position
+  | Plane Float Normal -- a plane has a distance from origin and a normal
   | Group [Shape]
   
 --- extracts the closest intersection from a list of intersections
@@ -80,6 +81,14 @@ closest xs = snd (foldl select (head xs) (tail xs))
 intersect :: Ray -> Shape -> [ (Float, Intersection) ]
 intersect ray (Sphere r c) = intSphere ray r c
 intersect ray (Group shapes) = intGroup ray shapes
+intersect ray (Plane d n) = intPlane ray d n
+
+intPlane :: Ray -> Float -> Normal -> [ (Float, Intersection) ]
+intPlane ray@(ro, rd) d n
+  | t < epsilon = []
+  | otherwise = [ (t, (positionAt ray t, n, ray)) ]
+  where
+    t = -(ro `dot` n + d) / (rd `dot` n)
 
 intSphere :: Ray -> Float -> Point -> [ (Float, Intersection) ]
 intSphere ray@(origin, rayDir) r center = map (\t -> (t, intAt t)) times
@@ -149,8 +158,9 @@ ndcs resX resY =
 
 myScene :: Shape
 myScene = Group [
-  (Sphere 1.25 (-0.5, 0, 0.5)),
-  (Sphere 1.00 ( 0.5, 0,   0))]
+  (Sphere 1.00 (-0.5, 0, 0.5)),
+  (Sphere 0.75 ( 0.5, 0,   0)),
+  (Plane (-1) (0, 1, 0))]
 
 makeImage :: Int -> Int -> String
 makeImage resX resY =
