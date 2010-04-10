@@ -70,6 +70,9 @@ data Shape
   | Plane Float Normal -- a plane has a distance from origin and a normal
   | Group [Shape]
   
+--- a scene is a Shape (most probably a group) and some light sources
+data Scene = Scene Shape [Light]
+
 --- extracts the closest intersection from a list of intersections
 closest :: [(Float, Intersection)] -> Intersection
 closest xs = snd (foldl select (head xs) (tail xs))
@@ -77,7 +80,8 @@ closest xs = snd (foldl select (head xs) (tail xs))
     select (t1, i1) (t2, i2)
       | t1 < t2 = (t1, i1)
       | otherwise = (t2, i2)
-
+      
+--- determines all intersections of a ray and a shape
 intersect :: Ray -> Shape -> [ (Float, Intersection) ]
 intersect ray (Sphere r c) = intSphere ray r c
 intersect ray (Group shapes) = intGroup ray shapes
@@ -105,6 +109,10 @@ intSphere ray@(origin, rayDir) r center = map (\t -> (t, intAt t)) times
 intGroup :: Ray -> [Shape] -> [ (Float, Intersection) ]
 intGroup _ [] = []
 intGroup ray (shape:rest) = (intersect ray shape) ++ (intGroup ray rest)
+
+--- TODO: this can be done much faster
+intersects :: Ray -> Shape -> Bool
+intersects r s = (intersect r s) == []
 
 ---
 --- Lights
@@ -141,11 +149,11 @@ stareDownZAxis (px, py) = ((0, 0, posZ), normalize dir)
 ---
 --- an integrator takes a ray, a shape and a number of light sources and computes a final color
 ---
-type Integrator = Ray -> Shape -> [Light] -> Spectrum
+type Integrator = Ray -> Scene -> Spectrum
 
 --- the debug integrator visualizes the normals of the shapes that were hit
 debug :: Integrator
-debug ray shape _ = color ray intersections
+debug ray (Scene shape _) = color ray intersections
   where
     intersections = intersect ray shape
     color (_, dir) [] = showDir dir -- if no shape was hit show the direction of the ray
@@ -157,27 +165,27 @@ geomFac :: Normal -> Normal -> Float
 geomFac n1 n2 = max 0 ((neg n1) `dot` n2)
 
 --- samples all light sources by sampling individual light sources and adding up the results
-sampleAllLights :: Intersection -> [Light] -> Spectrum
-sampleAllLights _ [] = black -- no light source means black
-sampleAllLights i (l:xs) = add (sampleLight i l) (sampleAllLights i xs) -- sum up contribution
+sampleAllLights :: Scene -> Intersection -> [Light] -> Spectrum
+sampleAllLights _ _ [] = black -- no light source means black
+sampleAllLights s i (l:xs) = add (sampleLight s i l) (sampleAllLights s i xs) -- sum up contribution
 
 --- samples one light source
-sampleLight :: Intersection -> Light -> Spectrum
-sampleLight i (Directional ld s) = sampleDirLight i ld s
+sampleLight :: Scene -> Intersection -> Light -> Spectrum
+sampleLight scene i (Directional ld s) = sampleDirLight scene i ld s
 
 --- samples a directional light source
-sampleDirLight :: Intersection -> Normal -> Spectrum -> Spectrum
-sampleDirLight (pos, sn, ray) ld s = scalMul s (geomFac ld sn)
+sampleDirLight :: Scene -> Intersection -> Normal -> Spectrum -> Spectrum
+sampleDirLight _ (pos, sn, ray) ld s = scalMul s (geomFac ld sn)
 
 --- whitted - style integrator
 whitted :: Integrator
-whitted ray shape lights = light ints
+whitted ray s@(Scene shape lights) = light ints
   where
     ints = intersect ray shape
     light [] = black -- background is black
     light xs = light' (closest xs) lights
       where
-	light' int@(_, ns, (_, rd)) lights = scalMul (sampleAllLights int lights) (geomFac ns (neg rd))
+	light' int@(_, ns, (_, rd)) lights = scalMul (sampleAllLights s int lights) (geomFac ns (neg rd))
 	
     
 -- creates the normalized device coordinates from xres and yres
@@ -189,8 +197,8 @@ ndcs resX resY =
       scale (x, y) = ((fromIntegral x) / fResX, (fromIntegral y) / fResY)
   in map scale pixels
 
-myScene :: Shape
-myScene = Group [
+myShape :: Shape
+myShape = Group [
   (Sphere 1.00 (-0.5, 0, 0.5)),
   (Sphere 0.75 ( 0.5, 0,   0)),
   (Plane (-1) (0, 1, 0))]
@@ -201,13 +209,16 @@ myLights = [
   (Directional (normalize ( 0, -1, -1)) (0.5, 0.9, 0.5)),
   (Directional (normalize (-1, -1, 0)) (0.5, 0.5, 0.9))]
 
+myScene :: Scene
+myScene = Scene myShape myLights
+
 makeImage :: Int -> Int -> String
 makeImage resX resY =
   let fResX = fromIntegral resX
       fResY = fromIntegral resY
       pixels = ndcs resX resY
       rays = map stareDownZAxis pixels
-      trace ray = (whitted ray myScene myLights)
+      trace ray = (whitted ray myScene)
       colours = map trace rays
   in makePgm resX resY colours
 
