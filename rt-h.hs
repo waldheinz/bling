@@ -81,6 +81,13 @@ closest xs = snd (foldl select (head xs) (tail xs))
       | t1 < t2 = (t1, i1)
       | otherwise = (t2, i2)
       
+nearest :: Ray -> Shape -> Maybe Intersection
+nearest r s
+  | intersections == [] = Nothing
+  | otherwise = Just (closest intersections)
+  where
+    intersections = intersect r s
+      
 --- determines all intersections of a ray and a shape
 intersect :: Ray -> Shape -> [ (Float, Intersection) ]
 intersect ray (Sphere r c) = intSphere ray r c
@@ -183,6 +190,8 @@ sampleDirLight (Scene sceneShape _) (pos, sn, ray) ld s
     visible = not (intersects testRay sceneShape)
     testRay = (add pos (scalMul ld epsilon), ld)
     
+--- pathtracer
+
 --- whitted - style integrator
 whitted :: Integrator
 whitted ray s@(Scene shape lights) = light ints
@@ -211,9 +220,9 @@ myShape = Group [
 
 myLights :: [Light]
 myLights = [
-  (Directional (normalize ( 1, -1, 1)) (0.9, 0.5, 0.5)),
-  (Directional (normalize ( 0, -1, -1)) (0.5, 0.9, 0.5)),
-  (Directional (normalize (-1, -1, 1)) (0.5, 0.5, 0.9))]
+  (Directional (normalize ( 1, -2, 0)) (0.9, 0.5, 0.5)),
+  (Directional (normalize ( 0, -1, -1)) (0.5, 0.5, 0.5)),
+  (Directional (normalize (-1, -2, 0)) (0.5, 0.9, 0.5))]
 
 myScene :: Scene
 myScene = Scene myShape myLights
