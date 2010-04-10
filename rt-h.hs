@@ -60,7 +60,7 @@ white = (1, 1, 1)
 ---
 
 epsilon :: Float
-epsilon = 0.0001
+epsilon = 0.001
 
 type Normal = Vector
 type Intersection = (Point, Normal, Ray)
@@ -112,7 +112,7 @@ intGroup ray (shape:rest) = (intersect ray shape) ++ (intGroup ray rest)
 
 --- TODO: this can be done much faster
 intersects :: Ray -> Shape -> Bool
-intersects r s = (intersect r s) == []
+intersects r s = not ((intersect r s) == [])
 
 ---
 --- Lights
@@ -175,8 +175,14 @@ sampleLight scene i (Directional ld s) = sampleDirLight scene i ld s
 
 --- samples a directional light source
 sampleDirLight :: Scene -> Intersection -> Normal -> Spectrum -> Spectrum
-sampleDirLight _ (pos, sn, ray) ld s = scalMul s (geomFac ld sn)
-
+sampleDirLight (Scene sceneShape _) (pos, sn, ray) ld s
+  | visible = unCond
+  | otherwise = black
+  where
+    unCond = scalMul s (geomFac ld sn)
+    visible = not (intersects testRay sceneShape)
+    testRay = (add pos (scalMul ld epsilon), ld)
+    
 --- whitted - style integrator
 whitted :: Integrator
 whitted ray s@(Scene shape lights) = light ints
@@ -205,9 +211,9 @@ myShape = Group [
 
 myLights :: [Light]
 myLights = [
-  (Directional (normalize ( 1, -1, 0)) (0.9, 0.5, 0.5)),
+  (Directional (normalize ( 1, -1, 1)) (0.9, 0.5, 0.5)),
   (Directional (normalize ( 0, -1, -1)) (0.5, 0.9, 0.5)),
-  (Directional (normalize (-1, -1, 0)) (0.5, 0.5, 0.9))]
+  (Directional (normalize (-1, -1, 1)) (0.5, 0.5, 0.9))]
 
 myScene :: Scene
 myScene = Scene myShape myLights
