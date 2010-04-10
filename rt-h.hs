@@ -55,13 +55,27 @@ black = (0, 0, 0)
 white :: Spectrum
 white = (1, 1, 1)
 
+---
 --- intersections
+---
 
 epsilon :: Float
 epsilon = 0.0001
 
 type Normal = Vector
 type Intersection = (Point, Normal, Ray)
+
+data Shape
+  = Sphere Float Point --- a sphere has a radius and a position
+  | Group [Shape]
+  
+--- extracts the closest intersection from a list of intersections
+closest :: [(Float, Intersection)] -> Intersection
+closest xs = snd (foldl select (head xs) (tail xs))
+  where
+    select (t1, i1) (t2, i2)
+      | t1 < t2 = (t1, i1)
+      | otherwise = (t2, i2)
 
 intersect :: Ray -> Shape -> [ (Float, Intersection) ]
 intersect ray@(base, dir) (Sphere r center) =                     --- intersect a sphere
@@ -72,11 +86,12 @@ intersect ray@(base, dir) (Sphere r center) =                     --- intersect 
       normalAt t = normalize ((positionAt ray t) `sub` center)
       intersectionAt t = (normalAt t, positionAt ray t, ray)
   in map (\t -> (t, intersectionAt t)) times
+intersect ray (Group shapes) = intersectGroup ray shapes
 
-data Shape
-  = Sphere Float Point --- a sphere has a radius and a position
-  | Group [Shape]
-  
+intersectGroup :: Ray -> [Shape] -> [ (Float, Intersection) ]
+intersectGroup _ [] = []
+intersectGroup ray (shape:rest) = (intersect ray shape) ++ (intersectGroup ray rest)
+
 data Light
   = Directional Vector Spectrum
   
@@ -108,15 +123,15 @@ stareDownZAxis (px, py) =
 ---
 type Integrator = Ray -> Shape -> [Light] -> Spectrum
 
-
 --- the debug integrator visualizes the normals of the shapes that were hit
 debug :: Integrator
-debug ray shape _ =
-  let intersections = intersect ray shape
-      color [] = black
-      color ((_, (_, (nx, ny, nz), _)):xs) = (abs nx, abs ny, abs nz)
-  in color intersections
-
+debug ray shape _ = color intersections
+  where
+    intersections = intersect ray shape
+    color [] = black -- no intersection means background colour
+    color xs = showNormal (closest xs)
+    showNormal (_, (nx, ny, nz), _) =  (abs nx, abs ny, abs nz)
+  
 -- creates the normalized device coordinates from xres and yres
 ndcs :: Int -> Int -> [ (Float, Float) ]
 ndcs resX resY =
@@ -126,13 +141,18 @@ ndcs resX resY =
       scale (x, y) = ((fromIntegral x) / fResX, (fromIntegral y) / fResY)
   in map scale pixels
 
+myScene :: Shape
+myScene = Group [
+  (Sphere 1.0 (-0.5, 0, 0)),
+  (Sphere 1.0 (0.5, 0, 0)) ]
+
 makeImage :: Int -> Int -> String
 makeImage resX resY =
   let fResX = fromIntegral resX
       fResY = fromIntegral resY
       pixels = ndcs resX resY
       rays = map stareDownZAxis pixels
-      trace ray = (debug ray (Sphere 1.0 (0, 0, 0)) [])
+      trace ray = (debug ray myScene [])
       colours = map trace rays
   in makePgm resX resY colours
 
