@@ -78,12 +78,13 @@ data Shape
   | Plane Float Normal -- a plane has a distance from origin and a normal
   | Group [Shape]
   
---- a scene is a Shape (most probably a group) and some light sources
+
 
 ---
 --- scene definition
 ---
 
+--- a scene is a Shape (most probably a group) and some light sources
 data Scene = Scene Shape [Light]
 
 --- extracts the lights from a scene
@@ -182,6 +183,7 @@ sampleAllLights s@(Scene _ lights) i  = foldl add black spectri -- sum up contri
   where
     spectri = map (sampleLight s i) lights 
 
+ -- samples one randomly chosen light source
 sampleOneLight :: Scene -> Intersection -> Rand Spectrum
 sampleOneLight scene i = do
   lightNum <-randomRIO (0, lightCount - 1)
