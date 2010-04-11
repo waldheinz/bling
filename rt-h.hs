@@ -253,23 +253,23 @@ myScene = Scene myShape myLights
 
 makePgm :: Int -> Int -> [ Spectrum ] -> String
 makePgm width height xs = "P3\n" ++ show width ++ " " ++ show height ++ "\n255\n" ++ stringify(xs)
-		  where stringify [] = ""
-			stringify ((r,g,b):xs) = show (round (r*255)) ++ " " 
-						 ++ show (round (g*255)) ++ " " 
-						 ++ show (round (b*255)) ++ " " 
-						 ++ stringify xs
+  where 
+    stringify [] = ""
+    stringify ((r,g,b):xs) = show (round (r*255)) ++ " " ++
+      show (round (g*255)) ++ " " ++
+      show (round (b*255)) ++ " " ++
+      stringify xs
 
-main :: Rand ()
+main :: IO ()
 main = do
-  putStrLn "Starting..."
+  putStrLn "Rendering..."
   colours <- sequence (map (\ray -> whitted ray myScene) rays)
+  putStrLn "Writing image..."
   writeFile "test.ppm" (makePgm resX resY colours)
   putStrLn "done."
   where
     resX = 800
     resY = 800
-    fResX = fromIntegral resX
-    fResY = fromIntegral resY
     pixels = ndcs resX resY
     rays = map stareDownZAxis pixels
   
