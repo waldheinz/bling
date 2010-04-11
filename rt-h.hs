@@ -1,10 +1,10 @@
 --- RT - H
 
 import Maybe
+import System.Random
 
 --- basic maths stuff used everywhere
-
-type Flt = Float
+type Rand a = IO a
 type Vector = (Float, Float, Float)
 type Point = Vector
 type Ray = (Point, Vector) --- origin and direction
@@ -144,19 +144,6 @@ intersects r s = not ((intersect r s) == [])
 
 data Light
   = Directional Normal Spectrum
-  
----
---- file input / output
----
-
-makePgm :: Int -> Int -> [ Spectrum ] -> String
-makePgm width height xs = "P3\n" ++ show width ++ " " ++ show height ++ "\n255\n" ++ stringify(xs)
-		  where stringify [] = ""
-			stringify ((r,g,b):xs) = show (round (r*255)) ++ " " 
-						 ++ show (round (g*255)) ++ " " 
-						 ++ show (round (b*255)) ++ " " 
-						 ++ stringify xs
-
 
 ---
 --- a camera transforms a pixel in normalized device coordinates (NDC) to a ray
@@ -173,11 +160,11 @@ stareDownZAxis (px, py) = ((0, 0, posZ), normalize dir)
 ---
 --- an integrator takes a ray, a shape and a number of light sources and computes a final color
 ---
-type Integrator = Ray -> Scene -> Spectrum
+type Integrator = Ray -> Scene -> Rand Spectrum
 
 --- the debug integrator visualizes the normals of the shapes that were hit
 debug :: Integrator
-debug ray (Scene shape _) = color ray intersections
+debug ray (Scene shape _) = do return (color ray intersections)
   where
     intersections = intersect ray shape
     color (_, dir) [] = showDir dir -- if no shape was hit show the direction of the ray
@@ -193,8 +180,10 @@ sampleAllLights :: Scene -> Intersection -> [Light] -> Spectrum
 sampleAllLights _ _ [] = black -- no light source means black
 sampleAllLights s i (l:xs) = add (sampleLight s i l) (sampleAllLights s i xs) -- sum up contribution
 
----sampleOneLight :: Scene -> Intersection -> Spectrum
---sampleOneLight 
+sampleOneLight :: Scene -> Intersection -> Spectrum
+sampleOneLight _ _ = white --do
+--  rnd <-randomRIO (0, 1 :: Double)
+--  return white
 
 --- samples one light source
 sampleLight :: Scene -> Intersection -> Light -> Spectrum
@@ -213,18 +202,21 @@ sampleDirLight (Scene sceneShape _) (pos, sn, ray) ld s
 --- pathtracer
 
 pathTracer :: Integrator
-pathTracer r scene@(Scene shape lights)
-  | isNothing mint = black
-  | otherwise = pathTracer' scene (fromJust mint)
-  where
-    mint = nearest r shape
+pathTracer r scene@(Scene shape lights) = do
+  return black
+--  | isNothing mint = black
+--  | otherwise = pathTracer' scene (fromJust mint)
+--  where
+--    mint = nearest r shape
 
 pathTracer' :: Scene -> Intersection -> Spectrum
-pathTracer' scene int = sampleAllLights scene int (sceneLights scene)
+pathTracer' scene int = do
+  
+  sampleOneLight scene int
 
 --- whitted - style integrator
 whitted :: Integrator
-whitted ray s@(Scene shape lights) = light ints
+whitted ray s@(Scene shape lights) = do return (light ints)
   where
     ints = intersect ray shape
     light [] = black -- background is black
@@ -257,14 +249,29 @@ myLights = [
 myScene :: Scene
 myScene = Scene myShape myLights
 
-makeImage :: Int -> Int -> String
-makeImage resX resY =
-  let fResX = fromIntegral resX
+makeImage :: Int -> Int -> Rand String
+makeImage resX resY = do
+  colours <- sequence (map (\ray -> whitted ray myScene) rays)
+  return (makePgm resX resY colours)
+    where
+      fResX = fromIntegral resX
       fResY = fromIntegral resY
       pixels = ndcs resX resY
       rays = map stareDownZAxis pixels
-      trace ray = (pathTracer ray myScene)
-      colours = map trace rays
-  in makePgm resX resY colours
+      
 
-main = do writeFile "test.ppm" (makeImage 800 800)
+makePgm :: Int -> Int -> [ Spectrum ] -> String
+makePgm width height xs = "P3\n" ++ show width ++ " " ++ show height ++ "\n255\n" ++ stringify(xs)
+		  where stringify [] = ""
+			stringify ((r,g,b):xs) = show (round (r*255)) ++ " " 
+						 ++ show (round (g*255)) ++ " " 
+						 ++ show (round (b*255)) ++ " " 
+						 ++ stringify xs
+
+main :: Rand ()
+main = do
+  putStrLn "Starting..."
+  img <- makeImage 800 800
+  writeFile "test.ppm" img
+  putStrLn "done."
+  
