@@ -176,16 +176,18 @@ geomFac :: Normal -> Normal -> Float
 geomFac n1 n2 = max 0 ((neg n1) `dot` n2)
 
 --- samples all lights by sampling individual lights and summing up the results
-sampleAllLights :: Scene -> Intersection -> [Light] -> Spectrum
-sampleAllLights _ _ [] = black -- no light source means black
-sampleAllLights s i (l:xs) = add (sampleLight s i l) (sampleAllLights s i xs) -- sum up contribution
+sampleAllLights :: Scene -> Intersection -> Spectrum
+sampleAllLights (Scene _ []) _ = black -- no light source means black
+sampleAllLights s@(Scene _ lights) i  = foldl add black spectri -- sum up contributions
+  where
+    spectri = map (sampleLight s i) lights 
 
 sampleOneLight :: Scene -> Intersection -> Spectrum
 sampleOneLight _ _ = white --do
 --  rnd <-randomRIO (0, 1 :: Double)
 --  return white
 
---- samples one light source
+--- samples a specific light source
 sampleLight :: Scene -> Intersection -> Light -> Spectrum
 sampleLight scene i (Directional ld s) = sampleDirLight scene i ld s
 
@@ -222,7 +224,7 @@ whitted ray s@(Scene shape lights) = do return (light ints)
     light [] = black -- background is black
     light xs = light' (closest xs) lights
       where
-	light' int@(_, ns, (_, rd)) lights = scalMul (sampleAllLights s int lights) (geomFac ns (neg rd))
+	light' int@(_, ns, (_, rd)) lights = scalMul (sampleAllLights s int) (geomFac ns (neg rd))
 	
     
 -- creates the normalized device coordinates from xres and yres
