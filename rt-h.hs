@@ -182,11 +182,14 @@ sampleAllLights s@(Scene _ lights) i  = foldl add black spectri -- sum up contri
   where
     spectri = map (sampleLight s i) lights 
 
-sampleOneLight :: Scene -> Intersection -> Spectrum
-sampleOneLight _ _ = white --do
---  rnd <-randomRIO (0, 1 :: Double)
---  return white
-
+sampleOneLight :: Scene -> Intersection -> Rand Spectrum
+sampleOneLight scene i = do
+  lightNum <-randomRIO (0, lightCount - 1)
+  return (sampleLight scene i (lights !! lightNum))
+  where
+    lightCount = length lights
+    lights = sceneLights scene
+    
 --- samples a specific light source
 sampleLight :: Scene -> Intersection -> Light -> Spectrum
 sampleLight scene i (Directional ld s) = sampleDirLight scene i ld s
@@ -204,16 +207,14 @@ sampleDirLight (Scene sceneShape _) (pos, sn, ray) ld s
 --- pathtracer
 
 pathTracer :: Integrator
-pathTracer r scene@(Scene shape lights) = do
-  return black
---  | isNothing mint = black
---  | otherwise = pathTracer' scene (fromJust mint)
---  where
---    mint = nearest r shape
+pathTracer r scene@(Scene shape lights)
+  | isNothing mint = do return black
+  | otherwise = pathTracer' scene (fromJust mint)
+  where
+    mint = nearest r shape
 
-pathTracer' :: Scene -> Intersection -> Spectrum
+pathTracer' :: Scene -> Intersection -> Rand Spectrum
 pathTracer' scene int = do
-  
   sampleOneLight scene int
 
 --- whitted - style integrator
