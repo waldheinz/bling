@@ -251,17 +251,6 @@ myLights = [
 myScene :: Scene
 myScene = Scene myShape myLights
 
-makeImage :: Int -> Int -> Rand String
-makeImage resX resY = do
-  colours <- sequence (map (\ray -> whitted ray myScene) rays)
-  return (makePgm resX resY colours)
-    where
-      fResX = fromIntegral resX
-      fResY = fromIntegral resY
-      pixels = ndcs resX resY
-      rays = map stareDownZAxis pixels
-      
-
 makePgm :: Int -> Int -> [ Spectrum ] -> String
 makePgm width height xs = "P3\n" ++ show width ++ " " ++ show height ++ "\n255\n" ++ stringify(xs)
 		  where stringify [] = ""
@@ -273,7 +262,14 @@ makePgm width height xs = "P3\n" ++ show width ++ " " ++ show height ++ "\n255\n
 main :: Rand ()
 main = do
   putStrLn "Starting..."
-  img <- makeImage 800 800
-  writeFile "test.ppm" img
+  colours <- sequence (map (\ray -> whitted ray myScene) rays)
+  writeFile "test.ppm" (makePgm resX resY colours)
   putStrLn "done."
+  where
+    resX = 800
+    resY = 800
+    fResX = fromIntegral resX
+    fResY = fromIntegral resY
+    pixels = ndcs resX resY
+    rays = map stareDownZAxis pixels
   
