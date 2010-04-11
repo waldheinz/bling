@@ -263,7 +263,7 @@ makePgm width height xs = "P3\n" ++ show width ++ " " ++ show height ++ "\n255\n
 main :: IO ()
 main = do
   putStrLn "Rendering..."
-  colours <- sequence (map (\ray -> whitted ray myScene) rays)
+  colours <- sequence (map (\ray -> pathTracer ray myScene) rays)
   putStrLn "Writing image..."
   writeFile "test.ppm" (makePgm resX resY colours)
   putStrLn "done."
