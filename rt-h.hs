@@ -72,7 +72,7 @@ reflect (o, d) pt = do
 ---
 --- colours
 ---
-type Spectrum = (Float, Float, Float) -- RGB for now
+type Spectrum = Vector -- RGB for now
 
 black :: Spectrum
 black = (0, 0, 0)
@@ -111,6 +111,9 @@ data Scene = Scene Shape [Light]
 --- extracts the lights from a scene
 sceneLights :: Scene -> [Light]
 sceneLights (Scene _ lights) = lights
+
+sceneShape :: Scene -> Shape
+sceneShape (Scene s _) = s
 
 --- extracts the closest intersection from a list of intersections
 closest :: [(Float, Intersection)] -> Intersection
@@ -227,18 +230,40 @@ sampleDirLight (Scene sceneShape _) (pos, sn, ray) ld s
     visible = not (intersects testRay sceneShape)
     testRay = (add pos (scalMul ld epsilon), ld)
     
+---
 --- pathtracer
+---
 
 pathTracer :: Integrator
-pathTracer r scene@(Scene shape lights)
-  | isNothing mint = do return black
-  | otherwise = pathTracer' scene (fromJust mint)
-  where
-    mint = nearest r shape
+pathTracer r scene@(Scene shape lights) = pathTracer' scene (nearest r shape) 0
 
-pathTracer' :: Scene -> Intersection -> Rand Spectrum
-pathTracer' scene int =
-  sampleOneLight scene int
+pathTracer' :: Scene -> Maybe Intersection -> Int -> Rand Spectrum
+pathTracer' _ Nothing _ = return black
+pathTracer' scene (Just int@(pos, _, r)) depth = do
+   y <- sampleOneLight scene int -- our direct contribution
+   continue <- keepGoing prob
+   next <- nearest (reflect r pos) (sceneShape scene)
+   return y
+   
+   where
+      prob = pAbort depth
+      
+pathReflect :: Scene -> Intersection -> Int -> Rand Maybe Intersection
+pathReflect _ _ depth
+   | 
+
+-- rolls a dice to decide if we should continue this path,
+-- returning true with the specified probability
+keepGoing :: Float -> Rand Bool
+keepGoing pAbort = do
+   rnd <- randomRIO (0, 1 :: Float)
+   return $! (rnd < pAbort)
+
+-- probability for aborting at the given recursion depth
+pAbort :: Int -> Float
+pAbort d
+   | d <= 3 = 0
+   | otherwise = 0.5
 
 --- whitted - style integrator
 whitted :: Integrator
@@ -292,8 +317,8 @@ main = do
   writeFile "test.ppm" (makePgm resX resY colours)
   putStrLn "done."
   where
-    resX = 800
-    resY = 800
+    resX = 400
+    resY = 400
     pixels = ndcs resX resY
     rays = map stareDownZAxis pixels
   
