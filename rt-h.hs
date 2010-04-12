@@ -240,11 +240,11 @@ pathTracer r scene@(Scene shape lights) = pathTracer' scene (nearest r shape) 0
 
 pathTracer' :: Scene -> Maybe Intersection -> Int -> Rand Spectrum
 pathTracer' _ Nothing _ = return black
-pathTracer' scene (Just int@(pos, _, ray)) depth = do
-   y <- sampleOneLight scene int -- our direct contribution
+pathTracer' scene (Just int@(pos, n, ray@(_, rd))) depth = do
+   y <- return (scalMul (sampleAllLights scene int) (geomFac n (neg rd)))
    recurse <- keepGoing pc
    next <- if (recurse) then pathReflect scene int (depth + 1) else return black
-   return $! (add y (scalMul next (1  / pc )))
+   return $! (add y (scalMul next ((geomFac n (neg rd)) / pc )))
    where
       pc = pCont depth
       
@@ -276,7 +276,6 @@ whitted ray s@(Scene shape lights) = do return (light ints)
     light xs = light' (closest xs) lights
       where
         light' int@(_, ns, (_, rd)) lights = scalMul (sampleAllLights s int) (geomFac ns (neg rd))
-	
     
 -- creates the normalized device coordinates from xres and yres
 ndcs :: Int -> Int -> [ (Float, Float) ]
@@ -313,6 +312,9 @@ makePgm width height xs = "P3\n" ++ show width ++ " " ++ show height ++ "\n255\n
     stringify ((r,g,b):xs) = show (clamp r) ++ " " ++
       show (clamp g) ++ " " ++ show (clamp b) ++ " " ++
       stringify xs
+
+pixelSize :: Int -> Float
+pixelSize pixels = 1 / (fromIntegral pixels)
 
 main :: IO ()
 main = do
