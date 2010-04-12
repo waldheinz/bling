@@ -239,25 +239,25 @@ pathTracer r scene@(Scene shape lights) = pathTracer' scene (nearest r shape) 0
 
 pathTracer' :: Scene -> Maybe Intersection -> Int -> Rand Spectrum
 pathTracer' _ Nothing _ = return black
-pathTracer' scene (Just int@(pos, _, r)) depth = do
+pathTracer' scene (Just int@(pos, _, ray)) depth = do
    y <- sampleOneLight scene int -- our direct contribution
-   continue <- keepGoing prob
-   next <- nearest (reflect r pos) (sceneShape scene)
-   return y
-   
+   recurse <- keepGoing pa
+   next <- if (recurse) then pathReflect scene pos ray (depth + 1) else return black
+   return $! (add y (scalMul next (1  / pa )))
    where
-      prob = pAbort depth
+      pa = pAbort depth
       
-pathReflect :: Scene -> Intersection -> Int -> Rand Maybe Intersection
-pathReflect _ _ depth
-   | 
-
+pathReflect :: Scene -> Point -> Ray -> Int -> Rand Spectrum
+pathReflect scene pos ray depth = do
+   reflected <- reflect ray pos
+   pathTracer' scene (nearest reflected (sceneShape scene)) depth
+   
 -- rolls a dice to decide if we should continue this path,
 -- returning true with the specified probability
 keepGoing :: Float -> Rand Bool
 keepGoing pAbort = do
    rnd <- randomRIO (0, 1 :: Float)
-   return $! (rnd < pAbort)
+   return $! (rnd > pAbort)
 
 -- probability for aborting at the given recursion depth
 pAbort :: Int -> Float
@@ -300,19 +300,21 @@ myLights = [
 myScene :: Scene
 myScene = Scene myShape myLights
 
+clamp :: Float -> Int
+clamp v = round ( (min 1 (max 0 v)) * 255 )
+
 makePgm :: Int -> Int -> [ Spectrum ] -> String
 makePgm width height xs = "P3\n" ++ show width ++ " " ++ show height ++ "\n255\n" ++ stringify(xs)
   where 
     stringify [] = ""
-    stringify ((r,g,b):xs) = show (round (r*255)) ++ " " ++
-      show (round (g*255)) ++ " " ++
-      show (round (b*255)) ++ " " ++
+    stringify ((r,g,b):xs) = show (clamp r) ++ " " ++
+      show (clamp g) ++ " " ++ show (clamp b) ++ " " ++
       stringify xs
 
 main :: IO ()
 main = do
   putStrLn "Rendering..."
-  colours <- sequence (map (\ray -> pathTracer ray myScene) rays)
+  colours <- sequence (map (\ray -> whitted ray myScene) rays)
   putStrLn "Writing image..."
   writeFile "test.ppm" (makePgm resX resY colours)
   putStrLn "done."
