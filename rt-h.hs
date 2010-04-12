@@ -3,7 +3,10 @@
 import Maybe
 import System.Random
 
+---
 --- basic maths stuff used everywhere
+---
+
 type Rand a = IO a
 type Vector = (Float, Float, Float)
 type Point = Vector
@@ -47,8 +50,28 @@ roots a b c = let d = b*b - 4*a*c
 	      in if (d < 0.0) then []
 	         else [ 0.5 * (-b + sqrt d), 0.5 * (-b - sqrt d) ]
 
---- colours
+--- generates a random point on the unit sphere
+--- see http://mathworld.wolfram.com/SpherePointPicking.html
+randomOnSphere :: Rand Vector
+randomOnSphere = do
+   u <- randomRIO (-1, 1 :: Float)
+   omega <- randomRIO (0, 2 * pi :: Float)
+   return $! ((s u) * cos omega, (s u) * sin omega, u)
+   where
+      s = (\u -> (sqrt (1 - (u ^ 2))))
 
+sameHemisphere :: Vector -> Vector -> Vector
+sameHemisphere v1 v2
+   | (dot v1 v2) < 0 = v1
+   | otherwise = neg v1
+
+reflect :: Ray -> Point -> Rand Ray
+reflect (o, d) pt = do
+   rnd <- randomOnSphere
+   return (pt, (sameHemisphere rnd d))
+---
+--- colours
+---
 type Spectrum = (Float, Float, Float) -- RGB for now
 
 black :: Spectrum
@@ -78,8 +101,6 @@ data Shape
   | Plane Float Normal -- a plane has a distance from origin and a normal
   | Group [Shape]
   
-
-
 ---
 --- scene definition
 ---
@@ -216,7 +237,7 @@ pathTracer r scene@(Scene shape lights)
     mint = nearest r shape
 
 pathTracer' :: Scene -> Intersection -> Rand Spectrum
-pathTracer' scene int = do
+pathTracer' scene int =
   sampleOneLight scene int
 
 --- whitted - style integrator
@@ -227,7 +248,7 @@ whitted ray s@(Scene shape lights) = do return (light ints)
     light [] = black -- background is black
     light xs = light' (closest xs) lights
       where
-	light' int@(_, ns, (_, rd)) lights = scalMul (sampleAllLights s int) (geomFac ns (neg rd))
+        light' int@(_, ns, (_, rd)) lights = scalMul (sampleAllLights s int) (geomFac ns (neg rd))
 	
     
 -- creates the normalized device coordinates from xres and yres
