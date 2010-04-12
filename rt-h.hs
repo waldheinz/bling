@@ -65,10 +65,11 @@ sameHemisphere v1 v2
    | (dot v1 v2) < 0 = v1
    | otherwise = neg v1
 
-reflect :: Ray -> Point -> Rand Ray
-reflect (o, d) pt = do
+reflect :: Normal -> Point -> Rand Ray
+reflect n pt = do
    rnd <- randomOnSphere
-   return (pt, (sameHemisphere rnd d))
+   return (sub pt (scalMul n epsilon), (sameHemisphere rnd n))
+   
 ---
 --- colours
 ---
@@ -241,28 +242,29 @@ pathTracer' :: Scene -> Maybe Intersection -> Int -> Rand Spectrum
 pathTracer' _ Nothing _ = return black
 pathTracer' scene (Just int@(pos, _, ray)) depth = do
    y <- sampleOneLight scene int -- our direct contribution
-   recurse <- keepGoing pa
-   next <- if (recurse) then pathReflect scene pos ray (depth + 1) else return black
-   return $! (add y (scalMul next (1  / pa )))
+   recurse <- keepGoing pc
+   next <- if (recurse) then pathReflect scene int (depth + 1) else return black
+   return $! (add y (scalMul next (1  / pc )))
    where
-      pa = pAbort depth
+      pc = pCont depth
       
-pathReflect :: Scene -> Point -> Ray -> Int -> Rand Spectrum
-pathReflect scene pos ray depth = do
-   reflected <- reflect ray pos
+pathReflect :: Scene -> Intersection -> Int -> Rand Spectrum
+pathReflect scene (pos, n, _) depth = do
+   reflected <- reflect n pos
    pathTracer' scene (nearest reflected (sceneShape scene)) depth
    
 -- rolls a dice to decide if we should continue this path,
 -- returning true with the specified probability
 keepGoing :: Float -> Rand Bool
+keepGoing 1 = return True
 keepGoing pAbort = do
    rnd <- randomRIO (0, 1 :: Float)
-   return $! (rnd > pAbort)
+   return $! (rnd < pAbort)
 
 -- probability for aborting at the given recursion depth
-pAbort :: Int -> Float
-pAbort d
-   | d <= 3 = 0
+pCont :: Int -> Float
+pCont d
+   | d <= 3 = 1
    | otherwise = 0.5
 
 --- whitted - style integrator
@@ -286,6 +288,7 @@ ndcs resX resY =
   in map scale pixels
 
 myShape :: Shape
+--myShape = Sphere 1.0 (0,0,0)
 myShape = Group [
   (Sphere 1.00 (-0.5, 0, 0.5)),
   (Sphere 0.75 ( 0.5, 0,   0)),
@@ -294,7 +297,7 @@ myShape = Group [
 myLights :: [Light]
 myLights = [
   (Directional (normalize ( 1, -2, 0)) (0.9, 0.5, 0.5)),
-  (Directional (normalize ( 0, -1, -1)) (0.5, 0.5, 0.5)),
+  (Directional (normalize ( 0, -1, -1)) (0.5, 0.5, 0.5)), 
   (Directional (normalize (-1, -2, 0)) (0.5, 0.9, 0.5))]
 
 myScene :: Scene
