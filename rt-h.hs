@@ -42,7 +42,7 @@ dot (x,y,z) (a,b,c) = x*a + y*b + z*c;
 normalize :: Vector -> Normal
 normalize v
   | (sqLen v) /= 0 = scalMul v (1 / len v)
-  | otherwise = (0, 0, 0)
+  | otherwise = (0, 1, 0)
 
 -- Calculate the roots of the equation a * x^2 + b * x + c = 0
 roots :: Float -> Float -> Float -> [Float]
@@ -62,13 +62,13 @@ randomOnSphere = do
 
 sameHemisphere :: Vector -> Vector -> Vector
 sameHemisphere v1 v2
-   | (dot v1 v2) < 0 = v1
+   | (dot v1 v2) > 0 = v1
    | otherwise = neg v1
 
 reflect :: Normal -> Point -> Rand Ray
 reflect n pt = do
    rnd <- randomOnSphere
-   return (sub pt (scalMul n epsilon), (sameHemisphere rnd n))
+   return (pt, (sameHemisphere rnd n))
    
 ---
 --- colours
@@ -154,15 +154,25 @@ intSphere ray@(origin, rayDir) r center = map (\t -> (t, intAt t)) times
     times = filter (> epsilon) (roots a b c)
     hitPoint = positionAt ray
     intAt t = (hitPoint t, normalAt t, ray)
-    normalAt t = normalize (center `sub` (hitPoint t))
+    normalAt t = normalize (sub (hitPoint t) center)
 
 intGroup :: Ray -> [Shape] -> [ (Float, Intersection) ]
 intGroup _ [] = []
 intGroup ray (shape:rest) = (intersect ray shape) ++ (intGroup ray rest)
 
---- TODO: this can be done much faster
 intersects :: Ray -> Shape -> Bool
-intersects r s = not ((intersect r s) == [])
+intersects _ (Group []) = False
+intersects r (Group (s:xs)) = (intersects r s) || intersects r (Group xs)
+intersects r (Sphere rad center) = intersectsSphere r rad center
+intersects (ro, rd) (Plane d n) = ((ro `dot` n + d) / (rd `dot` n)) < 0
+
+intersectsSphere :: Ray -> Float -> Point -> Bool
+intersectsSphere (ro, rd) rad ct = (filter (> epsilon) (roots a b c)) /= []
+   where
+         d = ro `sub` ct
+         a = sqLen rd
+         b = 2 * (d `dot` rd)
+         c = (sqLen d) - (rad * rad)
 
 ---
 --- Lights
@@ -181,22 +191,8 @@ stareDownZAxis :: Camera
 stareDownZAxis (px, py) = ((0, 0, posZ), normalize dir)
   where
     posZ = -4
-    dir = ((px - 0.5) * 4, (py - 0.5) * 4, -posZ)
+    dir = ((px - 0.5) * 4, (0.5 - py) * 4, -posZ)
 
----
---- an integrator takes a ray, a shape and a number of light sources and computes a final color
----
-type Integrator = Ray -> Scene -> Rand Spectrum
-
---- the debug integrator visualizes the normals of the shapes that were hit
-debug :: Integrator
-debug ray (Scene shape _) = do return (color ray intersections)
-  where
-    intersections = intersect ray shape
-    color (_, dir) [] = showDir dir -- if no shape was hit show the direction of the ray
-    color _ xs = showNormal (closest xs)
-    showNormal (_, normal, _) =  showDir normal
-    showDir (dx, dy, dz) = (abs dx, abs dy, abs dz)
 
 geomFac :: Normal -> Normal -> Float
 geomFac n1 n2 = max 0 ((neg n1) `dot` n2)
@@ -229,11 +225,16 @@ sampleDirLight (Scene sceneShape _) (pos, sn, ray) ld s
   where
     unCond = scalMul s (geomFac ld sn)
     visible = not (intersects testRay sceneShape)
-    testRay = (add pos (scalMul ld epsilon), ld)
+    testRay = (add (scalMul outDir epsilon) pos, outDir)
+    outDir = neg ld
+---
+--- integrators
+---
+
+--- an integrator takes a ray and a shape and computes a final color
+type Integrator = Ray -> Scene -> Rand Spectrum
     
----
---- pathtracer
----
+--- path tracer
 
 pathTracer :: Integrator
 pathTracer r scene@(Scene shape lights) = pathTracer' scene (nearest r shape) 0
@@ -241,17 +242,18 @@ pathTracer r scene@(Scene shape lights) = pathTracer' scene (nearest r shape) 0
 pathTracer' :: Scene -> Maybe Intersection -> Int -> Rand Spectrum
 pathTracer' _ Nothing _ = return black
 pathTracer' scene (Just int@(pos, n, ray@(_, rd))) depth = do
-   y <- return (scalMul (sampleAllLights scene int) (geomFac n (neg rd)))
+   y <- return (sampleAllLights scene int)
    recurse <- keepGoing pc
    next <- if (recurse) then pathReflect scene int (depth + 1) else return black
-   return $! (add y (scalMul next ((geomFac n (neg rd)) / pc )))
+   return $! (add y (scalMul next (1 / pc)))
    where
       pc = pCont depth
       
 pathReflect :: Scene -> Intersection -> Int -> Rand Spectrum
-pathReflect scene (pos, n, _) depth = do
-   reflected <- reflect n pos
-   pathTracer' scene (nearest reflected (sceneShape scene)) depth
+pathReflect scene (pos, n, (_, inDir)) depth = do
+   rayOut <- reflect n pos
+   yIn <- pathTracer' scene (nearest rayOut (sceneShape scene)) depth
+   return (scalMul yIn (geomFac n ((\(_, d) -> neg d) rayOut)))
    
 -- rolls a dice to decide if we should continue this path,
 -- returning true with the specified probability
@@ -275,8 +277,23 @@ whitted ray s@(Scene shape lights) = do return (light ints)
     light [] = black -- background is black
     light xs = light' (closest xs) lights
       where
-        light' int@(_, ns, (_, rd)) lights = scalMul (sampleAllLights s int) (geomFac ns (neg rd))
-    
+        light' int@(_, ns, (_, rd)) lights = scalMul (sampleAllLights s int) (geomFac ns rd)
+
+
+--- the debug integrator visualizes the normals of the shapes that were hit
+debug :: Integrator
+debug ray (Scene shape _) = do return (color ray intersections)
+  where
+    intersections = intersect ray shape
+    color (_, dir) [] = showDir dir -- if no shape was hit show the direction of the ray
+    color _ xs = showNormal (closest xs)
+    showNormal (pos, n, _) =  showDir pos
+    showDir (dx, dy, dz) = (dx,  dy, dz)
+
+debugGeometry :: Integrator
+debugGeometry r (Scene s _)
+   | intersects r s = return white
+   | otherwise = return black
 
 ---
 --- sampling and reconstruction
@@ -303,7 +320,7 @@ myShape :: Shape
 myShape = Group [
   (Sphere 1.00 (-0.5, 0, 0.5)),
   (Sphere 0.75 ( 0.5, 0,   0)),
-  (Plane (-1) (0, 1, 0))]
+  (Plane (1) (0, 1, 0))]
 
 myLights :: [Light]
 myLights = [
@@ -316,8 +333,8 @@ myScene = Scene myShape myLights
 
 sphereOnPlane :: Scene
 sphereOnPlane = Scene 
-   (Group [ Sphere 1.0 (0,0.0,0), Plane (-1) (0,1,0) ])
-   ([ Directional (0, -1, 0) (0.8, 0.8, 0.8) ])
+   (Group [ Sphere 1.0 (0,0.0,0) , Plane (1) (0,1,0) ])
+   ([ Directional (0, -1, 0) (0.95, 0.95, 0.9) ])
 
 clamp :: Float -> Int
 clamp v = round ( (min 1 (max 0 v)) * 255 )
@@ -347,15 +364,15 @@ pixelSize pixels = 1 / (fromIntegral pixels)
 
 main :: IO ()
 main = do
-  putStrLn "Rendering..."
-  colours <- sequence (map (pixelSpectrum 64 (\px -> pathTracer (stareDownZAxis px) sphereOnPlane)) pixels)
-  -- colours <- sequence (map (\ray -> pathTracer ray sphereOnPlane) rays)
-  putStrLn "Writing image..."
-  writeFile "test.ppm" (makePgm resX resY colours)
-  putStrLn "done."
-  where
-    resX = 400
-    resY = 400
-    pixels = ndcs resX resY
-    rays = map stareDownZAxis pixels
+   putStrLn "Rendering..."
+   colours <- sequence (map (pixelSpectrum 64 (\px -> pathTracer (stareDownZAxis px) scene)) pixels)
+   putStrLn "Writing image..."
+   writeFile "test.ppm" (makePgm resX resY colours)
+   putStrLn "done."
+   where
+         scene = sphereOnPlane
+         resX = 200
+         resY = 200
+         pixels = ndcs resX resY
+         rays = map stareDownZAxis pixels
   
