@@ -277,6 +277,11 @@ whitted ray s@(Scene shape lights) = do return (light ints)
       where
         light' int@(_, ns, (_, rd)) lights = scalMul (sampleAllLights s int) (geomFac ns (neg rd))
     
+
+---
+--- sampling and reconstruction
+---
+
 -- creates the normalized device coordinates from xres and yres
 ndcs :: Int -> Int -> [ (Float, Float) ]
 ndcs resX resY =
@@ -286,8 +291,15 @@ ndcs resX resY =
       scale (x, y) = ((fromIntegral x) / fResX, (fromIntegral y) / fResY)
   in map scale pixels
 
+  -- samples in x and y
+stratify :: Int -> Int  -> Rand [ (Float, Float) ]
+stratify x y = return [ (fromIntegral sx, fromIntegral sy) | sy <- [0..y-1], sx <- [0..x-1] ]
+
+---
+--- scene definition
+---
+
 myShape :: Shape
---myShape = Sphere 1.0 (0,0,0)
 myShape = Group [
   (Sphere 1.00 (-0.5, 0, 0.5)),
   (Sphere 0.75 ( 0.5, 0,   0)),
@@ -302,6 +314,11 @@ myLights = [
 myScene :: Scene
 myScene = Scene myShape myLights
 
+sphereOnPlane :: Scene
+sphereOnPlane = Scene 
+   (Group [ Sphere 1.0 (0,0.0,0), Plane (-1) (0,1,0) ])
+   ([ Directional (0, -1, 0) (0.8, 0.8, 0.8) ])
+
 clamp :: Float -> Int
 clamp v = round ( (min 1 (max 0 v)) * 255 )
 
@@ -313,13 +330,26 @@ makePgm width height xs = "P3\n" ++ show width ++ " " ++ show height ++ "\n255\n
       show (clamp g) ++ " " ++ show (clamp b) ++ " " ++
       stringify xs
 
+pixelSpectrum :: Int -> ((Float, Float) -> Rand Spectrum) -> (Float, Float) -> Rand Spectrum
+pixelSpectrum 0 _ _ = return black
+pixelSpectrum n f px = do
+   sum <- eval n
+   return $! (scalMul sum (1 / (fromIntegral n)))
+   where
+         eval 0 = return black
+         eval n = do
+            c <- f px
+            c1 <- eval (n-1)
+            return $! ( add c c1 )
+
 pixelSize :: Int -> Float
 pixelSize pixels = 1 / (fromIntegral pixels)
 
 main :: IO ()
 main = do
   putStrLn "Rendering..."
-  colours <- sequence (map (\ray -> pathTracer ray myScene) rays)
+  colours <- sequence (map (pixelSpectrum 64 (\px -> pathTracer (stareDownZAxis px) sphereOnPlane)) pixels)
+  -- colours <- sequence (map (\ray -> pathTracer ray sphereOnPlane) rays)
   putStrLn "Writing image..."
   writeFile "test.ppm" (makePgm resX resY colours)
   putStrLn "done."
