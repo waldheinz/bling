@@ -2,7 +2,7 @@
 
 import Maybe
 import System.Random
-
+import Control.Monad
 
 ---
 --- a Monad providing a PRNG
@@ -312,31 +312,31 @@ debug ray (Scene shape _) = do return (color ray intersections)
     intersections = intersect ray shape
     color (_, dir) [] = showDir dir -- if no shape was hit show the direction of the ray
     color _ xs = showNormal (closest xs)
-    showNormal (pos, n, _) =  showDir pos
-    showDir (dx, dy, dz) = (dx,  dy, dz)
-
-debugGeometry :: Integrator
-debugGeometry r (Scene s _)
-   | intersects r s = return white
-   | otherwise = return black
+    showNormal (_ , n, _) =  showDir n
+    showDir (dx, dy, dz) = (abs dx, abs dy, abs dz)
 
 ---
 --- sampling and reconstruction
 ---
 
 -- creates the normalized device coordinates from xres and yres
-ndcs :: Int -> Int -> [ (Float, Float) ]
-ndcs resX resY =
-  let pixels = [ (x, y) | y <- [0..resY-1], x <- [0..resX-1] ]
-      fResX = fromIntegral resX
-      fResY = fromIntegral resY
-      scale (x, y) = ((fromIntegral x) / fResX, (fromIntegral y) / fResY)
-  in map scale pixels
+ndc :: (Int, Int) -> (Int, Int) -> (Float, Float)
+ndc (resX, resY) (px, py) = ((fromIntegral px / fromIntegral resX), (fromIntegral py / fromIntegral resY))
 
-  -- samples in x and y
-stratify :: Int -> Int  -> Rand [ (Float, Float) ]
-stratify x y = return [ (fromIntegral sx, fromIntegral sy) | sy <- [0..y-1], sx <- [0..x-1] ]
-
+-- samples in x and y
+--stratify :: Int -> Int -> Rand [ (Float, Float) ]
+--stratify x y = do
+   
+--   [ (fromIntegral sx, fromIntegral sy) | sy <- [0..y-1], sx <- [0..x-1] ]
+--      where
+--            spp = 4
+   
+pixelColor :: ((Float, Float) -> Rand Spectrum) -> (Int, Int) -> (Int, Int) -> Rand Spectrum
+pixelColor f res pixel@(px, py) = do
+   y <- (mapM f ndcs)
+   return (scalMul (foldl add black y) (1 / fromIntegral spp)) where
+      ndcs = replicate spp (ndc res pixel)
+      spp = 8
 ---
 --- scene definition
 ---
@@ -372,20 +372,12 @@ makePgm width height xs = "P3\n" ++ show width ++ " " ++ show height ++ "\n255\n
       show (clamp g) ++ " " ++ show (clamp b) ++ " " ++
       stringify xs
 
-pixelSpectrum :: Int -> ((Float, Float) -> Rand Spectrum) -> (Float, Float) -> Rand Spectrum
-pixelSpectrum 0 _ _ = return black
-pixelSpectrum n f px = do
-   sum <- eval n
-   return $! (scalMul sum (1 / (fromIntegral n)))
-   where
-         eval 0 = return black
-         eval n = do
-            c <- f px
-            c1 <- eval (n-1)
-            return $! ( add c c1 )
-
-pixelSize :: Int -> Float
-pixelSize pixels = 1 / (fromIntegral pixels)
+noise :: (Float, Float) -> Rand Spectrum
+noise (x, y) = do
+   r <- rndR (0, x)
+   g <- rndR (0, y)
+   b <- rnd
+   return (r, g, b)
 
 main :: IO ()
 main = do
@@ -394,8 +386,9 @@ main = do
    
    where
          scene = sphereOnPlane
-         resX = 800
-         resY = 800
-         pixels = ndcs resX resY
-         rays = map stareDownZAxis pixels
-         colours = mapM (\ray -> pathTracer ray scene) rays
+         resX = 800 :: Int
+         resY = 800 :: Int
+         pixels = [ (x, y) | y <- [0..resX-1], x <- [0..resY-1]]
+         pixelFunc = (\ndc -> pathTracer (stareDownZAxis ndc) scene)
+         colours = mapM (pixelColor pixelFunc (resX, resY)) pixels
+         
