@@ -3,11 +3,33 @@
 import Maybe
 import System.Random
 
+
+---
+--- a Monad providing a PRNG
+---
+
+data Rand a = Rand (StdGen -> (a, StdGen))
+
+instance Monad Rand where
+   return k = Rand (\s -> (k, s))
+   Rand c1 >>= fc2 = Rand (\s0 ->  let 
+                                       (r,s1) = c1 s0 
+                                       Rand c2 = fc2 r in
+                                       c2 s1)
+
+runRand :: StdGen -> Rand a -> (a, StdGen)
+runRand rng (Rand c) = c rng
+
+rnd :: Rand Float
+rnd = Rand (randomR (0, 1::Float))
+
+rndR :: Random a => (a, a) -> Rand a
+rndR range = Rand (randomR range)
+
 ---
 --- basic maths stuff used everywhere
 ---
 
-type Rand a = IO a
 type Vector = (Float, Float, Float)
 type Point = Vector
 type Ray = (Point, Vector) --- origin and direction
@@ -54,8 +76,8 @@ roots a b c = let d = b*b - 4*a*c
 --- see http://mathworld.wolfram.com/SpherePointPicking.html
 randomOnSphere :: Rand Vector
 randomOnSphere = do
-   u <- randomRIO (-1, 1 :: Float)
-   omega <- randomRIO (0, 2 * pi :: Float)
+   u <- rndR (-1, 1 :: Float)
+   omega <- rndR (0, 2 * pi :: Float)
    return $! ((s u) * cos omega, (s u) * sin omega, u)
    where
       s = (\u -> (sqrt (1 - (u ^ 2))))
@@ -67,8 +89,8 @@ sameHemisphere v1 v2
 
 reflect :: Normal -> Point -> Rand Ray
 reflect n pt = do
-   rnd <- randomOnSphere
-   return (pt, (sameHemisphere rnd n))
+   rndPt <- randomOnSphere
+   return (pt, (sameHemisphere rndPt n))
    
 ---
 --- colours
@@ -207,7 +229,7 @@ sampleAllLights s@(Scene _ lights) i  = foldl add black spectri -- sum up contri
  -- samples one randomly chosen light source
 sampleOneLight :: Scene -> Intersection -> Rand Spectrum
 sampleOneLight scene i = do
-  lightNum <-randomRIO (0, lightCount - 1)
+  lightNum <-rndR (0, lightCount - 1)
   return (sampleLight scene i (lights !! lightNum))
   where
     lightCount = length lights
@@ -260,8 +282,8 @@ pathReflect scene (pos, n, (_, inDir)) depth = do
 keepGoing :: Float -> Rand Bool
 keepGoing 1 = return True
 keepGoing pAbort = do
-   rnd <- randomRIO (0, 1 :: Float)
-   return $! (rnd < pAbort)
+   x <- rnd
+   return $! (x < pAbort)
 
 -- probability for aborting at the given recursion depth
 pCont :: Int -> Float
@@ -362,17 +384,18 @@ pixelSpectrum n f px = do
 pixelSize :: Int -> Float
 pixelSize pixels = 1 / (fromIntegral pixels)
 
+fromRand :: (a, StdGen) -> a
+fromRand (a, _) = a
+
 main :: IO ()
 main = do
-   putStrLn "Rendering..."
-   colours <- sequence (map (pixelSpectrum 64 (\px -> pathTracer (stareDownZAxis px) scene)) pixels)
-   putStrLn "Writing image..."
-   writeFile "test.ppm" (makePgm resX resY colours)
-   putStrLn "done."
+   prng <- newStdGen
+   writeFile "test.ppm" (makePgm resX resY (fromRand (runRand prng colours)))
+--   writeFile "test.ppm" (makePgm resX resY (map (\ray -> pathTracer ray scene) rays))
    where
          scene = sphereOnPlane
-         resX = 200
-         resY = 200
+         resX = 1200
+         resY = 1200
          pixels = ndcs resX resY
          rays = map stareDownZAxis pixels
-  
+         colours = (sequence (map (\ray -> pathTracer ray scene) rays))
