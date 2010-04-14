@@ -20,6 +20,9 @@ instance Monad Rand where
 runRand :: StdGen -> Rand a -> (a, StdGen)
 runRand rng (Rand c) = c rng
 
+fromRand :: (a, StdGen) -> a
+fromRand (a, _) = a
+
 rnd :: Rand Float
 rnd = Rand (randomR (0, 1::Float))
 
@@ -384,18 +387,15 @@ pixelSpectrum n f px = do
 pixelSize :: Int -> Float
 pixelSize pixels = 1 / (fromIntegral pixels)
 
-fromRand :: (a, StdGen) -> a
-fromRand (a, _) = a
-
 main :: IO ()
 main = do
    prng <- newStdGen
    writeFile "test.ppm" (makePgm resX resY (fromRand (runRand prng colours)))
---   writeFile "test.ppm" (makePgm resX resY (map (\ray -> pathTracer ray scene) rays))
+   
    where
          scene = sphereOnPlane
-         resX = 1200
-         resY = 1200
+         resX = 800
+         resY = 800
          pixels = ndcs resX resY
          rays = map stareDownZAxis pixels
-         colours = (sequence (map (\ray -> pathTracer ray scene) rays))
+         colours = mapM (\ray -> pathTracer ray scene) rays
