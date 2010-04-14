@@ -324,34 +324,40 @@ ndc :: (Int, Int) -> (Int, Int) -> (Float, Float)
 ndc (resX, resY) (px, py) = ((fromIntegral px / fromIntegral resX), (fromIntegral py / fromIntegral resY))
 
 -- samples in x and y
---stratify :: Int -> Int -> Rand [ (Float, Float) ]
---stratify x y = do
+stratify :: (Int, Int) -> (Int, Int) -> Rand [(Float, Float)]
+stratify res@(resX, resY) pixel@(px, py) = do
    
---   [ (fromIntegral sx, fromIntegral sy) | sy <- [0..y-1], sx <- [0..x-1] ]
---      where
---            spp = 4
+   return (map (pxAdd base) offsets) where
+      base = ndc res pixel
+      offsets = [(x / fpps , y / fpps) | 
+         x <- (map fromIntegral [0..steps-1]),
+         y <- (map fromIntegral [0..steps-1]) ]
+      fpps = (fromIntegral steps) * (fromIntegral resX)
+      pxAdd (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
+      steps = 10
    
 pixelColor :: ((Float, Float) -> Rand Spectrum) -> (Int, Int) -> (Int, Int) -> Rand Spectrum
 pixelColor f res pixel@(px, py) = do
+   ndcs <- stratify res pixel
    y <- (mapM f ndcs)
    return (scalMul (foldl add black y) (1 / fromIntegral spp)) where
-      ndcs = replicate spp (ndc res pixel)
-      spp = 8
+      spp = 100
+      
 ---
 --- scene definition
 ---
 
 myShape :: Shape
 myShape = Group [
-  (Sphere 1.00 (-0.5, 0, 0.5)),
-  (Sphere 0.75 ( 0.5, 0,   0)),
+  (Sphere 1.0 (-1.0, 0, 0.5)),
+  (Sphere 1.0 ( 1.0, 0, 0.5)),
   (Plane (1) (0, 1, 0))]
 
 myLights :: [Light]
 myLights = [
-  (Directional (normalize ( 1, -2, 0)) (0.9, 0.5, 0.5)),
-  (Directional (normalize ( 0, -1, -1)) (0.5, 0.5, 0.5)), 
-  (Directional (normalize (-1, -2, 0)) (0.5, 0.9, 0.5))]
+  (Directional (normalize ( 1, -2,  1)) (0.7, 0.2, 0.2)),
+  (Directional (normalize ( 0, -1, -1)) (0.4, 0.4, 0.4)), 
+  (Directional (normalize (-1, -2,  1)) (0.2, 0.7, 0.2))]
 
 myScene :: Scene
 myScene = Scene myShape myLights
@@ -385,7 +391,7 @@ main = do
    writeFile "test.ppm" (makePgm resX resY (fromRand (runRand prng colours)))
    
    where
-         scene = sphereOnPlane
+         scene = myScene
          resX = 800 :: Int
          resY = 800 :: Int
          pixels = [ (x, y) | y <- [0..resX-1], x <- [0..resY-1]]
