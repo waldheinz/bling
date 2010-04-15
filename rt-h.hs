@@ -132,14 +132,14 @@ data Shape
 ---
 
 --- a scene is a Shape (most probably a group) and some light sources
-data Scene = Scene Shape [Light]
+--data (Light' a) => Scene = Scene Shape [a]
 
 --- extracts the lights from a scene
-sceneLights :: Scene -> [Light]
-sceneLights (Scene _ lights) = lights
+--sceneLights :: Scene -> [Light]
+--sceneLights (Scene _ lights) = lights
 
-sceneShape :: Scene -> Shape
-sceneShape (Scene s _) = s
+--sceneShape :: Scene -> Shape
+--sceneShape (Scene s _) = s
 
 --- extracts the closest intersection from a list of intersections
 closest :: [(Float, Intersection)] -> Intersection
@@ -203,8 +203,32 @@ intersectsSphere (ro, rd) rad ct = (filter (> epsilon) (roots a b c)) /= []
 --- Lights
 ---
 
-data Light
-  = Directional Normal Spectrum
+data Directional = Directional {
+   dir :: Normal, -- the direction this light emits to
+   radiance :: Spectrum }
+
+data LightSample = LightSample {
+   de :: Spectrum, -- differential irradiance
+   wo :: Vector, -- incident direction
+   testRay :: Ray } -- for visibility test
+
+class Light a where
+   sampleLight :: a -> Intersection -> Rand LightSample
+
+instance Light Directional where
+   sampleLight dl (pos, n, _) = return (LightSample y (dir dl) ray) where
+      y = scalMul (radiance dl) (abs (dot n lDir))
+      ray = (pos, neg lDir)
+      lDir = dir dl
+
+evalLight :: (Light a) => Shape -> Intersection -> a -> Rand Spectrum
+evalLight shape int light
+   | visible = (liftM de) sample -- TODO: first check the color, if non-black check the visibility
+   | otherwise = return black
+      where
+         sample = sampleLight light int
+         visible = True
+         ray = ((liftM testRay) sample)
 
 ---
 --- a camera transforms a pixel in normalized device coordinates (NDC) to a ray
@@ -218,67 +242,52 @@ stareDownZAxis (px, py) = ((0, 0, posZ), normalize dir)
     posZ = -4
     dir = ((px - 0.5) * 4, (0.5 - py) * 4, -posZ)
 
-
 geomFac :: Normal -> Normal -> Float
 geomFac n1 n2 = max 0 ((neg n1) `dot` n2)
 
 --- samples all lights by sampling individual lights and summing up the results
-sampleAllLights :: Scene -> Intersection -> Spectrum
-sampleAllLights (Scene _ []) _ = black -- no light source means black
-sampleAllLights s@(Scene _ lights) i  = foldl add black spectri -- sum up contributions
+sampleAllLights :: (Light a) => Shape -> [a] -> Intersection -> Rand Spectrum
+sampleAllLights _ [] _ = return black -- no light source means no light
+sampleAllLights shape lights i  = (foldl (liftM2 add) (return black) spectri) -- sum up contributions
   where
-    spectri = map (sampleLight s i) lights 
+    spectri = map (evalLight shape i) lights
 
  -- samples one randomly chosen light source
-sampleOneLight :: Scene -> Intersection -> Rand Spectrum
-sampleOneLight scene i = do
+sampleOneLight :: (Light a) => Shape -> [a] -> Intersection -> Rand Spectrum
+sampleOneLight shape lights i = do
   lightNum <-rndR (0, lightCount - 1)
-  y <- return (sampleLight scene i (lights !! lightNum))
-  return (scalMul y (fromIntegral lightCount)) -- scale by probability choosing that light
+  y <- return (evalLight shape i (lights !! lightNum))
+  ((liftM2 scalMul) y (return (fromIntegral lightCount))) -- scale by probability choosing that light
   where
     lightCount = length lights
-    lights = sceneLights scene
     
---- samples a specific light source
-sampleLight :: Scene -> Intersection -> Light -> Spectrum
-sampleLight scene i (Directional ld s) = sampleDirLight scene i ld s
-
---- samples a directional light source
-sampleDirLight :: Scene -> Intersection -> Normal -> Spectrum -> Spectrum
-sampleDirLight (Scene sceneShape _) (pos, sn, ray) ld s
-  | visible = unCond -- TODO: first check the color, if non-black check the visibility
-  | otherwise = black
-  where
-    unCond = scalMul s (geomFac ld sn)
-    visible = not (intersects testRay sceneShape)
-    testRay = (add (scalMul outDir epsilon) pos, outDir)
-    outDir = neg ld
+    
 ---
 --- integrators
 ---
 
 --- an integrator takes a ray and a shape and computes a final color
-type Integrator = Ray -> Scene -> Rand Spectrum
+-- type Integrator = (Light a) => Ray -> Shape -> [a] -> Rand Spectrum
     
 --- path tracer
 
-pathTracer :: Integrator
-pathTracer r scene@(Scene shape lights) = pathTracer' scene (nearest r shape) 0
+-- pathTracer :: Integrator
+pathTracer r shape lights = pathTracer' shape lights (nearest r shape) 0
 
-pathTracer' :: Scene -> Maybe Intersection -> Int -> Rand Spectrum
-pathTracer' _ Nothing _ = return black
-pathTracer' scene (Just int@(pos, n, ray@(_, rd))) depth = do
-   y <- sampleOneLight scene int
+pathTracer' :: (Light a) => Shape -> [a] -> Maybe Intersection -> Int -> Rand Spectrum
+pathTracer' _ _ Nothing _ = return black
+pathTracer' shape lights (Just int@(pos, n, ray@(_, rd))) depth = do
+   y <- sampleOneLight shape lights int
    recurse <- keepGoing pc
-   next <- if (recurse) then pathReflect scene int (depth + 1) else return black
+   next <- if (recurse) then pathReflect shape lights int (depth + 1) else return black
    return $! (add y (scalMul next (1 / pc)))
    where
       pc = pCont depth
       
-pathReflect :: Scene -> Intersection -> Int -> Rand Spectrum
-pathReflect scene (pos, n, (_, inDir)) depth = do
+pathReflect :: (Light a) => Shape -> [a] -> Intersection -> Int -> Rand Spectrum
+pathReflect shape lights (pos, n, (_, inDir)) depth = do
    rayOut <- reflect n pos
-   yIn <- pathTracer' scene (nearest rayOut (sceneShape scene)) depth
+   yIn <- pathTracer' shape lights (nearest rayOut shape) depth
    return (scalMul yIn (geomFac n ((\(_, d) -> neg d) rayOut)))
    
 -- rolls a dice to decide if we should continue this path,
@@ -296,19 +305,16 @@ pCont d
    | otherwise = 0.5
 
 --- whitted - style integrator
-whitted :: Integrator
-whitted ray s@(Scene shape lights) = do return (light ints)
+-- whitted :: Integrator
+whitted ray shape lights
+   | ints == [] = return black
+   | otherwise = sampleAllLights shape lights (closest ints) 
   where
     ints = intersect ray shape
-    light [] = black -- background is black
-    light xs = light' (closest xs) lights
-      where
-        light' int@(_, ns, (_, rd)) lights = scalMul (sampleAllLights s int) (geomFac ns rd)
-
-
+    
 --- the debug integrator visualizes the normals of the shapes that were hit
-debug :: Integrator
-debug ray (Scene shape _) = do return (color ray intersections)
+-- debug :: Integrator
+debug ray shape _ = do return (color ray intersections)
   where
     intersections = intersect ray shape
     color (_, dir) [] = showDir dir -- if no shape was hit show the direction of the ray
@@ -335,14 +341,14 @@ stratify res@(resX, resY) pixel@(px, py) = do
          y <- (map fromIntegral [0..steps-1]) ]
       fpps = (fromIntegral steps) * (fromIntegral resX)
       pxAdd (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
-      steps = 10
+      steps = 4
    
 pixelColor :: ((Float, Float) -> Rand Spectrum) -> (Int, Int) -> (Int, Int) -> Rand Spectrum
 pixelColor f res pixel@(px, py) = do
    ndcs <- stratify res pixel
    y <- (mapM f ndcs)
    return (scalMul (foldl add black y) (1 / fromIntegral spp)) where
-      spp = 100
+      spp = 16
       
 ---
 --- scene definition
@@ -354,19 +360,19 @@ myShape = Group [
   (Sphere 1.0 ( 1.0, 0, 0.5)),
   (Plane (1) (0, 1, 0))]
 
-myLights :: [Light]
+--myLights :: [Light]
 myLights = [
   (Directional (normalize ( 1, -2,  1)) (0.7, 0.2, 0.2)),
   (Directional (normalize ( 0, -1, -1)) (0.4, 0.4, 0.4)), 
   (Directional (normalize (-1, -2,  1)) (0.2, 0.7, 0.2))]
 
-myScene :: Scene
-myScene = Scene myShape myLights
+--myScene :: Scene
+--myScene = (myShape myLights)
 
-sphereOnPlane :: Scene
-sphereOnPlane = Scene 
-   (Group [ Sphere 1.0 (0,0.0,0) , Plane (1) (0,1,0) ])
-   ([ Directional (0, -1, 0) (0.95, 0.95, 0.9) ])
+--sphereOnPlane :: Scene
+--sphereOnPlane = 
+--   (Group [ Sphere 1.0 (0,0.0,0) , Plane (1) (0,1,0) ])
+--   ([ Directional (0, -1, 0) (0.95, 0.95, 0.9) ])
 
 clamp :: Float -> Int
 clamp v = round ( (min 1 (max 0 v)) * 255 )
@@ -392,10 +398,10 @@ main = do
    writeFile "test.ppm" (makePgm resX resY (fromRand (runRand prng colours)))
    
    where
-         scene = myScene
+         --scene = myScene
          resX = 800 :: Int
          resY = 800 :: Int
          pixels = [ (x, y) | y <- [0..resX-1], x <- [0..resY-1]]
-         pixelFunc = (\ndc -> pathTracer (stareDownZAxis ndc) scene)
+         pixelFunc = ((\ndc -> pathTracer (stareDownZAxis ndc) myShape myLights))
          colours = mapM (pixelColor pixelFunc (resX, resY)) pixels
          
