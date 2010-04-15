@@ -234,7 +234,6 @@ evalLight shape int light = do
               then return y
               else return black
               
-   
    where
          sample = sampleLight light int
          ray = ((liftM testRay) sample)
@@ -350,14 +349,14 @@ stratify res@(resX, resY) pixel@(px, py) = do
          y <- (map fromIntegral [0..steps-1]) ]
       fpps = (fromIntegral steps) * (fromIntegral resX)
       pxAdd (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
-      steps = 4
+      steps = 10
    
 pixelColor :: ((Float, Float) -> Rand Spectrum) -> (Int, Int) -> (Int, Int) -> Rand Spectrum
 pixelColor f res pixel@(px, py) = do
    ndcs <- stratify res pixel
    y <- (mapM f ndcs)
    return (scalMul (foldl add black y) (1 / fromIntegral spp)) where
-      spp = 16
+      spp = 100
       
 ---
 --- scene definition
@@ -411,6 +410,6 @@ main = do
          resX = 800 :: Int
          resY = 800 :: Int
          pixels = [ (x, y) | y <- [0..resX-1], x <- [0..resY-1]]
-         pixelFunc = ((\ndc -> whitted (stareDownZAxis ndc) myShape myLights))
+         pixelFunc = ((\ndc -> pathTracer (stareDownZAxis ndc) myShape myLights))
          colours = mapM (pixelColor pixelFunc (resX, resY)) pixels
          
