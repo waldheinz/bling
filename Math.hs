@@ -53,16 +53,16 @@ roots a b c = let d = b*b - 4*a*c
          in if (d < 0.0) then []
             else [ 0.5 * (-b + sqrt d), 0.5 * (-b - sqrt d) ]
 
---- generates a random point on the unit sphere
---- see http://mathworld.wolfram.com/SpherePointPicking.html
+-- | generates a random point on the unit sphere,
+-- see http://mathworld.wolfram.com/SpherePointPicking.html
 randomOnSphere :: Rand Vector
 randomOnSphere = do
    u <- rndR (-1, 1 :: Float)
    omega <- rndR (0, 2 * pi :: Float)
    return $! ((s u) * cos omega, (s u) * sin omega, u)
    where
-      s = (\u -> (sqrt (1 - (u ^ 2))))
-
+      s = (\u -> (sqrt (1 - (u * u))))
+   
 sameHemisphere :: Vector -> Vector -> Vector
 sameHemisphere v1 v2
    | (dot v1 v2) > 0 = v1

@@ -107,14 +107,14 @@ stratify res@(resX, resY) pixel@(px, py) = do
          y <- (map fromIntegral [0..steps-1]) ]
       fpps = (fromIntegral steps) * (fromIntegral resX)
       pxAdd (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
-      steps = 10
+      steps = 4
    
 pixelColor :: ((Float, Float) -> Rand Spectrum) -> (Int, Int) -> (Int, Int) -> Rand Spectrum
 pixelColor f res pixel@(px, py) = do
    ndcs <- stratify res pixel
    y <- (mapM f ndcs)
    return (scalMul (foldl add black y) (1 / fromIntegral spp)) where
-      spp = 100
+      spp = 16
       
 ---
 --- scene definition
@@ -127,11 +127,13 @@ myShape = Group [
   (Plane (1) (0, 1, 0))]
 
 --myLights :: [Light]
+{-
 myLights = [
   (Directional (normalize ( 1, -2,  1)) (0.7, 0.2, 0.2)),
   (Directional (normalize ( 0, -1, -1)) (0.4, 0.4, 0.4)), 
   (Directional (normalize (-1, -2,  1)) (0.2, 0.7, 0.2))]
-
+-}
+myLights = [ InfiniteArea (0.8, 0.8, 0.8) ]
 --myScene :: Scene
 --myScene = (myShape myLights)
 

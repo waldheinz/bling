@@ -1,7 +1,7 @@
 
 module Light (
    Spectrum, black, white, isBlack,
-   Light, Directional(..),
+   Light, Directional(..), InfiniteArea(..),
    sampleOneLight, sampleAllLights) where
 
 import Control.Monad
@@ -25,27 +25,38 @@ white = (1, 1, 1)
 isBlack :: Spectrum -> Bool
 isBlack (r, g, b) = r < epsilon && g < epsilon && b < epsilon
 
--- | A directional light is a light source where for every point illuminated,
--- the light arrives from the same direction. This like a point light at
--- infinite distance.
-data Directional = Directional {
-   dir :: Normal, -- ^ the direction this light emits to
-   radiance :: Spectrum -- ^ the spectrum emitted by this light
-   }
-   
 data LightSample = LightSample {
-   de :: Spectrum, -- differential irradiance
-   wo :: Vector, -- incident direction
-   testRay :: Ray } -- for visibility test
+   de :: Spectrum, -- ^ differential irradiance
+   wo :: Vector, -- ^ incident direction
+   testRay :: Ray -- ^ for visibility test
+   }
 
 class Light a where
    sampleLight :: a -> Intersection -> Rand LightSample
 
+data InfiniteArea = InfiniteArea {
+   infiniteAreaRadiance :: Spectrum
+   }
+   
+instance Light InfiniteArea where
+   sampleLight ia (pos, n, _) = do
+      rndD <- randomOnSphere
+      dir <- return (sameHemisphere rndD n)
+      return (LightSample (infiniteAreaRadiance ia) dir (pos, dir))
+      
+-- | A directional light is a light source where for every point illuminated,
+-- the light arrives from the same direction. This like a point light at
+-- infinite distance.
+data Directional = Directional {
+   directionalDir :: Normal, -- ^ the direction this light emits to
+   directionalRadiance :: Spectrum -- ^ the spectrum emitted by this light
+   }
+   
 instance Light Directional where
-   sampleLight dl (pos, n, _) = return (LightSample y (dir dl) ray) where
-      y = scalMul (radiance dl) (abs (dot n lDir))
+   sampleLight dl (pos, n, _) = return (LightSample y lDir ray) where
+      y = scalMul (directionalRadiance dl) (abs (dot n lDir))
       ray = (pos, neg lDir)
-      lDir = dir dl
+      lDir = directionalDir dl
 
 evalLight :: (Light a) => Shape -> Intersection -> a -> Rand Spectrum
 evalLight shape int light = do
