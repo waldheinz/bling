@@ -1,4 +1,5 @@
 
+-- | The functions dealing with colours, radiance and light sources
 module Light (
    Spectrum, black, white, isBlack,
    Light, Directional(..), InfiniteArea(..),
@@ -34,10 +35,12 @@ data LightSample = LightSample {
 class Light a where
    sampleLight :: a -> Intersection -> Rand LightSample
 
+-- | An infinite area light; that is a "sphere of light" surrounding the whole scene,
+-- emitting a constant amount of light from all directions.
 data InfiniteArea = InfiniteArea {
-   infiniteAreaRadiance :: Spectrum
+   infiniteAreaRadiance :: Spectrum -- ^ the radiance emitted by this light
    }
-   
+
 instance Light InfiniteArea where
    sampleLight ia (pos, n, _) = do
       rndD <- randomOnSphere
@@ -73,15 +76,16 @@ evalLight shape int light = do
          ray = ((liftM testRay) sample)
 
 
---- samples all lights by sampling individual lights and summing up the results
+-- | samples all lights by sampling individual lights and summing up the results
 sampleAllLights :: (Light a) => Shape -> [a] -> Intersection -> Rand Spectrum
 sampleAllLights _ [] _ = return black -- no light source means no light
 sampleAllLights shape lights i  = (foldl (liftM2 add) (return black) spectri) -- sum up contributions
   where
     spectri = map (evalLight shape i) lights
 
- -- samples one randomly chosen light source
+-- | samples one randomly chosen light source
 sampleOneLight :: (Light a) => Shape -> [a] -> Intersection -> Rand Spectrum
+sampleOneLight _ [] _ = return black -- no light sources -> no light
 sampleOneLight shape (light:[]) i = evalLight shape i light
 sampleOneLight shape lights i = do
   lightNum <-rndR (0, lightCount - 1)
@@ -89,5 +93,4 @@ sampleOneLight shape lights i = do
   ((liftM2 scalMul) y (return (fromIntegral lightCount))) -- scale by probability choosing that light
   where
     lightCount = length lights
-    
     
