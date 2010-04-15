@@ -10,28 +10,29 @@ import Geometry
 import Math
 import Random
 
----
---- colours
----
+-- | A Spectrum of colours.
 type Spectrum = Vector -- RGB for now
 
+-- | A "black" @Spectrum@ (no transmittance or emission) at all wavelengths
 black :: Spectrum
 black = (0, 0, 0)
 
+-- | A "white" @Spectrum@ (full transmission at any wavelength).
 white :: Spectrum
 white = (1, 1, 1)
 
+-- | Decides if a @Spectrum@ is black (within an epsilon value).
 isBlack :: Spectrum -> Bool
 isBlack (r, g, b) = r < epsilon && g < epsilon && b < epsilon
 
----
---- Lights
----
-
+-- | A directional light is a light source where for every point illuminated,
+-- the light arrives from the same direction. This like a point light at
+-- infinite distance.
 data Directional = Directional {
-   dir :: Normal, -- the direction this light emits to
-   radiance :: Spectrum }
-
+   dir :: Normal, -- ^ the direction this light emits to
+   radiance :: Spectrum -- ^ the spectrum emitted by this light
+   }
+   
 data LightSample = LightSample {
    de :: Spectrum, -- differential irradiance
    wo :: Vector, -- incident direction
