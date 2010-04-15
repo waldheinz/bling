@@ -6,5 +6,5 @@ Maintainer:          waldheinz@gmail.com
 Build-Type:          Simple
 Cabal-Version:       >=1.2
 Executable rt
-  Main-is:           main.hs
-  Build-Depends:     base >= 3 && < 5, random, haskell98
+   Main-is:           Main.hs
+   Build-Depends:     base >= 3 && < 5, random, haskell98

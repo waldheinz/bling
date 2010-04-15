@@ -1,33 +1,10 @@
 --- RT - H
 
 import Maybe
-import System.Random
 import Control.Monad
+import System.Random
 
----
---- a Monad providing a PRNG
----
-
-data Rand a = Rand (StdGen -> (a, StdGen))
-
-instance Monad Rand where
-   return k = Rand (\s -> (k, s))
-   Rand c1 >>= fc2 = Rand (\s0 ->  let 
-                                       (r,s1) = c1 s0 
-                                       Rand c2 = fc2 r in
-                                       c2 s1)
-
-runRand :: StdGen -> Rand a -> (a, StdGen)
-runRand rng (Rand c) = c rng
-
-fromRand :: (a, StdGen) -> a
-fromRand (a, _) = a
-
-rnd :: Rand Float
-rnd = Rand (randomR (0, 1::Float))
-
-rndR :: Random a => (a, a) -> Rand a
-rndR range = Rand (randomR range)
+import Random
 
 ---
 --- basic maths stuff used everywhere
