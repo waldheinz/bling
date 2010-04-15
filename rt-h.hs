@@ -233,7 +233,8 @@ sampleAllLights s@(Scene _ lights) i  = foldl add black spectri -- sum up contri
 sampleOneLight :: Scene -> Intersection -> Rand Spectrum
 sampleOneLight scene i = do
   lightNum <-rndR (0, lightCount - 1)
-  return (sampleLight scene i (lights !! lightNum))
+  y <- return (sampleLight scene i (lights !! lightNum))
+  return (scalMul y (fromIntegral lightCount)) -- scale by probability choosing that light
   where
     lightCount = length lights
     lights = sceneLights scene
@@ -267,7 +268,7 @@ pathTracer r scene@(Scene shape lights) = pathTracer' scene (nearest r shape) 0
 pathTracer' :: Scene -> Maybe Intersection -> Int -> Rand Spectrum
 pathTracer' _ Nothing _ = return black
 pathTracer' scene (Just int@(pos, n, ray@(_, rd))) depth = do
-   y <- return (sampleAllLights scene int)
+   y <- sampleOneLight scene int
    recurse <- keepGoing pc
    next <- if (recurse) then pathReflect scene int (depth + 1) else return black
    return $! (add y (scalMul next (1 / pc)))
