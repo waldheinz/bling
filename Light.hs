@@ -45,7 +45,7 @@ instance Light InfiniteArea where
    sampleLight ia (pos, n, _) = do
       rndD <- randomOnSphere
       dir <- return (sameHemisphere rndD n)
-      return (LightSample (infiniteAreaRadiance ia) dir (pos, dir))
+      return (LightSample (infiniteAreaRadiance ia) dir (add pos (scalMul n epsilon), dir))
       
 -- | A directional light is a light source where for every point illuminated,
 -- the light arrives from the same direction. This like a point light at
@@ -74,7 +74,6 @@ evalLight shape int light = do
    where
          sample = sampleLight light int
          ray = ((liftM testRay) sample)
-
 
 -- | samples all lights by sampling individual lights and summing up the results
 sampleAllLights :: (Light a) => Shape -> [a] -> Intersection -> Rand Spectrum
