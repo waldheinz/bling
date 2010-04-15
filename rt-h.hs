@@ -106,6 +106,9 @@ black = (0, 0, 0)
 white :: Spectrum
 white = (1, 1, 1)
 
+isBlack :: Spectrum -> Bool
+isBlack (r, g, b) = r < epsilon && g < epsilon && b < epsilon
+
 ---
 --- intersections
 ---
@@ -222,12 +225,18 @@ instance Light Directional where
       lDir = dir dl
 
 evalLight :: (Light a) => Shape -> Intersection -> a -> Rand Spectrum
-evalLight shape int light
-   | visible = (liftM de) sample -- TODO: first check the color, if non-black check the visibility
-   | otherwise = return black
-      where
+evalLight shape int light = do
+   y <- liftM de sample
+   hidden <- (liftM2 intersects) ray (return shape)
+   if (isBlack y)
+      then return black
+      else if (not hidden)
+              then return y
+              else return black
+              
+   
+   where
          sample = sampleLight light int
-         visible = True
          ray = ((liftM testRay) sample)
 
 ---
@@ -402,6 +411,6 @@ main = do
          resX = 800 :: Int
          resY = 800 :: Int
          pixels = [ (x, y) | y <- [0..resX-1], x <- [0..resY-1]]
-         pixelFunc = ((\ndc -> pathTracer (stareDownZAxis ndc) myShape myLights))
+         pixelFunc = ((\ndc -> whitted (stareDownZAxis ndc) myShape myLights))
          colours = mapM (pixelColor pixelFunc (resX, resY)) pixels
          
