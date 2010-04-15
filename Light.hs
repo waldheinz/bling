@@ -1,5 +1,8 @@
 
-module Light where
+module Light (
+   Spectrum, black, white, isBlack,
+   Light, Directional(..),
+   sampleOneLight, sampleAllLights) where
 
 import Control.Monad
 
