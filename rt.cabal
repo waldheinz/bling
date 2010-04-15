@@ -8,7 +8,8 @@ Cabal-Version:       >=1.2
 Executable rt
    Main-is:           Main.hs
    Build-Depends:     base >= 3 && < 5, random, haskell98
+   ghc-options: -Wall -O2
 
 Library
    Exposed-modules:   Geometry, Light, Math, Random
-   ghc-options:       -Wall
+   ghc-options:       -Wall -O2

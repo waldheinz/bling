@@ -33,7 +33,7 @@ geomFac n1 n2 = max 0 ((neg n1) `dot` n2)
 ---
 
 --- an integrator takes a ray and a shape and computes a final color
--- type Integrator = (Light a) => Ray -> Shape -> [a] -> Rand Spectrum
+-- type Integrator = Ray -> Shape -> [t] -> Rand Spectrum
     
 --- path tracer
 
@@ -42,16 +42,16 @@ pathTracer r shape lights = pathTracer' shape lights (nearest r shape) 0
 
 pathTracer' :: (Light a) => Shape -> [a] -> Maybe Intersection -> Int -> Rand Spectrum
 pathTracer' _ _ Nothing _ = return black
-pathTracer' shape lights (Just int@(pos, n, ray@(_, rd))) depth = do
+pathTracer' shape lights (Just int) depth = do
    y <- sampleOneLight shape lights int
    recurse <- keepGoing pc
-   next <- if (recurse) then pathReflect shape lights int (depth + 1) else return black
-   return $! (add y (scalMul next (1 / pc)))
+   nextY <- if (recurse) then pathReflect shape lights int (depth + 1) else return black
+   return $! (add y (scalMul nextY (1 / pc)))
    where
       pc = pCont depth
       
 pathReflect :: (Light a) => Shape -> [a] -> Intersection -> Int -> Rand Spectrum
-pathReflect shape lights (pos, n, (_, inDir)) depth = do
+pathReflect shape lights (pos, n, _) depth = do
    rayOut <- reflect n pos
    yIn <- pathTracer' shape lights (nearest rayOut shape) depth
    return (scalMul yIn (geomFac n ((\(_, d) -> neg d) rayOut)))
@@ -80,6 +80,7 @@ whitted ray shape lights
     
 --- the debug integrator visualizes the normals of the shapes that were hit
 -- debug :: Integrator
+debug :: Ray -> Shape -> t -> Rand Spectrum
 debug ray shape _ = do return (color ray intersections)
   where
     intersections = intersect ray shape
@@ -98,23 +99,23 @@ ndc (resX, resY) (px, py) = ((fromIntegral px / fromIntegral resX), (fromIntegra
 
 -- samples in x and y
 stratify :: (Int, Int) -> (Int, Int) -> Rand [(Float, Float)]
-stratify res@(resX, resY) pixel@(px, py) = do
+stratify res@(resX, _) pixel = do
    
    return (map (pxAdd base) offsets) where
       base = ndc res pixel
       offsets = [(x / fpps , y / fpps) | 
-         x <- (map fromIntegral [0..steps-1]),
-         y <- (map fromIntegral [0..steps-1]) ]
+         x <- (map fromIntegral [0::Int .. steps-1]),
+         y <- (map fromIntegral [0::Int .. steps-1]) ]
       fpps = (fromIntegral steps) * (fromIntegral resX)
       pxAdd (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
       steps = 4
    
 pixelColor :: ((Float, Float) -> Rand Spectrum) -> (Int, Int) -> (Int, Int) -> Rand Spectrum
-pixelColor f res pixel@(px, py) = do
+pixelColor f res pixel = do
    ndcs <- stratify res pixel
    y <- (mapM f ndcs)
    return (scalMul (foldl add black y) (1 / fromIntegral spp)) where
-      spp = 16
+      spp = 16 :: Int
       
 ---
 --- scene definition
@@ -133,32 +134,19 @@ myLights = [
   (Directional (normalize ( 0, -1, -1)) (0.4, 0.4, 0.4)), 
   (Directional (normalize (-1, -2,  1)) (0.2, 0.7, 0.2))]
 -}
+myLights :: [InfiniteArea]
 myLights = [ InfiniteArea (0.8, 0.8, 0.8) ]
---myScene :: Scene
---myScene = (myShape myLights)
-
---sphereOnPlane :: Scene
---sphereOnPlane = 
---   (Group [ Sphere 1.0 (0,0.0,0) , Plane (1) (0,1,0) ])
---   ([ Directional (0, -1, 0) (0.95, 0.95, 0.9) ])
 
 clamp :: Float -> Int
 clamp v = round ( (min 1 (max 0 v)) * 255 )
 
 makePgm :: Int -> Int -> [ Spectrum ] -> String
-makePgm width height xs = "P3\n" ++ show width ++ " " ++ show height ++ "\n255\n" ++ stringify(xs)
+makePgm width height s = "P3\n" ++ show width ++ " " ++ show height ++ "\n255\n" ++ stringify s
   where 
     stringify [] = ""
     stringify ((r,g,b):xs) = show (clamp r) ++ " " ++
       show (clamp g) ++ " " ++ show (clamp b) ++ " " ++
       stringify xs
-
-noise :: (Float, Float) -> Rand Spectrum
-noise (x, y) = do
-   r <- rndR (0, x)
-   g <- rndR (0, y)
-   b <- rnd
-   return (r, g, b)
 
 main :: IO ()
 main = do
@@ -170,6 +158,6 @@ main = do
          resX = 800 :: Int
          resY = 800 :: Int
          pixels = [ (x, y) | y <- [0..resX-1], x <- [0..resY-1]]
-         pixelFunc = ((\ndc -> pathTracer (stareDownZAxis ndc) myShape myLights))
+         pixelFunc = ((\px -> pathTracer (stareDownZAxis px) myShape myLights))
          colours = mapM (pixelColor pixelFunc (resX, resY)) pixels
          
