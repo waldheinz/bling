@@ -82,6 +82,7 @@ sampleAllLights shape lights i  = (foldl (liftM2 add) (return black) spectri) --
 
  -- samples one randomly chosen light source
 sampleOneLight :: (Light a) => Shape -> [a] -> Intersection -> Rand Spectrum
+sampleOneLight shape (light:[]) i = evalLight shape i light
 sampleOneLight shape lights i = do
   lightNum <-rndR (0, lightCount - 1)
   y <- return (evalLight shape i (lights !! lightNum))
