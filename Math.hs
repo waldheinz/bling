@@ -15,6 +15,9 @@ epsilon = 0.001
 invPi :: Float
 invPi = 1 / pi
 
+invTwoPi :: Float
+invTwoPi = 1 / (2 * pi)
+
 type Vector = (Float, Float, Float)
 type Point = Vector
 type Normal = Vector
@@ -56,6 +59,9 @@ cross (a,b,c) (x,y,z) = (b*z + c*y, -(a*z + c*x), a*y + b*x)
 
 dot :: Vector -> Vector -> Float
 dot (x,y,z) (a,b,c) = x*a + y*b + z*c;
+
+absDot :: Vector -> Vector -> Float
+absDot v1 v2 = abs $ dot v1 v2
 
 normalize :: Vector -> Normal
 normalize v

@@ -2,7 +2,7 @@
 -- | The functions dealing with colours, radiance and light sources
 module Light (
    Spectrum, black, white, isBlack,
-   Light, Directional(..), InfiniteArea(..),
+   Light, Directional(..), SoftBox(..),
    sampleOneLight, sampleAllLights) where
 
 import Control.Monad
@@ -33,21 +33,26 @@ data LightSample = LightSample {
    }
 
 class Light a where
-   sampleLight :: a -> Intersection -> Rand LightSample
+   lightSample :: a -> Intersection -> Rand LightSample
+   lightEmittance :: a -> Ray -> Spectrum
+   lightPdf :: a -> Intersection -> Vector -> Float
 
 -- | An infinite area light; that is a "sphere of light" surrounding the whole scene,
 -- emitting a constant amount of light from all directions.
-data InfiniteArea = InfiniteArea {
-   infiniteAreaRadiance :: Spectrum -- ^ the radiance emitted by this light
+data SoftBox = SoftBox {
+   softBoxRadiance :: Spectrum -- ^ the radiance emitted by this light
    }
 
-instance Light InfiniteArea where
-   sampleLight ia (Intersection _ pos n) = do
+instance Light SoftBox where
+   lightSample (SoftBox r) (Intersection _ pos n) = do
       rndD <- randomOnSphere
  --     dir <- return (sameHemisphere rndD n)
       dir <- return (0,0,0)
-      return (LightSample (infiniteAreaRadiance ia) dir (Ray pos dir epsilon infinity))
+      return (LightSample r dir (Ray pos dir epsilon infinity))
       
+   lightEmittance (SoftBox r) _ = r
+   lightPdf _ i wi = absDot (intNorm i) wi
+   
 -- | A directional light is a light source where for every point illuminated,
 -- the light arrives from the same direction. This like a point light at
 -- infinite distance.
@@ -57,14 +62,17 @@ data Directional = Directional {
    }
    
 instance Light Directional where
-   sampleLight dl (Intersection _ pos n) = return (LightSample y lDir ray) where
+   lightSample dl (Intersection _ pos n) = return (LightSample y lDir ray) where
       y = scalMul (directionalRadiance dl) (abs (dot n lDir))
       ray = (Ray pos (neg lDir) epsilon infinity)
       lDir = directionalDir dl
-
+      
+   lightEmittance (Directional _ r) _ = r
+   lightPdf _ _ _ = 0
+   
 evalLight :: (Light l, Intersectable w) => w -> Intersection -> l -> Rand Spectrum
 evalLight shape int light = do
-   sample <- sampleLight light int
+   sample <- lightSample light int
    return (evalSample sample shape)
    
 evalSample :: (Intersectable i) => LightSample -> i -> Spectrum
