@@ -24,8 +24,8 @@ pathTracer r s lights = nextVertex 0 True r white black where
    evalInt :: Ray -> Intersection -> Rand Spectrum
    evalInt (Ray _ rd _ _) int = do
       (BsdfSample wi pdf) <- materialSample mat int
-      
-      return (f wi)
+      ls <- sampleOneLight s lights int
+      return (sScale (f wi) ls)
       where
          mat = intMaterial int
          f = materialEval mat (neg rd)

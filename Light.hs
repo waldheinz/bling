@@ -1,7 +1,7 @@
 
 -- | The functions dealing with colours, radiance and light sources
 module Light (
-   Spectrum, black, white, isBlack,
+   Spectrum, black, white, isBlack, sScale,
    Light(..), Directional(..), SoftBox(..),
    sampleOneLight, sampleAllLights) where
 
@@ -25,6 +25,9 @@ white = (1, 1, 1)
 -- | Decides if a @Spectrum@ is black (within an epsilon value).
 isBlack :: Spectrum -> Bool
 isBlack (r, g, b) = r < epsilon && g < epsilon && b < epsilon
+
+sScale :: Spectrum -> Spectrum -> Spectrum
+sScale (a, b, c) (d, e, f) = (a*d, b*e, c*f)
 
 data LightSample = LightSample {
    de :: Spectrum, -- ^ differential irradiance
