@@ -18,11 +18,12 @@ type Point = Vector
 data Ray = Ray {
    rayOrigin :: Point,
    rayDir :: Normal,
+   rayMin :: Float,
    rayMax :: Float
    }
 
 positionAt :: Ray -> Float -> Point
-positionAt (Ray o d _) t = o `add` (scalMul d t)
+positionAt (Ray o d _ _) t = o `add` (scalMul d t)
 
 add :: Vector -> Vector -> Vector
 add (x, y, z) (a, b, c) = (x+a, y+b, z+c)
@@ -77,6 +78,6 @@ sameHemisphere v1 v2
 reflect :: Normal -> Point -> Rand Ray
 reflect n pt = do
    rndPt <- randomOnSphere
-   return (Ray pt (sameHemisphere rndPt n) infinity)
+   return (Ray pt (sameHemisphere rndPt n) 0 infinity)
    
 type Normal = Vector

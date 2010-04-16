@@ -47,7 +47,7 @@ instance Intersectable Group where
 data Sphere = Sphere Float Point
 
 instance Intersectable Sphere where
-   intersect ray@(Ray origin rayDir _) (Sphere r center)
+   intersect ray@(Ray origin rayDir _ _) (Sphere r center)
       | times == [] = Nothing
       | otherwise = Just (Intersection time (hitPoint time) (normalAt time))
       where
@@ -60,7 +60,7 @@ instance Intersectable Sphere where
          hitPoint = positionAt ray
          normalAt t = normalize (sub (hitPoint t) center)
 
-   intersects (Ray ro rd _) (Sphere rad ct) = not $ null (filter (> epsilon) (roots a b c))
+   intersects (Ray ro rd _ _) (Sphere rad ct) = not $ null (filter (> epsilon) (roots a b c))
       where
          d = ro `sub` ct
          a = sqLen rd
@@ -71,11 +71,11 @@ instance Intersectable Sphere where
 data Plane = Plane Float Normal
 
 instance Intersectable Plane where
-   intersect ray@(Ray ro rd _) (Plane d n)
+   intersect ray@(Ray ro rd _ _) (Plane d n)
       | t < epsilon = Nothing
       | otherwise = Just (Intersection t (positionAt ray t) n)
       where
          t = -(ro `dot` n + d) / (rd `dot` n)
 
-   intersects (Ray ro rd _) (Plane d n) = ((ro `dot` n + d) / (rd `dot` n)) < 0
+   intersects (Ray ro rd _ _) (Plane d n) = ((ro `dot` n + d) / (rd `dot` n)) < 0
    
