@@ -17,7 +17,7 @@ type Camera = (Float, Float) -> Ray
 
 --- a very simple perspective camera that stares down the z-axis
 stareDownZAxis :: Camera
-stareDownZAxis (px, py) = ((0, 0, posZ), normalize dir)
+stareDownZAxis (px, py) = (Ray (0, 0, posZ) (normalize dir) infinity)
   where
     posZ = -4
     dir = ((px - 0.5) * 4, (0.5 - py) * 4, -posZ)

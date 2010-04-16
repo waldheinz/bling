@@ -6,17 +6,23 @@ import Random
 --- basic maths stuff used everywhere
 ---
 
+infinity :: Float
+infinity = 1 / 0 :: Float
 
 epsilon :: Float
 epsilon = 0.001
 
-
 type Vector = (Float, Float, Float)
 type Point = Vector
-type Ray = (Point, Vector) --- origin and direction
+
+data Ray = Ray {
+   rayOrigin :: Point,
+   rayDir :: Normal,
+   rayMax :: Float
+   }
 
 positionAt :: Ray -> Float -> Point
-positionAt (origin, dir) t = origin `add` (scalMul dir t)
+positionAt (Ray o d _) t = o `add` (scalMul d t)
 
 add :: Vector -> Vector -> Vector
 add (x, y, z) (a, b, c) = (x+a, y+b, z+c)
@@ -71,6 +77,6 @@ sameHemisphere v1 v2
 reflect :: Normal -> Point -> Rand Ray
 reflect n pt = do
    rndPt <- randomOnSphere
-   return (pt, (sameHemisphere rndPt n))
+   return (Ray pt (sameHemisphere rndPt n) infinity)
    
 type Normal = Vector
