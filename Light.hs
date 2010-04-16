@@ -42,7 +42,7 @@ data InfiniteArea = InfiniteArea {
    }
 
 instance Light InfiniteArea where
-   sampleLight ia (pos, n, _) = do
+   sampleLight ia (Intersection _ pos n) = do
       rndD <- randomOnSphere
       dir <- return (sameHemisphere rndD n)
       return (LightSample (infiniteAreaRadiance ia) dir (add pos (scalMul n epsilon), dir))
@@ -56,34 +56,36 @@ data Directional = Directional {
    }
    
 instance Light Directional where
-   sampleLight dl (pos, n, _) = return (LightSample y lDir ray) where
+   sampleLight dl (Intersection _ pos n) = return (LightSample y lDir ray) where
       y = scalMul (directionalRadiance dl) (abs (dot n lDir))
       ray = (pos, neg lDir)
       lDir = directionalDir dl
 
-evalLight :: (Light a) => Shape -> Intersection -> a -> Rand Spectrum
+evalLight :: (Light l, Intersectable w) => w -> Intersection -> l -> Rand Spectrum
 evalLight shape int light = do
-   y <- liftM de sample
-   hidden <- (liftM2 intersects) ray (return shape)
-   if (isBlack y)
-      then return black
-      else if (not hidden)
-              then return y
-              else return black
-              
+   sample <- sampleLight light int
+   return (evalSample sample shape)
+   
+evalSample :: (Intersectable i) => LightSample -> i -> Spectrum
+evalSample sample shape = if (isBlack y)
+                then black
+                else if (not hidden)
+                        then y
+                        else black
    where
-         sample = sampleLight light int
-         ray = ((liftM testRay) sample)
+         y = de sample
+         hidden = intersects ray shape
+         ray = testRay sample
 
 -- | samples all lights by sampling individual lights and summing up the results
-sampleAllLights :: (Light a) => Shape -> [a] -> Intersection -> Rand Spectrum
+sampleAllLights :: (Light l, Intersectable i) => i -> [l] -> Intersection -> Rand Spectrum
 sampleAllLights _ [] _ = return black -- no light source means no light
 sampleAllLights shape lights i  = (foldl (liftM2 add) (return black) spectri) -- sum up contributions
   where
     spectri = map (evalLight shape i) lights
 
 -- | samples one randomly chosen light source
-sampleOneLight :: (Light a) => Shape -> [a] -> Intersection -> Rand Spectrum
+sampleOneLight :: (Light a, Intersectable i) => i -> [a] -> Intersection -> Rand Spectrum
 sampleOneLight _ [] _ = return black -- no light sources -> no light
 sampleOneLight shape (light:[]) i = evalLight shape i light
 sampleOneLight shape lights i = do

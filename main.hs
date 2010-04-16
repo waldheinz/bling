@@ -1,17 +1,14 @@
 --- RT - H
 
-import Maybe
+import Maybe(isNothing, fromJust)
 import Control.Monad
 import System.Random
 
 import Geometry
 import Light
 import Math
+import Pathtracer
 import Random
-
----
---- intersections
----
 
 ---
 --- a camera transforms a pixel in normalized device coordinates (NDC) to a ray
@@ -25,70 +22,28 @@ stareDownZAxis (px, py) = ((0, 0, posZ), normalize dir)
     posZ = -4
     dir = ((px - 0.5) * 4, (0.5 - py) * 4, -posZ)
 
-geomFac :: Normal -> Normal -> Float
-geomFac n1 n2 = max 0 ((neg n1) `dot` n2)
-
 ---
 --- integrators
 ---
 
---- an integrator takes a ray and a shape and computes a final color
--- type Integrator = Ray -> Shape -> [t] -> Rand Spectrum
-    
---- path tracer
-
--- pathTracer :: Integrator
-pathTracer r shape lights = pathTracer' shape lights (nearest r shape) 0
-
-pathTracer' :: (Light a) => Shape -> [a] -> Maybe Intersection -> Int -> Rand Spectrum
-pathTracer' _ _ Nothing _ = return black
-pathTracer' shape lights (Just int) depth = do
-   y <- sampleOneLight shape lights int
-   recurse <- keepGoing pc
-   nextY <- if (recurse) then pathReflect shape lights int (depth + 1) else return black
-   return $! (add y (scalMul nextY (1 / pc)))
-   where
-      pc = pCont depth
-      
-pathReflect :: (Light a) => Shape -> [a] -> Intersection -> Int -> Rand Spectrum
-pathReflect shape lights (pos, n, _) depth = do
-   rayOut <- reflect n pos
-   yIn <- pathTracer' shape lights (nearest rayOut shape) depth
-   return (scalMul yIn (geomFac n ((\(_, d) -> neg d) rayOut)))
-   
--- rolls a dice to decide if we should continue this path,
--- returning true with the specified probability
-keepGoing :: Float -> Rand Bool
-keepGoing 1 = return True
-keepGoing pAbort = do
-   x <- rnd
-   return $! (x < pAbort)
-
--- probability for aborting at the given recursion depth
-pCont :: Int -> Float
-pCont d
-   | d <= 3 = 1
-   | otherwise = 0.5
-
 --- whitted - style integrator
 -- whitted :: Integrator
 whitted ray shape lights
-   | ints == [] = return black
-   | otherwise = sampleAllLights shape lights (closest ints) 
-  where
-    ints = intersect ray shape
-    
+   | isNothing mint = return black
+   | otherwise = sampleAllLights shape lights (fromJust mint)
+      where
+            mint = intersect ray shape
 --- the debug integrator visualizes the normals of the shapes that were hit
 -- debug :: Integrator
-debug :: Ray -> Shape -> t -> Rand Spectrum
-debug ray shape _ = do return (color ray intersections)
-  where
-    intersections = intersect ray shape
-    color (_, dir) [] = showDir dir -- if no shape was hit show the direction of the ray
-    color _ xs = showNormal (closest xs)
-    showNormal (_ , n, _) =  showDir n
-    showDir (dx, dy, dz) = (abs dx, abs dy, abs dz)
-
+debug :: (Intersectable i) => Ray -> i -> t -> Rand Spectrum
+debug ray shape _
+   | isNothing mint = return black
+   | otherwise = return (showIntersection (fromJust mint))
+   where
+         mint = intersect ray shape
+         showIntersection (Intersection _ _ n) = showDir n
+         showDir (dx, dy, dz) = (abs dx, abs dy, abs dz)
+         
 ---
 --- sampling and reconstruction
 ---
@@ -108,28 +63,27 @@ stratify res@(resX, _) pixel = do
          y <- (map fromIntegral [0::Int .. steps-1]) ]
       fpps = (fromIntegral steps) * (fromIntegral resX)
       pxAdd (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
-      steps = 2
+      steps = 10
    
 pixelColor :: ((Float, Float) -> Rand Spectrum) -> (Int, Int) -> (Int, Int) -> Rand Spectrum
 pixelColor f res pixel = do
    ndcs <- stratify res pixel
    y <- (mapM f ndcs)
    return (scalMul (foldl add black y) (1 / fromIntegral spp)) where
-      spp = 3 :: Int
+      spp = 100 :: Int
       
 ---
 --- scene definition
 ---
 
-myShape :: Shape
+-- myShape :: Group
 myShape = Group [
-  (sphereGrid),
-  (Plane (1.4) (0, 1, 0))]
+   MkAnyIntersectable sphereGrid, 
+   MkAnyIntersectable (Plane (1.4) (0, 1, 0))]
 
-sphereGrid :: Shape
+-- sphereGrid :: Group
 sphereGrid = Group spheres where
-   spheres = map (\pos -> Sphere 0.4 (sub (1, 1.0, 1) pos)) coords
-   
+   spheres = map (\pos -> MkAnyIntersectable (Sphere 0.4 (sub (1, 1.0, 1) pos))) coords
    coords = [(x, y, z) | x <- [0..2], y <- [0..2], z <- [0..2]] :: [Vector]
 
 --myLights :: [Light]
@@ -140,7 +94,7 @@ myLights = [
   (Directional (normalize (-1, -2,  1)) (0.2, 0.7, 0.2))]
 -}
 myLights :: [InfiniteArea]
-myLights = [ InfiniteArea (0.8, 0.8, 0.8) ]
+myLights = [ InfiniteArea (0.99, 0.99, 0.99) ]
 
 clamp :: Float -> Int
 clamp v = round ( (min 1 (max 0 v)) * 255 )
@@ -163,6 +117,6 @@ main = do
          resX = 800 :: Int
          resY = 800 :: Int
          pixels = [ (x, y) | y <- [0..resX-1], x <- [0..resY-1]]
-         pixelFunc = ((\px -> pathTracer (stareDownZAxis px) myShape myLights))
+         pixelFunc = ((\px -> whitted (stareDownZAxis px) myShape myLights))
          colours = mapM (pixelColor pixelFunc (resX, resY)) pixels
          

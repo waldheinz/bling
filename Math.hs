@@ -74,10 +74,3 @@ reflect n pt = do
    return (pt, (sameHemisphere rndPt n))
    
 type Normal = Vector
-type Intersection = (Point, Normal, Ray)
-
-intPos :: Intersection -> Point -- extracts the position from an Intersection
-intPos (pos, _, _) = pos
-
-intNorm :: Intersection -> Normal -- extracts the Normal from an Intersection
-intNorm (_, n, _) = n

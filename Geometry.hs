@@ -1,80 +1,81 @@
+{-# LANGUAGE ExistentialQuantification #-}
+
 module Geometry where
 
 import Math
 
-data Shape
-  = Sphere Float Point --- a sphere has a radius and a position
-  | Plane Float Normal -- a plane has a distance from origin and a normal
-  | Group [Shape]
-  
----
---- scene definition
----
+import Maybe
 
---- a scene is a Shape (most probably a group) and some light sources
---data (Light' a) => Scene = Scene Shape [a]
+data Intersection = Intersection {
+   intDist :: Float, -- ^ distance to this intersection
+   intPos :: Point, -- ^ position of this intersection in world space
+   intNorm :: Normal -- ^ surface normal at this intersection
+   }
 
---- extracts the lights from a scene
---sceneLights :: Scene -> [Light]
---sceneLights (Scene _ lights) = lights
+class Intersectable a where
+   intersect :: Ray -> a -> Maybe Intersection
+   intersects :: Ray -> a -> Bool
 
---sceneShape :: Scene -> Shape
---sceneShape (Scene s _) = s
-
---- extracts the closest intersection from a list of intersections
-closest :: [(Float, Intersection)] -> Intersection
-closest xs = snd (foldl select (head xs) (tail xs))
-  where
-    select (t1, i1) (t2, i2)
-      | t1 < t2 = (t1, i1)
-      | otherwise = (t2, i2)
-      
-nearest :: Ray -> Shape -> Maybe Intersection
-nearest r s
-  | intersections == [] = Nothing
-  | otherwise = Just (closest intersections)
-  where
-    intersections = intersect r s
-      
---- determines all intersections of a ray and a shape
-intersect :: Ray -> Shape -> [ (Float, Intersection) ]
-intersect ray (Sphere r c) = intSphere ray r c
-intersect ray (Group shapes) = intGroup ray shapes
-intersect ray (Plane d n) = intPlane ray d n
-
-intPlane :: Ray -> Float -> Normal -> [ (Float, Intersection) ]
-intPlane ray@(ro, rd) d n
-  | t < epsilon = []
-  | otherwise = [ (t, (positionAt ray t, n, ray)) ]
-  where
-    t = -(ro `dot` n + d) / (rd `dot` n)
-
-intSphere :: Ray -> Float -> Point -> [ (Float, Intersection) ]
-intSphere ray@(origin, rayDir) r center = map (\t -> (t, intAt t)) times
-  where
-    dir = origin `sub` center
-    a = sqLen rayDir
-    b = 2 * (rayDir `dot` dir)
-    c = (sqLen dir) - (r * r)
-    times = filter (> epsilon) (roots a b c)
-    hitPoint = positionAt ray
-    intAt t = (hitPoint t, normalAt t, ray)
-    normalAt t = normalize (sub (hitPoint t) center)
-
-intGroup :: Ray -> [Shape] -> [ (Float, Intersection) ]
-intGroup _ [] = []
-intGroup ray (shape:rest) = (intersect ray shape) ++ (intGroup ray rest)
-
-intersects :: Ray -> Shape -> Bool
-intersects _ (Group []) = False
-intersects r (Group (s:xs)) = (intersects r s) || intersects r (Group xs)
-intersects r (Sphere rad center) = intersectsSphere r rad center
-intersects (ro, rd) (Plane d n) = ((ro `dot` n + d) / (rd `dot` n)) < 0
-
-intersectsSphere :: Ray -> Float -> Point -> Bool
-intersectsSphere (ro, rd) rad ct = (filter (> epsilon) (roots a b c)) /= []
+nearest :: Maybe Intersection -> Maybe Intersection -> Maybe Intersection
+nearest mi1 mi2
+   | isNothing mi1 = mi2
+   | isNothing mi2 = mi1
+   | otherwise = nearest' (fromJust mi1) (fromJust mi2)
    where
+         nearest' i1@(Intersection d1 _ _) i2@(Intersection d2 _ _) =
+            if (d1 < d2)
+               then Just i1
+               else Just i2
+   
+data AnyIntersectable = forall a. Intersectable a => MkAnyIntersectable a
+
+instance Intersectable AnyIntersectable where
+   intersect r (MkAnyIntersectable a) = intersect r a
+   intersects r (MkAnyIntersectable a) = intersects r a
+
+data Group = Group [AnyIntersectable]
+
+instance Intersectable Group where
+   intersect _ (Group []) = Nothing
+   intersect r (Group g) = foldl nearest Nothing ints where
+      ints = map (intersect r) g
+      
+   intersects _ (Group []) = False
+   intersects r (Group (x:xs)) = intersects r x || intersects r (Group xs)
+   
+-- | a sphere has a radius and a position
+data Sphere = Sphere Float Point
+
+instance Intersectable Sphere where
+   intersect ray@(origin, rayDir) (Sphere r center)
+      | times == [] = Nothing
+      | otherwise = Just (Intersection time (hitPoint time) (normalAt time))
+      where
+         dir = origin `sub` center
+         a = sqLen rayDir
+         b = 2 * (rayDir `dot` dir)
+         c = (sqLen dir) - (r * r)
+         time = minimum times
+         times = filter (> epsilon) (roots a b c)
+         hitPoint = positionAt ray
+         normalAt t = normalize (sub (hitPoint t) center)
+
+   intersects (ro, rd) (Sphere rad ct) = (filter (> epsilon) (roots a b c)) /= []
+      where
          d = ro `sub` ct
          a = sqLen rd
          b = 2 * (d `dot` rd)
          c = (sqLen d) - (rad * rad)
+
+-- | a plane has a distance from world-space origin and a normal
+data Plane = Plane Float Normal
+
+instance Intersectable Plane where
+   intersect ray@(ro, rd) (Plane d n)
+      | t < epsilon = Nothing
+      | otherwise = Just (Intersection t (positionAt ray t) n)
+      where
+         t = -(ro `dot` n + d) / (rd `dot` n)
+
+   intersects (ro, rd) (Plane d n) = ((ro `dot` n + d) / (rd `dot` n)) < 0
+   
