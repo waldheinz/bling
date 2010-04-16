@@ -2,7 +2,7 @@
 -- | The functions dealing with colours, radiance and light sources
 module Light (
    Spectrum, black, white, isBlack,
-   Light, Directional(..), SoftBox(..),
+   Light(..), Directional(..), SoftBox(..),
    sampleOneLight, sampleAllLights) where
 
 import Control.Monad
@@ -96,7 +96,7 @@ sampleAllLights shape lights i  = (foldl (liftM2 add) (return black) spectri) --
 -- | samples one randomly chosen light source
 sampleOneLight :: (Light a, Intersectable i) => i -> [a] -> Intersection -> Rand Spectrum
 sampleOneLight _ [] _ = return black -- no light sources -> no light
-sampleOneLight shape (light:[]) i = evalLight shape i light
+sampleOneLight shape (light:[]) i = evalLight shape i light -- eval the only light source
 sampleOneLight shape lights i = do
   lightNum <-rndR (0, lightCount - 1)
   y <- return (evalLight shape i (lights !! lightNum))

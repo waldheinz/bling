@@ -28,21 +28,22 @@ stareDownZAxis (px, py) = (Ray (0, 0, posZ) (normalize dir) 0 infinity)
 
 --- whitted - style integrator
 -- whitted :: Integrator
-whitted ray shape lights
-   | isNothing mint = return black
-   | otherwise = sampleAllLights shape lights (fromJust mint)
-      where
-            mint = intersect ray shape
+--whitted ray shape lights
+--   | isNothing mint = return black
+--   | otherwise = sampleAllLights shape lights (fromJust mint)
+--      where
+--            mint = intersect ray shape
+
 --- the debug integrator visualizes the normals of the shapes that were hit
 -- debug :: Integrator
-debug :: (Intersectable i) => Ray -> i -> t -> Rand Spectrum
-debug ray shape _
-   | isNothing mint = return black
-   | otherwise = return (showIntersection (fromJust mint))
-   where
-         mint = intersect ray shape
-         showIntersection (Intersection _ _ n) = showDir n
-         showDir (dx, dy, dz) = (abs dx, abs dy, abs dz)
+--debug :: (Intersectable i) => Ray -> i -> t -> Rand Spectrum
+--debug ray shape _
+--   | isNothing mint = return black
+--   | otherwise = return (showIntersection (fromJust mint))
+--   where
+--         mint = intersect ray shape
+--         showIntersection (Intersection _ _ n) = showDir n
+--         showDir (dx, dy, dz) = (abs dx, abs dy, abs dz)
          
 ---
 --- sampling and reconstruction
@@ -93,8 +94,8 @@ myLights = [
   (Directional (normalize ( 0, -1, -1)) (0.4, 0.4, 0.4)), 
   (Directional (normalize (-1, -2,  1)) (0.2, 0.7, 0.2))]
 -}
-myLights :: [InfiniteArea]
-myLights = [ InfiniteArea (0.99, 0.99, 0.99) ]
+myLights :: [SoftBox]
+myLights = [ SoftBox (0.99, 0.99, 0.99) ]
 
 clamp :: Float -> Int
 clamp v = round ( (min 1 (max 0 v)) * 255 )
