@@ -44,7 +44,8 @@ data InfiniteArea = InfiniteArea {
 instance Light InfiniteArea where
    sampleLight ia (Intersection _ pos n) = do
       rndD <- randomOnSphere
-      dir <- return (sameHemisphere rndD n)
+ --     dir <- return (sameHemisphere rndD n)
+      dir <- return (0,0,0)
       return (LightSample (infiniteAreaRadiance ia) dir (Ray pos dir epsilon infinity))
       
 -- | A directional light is a light source where for every point illuminated,
