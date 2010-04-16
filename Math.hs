@@ -25,6 +25,10 @@ data Ray = Ray {
 positionAt :: Ray -> Float -> Point
 positionAt (Ray o d _ _) t = o `add` (scalMul d t)
 
+-- | decides if a @t@ value is in the ray's bounds
+onRay :: Ray -> Float -> Bool
+onRay (Ray _ _ tmin tmax) t = t >= tmin && t <= tmax
+
 add :: Vector -> Vector -> Vector
 add (x, y, z) (a, b, c) = (x+a, y+b, z+c)
 
@@ -78,6 +82,6 @@ sameHemisphere v1 v2
 reflect :: Normal -> Point -> Rand Ray
 reflect n pt = do
    rndPt <- randomOnSphere
-   return (Ray pt (sameHemisphere rndPt n) 0 infinity)
+   return (Ray pt (sameHemisphere rndPt n) epsilon infinity)
    
 type Normal = Vector

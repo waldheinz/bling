@@ -45,7 +45,7 @@ instance Light InfiniteArea where
    sampleLight ia (Intersection _ pos n) = do
       rndD <- randomOnSphere
       dir <- return (sameHemisphere rndD n)
-      return (LightSample (infiniteAreaRadiance ia) dir (Ray (add pos (scalMul n epsilon)) dir 0 infinity))
+      return (LightSample (infiniteAreaRadiance ia) dir (Ray pos dir epsilon infinity))
       
 -- | A directional light is a light source where for every point illuminated,
 -- the light arrives from the same direction. This like a point light at
@@ -58,7 +58,7 @@ data Directional = Directional {
 instance Light Directional where
    sampleLight dl (Intersection _ pos n) = return (LightSample y lDir ray) where
       y = scalMul (directionalRadiance dl) (abs (dot n lDir))
-      ray = (Ray pos (neg lDir) 0 infinity)
+      ray = (Ray pos (neg lDir) epsilon infinity)
       lDir = directionalDir dl
 
 evalLight :: (Light l, Intersectable w) => w -> Intersection -> l -> Rand Spectrum

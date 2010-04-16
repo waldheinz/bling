@@ -63,14 +63,14 @@ stratify res@(resX, _) pixel = do
          y <- (map fromIntegral [0::Int .. steps-1]) ]
       fpps = (fromIntegral steps) * (fromIntegral resX)
       pxAdd (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
-      steps = 10
+      steps = 2
    
 pixelColor :: ((Float, Float) -> Rand Spectrum) -> (Int, Int) -> (Int, Int) -> Rand Spectrum
 pixelColor f res pixel = do
    ndcs <- stratify res pixel
    y <- (mapM f ndcs)
    return (scalMul (foldl add black y) (1 / fromIntegral spp)) where
-      spp = 100 :: Int
+      spp = 4 :: Int
       
 ---
 --- scene definition
@@ -117,6 +117,6 @@ main = do
          resX = 800 :: Int
          resY = 800 :: Int
          pixels = [ (x, y) | y <- [0..resX-1], x <- [0..resY-1]]
-         pixelFunc = ((\px -> whitted (stareDownZAxis px) myShape myLights))
+         pixelFunc = ((\px -> pathTracer (stareDownZAxis px) myShape myLights))
          colours = mapM (pixelColor pixelFunc (resX, resY)) pixels
          

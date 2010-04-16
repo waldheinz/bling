@@ -16,8 +16,9 @@ class Intersectable a where
    intersect :: Ray -> a -> Maybe Intersection
    intersects :: Ray -> a -> Bool
 
-nearest :: Maybe Intersection -> Maybe Intersection -> Maybe Intersection
-nearest mi1 mi2
+
+nearestInt :: Maybe Intersection -> Maybe Intersection -> Maybe Intersection
+nearestInt mi1 mi2
    | isNothing mi1 = mi2
    | isNothing mi2 = mi1
    | otherwise = nearest' (fromJust mi1) (fromJust mi2)
@@ -26,7 +27,7 @@ nearest mi1 mi2
             if (d1 < d2)
                then Just i1
                else Just i2
-   
+
 data AnyIntersectable = forall a. Intersectable a => MkAnyIntersectable a
 
 instance Intersectable AnyIntersectable where
@@ -35,10 +36,21 @@ instance Intersectable AnyIntersectable where
 
 data Group = Group [AnyIntersectable]
 
+nearest :: (Intersectable i) => Ray -> [i] -> Maybe Intersection
+nearest (Ray ro rd tmin tmax) i = nearest' i tmax Nothing where
+ --  nearest' :: Ray -> [i] -> Float -> Maybe Intersection -> Maybe Intersection
+   nearest' [] _ mi = mi
+   nearest' (x:xs) tmax' mi = nearest' xs newMax newNear where
+      clamped = (Ray ro rd tmin tmax')
+      newNear = if (isJust newNear') then newNear' else mi
+      newNear' = intersect clamped x
+      newMax = if (isNothing newNear)
+                  then tmax'
+                  else intDist $ fromJust newNear
+
 instance Intersectable Group where
    intersect _ (Group []) = Nothing
-   intersect r (Group g) = foldl nearest Nothing ints where
-      ints = map (intersect r) g
+   intersect r (Group g) = nearest r g
       
    intersects _ (Group []) = False
    intersects r (Group (x:xs)) = intersects r x || intersects r (Group xs)
@@ -47,20 +59,20 @@ instance Intersectable Group where
 data Sphere = Sphere Float Point
 
 instance Intersectable Sphere where
-   intersect ray@(Ray origin rayDir _ _) (Sphere r center)
+   intersect ray@(Ray origin rd _ _) (Sphere r center)
       | times == [] = Nothing
       | otherwise = Just (Intersection time (hitPoint time) (normalAt time))
       where
          dir = origin `sub` center
-         a = sqLen rayDir
-         b = 2 * (rayDir `dot` dir)
+         a = sqLen rd
+         b = 2 * (rd `dot` dir)
          c = (sqLen dir) - (r * r)
          time = minimum times
-         times = filter (> epsilon) (roots a b c)
+         times = filter (onRay ray) (roots a b c)
          hitPoint = positionAt ray
          normalAt t = normalize (sub (hitPoint t) center)
 
-   intersects (Ray ro rd _ _) (Sphere rad ct) = not $ null (filter (> epsilon) (roots a b c))
+   intersects r@(Ray ro rd _ _) (Sphere rad ct) = not $ null (filter (onRay r) (roots a b c))
       where
          d = ro `sub` ct
          a = sqLen rd
@@ -72,10 +84,10 @@ data Plane = Plane Float Normal
 
 instance Intersectable Plane where
    intersect ray@(Ray ro rd _ _) (Plane d n)
-      | t < epsilon = Nothing
+      | not $ onRay ray t = Nothing
       | otherwise = Just (Intersection t (positionAt ray t) n)
       where
          t = -(ro `dot` n + d) / (rd `dot` n)
-
-   intersects (Ray ro rd _ _) (Plane d n) = ((ro `dot` n + d) / (rd `dot` n)) < 0
+   
+   intersects r@(Ray ro rd _ _) (Plane d n) = onRay r (-((ro `dot` n + d) / (rd `dot` n)))
    
