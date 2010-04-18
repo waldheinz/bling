@@ -42,4 +42,4 @@ data BxdfSample = BxdfSample {
 -- | decides if two vectors which must be in the shading coordinate system
 -- are in the same hemisphere
 sameHemisphere :: Vector -> Vector -> Bool
-sameHemisphere (_, z1, _) (_, z2, _) = z1 * z2 > 0
+sameHemisphere (_, _, z1) (_, _, z2) = z1 * z2 > 0

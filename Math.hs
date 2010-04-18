@@ -117,15 +117,17 @@ data LocalCoordinates = LocalCoordinates Vector Vector Vector
 
 coordinateSystem :: Vector -> (Vector, Vector)
 coordinateSystem v@(x, y, z)
-   | abs x > abs y = (xz, cross v xz)
-   | otherwise = (yz, cross v yz)
-   where
-         xz = (-z * invLenXz, 0, x * invLenXz)
-         invLenXz = 1 / (sqrt (x*x + z*z))
-         yz = (0, z * invLenYz, -y * invLenYz)
-         invLenYz = 1 / (sqrt (y*y + z*z))
-
-
+   | abs x > abs y = 
+      let 
+          invLen = 1.0 / (sqrt (x*x + z*z))
+          v2 = (-z * invLen, 0, x * invLen)
+      in (v2, cross v v2)
+   | otherwise = 
+      let
+          invLen = 1.0 / (sqrt (y*y + z*z))
+          v2 = (0, z * invLen, -y * invLen)
+      in (v2, cross v v2)
+      
 -- | A Spectrum of colours.
 type Spectrum = Vector -- RGB for now
 
