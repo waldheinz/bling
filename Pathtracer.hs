@@ -2,6 +2,7 @@ module Pathtracer(pathTracer) where
 
 import Maybe(isJust, fromJust)
 
+import Bsdf
 import Geometry
 import Light
 import Material
@@ -23,12 +24,14 @@ pathTracer r s lights = nextVertex 0 True r white black where
                
    evalInt :: Ray -> Intersection -> Rand Spectrum
    evalInt (Ray _ rd _ _) int = do
-      (BsdfSample wi pdf) <- materialSample mat int
-      ls <- sampleOneLight s lights int
+      (BsdfSample bsdfType pdf _ wi) <- sampleBsdf bsdf wo
+      ls <- sampleOneLight s lights int wo bsdf
       return (sScale (f wi) ls)
       where
-         mat = intMaterial int
-         f = materialEval mat (neg rd)
+            wo = neg rd
+            mat = defaultMaterial
+            f = evalBsdf bsdf wo
+            bsdf = materialBsdf mat int
          
          
    directLight :: Ray -> Spectrum
