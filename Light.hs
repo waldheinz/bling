@@ -101,9 +101,10 @@ sampleOneLight :: (Light a, Intersectable i) => i -> [a] -> Intersection -> Rand
 sampleOneLight _ [] _ = return black -- no light sources -> no light
 sampleOneLight shape (light:[]) i = evalLight shape i light -- eval the only light source
 sampleOneLight shape lights i = do
-  lightNum <-rndR (0, lightCount - 1)
-  y <- return (evalLight shape i (lights !! lightNum))
-  ((liftM2 scalMul) y (return (fromIntegral lightCount))) -- scale by probability choosing that light
+  lightNum <-rndR (0, lightCount - 1 :: Int)
+  y <- evalLight shape i (lights !! lightNum)
+  return $! scale y
   where
     lightCount = length lights
+    scale = (\y -> scalMul y (fromIntegral lightCount))
     
