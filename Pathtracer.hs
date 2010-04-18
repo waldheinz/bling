@@ -1,5 +1,6 @@
 module Pathtracer(pathTracer) where
 
+import Control.Monad
 import Maybe(isJust, fromJust)
 
 import Bsdf
@@ -11,28 +12,27 @@ import Random
 
 -- pathTracer :: Integrator
 pathTracer :: (Intersectable i, Light l) => Ray -> i -> [l] -> Rand Spectrum
-pathTracer r s lights = nextVertex 0 True r white black where
-   nextVertex :: Int -> Bool -> Ray -> Spectrum -> Spectrum -> Rand Spectrum
-   nextVertex depth spec ray throughput l
-      | (isJust mint) = evalInt ray (fromJust mint)
-      | otherwise = return l'
-         where
-               mint = intersect ray s
-               l' = if (spec || depth == 0)
-                       then add l (directLight ray)
-                       else l
-               
-   evalInt :: Ray -> Intersection -> Rand Spectrum
-   evalInt (Ray _ rd _ _) int = do
+pathTracer r s lights = nextVertex 0 True r (intersect r s) white black where
+   nextVertex :: Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Rand Spectrum
+   nextVertex _ True ray Nothing throughput l = -- nothing hit, specular bounce
+      return (add l $ sScale throughput $ directLight ray)
+   
+   nextVertex _ False _ Nothing _ l = -- nothing hit, non-specular bounce
+      return l
+   
+   nextVertex depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ pos _)) throughput l = do
       (BsdfSample bsdfType pdf _ wi) <- sampleBsdf bsdf wo
-      ls <- sampleOneLight s lights int wo bsdf
-      return ls -- (sScale (f wi) ls)
+      lHere <- sampleOneLight s lights int wo bsdf
+      
+      outRay <- return (Ray pos wi epsilon infinity)
+      throughput' <- return $ sScale throughput $ f wi
+      l' <- return $ add l (sScale throughput lHere)
+      (nextVertex (depth + 1) False outRay (intersect outRay s) throughput' l')
       where
             wo = neg rd
             mat = defaultMaterial
             f = evalBsdf bsdf wo
             bsdf = materialBsdf mat int
-         
          
    directLight :: Ray -> Spectrum
    directLight r = foldl add black (map (\l -> lightEmittance l r) lights)

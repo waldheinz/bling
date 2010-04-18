@@ -80,7 +80,7 @@ pixelColor f res pixel = do
 
 -- myShape :: Group
 myShape = Group [
-  -- MkAnyIntersectable sphereGrid, 
+   --MkAnyIntersectable sphereGrid, 
    MkAnyIntersectable (Sphere (1.2) (0, 0, 0)),
    MkAnyIntersectable (Plane (1.2) (0, 1, 0))]
 
@@ -119,6 +119,6 @@ main = do
          resX = 800 :: Int
          resY = 800 :: Int
          pixels = [ (x, y) | y <- [0..resX-1], x <- [0..resY-1]]
-         pixelFunc = ((\px -> whitted (stareDownZAxis px) myShape myLights))
+         pixelFunc = ((\px -> pathTracer (stareDownZAxis px) myShape myLights))
          colours = mapM (pixelColor pixelFunc (resX, resY)) pixels
          
