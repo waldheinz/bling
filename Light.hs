@@ -15,7 +15,8 @@ import Random
 data LightSample = LightSample {
    de :: Spectrum, -- ^ differential irradiance
    lightSampleWi :: Vector, -- ^ incident direction
-   testRay :: Ray -- ^ for visibility test
+   testRay :: Ray, -- ^ for visibility test
+   lightSamplePdf :: Float
    }
 
 class Light a where
@@ -31,11 +32,26 @@ data SoftBox = SoftBox {
 
 instance Light SoftBox where
    lightSample (SoftBox r) (Intersection _ pos n) = do
-      rndD <- randomOnSphere
- --     dir <- return (sameHemisphere rndD n)
-      dir <- return (0,0,0)
-      return (LightSample r dir (Ray pos dir epsilon infinity))
-      
+      -- lDir <- cosineSampleHemisphere -- dir in local coordinate system
+      z <- rndR (-1, 1)
+      y <- rndR (-1, 1)
+      x <- rndR (-1, 1)
+      lDir <- return (normalize (x, y, z))
+      return $! sample lDir
+      where
+         sample = (\ds -> LightSample r (toWorld ds) (testRay $ toWorld ds) (pdf ds))
+         testRay = (\dir -> Ray pos dir epsilon infinity)
+         
+         pdf :: Vector -> Float
+         pdf (_, _, z) = invTwoPi -- * z
+        
+         toWorld v = v
+        
+      --   toWorld :: Vector -> Vector
+      --   toWorld v = localToWorld cs v where
+      --      (v1, v2) = coordinateSystem n
+      --      cs = LocalCoordinates v1 v2 n
+         
    lightEmittance (SoftBox r) _ = r
    lightPdf _ i wi = absDot (intNorm i) wi
    
@@ -43,23 +59,23 @@ instance Light SoftBox where
 -- the light arrives from the same direction. This like a point light at
 -- infinite distance.
 data Directional = Directional {
-   directionalDir :: Normal, -- ^ the direction this light emits to
+   directionalDir :: Normal, -- ^ the direction where the light comes from
    directionalRadiance :: Spectrum -- ^ the spectrum emitted by this light
    }
    
 instance Light Directional where
-   lightSample dl (Intersection _ pos n) = return (LightSample y lDir ray) where
-      y = scalMul (directionalRadiance dl) (abs (dot n lDir))
-      ray = (Ray pos (neg lDir) epsilon infinity)
+   lightSample dl (Intersection _ pos n) = return (LightSample y lDir ray 1.0) where
+      y = scalMul (directionalRadiance dl) (absDot n lDir)
+      ray = (Ray pos lDir epsilon infinity)
       lDir = directionalDir dl
       
-   lightEmittance (Directional _ r) _ = r
+   lightEmittance (Directional _ r) _ = black
    lightPdf _ _ _ = 0
    
 evalLight :: (Light l, Intersectable w) => w -> Intersection -> l -> Vector -> Bsdf -> Rand Spectrum
 evalLight shape int light wo bsdf = do
    sample <- lightSample light int
-   return (evalSample sample shape wo bsdf int)
+   return $! (evalSample sample shape wo bsdf int)
    
 evalSample :: (Intersectable i) => LightSample -> i -> Vector -> Bsdf -> Intersection -> Spectrum
 evalSample sample shape wo bsdf int = if (isBlack li || isBlack f)
@@ -68,12 +84,11 @@ evalSample sample shape wo bsdf int = if (isBlack li || isBlack f)
                         then ld
                         else black
    where
-         ld = scalMul (sScale f li) (absDot wi (intNorm int))
+         ld = sScale f $ scalMul li $ (absDot wi (intNorm int)) / (lightSamplePdf sample)
          li = de sample
          wi = lightSampleWi sample
          f = evalBsdf bsdf wo wi
-         hidden = intersects ray shape
-         ray = testRay sample
+         hidden = intersects (testRay sample) shape
 
 -- | samples all lights by sampling individual lights and summing up the results
 sampleAllLights :: (Light l, Intersectable i) => i -> [l] -> Intersection -> Vector -> Bsdf -> Rand Spectrum

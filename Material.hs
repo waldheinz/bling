@@ -9,7 +9,7 @@ import Math
 import Random
 import Transport
 
-defaultMaterial = Matte (0.5, 0.6, 0.7)
+defaultMaterial = Matte (0.95, 0.95, 0.95)
 
 class Material a where
    materialBsdf :: a -> Intersection -> Bsdf
@@ -29,6 +29,6 @@ instance Bxdf Lambertian where
    bxdfEval (Lambertian r) _ _ = scalMul r invPi
    bxdfType _ = Diffuse
 
-coordinates :: Intersection -> ShadingCoordinates
-coordinates (Intersection _ _ n) = (ShadingCoordinates n sn' tn') where
+coordinates :: Intersection -> LocalCoordinates
+coordinates (Intersection _ _ n) = (LocalCoordinates sn' tn' n) where
    (sn', tn') = coordinateSystem n

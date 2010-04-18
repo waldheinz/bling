@@ -86,30 +86,20 @@ randomOnSphere = do
    where
       s = (\u -> (sqrt (1 - (u * u))))
    
---sameHemisphere :: Vector -> Vector -> Vector
---sameHemisphere v1 v2
---   | (dot v1 v2) > 0 = v1
---   | otherwise = neg v1
-
---reflect :: Normal -> Point -> Rand Ray
---reflect n pt = do
---   rndPt <- randomOnSphere
---   return (Ray pt (sameHemisphere rndPt n) epsilon infinity)
-
 cosineSampleHemisphere :: Rand Vector
 cosineSampleHemisphere = do
    (x, y) <- concentricSampleDisk
-   return (x, y, sqrt (max 0 (1 - x*x - y*y)))
+   return $! (x, y, sqrt (max 0 (1 - x*x - y*y)))
    
 concentricSampleDisk :: Rand (Float, Float)
 concentricSampleDisk = do
-   sx <- rndR (-1, 1)
-   sy <- rndR (-1, 1)
-   return (concentricSampleDisk' (sx, sy))
+   sx <- rndR (-1, 1 :: Float)
+   sy <- rndR (-1, 1 :: Float)
+   return $! concentricSampleDisk' (sx, sy)
 
 concentricSampleDisk' :: (Float, Float) -> (Float, Float)
 concentricSampleDisk' (sx, sy) = (r * cos theta, r * sin theta) where
-   theta = theta' * pi / 4
+   theta = theta' * pi / 4.0
    (r, theta') = 
       if (sx >= -sy)
          then if (sx > sy) -- first region
@@ -117,9 +107,16 @@ concentricSampleDisk' (sx, sy) = (r * cos theta, r * sin theta) where
                then (sx, sy / sx)
                else (sx, 8 + sy / sx)  
             else (sy, 2 - sx / sy) -- second region
-      else if (sx <= sy)
-         then (-sx, 4 - sy / (-sx)) -- third region
-         else (-sy, 6 + sx / (-sy)) -- fourth region
+         else if (sx <= sy)
+            then (-sx, 4 - sy / (-sx)) -- third region
+            else (-sy, 6 + sx / (-sy)) -- fourth region
+
+
+data LocalCoordinates = LocalCoordinates {
+   nn :: Vector,
+   sn :: Vector,
+   tn :: Vector
+   }
 
 coordinateSystem :: Vector -> (Vector, Vector)
 coordinateSystem v@(x, y, z)

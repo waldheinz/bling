@@ -26,7 +26,7 @@ pathTracer r s lights = nextVertex 0 True r white black where
    evalInt (Ray _ rd _ _) int = do
       (BsdfSample bsdfType pdf _ wi) <- sampleBsdf bsdf wo
       ls <- sampleOneLight s lights int wo bsdf
-      return (sScale (f wi) ls)
+      return ls -- (sScale (f wi) ls)
       where
             wo = neg rd
             mat = defaultMaterial

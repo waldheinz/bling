@@ -5,12 +5,6 @@ module Transport where
 import Math
 import Random
 
-data ShadingCoordinates = ShadingCoordinates {
-   nn :: Vector,
-   sn :: Vector,
-   tn :: Vector
-   }
-
 data BxdfType = Diffuse | Specular
 
 

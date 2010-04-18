@@ -9,6 +9,7 @@ import Light
 import Math
 import Pathtracer
 import Random
+import Whitted
 
 ---
 --- a camera transforms a pixel in normalized device coordinates (NDC) to a ray
@@ -64,14 +65,14 @@ stratify res@(resX, _) pixel = do
          y <- (map fromIntegral [0::Int .. steps-1]) ]
       fpps = (fromIntegral steps) * (fromIntegral resX)
       pxAdd (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
-      steps = 2
+      steps = 10
    
 pixelColor :: ((Float, Float) -> Rand Spectrum) -> (Int, Int) -> (Int, Int) -> Rand Spectrum
 pixelColor f res pixel = do
    ndcs <- stratify res pixel
    y <- (mapM f ndcs)
    return (scalMul (foldl add black y) (1 / fromIntegral spp)) where
-      spp = 4 :: Int
+      spp = 100 :: Int
       
 ---
 --- scene definition
@@ -79,7 +80,9 @@ pixelColor f res pixel = do
 
 -- myShape :: Group
 myShape = Group [
-   MkAnyIntersectable sphereGrid, 
+  -- MkAnyIntersectable sphereGrid, 
+  MkAnyIntersectable (Sphere (1.0) (0, -0.2, 0)),
+  
    MkAnyIntersectable (Plane (1.4) (0, 1, 0))]
 
 -- sphereGrid :: Group
@@ -90,11 +93,11 @@ sphereGrid = Group spheres where
 --myLights :: [Light]
 {-
 myLights = [
-  (Directional (normalize ( 1, -2,  1)) (0.7, 0.2, 0.2)),
-  (Directional (normalize ( 0, -1, -1)) (0.4, 0.4, 0.4)), 
-  (Directional (normalize (-1, -2,  1)) (0.2, 0.7, 0.2))]
+  (Directional (normalize ( 1, 1, -1)) (0.9, 0.5, 0.5)),
+  (Directional (normalize ( 0, 1, -1)) (0.5, 0.9, 0.5)), 
+  (Directional (normalize (-1, 1, -1)) (0.5, 0.5, 0.9))]
 -}
-myLights :: [SoftBox]
+--myLights :: [SoftBox]
 myLights = [ SoftBox (0.99, 0.99, 0.99) ]
 
 clamp :: Float -> Int
@@ -118,6 +121,6 @@ main = do
          resX = 800 :: Int
          resY = 800 :: Int
          pixels = [ (x, y) | y <- [0..resX-1], x <- [0..resY-1]]
-         pixelFunc = ((\px -> pathTracer (stareDownZAxis px) myShape myLights))
+         pixelFunc = ((\px -> whitted (stareDownZAxis px) myShape myLights))
          colours = mapM (pixelColor pixelFunc (resX, resY)) pixels
          
