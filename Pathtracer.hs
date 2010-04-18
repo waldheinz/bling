@@ -14,6 +14,7 @@ import Random
 pathTracer :: (Intersectable i, Light l) => Ray -> i -> [l] -> Rand Spectrum
 pathTracer r s lights = nextVertex 0 True r (intersect r s) white black where
    nextVertex :: Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Rand Spectrum
+   nextVertex 10 _ _ _ _ l = return l -- hard bound
    nextVertex _ True ray Nothing throughput l = -- nothing hit, specular bounce
       return (add l $ sScale throughput $ directLight ray)
    
@@ -27,7 +28,8 @@ pathTracer r s lights = nextVertex 0 True r (intersect r s) white black where
       outRay <- return (Ray pos wi epsilon infinity)
       throughput' <- return $ sScale throughput $ f wi
       l' <- return $ add l (sScale throughput lHere)
-      (nextVertex (depth + 1) False outRay (intersect outRay s) throughput' l')
+      -- (nextVertex (depth + 1) False outRay (intersect outRay s) throughput' l')
+      return $! wo
       where
             wo = neg rd
             mat = defaultMaterial

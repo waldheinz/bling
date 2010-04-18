@@ -4,11 +4,10 @@ module Material(Material(..), Matte(..), defaultMaterial) where
 
 import Bsdf
 import Geometry
-import Light
 import Math
-import Random
 import Transport
 
+defaultMaterial :: Matte
 defaultMaterial = Matte (0.95, 0.65, 0.65)
 
 class Material a where
@@ -21,9 +20,7 @@ instance Material Matte where
       bxdf = MkAnyBxdf $ Lambertian $ r
       sc = coordinates int
    
-data Lambertian = Lambertian {
-   lambertianReflectance :: Spectrum
-   }
+data Lambertian = Lambertian Spectrum
    
 instance Bxdf Lambertian where
    bxdfEval (Lambertian r) _ _ = scalMul r invPi

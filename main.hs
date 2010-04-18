@@ -1,13 +1,13 @@
 --- RT - H
 
-import Maybe(isNothing, fromJust)
+-- import Maybe(isNothing, fromJust)
 import Control.Monad
 import System.Random
 
 import Geometry
 import Light
 import Math
-import Pathtracer
+-- import Pathtracer
 import Random
 import Whitted
 
@@ -22,30 +22,7 @@ stareDownZAxis (px, py) = (Ray (0, 0, posZ) (normalize dir) 0 infinity)
   where
     posZ = -4
     dir = ((px - 0.5) * 4, (0.5 - py) * 4, -posZ)
-
----
---- integrators
----
-
---- whitted - style integrator
--- whitted :: Integrator
---whitted ray shape lights
---   | isNothing mint = return black
---   | otherwise = sampleAllLights shape lights (fromJust mint)
---      where
---            mint = intersect ray shape
-
---- the debug integrator visualizes the normals of the shapes that were hit
--- debug :: Integrator
---debug :: (Intersectable i) => Ray -> i -> t -> Rand Spectrum
---debug ray shape _
---   | isNothing mint = return black
---   | otherwise = return (showIntersection (fromJust mint))
---   where
---         mint = intersect ray shape
---         showIntersection (Intersection _ _ n) = showDir n
---         showDir (dx, dy, dz) = (abs dx, abs dy, abs dz)
-         
+   
 ---
 --- sampling and reconstruction
 ---
@@ -78,16 +55,16 @@ pixelColor f res pixel = do
 --- scene definition
 ---
 
--- myShape :: Group
+myShape :: Group
 myShape = Group [
    --MkAnyIntersectable sphereGrid, 
    MkAnyIntersectable (Sphere (1.2) (0, 0, 0)),
    MkAnyIntersectable (Plane (1.2) (0, 1, 0))]
 
--- sphereGrid :: Group
-sphereGrid = Group spheres where
-   spheres = map (\pos -> MkAnyIntersectable (Sphere 0.4 (sub (1, 1.0, 1) pos))) coords
-   coords = [(x, y, z) | x <- [0..2], y <- [0..2], z <- [0..2]] :: [Vector]
+--sphereGrid :: Group
+--sphereGrid = Group spheres where
+--   spheres = map (\pos -> MkAnyIntersectable (Sphere 0.4 (sub (1, 1.0, 1) pos))) coords
+--   coords = [(x, y, z) | x <- [0..2], y <- [0..2], z <- [0..2]] :: [Vector]
 
 --myLights :: [Light]
 {-
@@ -95,7 +72,8 @@ myLights = [
     (Directional (normalize ( 1, 1, -1)) (0.9, 0.2, 0.2)),
     (Directional (normalize (-1, 1, -1)) (0.2, 0.9, 0.2))]
 -}
---myLights :: [SoftBox]
+
+myLights :: [SoftBox]
 myLights = [ SoftBox (0.99, 0.99, 0.99) ]
 
 clamp :: Float -> Int
@@ -119,6 +97,6 @@ main = do
          resX = 800 :: Int
          resY = 800 :: Int
          pixels = [ (x, y) | y <- [0..resX-1], x <- [0..resY-1]]
-         pixelFunc = ((\px -> pathTracer (stareDownZAxis px) myShape myLights))
+         pixelFunc = ((\px -> whitted (stareDownZAxis px) myShape myLights))
          colours = mapM (pixelColor pixelFunc (resX, resY)) pixels
          

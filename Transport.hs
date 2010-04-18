@@ -7,7 +7,6 @@ import Random
 
 data BxdfType = Diffuse | Specular
 
-
 class Bxdf a where
    bxdfEval :: a -> Normal -> Normal -> Spectrum
    bxdfSample :: a -> Normal -> Rand BxdfSample
@@ -16,7 +15,7 @@ class Bxdf a where
    
    bxdfSample a wo@(_, _, woz) = do
       wi' <- cosineSampleHemisphere
-      return (BxdfSample (wif wi') (bxdfPdf a wo (wif wi'))) -- TODO: get rid of call to bxdfPdf
+      return (BxdfSample (wif wi') (bxdfPdf a wo (wif wi')))
       where
             wif xx@(x, y, z)
                | woz < 0 = (x, y, -z)

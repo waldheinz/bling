@@ -5,10 +5,10 @@ import Transport
 import Random
 
 data BsdfSample = BsdfSample {
-   sampledType :: BxdfType,
-   pdf :: Float,
-   transport :: Spectrum,
-   wi :: Vector
+   bsdfsampleType :: BxdfType,
+   bsdfSamplePdf :: Float,
+   bsdfSampleTransport :: Spectrum,
+   bsdfSampleWi :: Vector
    }
 
 data Bsdf = Bsdf AnyBxdf LocalCoordinates

@@ -32,24 +32,24 @@ data SoftBox = SoftBox {
 
 instance Light SoftBox where
    lightSample (SoftBox r) (Intersection _ pos n) = do
-      lDir <- randomOnSphere
-      --lDir <- cosineSampleHemisphere -- dir in local coordinate system
+     -- lDir <- randomOnSphere
+      lDir <- cosineSampleHemisphere -- dir in local coordinate system
       return $! sample lDir
       where
-         sample = (\ds -> LightSample r (toWorld ds) (testRay $ toWorld ds) (pdf ds))
-         testRay = (\dir -> Ray pos dir epsilon infinity)
+         sample = (\ds -> LightSample r (toWorld ds) (ray $ toWorld ds) (pdf ds))
+         ray = (\dir -> Ray pos dir epsilon infinity)
          
          pdf :: Vector -> Float
-         pdf (_, _, z) = invTwoPi -- * z
+         pdf (_, _, z) = invTwoPi * z
         
-         toWorld v
-            | dot n v > 0 = v
-            | otherwise = neg v
+ --        toWorld v
+ --           | dot n v > 0 = v
+  --          | otherwise = neg v
         
          toWorld :: Vector -> Vector
---         toWorld v = localToWorld cs v where
---            (v1, v2) = coordinateSystem n
---            cs = LocalCoordinates n v1 v2
+         toWorld v = localToWorld cs v where
+            (v1, v2) = coordinateSystem n
+            cs = LocalCoordinates v1 v2 n
          
    lightEmittance (SoftBox r) _ = r
    lightPdf _ i wi = absDot (intNorm i) wi
@@ -68,7 +68,7 @@ instance Light Directional where
       ray = (Ray pos lDir epsilon infinity)
       lDir = directionalDir dl
       
-   lightEmittance (Directional _ r) _ = black
+   lightEmittance _ _ = black
    lightPdf _ _ _ = 0
    
 evalLight :: (Light l, Intersectable w) => w -> Intersection -> l -> Vector -> Bsdf -> Rand Spectrum
