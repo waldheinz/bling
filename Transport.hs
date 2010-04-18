@@ -14,15 +14,15 @@ class Bxdf a where
    bxdfPdf :: a -> Normal -> Normal -> Float
    bxdfType :: a -> BxdfType
    
-   bxdfSample a wo@(_, woy, _) = do
+   bxdfSample a wo@(_, _, woz) = do
       wi' <- cosineSampleHemisphere
-      return (BxdfSample (wif wi') (bxdfPdf a wo (wif wi')))
+      return (BxdfSample (wif wi') (bxdfPdf a wo (wif wi'))) -- TODO: get rid of call to bxdfPdf
       where
             wif xx@(x, y, z)
-               | woy < 0 = (x, -y, z)
+               | woz < 0 = (x, y, -z)
                | otherwise = xx
    
-   bxdfPdf _ wo wi@(_, z, _)
+   bxdfPdf _ wo wi@(_, _, z)
       | sameHemisphere wo wi = invPi * abs z
       | otherwise = 0
 

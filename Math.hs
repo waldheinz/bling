@@ -98,6 +98,7 @@ concentricSampleDisk = do
    return $! concentricSampleDisk' (sx, sy)
 
 concentricSampleDisk' :: (Float, Float) -> (Float, Float)
+concentricSampleDisk' (0, 0) = (0, 0) -- handle degeneracy at the origin
 concentricSampleDisk' (sx, sy) = (r * cos theta, r * sin theta) where
    theta = theta' * pi / 4.0
    (r, theta') = 
@@ -105,18 +106,14 @@ concentricSampleDisk' (sx, sy) = (r * cos theta, r * sin theta) where
          then if (sx > sy) -- first region
             then if (sy > 0) 
                then (sx, sy / sx)
-               else (sx, 8 + sy / sx)  
-            else (sy, 2 - sx / sy) -- second region
+               else (sx, 8.0 + sy / sx)  
+            else (sy, 2.0 - sx / sy) -- second region
          else if (sx <= sy)
-            then (-sx, 4 - sy / (-sx)) -- third region
-            else (-sy, 6 + sx / (-sy)) -- fourth region
+            then (-sx, 4.0 - sy / (-sx)) -- third region
+            else (-sy, 6.0 + sx / (-sy)) -- fourth region
 
 
-data LocalCoordinates = LocalCoordinates {
-   nn :: Vector,
-   sn :: Vector,
-   tn :: Vector
-   }
+data LocalCoordinates = LocalCoordinates Vector Vector Vector
 
 coordinateSystem :: Vector -> (Vector, Vector)
 coordinateSystem v@(x, y, z)
@@ -124,9 +121,9 @@ coordinateSystem v@(x, y, z)
    | otherwise = (yz, cross v yz)
    where
          xz = (-z * invLenXz, 0, x * invLenXz)
-         invLenXz = 1 / (sqrt x*x + z*z)
+         invLenXz = 1 / (sqrt (x*x + z*z))
          yz = (0, z * invLenYz, -y * invLenYz)
-         invLenYz = 1 / (sqrt y*y + z*z)
+         invLenYz = 1 / (sqrt (y*y + z*z))
 
 
 -- | A Spectrum of colours.

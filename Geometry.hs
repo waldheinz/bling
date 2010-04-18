@@ -70,7 +70,7 @@ instance Intersectable Sphere where
          time = minimum times
          times = filter (onRay ray) (roots a b c)
          hitPoint = positionAt ray
-         normalAt t = normalize (sub (hitPoint t) center)
+         normalAt t = normalize $ sub (hitPoint t) center
 
    intersects r@(Ray ro rd _ _) (Sphere rad ct) = not $ null (filter (onRay r) (roots a b c))
       where

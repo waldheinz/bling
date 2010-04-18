@@ -32,11 +32,8 @@ data SoftBox = SoftBox {
 
 instance Light SoftBox where
    lightSample (SoftBox r) (Intersection _ pos n) = do
-      -- lDir <- cosineSampleHemisphere -- dir in local coordinate system
-      z <- rndR (-1, 1)
-      y <- rndR (-1, 1)
-      x <- rndR (-1, 1)
-      lDir <- return (normalize (x, y, z))
+      lDir <- randomOnSphere
+      --lDir <- cosineSampleHemisphere -- dir in local coordinate system
       return $! sample lDir
       where
          sample = (\ds -> LightSample r (toWorld ds) (testRay $ toWorld ds) (pdf ds))
@@ -45,12 +42,14 @@ instance Light SoftBox where
          pdf :: Vector -> Float
          pdf (_, _, z) = invTwoPi -- * z
         
-         toWorld v = v
+         toWorld v
+            | dot n v > 0 = v
+            | otherwise = neg v
         
-      --   toWorld :: Vector -> Vector
-      --   toWorld v = localToWorld cs v where
-      --      (v1, v2) = coordinateSystem n
-      --      cs = LocalCoordinates v1 v2 n
+         toWorld :: Vector -> Vector
+--         toWorld v = localToWorld cs v where
+--            (v1, v2) = coordinateSystem n
+--            cs = LocalCoordinates n v1 v2
          
    lightEmittance (SoftBox r) _ = r
    lightPdf _ i wi = absDot (intNorm i) wi

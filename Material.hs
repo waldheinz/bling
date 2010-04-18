@@ -30,5 +30,5 @@ instance Bxdf Lambertian where
    bxdfType _ = Diffuse
 
 coordinates :: Intersection -> LocalCoordinates
-coordinates (Intersection _ _ n) = (LocalCoordinates sn' tn' n) where
+coordinates (Intersection _ _ n) = (LocalCoordinates n sn' tn') where
    (sn', tn') = coordinateSystem n

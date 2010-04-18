@@ -65,14 +65,14 @@ stratify res@(resX, _) pixel = do
          y <- (map fromIntegral [0::Int .. steps-1]) ]
       fpps = (fromIntegral steps) * (fromIntegral resX)
       pxAdd (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
-      steps = 10
+      steps = 3
    
 pixelColor :: ((Float, Float) -> Rand Spectrum) -> (Int, Int) -> (Int, Int) -> Rand Spectrum
 pixelColor f res pixel = do
    ndcs <- stratify res pixel
    y <- (mapM f ndcs)
    return (scalMul (foldl add black y) (1 / fromIntegral spp)) where
-      spp = 100 :: Int
+      spp = 9 :: Int
       
 ---
 --- scene definition
@@ -81,9 +81,8 @@ pixelColor f res pixel = do
 -- myShape :: Group
 myShape = Group [
   -- MkAnyIntersectable sphereGrid, 
-  MkAnyIntersectable (Sphere (1.0) (0, -0.2, 0)),
-  
-   MkAnyIntersectable (Plane (1.4) (0, 1, 0))]
+   MkAnyIntersectable (Sphere (1.2) (0, 0, 0)),
+   MkAnyIntersectable (Plane (1.2) (0, 1, 0))]
 
 -- sphereGrid :: Group
 sphereGrid = Group spheres where
@@ -93,9 +92,8 @@ sphereGrid = Group spheres where
 --myLights :: [Light]
 {-
 myLights = [
-  (Directional (normalize ( 1, 1, -1)) (0.9, 0.5, 0.5)),
-  (Directional (normalize ( 0, 1, -1)) (0.5, 0.9, 0.5)), 
-  (Directional (normalize (-1, 1, -1)) (0.5, 0.5, 0.9))]
+    (Directional (normalize ( 1, 1, -1)) (0.9, 0.2, 0.2)),
+    (Directional (normalize (-1, 1, -1)) (0.2, 0.9, 0.2))]
 -}
 --myLights :: [SoftBox]
 myLights = [ SoftBox (0.99, 0.99, 0.99) ]
