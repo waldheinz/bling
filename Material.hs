@@ -8,7 +8,7 @@ import Math
 import Transport
 
 defaultMaterial :: Matte
-defaultMaterial = Matte (0.75, 0.75, 0.75)
+defaultMaterial = Matte (0.85, 0.85, 0.85)
 
 class Material a where
    materialBsdf :: a -> Intersection -> Bsdf
@@ -24,8 +24,12 @@ data Lambertian = Lambertian Spectrum
    
 instance Bxdf Lambertian where
    bxdfEval (Lambertian r) _ _ = scalMul r invPi
-   bxdfType _ = Diffuse
+   bxdfType _ = Reflection
+   bxdfAppearance _ = Diffuse
 
 coordinates :: Intersection -> LocalCoordinates
-coordinates (Intersection _ _ n) = (LocalCoordinates sn tn n) where
-   (sn, tn) = coordinateSystem n
+coordinates (Intersection _ _ n) = (LocalCoordinates (normalize sn) (normalize tn) (normalize n)) where
+   (sn', tn') = coordinateSystem n
+   (sn, tn) = if (sn' `dot` n < 0)
+                 then (sn', tn')
+                 else (tn', sn')

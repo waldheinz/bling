@@ -57,7 +57,7 @@ scalMul :: Vector -> Float -> Vector
 scalMul (x, y, z) f = (x*f, y*f, z*f)
 
 cross :: Vector -> Vector -> Vector
-cross (a,b,c) (x,y,z) = (b*z + c*y, -(a*z + c*x), a*y + b*x)
+cross (ux,uy,uz) (vx,vy,vz) = (uy*vz - uz*vy, -(ux*vz - uz*vx), ux*vy - uy*vx)
 
 dot :: Vector -> Vector -> Float
 dot (x,y,z) (a,b,c) = x*a + y*b + z*c;
@@ -116,11 +116,11 @@ data LocalCoordinates = LocalCoordinates Vector Vector Vector
 
 coordinateSystem :: Vector -> (Vector, Vector)
 coordinateSystem v@(x, y, z)
---   | abs x > abs y = 
---      let 
---          invLen = 1.0 / (sqrt (x*x + z*z))
---          v2 = (-z * invLen, 0, x * invLen)
---      in (v2, cross v v2)
+   | abs x > abs y = 
+      let 
+          invLen = 1.0 / (sqrt (x*x + z*z))
+          v2 = (-z * invLen, 0, x * invLen)
+      in (v2, cross v v2)
    | otherwise = 
       let
           invLen = 1.0 / (sqrt (y*y + z*z))

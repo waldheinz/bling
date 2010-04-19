@@ -27,15 +27,16 @@ pathTracer r s lights = nextVertex 0 True r (intersect r s) white black where
       | isBlack throughput = return l
       | otherwise = do
          (BsdfSample bsdfType pdf _ wi@(wix, wiy, wiz)) <- sampleBsdf bsdf wo
-     -- return (abs wix, abs wiy, abs wiz)
-         lHere <- sampleOneLight s lights int wo bsdf
+         return (abs wix, abs wiy, abs wiz)
+         
+       --  lHere <- sampleOneLight s lights int wo bsdf
       
-         outRay <- return (Ray pos wi epsilon infinity)
-         throughput' <- return $ sScale throughput $ evalBsdf bsdf wo wi
-         l' <- return $ add l (sScale throughput lHere)
-         nextVertex (depth + 1) False outRay (intersect outRay s) throughput' l'
+    --     outRay <- return (Ray pos wi epsilon infinity)
+    --     throughput' <- return $ sScale throughput $ evalBsdf bsdf wo wi
+    --     l' <- return $ add l (sScale throughput lHere)
+    --     nextVertex (depth + 1) False outRay (intersect outRay s) throughput' l'
          where
-            wo = neg rd
+            wo = normalize $ neg rd
             mat = defaultMaterial
             bsdf = materialBsdf mat int
          
