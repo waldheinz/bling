@@ -6,17 +6,17 @@ import Math
 
 import Maybe
 
-data Intersection = Intersection {
-   intDist :: Float, -- ^ distance to this intersection
-   intPos :: Point, -- ^ position of this intersection in world space
-   intNorm :: Normal -- ^ surface normal at this intersection
-   }
-
 class Intersectable a where
    intersect :: Ray -> a -> Maybe Intersection
    intersects :: Ray -> a -> Bool
 
-
+data Intersection = Intersection {
+   intDist :: Float, -- ^ distance to this intersection
+   intPos :: Point, -- ^ position of this intersection in world space
+   intNorm :: Normal, -- ^ surface normal at this intersection
+   intBsdf :: Bsdf
+   }
+   
 nearestInt :: Maybe Intersection -> Maybe Intersection -> Maybe Intersection
 nearestInt mi1 mi2
    | isNothing mi1 = mi2
