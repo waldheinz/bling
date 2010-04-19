@@ -2,6 +2,7 @@ module Whitted (whitted) where
 
 import Maybe(isJust, fromJust)
 
+import Color
 import Geometry
 import Math
 import Primitive

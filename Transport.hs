@@ -6,6 +6,7 @@ module Transport(
    isDiffuse, isReflection
    ) where
 
+import Color
 import Math
 import Random
 

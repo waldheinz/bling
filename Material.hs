@@ -2,6 +2,7 @@
 
 module Material(Material(..), AnyMaterial(..), Matte(..)) where
 
+import Color
 import Geometry
 import Math
 import Transport

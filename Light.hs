@@ -4,8 +4,7 @@ module Light (
    Spectrum, black, white, isBlack, sScale,
    Light(..), LightSample(..), lightSample, lightEmittance, lightPdf) where
 
--- import Control.Monad
-
+import Color
 import Math
 import Random
 
