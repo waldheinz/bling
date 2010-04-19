@@ -16,7 +16,7 @@ data Bsdf = Bsdf AnyBxdf LocalCoordinates
 sampleBsdf :: Bsdf -> Vector -> Rand BsdfSample
 sampleBsdf (Bsdf bxdf sc) woW = do
    (BxdfSample wi pdf) <- bxdfSample bxdf wo
-   return (BsdfSample bt pdf (bxdfEval bxdf wo wi) (localToWorld sc wo))
+   return (BsdfSample bt pdf (bxdfEval bxdf wo wi) (localToWorld sc wi))
       where
          bt = bxdfType bxdf
          wo = worldToLocal sc woW
