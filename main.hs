@@ -45,20 +45,20 @@ stratify res@(resX, _) pixel = do
          y <- (map fromIntegral [0::Int .. steps-1]) ]
       fpps = (fromIntegral steps) * (fromIntegral resX)
       pxAdd (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
-      steps = 20
+      steps = 3
    
 pixelColor :: ((Float, Float) -> Rand Spectrum) -> (Int, Int) -> (Int, Int) -> Rand Spectrum
 pixelColor f res pixel = do
    ndcs <- stratify res pixel
    y <- (mapM f ndcs)
    return (scalMul (foldl add black y) (1 / fromIntegral spp)) where
-      spp = 400 :: Int
+      spp = 9 :: Int
 
 myShape :: Group
 myShape = Group [
    --MkAnyIntersectable sphereGrid,
    --MkAnyIntersectable (Plane (1.2) (1, 0, 0)),
-   gP (Sphere (1.2) (0, 0, 0)) (Matte (0.8, 0.8, 0.8)),
+   gP (Sphere (1.2) (0, 0, 0)) BrushedMetal,
    gP (Plane (1.2) (0, 1, 0)) (Matte (0.5, 0.5, 0.8)) ]
 
 --sphereGrid :: Group

@@ -20,6 +20,9 @@ isBlack (r, g, b) = r < epsilon && g < epsilon && b < epsilon
 sScale :: Spectrum -> Spectrum -> Spectrum
 sScale (a, b, c) (d, e, f) = (a*d, b*e, c*f)
 
+(+) :: Spectrum -> Spectrum -> Spectrum
+s1 + s2 = add s1 s2
+
 pow :: Spectrum -> Spectrum -> Spectrum
 pow (c1, c2, c3) (e1, e2, e3) = (p' c1 e1, p' c2 e2, p' c3 e3) where
    p' :: Float -> Float -> Float
