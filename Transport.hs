@@ -1,12 +1,15 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 module Transport(
+   Bsdf(..), BsdfSample(..), sampleBsdf, evalBsdf,
    Bxdf(..), AnyBxdf(..), BxdfSample(..), BxdfAppearance(..), BxdfType(..),
    isDiffuse, isReflection
    ) where
 
 import Math
 import Random
+
+import Control.Monad
 
 data BxdfAppearance = Diffuse | Glossy | Specular deriving Eq
 data BxdfType = Transmission | Reflection deriving Eq
@@ -24,7 +27,7 @@ class Bxdf a where
    bxdfType :: a -> BxdfType
    bxdfAppearance :: a -> BxdfAppearance
    
-   bxdfSample a wo@(x, y, z) = do
+   bxdfSample a wo = do
       wi <- cosineSampleHemisphere
       return (BxdfSample wi (bxdfPdf a wo wi))
    
@@ -45,3 +48,29 @@ data BxdfSample = BxdfSample {
    bxdfSampleWi :: Normal,
    bxdfSamplePdf :: Float
    }
+   
+data BsdfSample = BsdfSample {
+   bsdfsampleType :: BxdfType,
+   bsdfSamplePdf :: Float,
+   bsdfSampleTransport :: Spectrum,
+   bsdfSampleWi :: Vector
+   }
+
+data Bsdf = Bsdf AnyBxdf LocalCoordinates
+
+sampleBsdf :: Bsdf -> Vector -> Rand BsdfSample
+sampleBsdf (Bsdf bxdf sc) woW = do
+   (BxdfSample wi pdf) <- bxdfSample bxdf wo
+   return (BsdfSample bt pdf (bxdfEval bxdf wo wi) (localToWorld sc wi))
+      where
+         bt = bxdfType bxdf
+         wo = worldToLocal sc woW
+         
+evalBsdf :: Bsdf -> Vector -> Vector -> Spectrum
+evalBsdf (Bsdf bxdf sc) woW wiW
+   | isReflection bxdf = bxdfEval bxdf wo wi 
+   | otherwise = black
+   where
+      wo = worldToLocal sc woW
+      wi = worldToLocal sc wiW
+      

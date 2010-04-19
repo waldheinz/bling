@@ -127,6 +127,16 @@ coordinateSystem v@(x, y, z)
           v2 = (0, z * invLen, -y * invLen)
       in (v2, cross v v2)
       
+      
+worldToLocal :: LocalCoordinates -> Vector -> Vector
+worldToLocal (LocalCoordinates sn tn nn) v = (dot v sn, dot v tn, dot v nn)
+
+localToWorld :: LocalCoordinates -> Vector -> Vector
+localToWorld (LocalCoordinates (sx, sy, sz) (tx, ty, tz) (nx, ny, nz)) (x, y, z) =
+   (sx * x + tx * y + nx * z,
+    sy * x + ty * y + ny * z,
+    sz * x + tz * y + nz * z)
+
 -- | A Spectrum of colours.
 type Spectrum = Vector -- RGB for now
 

@@ -1,17 +1,18 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
-module Material(Material(..), Matte(..), defaultMaterial) where
+module Material(Material(..), AnyMaterial(..), Matte(..)) where
 
-import Bsdf
 import Geometry
 import Math
 import Transport
 
-defaultMaterial :: Matte
-defaultMaterial = Matte (0.85, 0.85, 0.85)
-
 class Material a where
-   materialBsdf :: a -> Intersection -> Bsdf
+   materialBsdf :: a -> DifferentialGeometry -> Bsdf
+
+data AnyMaterial = forall a. Material a => MkAnyMaterial a
+
+instance Material AnyMaterial where
+   materialBsdf (MkAnyMaterial a) = materialBsdf a
 
 data Matte = Matte Spectrum
 
@@ -27,7 +28,8 @@ instance Bxdf Lambertian where
    bxdfType _ = Reflection
    bxdfAppearance _ = Diffuse
 
-coordinates :: Intersection -> LocalCoordinates
-coordinates (Intersection _ _ n) = (LocalCoordinates (normalize sn) (normalize tn) (normalize n)) where
+coordinates :: DifferentialGeometry -> LocalCoordinates
+coordinates dg = (LocalCoordinates sn tn n) where
    (sn, tn) = coordinateSystem n
+   n = dgN dg
    

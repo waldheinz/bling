@@ -1,18 +1,18 @@
 module Pathtracer(pathTracer) where
 
 import Control.Monad
-import Maybe(isJust, fromJust)
 
-import Bsdf
 import Geometry
 import Light
-import Material
 import Math
+import Primitive
 import Random
+import Scene
+import Transport
 
 -- pathTracer :: Integrator
-pathTracer :: (Intersectable i, Light l) => Ray -> i -> [l] -> Rand Spectrum
-pathTracer r s lights = nextVertex 0 True r (intersect r s) white black where
+pathTracer :: Scene -> Ray -> Rand Spectrum
+pathTracer s r = nextVertex 0 True r (primIntersect s r) white black where
    nextVertex :: Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Rand Spectrum
    
    nextVertex 10 _ _ _ _ l = return $! l -- hard bound
@@ -23,24 +23,26 @@ pathTracer r s lights = nextVertex 0 True r (intersect r s) white black where
    nextVertex _ False _ Nothing _ l = -- nothing hit, non-specular bounce
       return $! l
    
-   nextVertex depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ pos n)) throughput l 
+   nextVertex depth _ (Ray _ rd _ _) (Just int@(Intersection _ dg _)) throughput l 
       | isBlack throughput = return l
       | otherwise = do
-         (BsdfSample bsdfType pdf _ wi@(wix, wiy, wiz)) <- sampleBsdf bsdf wo
+         (BsdfSample _ pdf _ wi) <- sampleBsdf bsdf wo
          
-         lHere <- sampleOneLight s lights int wo bsdf
-      
-         outRay <- return (Ray pos wi epsilon infinity)
-         throughput' <- return $ sScale throughput $ evalBsdf bsdf wo wi
+         lHere <- sampleOneLight s p n wo bsdf
+         
+         outRay <- return (Ray p wi epsilon infinity)
+         throughput' <- return $ sScale throughput $ scalMul (f wi) ((absDot wi n) / pdf)
          l' <- return $ add l (sScale throughput lHere)
-         nextVertex (depth + 1) False outRay (intersect outRay s) throughput' l'
+         nextVertex (depth + 1) False outRay (primIntersect s outRay) throughput' l'
          where
-            wo = normalize $ neg rd
-            mat = defaultMaterial
-            bsdf = materialBsdf mat int
+               f = evalBsdf bsdf wo
+               wo = normalize $ neg rd
+               bsdf = intBsdf int
+               n = dgN dg
+               p = dgP dg
          
    directLight :: Ray -> Spectrum
-   directLight r = foldl add black (map (\l -> lightEmittance l r) lights)
+   directLight ray = foldl add black (map (\l -> lightEmittance l ray) (sceneLights s))
 
 -- rolls a dice to decide if we should continue this path,
 -- returning true with the specified probability

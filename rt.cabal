@@ -9,7 +9,3 @@ Executable rt
    Main-is:           Main.hs
    Build-Depends:     base >= 3 && < 5, random, haskell98
    ghc-options: -Wall 
-
-Executable plotBsdf
-   Main-is : PlotBsdf.hs
-   ghc-options: -Wall

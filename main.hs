@@ -6,9 +6,12 @@ import System.Random
 
 import Geometry
 import Light
+import Material
 import Math
 import Pathtracer
+import Primitive
 import Random
+import Scene
 import Whitted
 
 ---
@@ -42,25 +45,21 @@ stratify res@(resX, _) pixel = do
          y <- (map fromIntegral [0::Int .. steps-1]) ]
       fpps = (fromIntegral steps) * (fromIntegral resX)
       pxAdd (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
-      steps = 5
+      steps = 3
    
 pixelColor :: ((Float, Float) -> Rand Spectrum) -> (Int, Int) -> (Int, Int) -> Rand Spectrum
 pixelColor f res pixel = do
    ndcs <- stratify res pixel
    y <- (mapM f ndcs)
    return (scalMul (foldl add black y) (1 / fromIntegral spp)) where
-      spp = 25 :: Int
-      
----
---- scene definition
----
+      spp = 9 :: Int
 
 myShape :: Group
 myShape = Group [
    --MkAnyIntersectable sphereGrid,
    --MkAnyIntersectable (Plane (1.2) (1, 0, 0)),
-   MkAnyIntersectable (Sphere (1.2) (0, 0, 0)),
-   MkAnyIntersectable (Plane (1.2) (0, 1, 0))]
+   gP (Sphere (1.2) (0, 0, 0)) (Matte (0.8, 0.8, 0.8)),
+   gP (Plane (1.2) (0, 1, 0)) (Matte (0.5, 0.5, 0.8)) ]
 
 --sphereGrid :: Group
 --sphereGrid = Group spheres where
@@ -74,8 +73,11 @@ myLights = [
     (Directional (normalize (0, 1, 0)) (1.75, 1.9, 1.9))]
 -}
 
-myLights :: [SoftBox]
+myLights :: [Light]
 myLights = [ SoftBox (0.89, 0.89, 0.89) ]
+
+myScene :: Scene
+myScene = Scene (MkAnyPrimitive myShape) myLights
 
 clamp :: Float -> Int
 clamp v = round ( (min 1 (max 0 v)) * 255 )
@@ -98,6 +100,6 @@ main = do
          resX = 800 :: Int
          resY = 800 :: Int
          pixels = [ (x, y) | y <- [0..resX-1], x <- [0..resY-1]]
-         pixelFunc = ((\px -> whitted (stareDownZAxis px) myShape myLights))
+         pixelFunc = (\px -> pathTracer myScene (stareDownZAxis px))
          colours = mapM (pixelColor pixelFunc (resX, resY)) pixels
          
