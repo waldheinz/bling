@@ -8,7 +8,7 @@ import Math
 import Transport
 
 defaultMaterial :: Matte
-defaultMaterial = Matte (0.95, 0.65, 0.65)
+defaultMaterial = Matte (0.75, 0.75, 0.75)
 
 class Material a where
    materialBsdf :: a -> Intersection -> Bsdf

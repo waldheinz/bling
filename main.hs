@@ -7,7 +7,7 @@ import System.Random
 import Geometry
 import Light
 import Math
--- import Pathtracer
+import Pathtracer
 import Random
 import Whitted
 
@@ -66,15 +66,14 @@ myShape = Group [
 --   spheres = map (\pos -> MkAnyIntersectable (Sphere 0.4 (sub (1, 1.0, 1) pos))) coords
 --   coords = [(x, y, z) | x <- [0..2], y <- [0..2], z <- [0..2]] :: [Vector]
 
---myLights :: [Light]
 {-
+myLights :: [Directional]
 myLights = [
-    (Directional (normalize ( 1, 1, -1)) (0.9, 0.2, 0.2)),
-    (Directional (normalize (-1, 1, -1)) (0.2, 0.9, 0.2))]
+    (Directional (normalize ( 1, 1, -1)) (0.9, 0.6, 0.6)),
+    (Directional (normalize (-1, 1, -1)) (0.6, 0.9, 0.6))]
 -}
-
 myLights :: [SoftBox]
-myLights = [ SoftBox (0.99, 0.99, 0.99) ]
+myLights = [ SoftBox (0.79, 0.79, 0.79) ]
 
 clamp :: Float -> Int
 clamp v = round ( (min 1 (max 0 v)) * 255 )

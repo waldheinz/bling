@@ -112,16 +112,15 @@ concentricSampleDisk' (sx, sy) = (r * cos theta, r * sin theta) where
             then (-sx, 4.0 - sy / (-sx)) -- third region
             else (-sy, 6.0 + sx / (-sy)) -- fourth region
 
-
 data LocalCoordinates = LocalCoordinates Vector Vector Vector
 
 coordinateSystem :: Vector -> (Vector, Vector)
 coordinateSystem v@(x, y, z)
-   | abs x > abs y = 
-      let 
-          invLen = 1.0 / (sqrt (x*x + z*z))
-          v2 = (-z * invLen, 0, x * invLen)
-      in (v2, cross v v2)
+--   | abs x > abs y = 
+--      let 
+--          invLen = 1.0 / (sqrt (x*x + z*z))
+--          v2 = (-z * invLen, 0, x * invLen)
+--      in (v2, cross v v2)
    | otherwise = 
       let
           invLen = 1.0 / (sqrt (y*y + z*z))

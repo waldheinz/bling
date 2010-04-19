@@ -60,7 +60,7 @@ data Sphere = Sphere Float Point
 
 instance Intersectable Sphere where
    intersect ray@(Ray origin rd _ _) (Sphere r center)
-      | times == [] = Nothing
+      | null times = Nothing
       | otherwise = Just (Intersection time (hitPoint time) (normalAt time))
       where
          dir = origin `sub` center

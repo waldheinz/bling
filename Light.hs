@@ -5,6 +5,7 @@ module Light (
    Light(..), Directional(..), SoftBox(..),
    sampleOneLight, sampleAllLights) where
 
+import Control.Exception(assert)
 import Control.Monad
 
 import Bsdf
@@ -32,7 +33,6 @@ data SoftBox = SoftBox {
 
 instance Light SoftBox where
    lightSample (SoftBox r) (Intersection _ pos n) = do
-     -- lDir <- randomOnSphere
       lDir <- cosineSampleHemisphere -- dir in local coordinate system
       return $! sample lDir
       where
@@ -40,14 +40,10 @@ instance Light SoftBox where
          ray = (\dir -> Ray pos dir epsilon infinity)
          
          pdf :: Vector -> Float
-         pdf (_, _, z) = invTwoPi * z
-        
- --        toWorld v
- --           | dot n v > 0 = v
-  --          | otherwise = neg v
-        
+         pdf (_, _, z) = invTwoPi * assert (z >= 0 && z <= 1) z
+         
          toWorld :: Vector -> Vector
-         toWorld v = localToWorld cs v where
+         toWorld v = normalize $ localToWorld cs v where
             (v1, v2) = coordinateSystem n
             cs = LocalCoordinates v1 v2 n
          

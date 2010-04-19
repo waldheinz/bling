@@ -14,26 +14,29 @@ import Random
 pathTracer :: (Intersectable i, Light l) => Ray -> i -> [l] -> Rand Spectrum
 pathTracer r s lights = nextVertex 0 True r (intersect r s) white black where
    nextVertex :: Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Rand Spectrum
-   nextVertex 10 _ _ _ _ l = return l -- hard bound
+   
+   nextVertex 10 _ _ _ _ l = return $! l -- hard bound
+   
    nextVertex _ True ray Nothing throughput l = -- nothing hit, specular bounce
-      return (add l $ sScale throughput $ directLight ray)
+      return $! (add l $ sScale throughput $ directLight ray)
    
    nextVertex _ False _ Nothing _ l = -- nothing hit, non-specular bounce
-      return l
+      return $! l
    
-   nextVertex depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ pos _)) throughput l = do
-      (BsdfSample bsdfType pdf _ wi) <- sampleBsdf bsdf wo
-      lHere <- sampleOneLight s lights int wo bsdf
+   nextVertex depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ pos n)) throughput l 
+      | isBlack throughput = return l
+      | otherwise = do
+         (BsdfSample bsdfType pdf _ wi@(wix, wiy, wiz)) <- sampleBsdf bsdf wo
+     -- return (abs wix, abs wiy, abs wiz)
+         lHere <- sampleOneLight s lights int wo bsdf
       
-      outRay <- return (Ray pos wi epsilon infinity)
-      throughput' <- return $ sScale throughput $ f wi
-      l' <- return $ add l (sScale throughput lHere)
-      -- (nextVertex (depth + 1) False outRay (intersect outRay s) throughput' l')
-      return $! wo
-      where
+         outRay <- return (Ray pos wi epsilon infinity)
+         throughput' <- return $ sScale throughput $ evalBsdf bsdf wo wi
+         l' <- return $ add l (sScale throughput lHere)
+         nextVertex (depth + 1) False outRay (intersect outRay s) throughput' l'
+         where
             wo = neg rd
             mat = defaultMaterial
-            f = evalBsdf bsdf wo
             bsdf = materialBsdf mat int
          
    directLight :: Ray -> Spectrum
