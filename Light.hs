@@ -31,7 +31,6 @@ lightPdf :: Light -> Point -> Normal -> Vector -> Float
 lightPdf (SoftBox _) _ n wi = absDot n wi
 lightPdf (Directional _ _) _ _ _ = 0.0 -- zero chance to find the direction by sampling
 
-
 lightSampleSB :: Spectrum -> Point -> Normal -> Rand LightSample
 lightSampleSB r pos n = do
    lDir <- cosineSampleHemisphere -- dir in local coordinate system
