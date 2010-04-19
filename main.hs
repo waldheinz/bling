@@ -67,14 +67,15 @@ myShape = Group [
 --   spheres = map (\pos -> MkAnyIntersectable (Sphere 0.4 (sub (1, 1.0, 1) pos))) coords
 --   coords = [(x, y, z) | x <- [0..2], y <- [0..2], z <- [0..2]] :: [Vector]
 
-
+{-
 myLights :: [Directional]
 myLights = [
   --  (Directional (normalize ( 1, 1, -1)) (0.9, 0.6, 0.6)),
     (Directional (normalize (0, 1, 0)) (1.75, 1.9, 1.9))]
+-}
 
---myLights :: [SoftBox]
---myLights = [ SoftBox (0.89, 0.89, 0.89) ]
+myLights :: [SoftBox]
+myLights = [ SoftBox (0.89, 0.89, 0.89) ]
 
 clamp :: Float -> Int
 clamp v = round ( (min 1 (max 0 v)) * 255 )
@@ -97,6 +98,6 @@ main = do
          resX = 800 :: Int
          resY = 800 :: Int
          pixels = [ (x, y) | y <- [0..resX-1], x <- [0..resY-1]]
-         pixelFunc = ((\px -> pathTracer (stareDownZAxis px) myShape myLights))
+         pixelFunc = ((\px -> whitted (stareDownZAxis px) myShape myLights))
          colours = mapM (pixelColor pixelFunc (resX, resY)) pixels
          

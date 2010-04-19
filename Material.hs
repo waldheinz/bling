@@ -29,7 +29,5 @@ instance Bxdf Lambertian where
 
 coordinates :: Intersection -> LocalCoordinates
 coordinates (Intersection _ _ n) = (LocalCoordinates (normalize sn) (normalize tn) (normalize n)) where
-   (sn', tn') = coordinateSystem n
-   (sn, tn) = if (sn' `dot` n < 0)
-                 then (sn', tn')
-                 else (tn', sn')
+   (sn, tn) = coordinateSystem n
+   

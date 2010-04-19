@@ -25,12 +25,11 @@ class Bxdf a where
    bxdfAppearance :: a -> BxdfAppearance
    
    bxdfSample a wo@(x, y, z) = do
-   --   wi <- cosineSampleHemisphere
-      wi <- return (-x, -y, z)
+      wi <- cosineSampleHemisphere
       return (BxdfSample wi (bxdfPdf a wo wi))
    
    bxdfPdf _ (_, _, woz)(_, _, wiz)
-      | woz * wiz > 0 = 1 --invPi * abs wiz
+      | woz * wiz > 0 = invPi * abs wiz
       | otherwise = 0
 
 data AnyBxdf = forall a. Bxdf a => MkAnyBxdf a
