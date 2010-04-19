@@ -35,9 +35,51 @@ coordinates dg = (LocalCoordinates sn tn n) where
    (sn, tn) = coordinateSystem n
    n = dgN dg
    
-data Measured = BrushedMetal | BluePaint | Felt
+data Measured = BrushedMetal | BluePaint | Felt | Clay | Primer
 
 instance Material Measured where
+   materialBsdf Primer int = (Bsdf bxdf sc) where
+      sc = coordinates int
+      bxdf = MkAnyBxdf $ Lafortune (  0.118230,  0.121218,  0.133209) lobes
+      
+      lobes = [lobe1, lobe2, lobe3]
+      
+      lobe1 = Lobe xy1 xy1 z1 e1
+      xy1 = ( -0.399286, -1.033473, -1.058104 )
+      z1 =  (  0.167504,  0.009545, -0.068002 )
+      e1 =  (  2.466633,  7.637253,  8.117645 )
+      
+      lobe2 = Lobe xy2 xy2 z2 e2
+      xy2 = ( -1.041861, -1.100108, -1.087779 )
+      z2 =  (  0.014375, -0.198147, -0.053605 )
+      e2 =  (  7.993722, 29.446268, 41.988990 )
+      
+      lobe3 = Lobe xy3 xy3 z3 e3
+      xy3 = ( -1.098605, -0.379883, -0.449038 )
+      z3 =  ( -0.145110,  0.159127,  0.173224 )
+      e3 =  ( 31.899719,  2.372852,  2.636161 )
+   
+   materialBsdf Clay int = (Bsdf bxdf sc) where
+      sc = coordinates int
+      bxdf = MkAnyBxdf $ Lafortune (0.383626, 0.260749, 0.274207) lobes
+      
+      lobes = [lobe1, lobe2, lobe3]
+      
+      lobe1 = Lobe xy1 xy1 z1 e1
+      xy1 = (  -1.089701,  -1.102701,  -1.107603 )
+      z1 =  (  -1.354682,  -2.714801,  -1.569866 )
+      e1 =  (  17.968505,  11.024489,  21.270282 )
+      
+      lobe2 = Lobe xy2 xy2 z2 e2
+      xy2 = (  -0.733381,  -0.793320,  -0.848206 )
+      z2 =  (   0.676108,   0.679314,   0.726031 )
+      e2 =  (   8.219745,   9.055139,  11.261951 )
+      
+      lobe3 = Lobe xy3 xy3 z3 e3
+      xy3 = (  -1.010548,  -1.012378,  -1.011263 )
+      z3 =  (   0.910783,   0.885239,   0.892451 )
+      e3 =  ( 152.912795, 141.937171, 201.046802 )
+   
    materialBsdf Felt int = (Bsdf bxdf sc) where
       sc = coordinates int
       bxdf = MkAnyBxdf $ Lafortune (0.025865, 0.025865, 0.025865) lobes
