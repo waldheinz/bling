@@ -58,7 +58,7 @@ myShape :: Group
 myShape = Group [
    --MkAnyIntersectable sphereGrid,
    --MkAnyIntersectable (Plane (1.2) (1, 0, 0)),
-   gP (Sphere (1.2) (0, 0, 0)) BluePaint,
+   gP (Sphere (1.2) (0, 0, 0)) Felt,
    gP (Plane (1.2) (0, 1, 0)) (Matte (0.5, 0.5, 0.8)) ]
 
 --sphereGrid :: Group

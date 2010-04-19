@@ -35,9 +35,30 @@ coordinates dg = (LocalCoordinates sn tn n) where
    (sn, tn) = coordinateSystem n
    n = dgN dg
    
-data Measured = BrushedMetal | BluePaint
+data Measured = BrushedMetal | BluePaint | Felt
 
 instance Material Measured where
+   materialBsdf Felt int = (Bsdf bxdf sc) where
+      sc = coordinates int
+      bxdf = MkAnyBxdf $ Lafortune (0.025865, 0.025865, 0.025865) lobes
+      
+      lobes = [lobe1, lobe2, lobe3]
+      
+      lobe1 = Lobe xy1 xy1 z1 e1
+      xy1 = (-0.304075, -0.304075, -0.304075)
+      z1 =  (-0.065992, -0.065992, -0.065992)
+      e1 =  (3.047892,  3.047892,  3.047892)
+      
+      lobe2 = Lobe xy2 xy2 z2 e2
+      xy2 = (-0.749561, -0.749561, -0.749561)
+      z2 =  (-1.167929, -1.167929, -1.167929)
+      e2 =  (6.931827, 6.931827, 6.931827)
+      
+      lobe3 = Lobe xy3 xy3 z3 e3
+      xy3 = (1.004921,  1.004921,  1.004921)
+      z3 =  (-0.205529, -0.205529, -0.205529)
+      e3 =  (94.117332, 94.117332, 94.117332)
+   
    materialBsdf BluePaint int = (Bsdf bxdf sc) where
       sc = coordinates int
       bxdf = MkAnyBxdf $ Lafortune (0.3094, 0.39667, 0.70837) lobes
