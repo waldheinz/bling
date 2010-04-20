@@ -19,11 +19,20 @@ class Intersectable a where
    intersects :: Ray -> a -> Bool
 
 class (Intersectable a) => Bound a where
-   boundArea :: a -> Float -- ^ the area of the object
-   boundSample :: a -> Point -> Rand (Point, Normal) -- ^ a random point (along with its normal) on the object, which is preferably visible from the given point
-   boundPdf :: a -> Point -> Vector -> Float
+   -- | returns the surface area of the object
+   boundArea :: a -> Float
    
-   boundPdf a _ _ = 1.0 / boundArea a
+   -- | returns a random point (along with its normal) on the object, 
+   --   which is preferably visible from the specified point
+   boundSample :: a -> Point -> Rand (Point, Normal)
+
+   -- | returns the pdf for the sample chosen by @boundSample@
+   boundPdf :: a -> Point -> Float
+   
+   -- | the default implementation returns the inverse of the area,
+   --   which is suitable for a @boundSample@ implementation which
+   --   chooses points uniformly on the surface
+   boundPdf a _ = 1.0 / boundArea a
    
 -- | a sphere has a radius and a position
 data Sphere = Sphere Float Point
@@ -68,7 +77,7 @@ instance Bound Sphere where
                            int = intersect ray sp
                            t = fst $ fromJust int
          
-   boundPdf sp@(Sphere r center) pos _
+   boundPdf sp@(Sphere r center) pos
       | insideSphere sp pos = 1.0 / boundArea sp
       | otherwise = uniformConePdf $ assert (not $ isNaN cosThetaMax) cosThetaMax
       where
