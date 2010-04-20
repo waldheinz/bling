@@ -95,13 +95,16 @@ solveQuadric a b c
 uniformConePdf :: Float -> Float
 uniformConePdf cosThetaMax = 1.0 / (twoPi * (1.0 - cosThetaMax))
          
-uniformSampleCone :: Float -> Rand Vector
-uniformSampleCone cosThetaMax = do
+uniformSampleCone :: LocalCoordinates -> Float -> Rand Vector
+uniformSampleCone (LocalCoordinates x y z) cosThetaMax = do
    cosTheta <- rndR (cosThetaMax, 1.0)
    sinTheta <- return $ sqrt (1 - cosTheta * cosTheta)
    phi <- rndR (0, twoPi)
-   return ((cos phi) * sinTheta, (sin phi) * sinTheta, cosTheta)
-         
+   return (
+      (scalMul x ((cos phi) * sinTheta)) `add`
+      (scalMul y ((sin phi) * sinTheta)) `add`
+      (scalMul z cosTheta))
+      
 -- | generates a random point on the unit sphere,
 -- see http://mathworld.wolfram.com/SpherePointPicking.html
 randomOnSphere :: Rand Vector

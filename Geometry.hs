@@ -46,15 +46,25 @@ sampleSphere co pt
 instance Bound Sphere where
    boundArea (Sphere r _) = r * r * 4 * pi
    
-   boundSample sp@(Sphere r pos) p
+   boundSample sp@(Sphere r center) p
       | insideSphere sp p = do -- sample full sphere if inside
          rndPt <- randomOnSphere
-         return $! (add pos $ scalMul rndPt r, rndPt)
+         return $! (add p $ scalMul rndPt r, rndPt)
          
       | otherwise = do -- sample only the visible part if outside
-         rndPt <-randomOnSphere
-         pt <- return $ sampleSphere (sub (scalMul p r) pos) rndPt
-         return $! (add pos $ scalMul pt r, pt)
+         d <- uniformSampleCone cs cosThetaMax
+         return $! (ps d, normalize $ sub (ps d) center)
+         where
+               cs = coordinateSystem dn
+               dn = normalize $ sub center p
+               cosThetaMax = sqrt $ max 0 (1 - r * r / (sqLen $ sub p center))
+               
+               ps d
+                  | isJust int = positionAt ray $ fst $ fromJust int
+                  | otherwise = sub center $ scalMul dn r
+                     where 
+                           ray = Ray p d 0 infinity
+                           int = intersect ray sp
          
    boundPdf sp@(Sphere r center) pos _
       | insideSphere sp pos = uniformConePdf cosThetaMax
