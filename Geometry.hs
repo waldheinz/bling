@@ -26,33 +26,68 @@ class (Intersectable a) => Bound a where
 -- | a sphere has a radius and a position
 data Sphere = Sphere Float Point
 
+insideSphere :: Sphere -> Point -> Bool
+insideSphere (Sphere r pos) pt = (sqLen $ sub pos pt) - r * r < epsilon
+
 instance Bound Sphere where
    boundArea (Sphere r _) = r * r * 4 * pi
-   boundSample (Sphere r p) _ = do
-      pt <- randomOnSphere
-      return $! (add p $ scalMul pt r, pt)
+   
+   boundSample sp@(Sphere r pos) p
+      | insideSphere sp p = do -- sample full sphere if inside
+         rndPt <- randomOnSphere
+         return $! (add pos $ scalMul rndPt r, rndPt)
+         
+      | otherwise = do -- sample only the visible part if outside
+         rndPt <-randomOnSphere
+         return $! (add pos (scalMul (ptFlip rndPt) r), (ptFlip rndPt)) where
+            ptFlip rndPt -- possbily flips the point to the other side of unit sphere
+               | (dot rndPt $ normalize $ sub p pos) < 0 = neg rndPt
+               | otherwise = rndPt
+         
+   boundPdf sp p _
+      | insideSphere sp p = 1.0 / boundArea sp
+      | otherwise = 1.0 / boundArea sp
 
 instance Intersectable Sphere where
-   intersect ray@(Ray origin rd _ _) (Sphere r center)
-      | null times = Nothing
-      | otherwise = Just $ (t, DifferentialGeometry (hitPoint t) (normalAt t))
+   intersect ray@(Ray origin rd tmin tmax) (Sphere r center)
+      | isNothing times = Nothing
+      | t1 > tmax = Nothing
+      | t2 < tmin = Nothing
+      | otherwise = Just $ (t, DifferentialGeometry hitPoint normalAt)
       where
-         dir = origin `sub` center
+         co = origin `sub` center
          a = sqLen rd
-         b = 2 * (rd `dot` dir)
-         c = (sqLen dir) - (r * r)
-         t = minimum times
-         times = filter (onRay ray) (roots a b c)
-         hitPoint = positionAt ray
-         normalAt tt = normalize $ sub (hitPoint tt) center
+         b = 2 * (co `dot` rd)
+         c = (sqLen co) - (r * r)
+         t = if (t1 > tmin) then t1 else t2
+         (t1, t2) = fromJust times
+         times = solveQuadric a b c
+         hitPoint = positionAt ray t
+         normalAt = normalize $ sub hitPoint center
 
-   intersects r@(Ray ro rd _ _) (Sphere rad ct) = not $ null (filter (onRay r) (roots a b c))
+   intersects ray@(Ray ro rd tmin tmax) (Sphere rad sc)
+      | isNothing roots = False
+      | otherwise = onRay ray t0 || onRay ray t1
       where
-         d = ro `sub` ct
-         a = sqLen rd
-         b = 2 * (d `dot` rd)
-         c = (sqLen d) - (rad * rad)
-
+            dst = ro `sub` sc
+            a = sqLen rd
+            b = 2 * dot dst rd
+            c = sqLen dst - (rad * rad)
+            (t0, t1) = fromJust roots
+            roots = solveQuadric a b c
+{-
+   intersects (Ray (rox, roy, roz) (rdx, rdy, rdz) rmin rmax) (Sphere rad ct)
+      | isNothing ts = False
+      | t0 > rmax = False
+      | t1 < rmin = False
+      | otherwise = True
+         where 
+               (t0, t1) = fromJust ts
+               ts = roots a b c
+               a = rdx*rdx + rdy*rdy + rdz*rdz
+               b = 2 * (rdx*rox + rdy*roy + rdz*roz)
+               c = rox*rox + roy*roy + roz*roz - rad*rad;
+-}
 -- | a plane has a distance from world-space origin and a normal
 data Plane = Plane Float Normal
 

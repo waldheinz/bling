@@ -37,31 +37,53 @@ stratify res@(resX, _) pixel = do
          y <- (map fromIntegral [0::Int .. steps-1]) ]
       fpps = (fromIntegral steps) * (fromIntegral resX)
       pxAdd (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
-      steps = 10
+      steps = 2
    
 pixelColor :: ((Float, Float) -> Rand Spectrum) -> (Int, Int) -> (Int, Int) -> Rand Spectrum
 pixelColor f res pixel = do
    ndcs <- stratify res pixel
    y <- (mapM f ndcs)
    return (scalMul (foldl add black y) (1 / fromIntegral spp)) where
-      spp = 100 :: Int
+      spp = 4 :: Int
+
+blub :: Sphere
+blub = Sphere 0.6 (0,0.0,0)
+
+blubLight :: Light
+blubLight = AreaLight (1.8,1.8,1.8) (MkAnyBound blub)
+
+defMat :: Matte
+defMat = Matte (0.8, 0.8, 0.8)
+
+red :: Matte
+red = Matte (0.8, 0.3, 0.3)
+
+green :: Matte
+green = Matte (0.3, 0.8, 0.3)
+
+blue :: Matte
+blue = Matte (0.3, 0.3, 0.8)
 
 myShape :: Group
 myShape = Group [
-   MkAnyPrimitive sphereGrid,
---   gP (Sphere (1.2) (0, 0, 0)) BluePaint,
-   gP (Plane (1.4) (0, 1, 0)) BrushedMetal ]-- (Matte (0.8, 0.8, 0.8)) ]
+ --  MkAnyPrimitive sphereGrid,
+   gP (Sphere (0.6) (1.3, 0, 0)) red Nothing,
+   gP blub defMat (Just blubLight),
+   gP (Sphere (0.6) (-1.3, 0, 0)) green Nothing]
+ --  gP (Plane (1.0) (0, 0, -1)) defMat,
+ --  gP (Plane (0.6) (0, 1, 0)) defMat ]
 
 sphereGrid :: Group
 sphereGrid = Group spheres where
-   spheres = map (\pos -> gP (Sphere 0.4 (sub (1, 1.0, 1) pos)) BluePaint) coords
+   spheres = map (\pos -> gP (Sphere 0.4 (sub (1, 1.0, 1) pos)) BluePaint Nothing) coords
    coords = [(x, y, z) | x <- [0..2], y <- [0..2], z <- [0..2]] :: [Vector]
 
 
 myLights :: [Light]
 myLights = [
-    Directional (1, 1, 1) (normalize (-2, 2, -2)),
-    SoftBox (0.8, 0.8, 0.8)
+   blubLight
+--    Directional (2, 2, 2) (normalize (-2, 2, -2))
+--      SoftBox (0.8, 0.8, 0.8)
     ]
 
 myScene :: Scene
@@ -88,6 +110,6 @@ main = do
          resX = 800 :: Int
          resY = 800 :: Int
          pixels = [ (x, y) | y <- [0..resX-1], x <- [0..resY-1]]
-         pixelFunc = (\px -> pathTracer myScene (stareDownZAxis px))
+         pixelFunc = (\px -> whitted myScene (stareDownZAxis px))
          colours = mapM (pixelColor pixelFunc (resX, resY)) pixels
          

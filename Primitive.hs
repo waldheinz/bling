@@ -3,6 +3,7 @@
 module Primitive where
 
 import Geometry
+import Light
 import Material
 import Math
 import Transport
@@ -21,26 +22,37 @@ intBsdf int = materialBsdf mat dg where
    prim = intPrimitive int
    dg = intGeometry int
 
+-- | the light emitted at this intersection point
+intLe :: Intersection -> Normal -> Spectrum
+intLe (Intersection _ (DifferentialGeometry p n) prim) wo 
+   | isJust light = lightLe (fromJust light) p n wo
+   | otherwise = black
+   where
+         light = primLight prim
+   
 class Primitive a where
    primIntersect :: a -> Ray -> Maybe Intersection
    primIntersects :: a -> Ray -> Bool
    primMaterial :: a -> AnyMaterial
+   primLight :: a -> Maybe Light
    
    primMaterial _ = (MkAnyMaterial (Matte (1.0, 1.0, 0)))
+   primLight _ = Nothing
    
-gP :: (Intersectable i, Material m) => i -> m -> AnyPrimitive
-gP i m = MkAnyPrimitive $ GeometricPrimitive (MkAnyIntersectable i) (MkAnyMaterial m)
+gP :: (Intersectable i, Material m) => i -> m -> Maybe Light -> AnyPrimitive
+gP i m l = MkAnyPrimitive $ GeometricPrimitive (MkAnyIntersectable i) (MkAnyMaterial m) l
 
-data GeometricPrimitive = GeometricPrimitive AnyIntersectable AnyMaterial
+data GeometricPrimitive = GeometricPrimitive AnyIntersectable AnyMaterial (Maybe Light)
 
 instance Primitive GeometricPrimitive where
-   primIntersect p@(GeometricPrimitive i _) ray = pi' (intersect ray i) where
+   primIntersect p@(GeometricPrimitive i _ _) ray = pi' (intersect ray i) where
       pi' :: Maybe (Float, DifferentialGeometry) -> Maybe Intersection
       pi' Nothing = Nothing
       pi' (Just (t, dg)) = Just $ Intersection t dg (MkAnyPrimitive p)
       
-   primIntersects (GeometricPrimitive i _) r = intersects r i
-   primMaterial (GeometricPrimitive _ m) = m
+   primIntersects (GeometricPrimitive i _ _) r = intersects r i
+   primMaterial (GeometricPrimitive _ m _) = m
+   primLight (GeometricPrimitive _ _ l) = l
    
 data Group = Group [AnyPrimitive]
 
@@ -68,4 +80,4 @@ instance Primitive AnyPrimitive where
    primIntersect (MkAnyPrimitive a) r = primIntersect a r
    primIntersects (MkAnyPrimitive a) r  = primIntersects a r
    primMaterial (MkAnyPrimitive a) = primMaterial a
-
+   primLight (MkAnyPrimitive a) = primLight a

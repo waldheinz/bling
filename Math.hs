@@ -29,14 +29,12 @@ data Ray = Ray {
    rayDir :: Normal,
    rayMin :: Float,
    rayMax :: Float
-   }
+   } deriving Show
 
 -- | Creates a ray that connects the two specified points.
 segmentRay :: Point -> Point -> Ray
-segmentRay p1 p2 = Ray p1 dir epsilon (dist - epsilon) where
+segmentRay p1 p2 = Ray p1 p1p2 epsilon (1 - epsilon) where
    p1p2 = (p2 `sub` p1)
-   dist = len p1p2
-   dir = scalMul p1p2 (1.0 / dist)
 
 positionAt :: Ray -> Float -> Point
 positionAt (Ray o d _ _) t = o `add` (scalMul d t)
@@ -78,11 +76,19 @@ normalize v
   | otherwise = (0, 1, 0)
 
 -- Calculate the roots of the equation a * x^2 + b * x + c = 0
-roots :: Float -> Float -> Float -> [Float]
-roots a b c = let d = b*b - 4*a*c
-         in if (d < 0.0) then []
-            else [ 0.5 * (-b + sqrt d), 0.5 * (-b - sqrt d) ]
-
+solveQuadric :: Float -> Float -> Float -> Maybe (Float, Float)
+solveQuadric a b c
+   | discrim < 0.0 = Nothing
+   | otherwise = Just (min t0 t1, max t0 t1)
+   where
+         t0 = q / a
+         t1 = c / q
+         q
+            | b < 0 = -0.5 * (b - rootDiscrim)
+            | otherwise = -0.5 * (b + rootDiscrim)
+         rootDiscrim = sqrt discrim
+         discrim = b * b - 4.0 * a * c
+         
 -- | generates a random point on the unit sphere,
 -- see http://mathworld.wolfram.com/SpherePointPicking.html
 randomOnSphere :: Rand Vector

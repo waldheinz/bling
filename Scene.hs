@@ -24,18 +24,15 @@ evalLight scene p n light wo bsdf = do
    return $! (evalSample scene sample wo bsdf p n)
    
 evalSample :: Scene -> LightSample -> Vector -> Bsdf -> Point -> Normal -> Spectrum
-evalSample scene sample wo bsdf _ n = if (isBlack li || isBlack f)
-                then black
-                else if (not hidden)
-                        then ld
-                        else black
+evalSample scene sample wo bsdf _ n
+   | isBlack li || isBlack f = black
+   | primIntersects scene (testRay sample) = black
+   | otherwise = sScale f $ scalMul li $ (absDot wi n) / (lightSamplePdf sample)
    where
-         ld = sScale f $ scalMul li $ (absDot wi n) / (lightSamplePdf sample)
          li = de sample
          wi = lightSampleWi sample
          f = evalBsdf bsdf wo wi
-         hidden = primIntersects scene (testRay sample)
-
+   
 -- | samples all lights by sampling individual lights and summing up the results
 sampleAllLights :: Scene -> Point -> Normal -> Vector -> Bsdf -> Rand Spectrum
 sampleAllLights scene p n wo bsdf = (foldl (liftM2 add) (return black) spectri) -- sum up contributions

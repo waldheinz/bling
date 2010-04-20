@@ -68,8 +68,8 @@ sampleBsdf (Bsdf bxdf sc) woW = do
          wo = worldToLocal sc woW
          
 evalBsdf :: Bsdf -> Vector -> Vector -> Spectrum
-evalBsdf (Bsdf bxdf sc) woW wiW
-   | isReflection bxdf = bxdfEval bxdf wo wi 
+evalBsdf (Bsdf bxdf sc@(LocalCoordinates _ _ n)) woW wiW
+   | isReflection bxdf && ((dot woW n) * (dot wiW n) > 0) = bxdfEval bxdf wo wi 
    | otherwise = black
    where
       wo = worldToLocal sc woW

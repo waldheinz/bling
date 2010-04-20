@@ -2,7 +2,7 @@
 -- | The functions dealing with colours, radiance and light sources
 module Light (
    Spectrum, black, white, isBlack, sScale,
-   Light(..), LightSample(..), lightSample, lightEmittance, lightPdf) where
+   Light(..), LightSample(..), lightSample, lightEmittance, lightLe, lightPdf) where
 
 import Color
 import Geometry
@@ -21,6 +21,12 @@ data Light =
    Directional Normal Spectrum |
    AreaLight Spectrum AnyBound
    
+lightLe :: Light -> Point -> Normal -> Normal -> Spectrum
+lightLe (AreaLight r _) _ n wo
+   | dot n wo > 0 = r
+   | otherwise = black
+lightLe _ _ _ _ = black
+
 lightSample :: Light -> Point -> Normal -> Rand LightSample  
 lightSample (SoftBox r) p n = lightSampleSB r p n
 lightSample (Directional r d) p n = lightSampleD r d p n
@@ -38,9 +44,9 @@ lightPdf (AreaLight _ b) p _ wi = boundPdf b p wi
 
 sampleAreaLight :: (Bound a) => a -> Spectrum -> Point -> Normal -> Rand LightSample
 sampleAreaLight shape lemit p _ = do
-   (ps, ns) <- boundSample shape p
+   (ps, _) <- boundSample shape p
    wi <- return $ normalize $ ps `sub` p
-   return $! LightSample lemit wi (segmentRay p ps) (boundPdf shape p wi)
+   return $! LightSample lemit wi (Ray ps (sub p ps) epsilon (1 - epsilon)) (boundPdf shape p wi)
 
 lightSampleSB :: Spectrum -> Point -> Normal -> Rand LightSample
 lightSampleSB r pos n = do
