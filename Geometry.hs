@@ -5,6 +5,7 @@ module Geometry where
 import Math
 import Random
 
+import Debug.Trace
 import Maybe
 
 data DifferentialGeometry = DifferentialGeometry {
@@ -29,6 +30,19 @@ data Sphere = Sphere Float Point
 insideSphere :: Sphere -> Point -> Bool
 insideSphere (Sphere r pos) pt = (sqLen $ sub pos pt) - r * r < epsilon
 
+sampleSphere :: Point -> Point -> Point
+sampleSphere co pt
+   | isNothing roots = pt
+   | otherwise = normalize $ chosen
+      where
+         chosen = add co $ scalMul rd t
+         rd = pt `sub` co
+         (t, _) = fromJust roots
+         roots = solveQuadric a b c
+         a = sqLen rd
+         b = 2 * (co `dot` rd)
+         c = sqLen co - 1
+   
 instance Bound Sphere where
    boundArea (Sphere r _) = r * r * 4 * pi
    
@@ -39,14 +53,17 @@ instance Bound Sphere where
          
       | otherwise = do -- sample only the visible part if outside
          rndPt <-randomOnSphere
-         return $! (add pos (scalMul (ptFlip rndPt) r), (ptFlip rndPt)) where
-            ptFlip rndPt -- possbily flips the point to the other side of unit sphere
-               | (dot rndPt $ normalize $ sub p pos) < 0 = neg rndPt
-               | otherwise = rndPt
+         pt <- return $ sampleSphere (sub (scalMul p r) pos) rndPt
+         return $! (add pos $ scalMul pt r, pt)
          
-   boundPdf sp p _
-      | insideSphere sp p = 1.0 / boundArea sp
-      | otherwise = 1.0 / boundArea sp
+   boundPdf sp@(Sphere r center) pos _
+      | insideSphere sp pos = uniformConePdf cosThetaMax
+      | otherwise = 1.0 / boundArea sp 
+      where
+         cosThetaMax = sqrt $ max 0 (1 - r * r / (sqLen $ sub pos center))
+
+debug :: Show a => a -> a
+debug x = trace (show x) x
 
 instance Intersectable Sphere where
    intersect ray@(Ray origin rd tmin tmax) (Sphere r center)
@@ -72,22 +89,11 @@ instance Intersectable Sphere where
             dst = ro `sub` sc
             a = sqLen rd
             b = 2 * dot dst rd
-            c = sqLen dst - (rad * rad)
+            rad' = rad - epsilon
+            c = sqLen dst - (rad' * rad')
             (t0, t1) = fromJust roots
             roots = solveQuadric a b c
-{-
-   intersects (Ray (rox, roy, roz) (rdx, rdy, rdz) rmin rmax) (Sphere rad ct)
-      | isNothing ts = False
-      | t0 > rmax = False
-      | t1 < rmin = False
-      | otherwise = True
-         where 
-               (t0, t1) = fromJust ts
-               ts = roots a b c
-               a = rdx*rdx + rdy*rdy + rdz*rdz
-               b = 2 * (rdx*rox + rdy*roy + rdz*roz)
-               c = rox*rox + roy*roy + roz*roz - rad*rad;
--}
+            
 -- | a plane has a distance from world-space origin and a normal
 data Plane = Plane Float Normal
 

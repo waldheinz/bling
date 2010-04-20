@@ -20,6 +20,9 @@ invPi = 1 / pi
 invTwoPi :: Float
 invTwoPi = 1 / (2 * pi)
 
+twoPi :: Float
+twoPi = 2.0 * pi
+
 type Vector = (Float, Float, Float)
 type Point = Vector
 type Normal = Vector
@@ -89,6 +92,16 @@ solveQuadric a b c
          rootDiscrim = sqrt discrim
          discrim = b * b - 4.0 * a * c
          
+uniformConePdf :: Float -> Float
+uniformConePdf cosThetaMax = 1.0 / (twoPi * (1.0 - cosThetaMax))
+         
+uniformSampleCone :: Float -> Rand Vector
+uniformSampleCone cosThetaMax = do
+   cosTheta <- rndR (cosThetaMax, 1.0)
+   sinTheta <- return $ sqrt (1 - cosTheta * cosTheta)
+   phi <- rndR (0, twoPi)
+   return ((cos phi) * sinTheta, (sin phi) * sinTheta, cosTheta)
+         
 -- | generates a random point on the unit sphere,
 -- see http://mathworld.wolfram.com/SpherePointPicking.html
 randomOnSphere :: Rand Vector
@@ -127,18 +140,18 @@ concentricSampleDisk' (sx, sy) = (r * cos theta, r * sin theta) where
 
 data LocalCoordinates = LocalCoordinates Vector Vector Vector
 
-coordinateSystem :: Vector -> (Vector, Vector)
+coordinateSystem :: Vector -> LocalCoordinates
 coordinateSystem v@(x, y, z)
    | abs x > abs y = 
       let 
           invLen = 1.0 / (sqrt (x*x + z*z))
           v2 = (-z * invLen, 0, x * invLen)
-      in (v2, cross v v2)
+      in LocalCoordinates v2 (cross v v2) v
    | otherwise = 
       let
           invLen = 1.0 / (sqrt (y*y + z*z))
           v2 = (0, z * invLen, -y * invLen)
-      in (v2, cross v v2)
+      in LocalCoordinates v2 (cross v v2) v
       
       
 worldToLocal :: LocalCoordinates -> Vector -> Vector

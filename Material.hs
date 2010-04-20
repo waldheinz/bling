@@ -31,9 +31,7 @@ instance Bxdf Lambertian where
    bxdfAppearance _ = Diffuse
 
 coordinates :: DifferentialGeometry -> LocalCoordinates
-coordinates dg = (LocalCoordinates sn tn n) where
-   (sn, tn) = coordinateSystem n
-   n = dgN dg
+coordinates dg = coordinateSystem $ dgN dg where
    
 data Measured = BrushedMetal | BluePaint | Felt | Clay | Primer
 

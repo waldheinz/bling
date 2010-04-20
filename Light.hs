@@ -46,7 +46,7 @@ sampleAreaLight :: (Bound a) => a -> Spectrum -> Point -> Normal -> Rand LightSa
 sampleAreaLight shape lemit p _ = do
    (ps, _) <- boundSample shape p
    wi <- return $ normalize $ ps `sub` p
-   return $! LightSample lemit wi (Ray ps (sub p ps) epsilon (1 - epsilon)) (boundPdf shape p wi)
+   return $! LightSample lemit wi (segmentRay p ps) (boundPdf shape p wi)
 
 lightSampleSB :: Spectrum -> Point -> Normal -> Rand LightSample
 lightSampleSB r pos n = do
@@ -60,9 +60,7 @@ lightSampleSB r pos n = do
       pdf (_, _, z) = invPi * z
       
       toWorld :: Vector -> Vector
-      toWorld v = localToWorld cs v where
-         (v1, v2) = coordinateSystem n
-         cs = LocalCoordinates v1 v2 n
+      toWorld v = localToWorld (coordinateSystem n) v
 
 lightSampleD :: Spectrum -> Normal -> Point -> Normal -> Rand LightSample
 lightSampleD r d pos n = return (LightSample y d ray 1.0) where

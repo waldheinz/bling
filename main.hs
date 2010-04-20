@@ -47,10 +47,10 @@ pixelColor f res pixel = do
       spp = 4 :: Int
 
 blub :: Sphere
-blub = Sphere 0.6 (0,0.0,0)
+blub = Sphere 0.6 (0,0,0)
 
 blubLight :: Light
-blubLight = AreaLight (1.8,1.8,1.8) (MkAnyBound blub)
+blubLight = AreaLight (1.0,1.0,1.0) (MkAnyBound blub)
 
 defMat :: Matte
 defMat = Matte (0.8, 0.8, 0.8)
@@ -69,9 +69,9 @@ myShape = Group [
  --  MkAnyPrimitive sphereGrid,
    gP (Sphere (0.6) (1.3, 0, 0)) red Nothing,
    gP blub defMat (Just blubLight),
-   gP (Sphere (0.6) (-1.3, 0, 0)) green Nothing]
- --  gP (Plane (1.0) (0, 0, -1)) defMat,
- --  gP (Plane (0.6) (0, 1, 0)) defMat ]
+   gP (Sphere (0.6) (-1.3, 0, 0)) green Nothing,
+   gP (Plane (1.0) (0, 0, -1)) defMat Nothing,
+   gP (Plane (0.6) (0, 1, 0)) defMat Nothing ]
 
 sphereGrid :: Group
 sphereGrid = Group spheres where
