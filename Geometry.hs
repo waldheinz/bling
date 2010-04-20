@@ -3,6 +3,8 @@
 module Geometry where
 
 import Math
+import Random
+
 import Maybe
 
 data DifferentialGeometry = DifferentialGeometry {
@@ -14,14 +16,18 @@ class Intersectable a where
    intersect :: Ray -> a -> Maybe (Float, DifferentialGeometry)
    intersects :: Ray -> a -> Bool
 
-data AnyIntersectable = forall a. Intersectable a => MkAnyIntersectable a
-
-instance Intersectable AnyIntersectable where
-   intersect r (MkAnyIntersectable a) = intersect r a
-   intersects r (MkAnyIntersectable a)  = intersects r a
-
+class (Intersectable a) => Bound a where
+   boundArea :: a -> Float -- ^ the area of the object
+   boundSample :: a -> Point -> Rand Point -- ^ a random point on the object, which is preferably visible from the given point
+   
 -- | a sphere has a radius and a position
 data Sphere = Sphere Float Point
+
+instance Bound Sphere where
+   boundArea (Sphere r _) = r * r * 4 * pi
+   boundSample (Sphere r p) _ = do
+      pt <- randomOnSphere
+      return $! add p $ scalMul pt r
 
 instance Intersectable Sphere where
    intersect ray@(Ray origin rd _ _) (Sphere r center)
@@ -56,3 +62,8 @@ instance Intersectable Plane where
    
    intersects r@(Ray ro rd _ _) (Plane d n) = onRay r (-((ro `dot` n + d) / (rd `dot` n)))
    
+data AnyIntersectable = forall a. Intersectable a => MkAnyIntersectable a
+
+instance Intersectable AnyIntersectable where
+   intersect r (MkAnyIntersectable a) = intersect r a
+   intersects r (MkAnyIntersectable a)  = intersects r a
