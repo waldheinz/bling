@@ -23,7 +23,7 @@ pathTracer s r = nextVertex 0 True r (primIntersect s r) white black where
    nextVertex _ False _ Nothing _ l = -- nothing hit, non-specular bounce
       return $! l
    
-   nextVertex depth _ (Ray _ rd _ _) (Just int@(Intersection _ dg _)) throughput l 
+   nextVertex depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ dg _)) throughput l 
       | isBlack throughput = return l
       | otherwise = do
          (BsdfSample _ pdf _ wi) <- sampleBsdf bsdf wo
@@ -32,9 +32,10 @@ pathTracer s r = nextVertex 0 True r (primIntersect s r) white black where
          
          outRay <- return (Ray p wi epsilon infinity)
          throughput' <- return $ sScale throughput $ scalMul (f wi) ((absDot wi n) / pdf)
-         l' <- return $ add l (sScale throughput lHere)
+         l' <- return $ add l (sScale throughput (add lHere intl))
          nextVertex (depth + 1) False outRay (primIntersect s outRay) throughput' l'
          where
+               intl = if specBounce then intLe int wo else black
                f = evalBsdf bsdf wo
                wo = normalize $ neg rd
                bsdf = intBsdf int

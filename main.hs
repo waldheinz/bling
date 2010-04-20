@@ -110,6 +110,6 @@ main = do
          resX = 800 :: Int
          resY = 800 :: Int
          pixels = [ (x, y) | y <- [0..resX-1], x <- [0..resY-1]]
-         pixelFunc = (\px -> whitted myScene (stareDownZAxis px))
+         pixelFunc = (\px -> pathTracer myScene (stareDownZAxis px))
          colours = mapM (pixelColor pixelFunc (resX, resY)) pixels
          

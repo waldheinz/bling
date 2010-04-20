@@ -49,7 +49,7 @@ instance Bound Sphere where
    boundSample sp@(Sphere r center) p
       | insideSphere sp p = do -- sample full sphere if inside
          rndPt <- randomOnSphere
-         return $! (add p $ scalMul rndPt r, rndPt)
+         return $! (add center $ scalMul rndPt r, rndPt)
          
       | otherwise = do -- sample only the visible part if outside
          d <- uniformSampleCone cs cosThetaMax
@@ -67,8 +67,8 @@ instance Bound Sphere where
                            int = intersect ray sp
          
    boundPdf sp@(Sphere r center) pos _
-      | insideSphere sp pos = uniformConePdf cosThetaMax
-      | otherwise = 1.0 / boundArea sp 
+      | insideSphere sp pos = 1.0 / boundArea sp
+      | otherwise = uniformConePdf cosThetaMax
       where
          cosThetaMax = sqrt $ max 0 (1 - r * r / (sqLen $ sub pos center))
 
@@ -92,9 +92,9 @@ instance Intersectable Sphere where
          hitPoint = positionAt ray t
          normalAt = normalize $ sub hitPoint center
 
-   intersects ray@(Ray ro rd tmin tmax) (Sphere rad sc)
+   intersects (Ray ro rd tmin tmax) (Sphere rad sc)
       | isNothing roots = False
-      | otherwise = onRay ray t0 || onRay ray t1
+      | otherwise = t0 < tmax && t1 > tmin
       where
             dst = ro `sub` sc
             a = sqLen rd
