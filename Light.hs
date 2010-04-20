@@ -39,7 +39,7 @@ lightEmittance (AreaLight _ _) _ = black -- ^ must be sampled by intersecting th
 
 lightPdf :: Light -> Point -> Normal -> Vector -> Float
 lightPdf (SoftBox _) _ n wi = absDot n wi
-lightPdf (Directional _ _) _ _ _ = 0.0 -- zero chance to find the direction by sampling
+lightPdf (Directional _ _) _ _ _ = infinity -- zero chance to find the direction by sampling
 lightPdf (AreaLight _ b) p _ wi = boundPdf b p wi
 
 sampleAreaLight :: (Bound a) => a -> Spectrum -> Point -> Normal -> Rand LightSample

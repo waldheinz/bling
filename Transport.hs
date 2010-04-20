@@ -34,7 +34,7 @@ class Bxdf a where
    
    bxdfPdf _ (_, _, woz)(_, _, wiz)
       | woz * wiz > 0 = invPi * abs wiz
-      | otherwise = 0
+      | otherwise = infinity
 
 data AnyBxdf = forall a. Bxdf a => MkAnyBxdf a
 

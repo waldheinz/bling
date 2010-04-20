@@ -1,6 +1,7 @@
 module Scene where
 
 import Control.Monad
+import Control.Exception(assert)
 
 import Light
 import Math
@@ -27,8 +28,9 @@ evalSample :: Scene -> LightSample -> Vector -> Bsdf -> Point -> Normal -> Spect
 evalSample scene sample wo bsdf _ n
    | isBlack li || isBlack f = black
    | primIntersects scene (testRay sample) = black
-   | otherwise = sScale f $ scalMul li $ (absDot wi n) / (lightSamplePdf sample)
+   | otherwise = sScale f $ scalMul li $ (absDot wi n) / (assert (not $ isNaN lPdf) lPdf)
    where
+         lPdf = lightSamplePdf sample
          li = de sample
          wi = lightSampleWi sample
          f = evalBsdf bsdf wo wi
@@ -45,7 +47,8 @@ sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> Rand Spectrum
 sampleOneLight (Scene _ []) _ _ _ _ = return black -- no light sources -> no light
 sampleOneLight scene@(Scene _ (l:[])) p n wo bsdf = evalLight scene p n l wo bsdf -- eval the only light source
 sampleOneLight scene@(Scene _ lights) p n wo bsdf = do
-  lightNum <-rndR (0, lightCount - 1 :: Int)
+  lightNumF <-rndR (0, fromIntegral lightCount)
+  lightNum <- return $ floor lightNumF
   y <- evalLight scene p n (lights !! lightNum) wo bsdf
   return $! scale y
   where

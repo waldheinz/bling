@@ -5,6 +5,7 @@ module Geometry where
 import Math
 import Random
 
+import Control.Exception(assert)
 import Debug.Trace
 import Maybe
 
@@ -52,23 +53,24 @@ instance Bound Sphere where
          return $! (add center $ scalMul rndPt r, rndPt)
          
       | otherwise = do -- sample only the visible part if outside
-         d <- uniformSampleCone cs cosThetaMax
+         d <- uniformSampleCone cs $ assert (cosThetaMax <= 1.0) cosThetaMax
          return $! (ps d, normalize $ sub (ps d) center)
          where
                cs = coordinateSystem dn
                dn = normalize $ sub center p
-               cosThetaMax = sqrt $ max 0 (1 - r * r / (sqLen $ sub p center))
+               cosThetaMax = sqrt $ max 0 (1 - (r * r) / (sqLen $ sub p center))
                
                ps d
-                  | isJust int = positionAt ray $ fst $ fromJust int
+                  | isJust int = positionAt ray $ assert (not $ isNaN t) t
                   | otherwise = sub center $ scalMul dn r
                      where 
                            ray = Ray p d 0 infinity
                            int = intersect ray sp
+                           t = fst $ fromJust int
          
    boundPdf sp@(Sphere r center) pos _
       | insideSphere sp pos = 1.0 / boundArea sp
-      | otherwise = uniformConePdf cosThetaMax
+      | otherwise = uniformConePdf $ assert (not $ isNaN cosThetaMax) cosThetaMax
       where
          cosThetaMax = sqrt $ max 0 (1 - r * r / (sqLen $ sub pos center))
 
@@ -86,10 +88,10 @@ instance Intersectable Sphere where
          a = sqLen rd
          b = 2 * (co `dot` rd)
          c = (sqLen co) - (r * r)
-         t = if (t1 > tmin) then t1 else t2
+         t = assert ((not $ isNaN t1) && (not $ isNaN t2)) $ if (t1 > tmin) then t1 else t2
          (t1, t2) = fromJust times
          times = solveQuadric a b c
-         hitPoint = positionAt ray t
+         hitPoint = positionAt ray $ assert (not $ isNaN t) t
          normalAt = normalize $ sub hitPoint center
 
    intersects (Ray ro rd tmin tmax) (Sphere rad sc)

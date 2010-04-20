@@ -24,10 +24,13 @@ runRand rng (Rand c) = c rng
 fromRand :: (a, StdGen) -> a
 fromRand (a, _) = a
 
--- | Provides a random @Float@ in @[0..1]@
+-- | Provides a random @Float@ in @[0..1)@
 rnd :: Rand Float
-rnd = Rand (randomR (0, 1::Float))
+rnd = Rand (random)
 
--- | Provides a random @Float@ in the specified range
-rndR :: Random a => (a, a) -> Rand a
-rndR range = Rand (randomR range)
+-- | Provides a random @Float@ in the specified range (left inclusive, right exclusive)
+rndR :: (Float, Float) -> Rand Float
+rndR (lo, hi) = do
+   t <- rnd
+   return ((1.0 - t) * lo + t * hi)
+-- rndR range = Rand (randomR range)

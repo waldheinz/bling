@@ -1,7 +1,9 @@
 module Pathtracer(pathTracer) where
 
+import Control.Exception(assert)
 import Control.Monad
 
+import Color
 import Geometry
 import Light
 import Math
@@ -31,8 +33,18 @@ pathTracer s r = nextVertex 0 True r (primIntersect s r) white black where
          lHere <- sampleOneLight s p n wo bsdf
          
          outRay <- return (Ray p wi epsilon infinity)
-         throughput' <- return $ sScale throughput $ scalMul (f wi) ((absDot wi n) / pdf)
-         l' <- return $ add l (sScale throughput (add lHere intl))
+         throughput' <-
+            assert (not $ spectrumNaN throughput) $
+            assert (pdf > 0) $
+            assert (not $ spectrumNaN wi) $
+            return $ sScale throughput $ scalMul (f wi) ((absDot wi n) / pdf)
+            
+         l' <-
+            assert (not $ spectrumNaN throughput) $
+            assert (not $ spectrumNaN lHere) $
+            assert (not $ spectrumNaN intl) $
+            return $ add l (sScale throughput (add lHere intl))
+            
          nextVertex (depth + 1) False outRay (primIntersect s outRay) throughput' l'
          where
                intl = if specBounce then intLe int wo else black
