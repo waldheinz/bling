@@ -15,9 +15,22 @@ data DifferentialGeometry = DifferentialGeometry {
    }
 
 class Intersectable a where
+   -- | intersects a ray with an object, possibly returning the distance
+   --   along the ray where an intersection occured together with the
+   --   object properties at the intersection point
    intersect :: Ray -> a -> Maybe (Float, DifferentialGeometry)
+   
+   -- | decides if a ray intersects the object
    intersects :: Ray -> a -> Bool
-
+   
+   -- | the default implementation just test if @intersect@ returns something,
+   --   should be overridded if this test can be performed cheaper
+   intersects r a
+      | isJust int = True
+      | otherwise = False
+      where
+            int = intersect r a
+            
 class (Intersectable a) => Bound a where
    -- | returns the surface area of the object
    boundArea :: a -> Float

@@ -71,6 +71,8 @@ myShape = Group [
    gP blub defMat (Just blubLight),
    gP (Sphere (0.6) (-1.3, 0, 0)) red Nothing,
    gP (Plane (0.8) (0, 0, -1)) defMat Nothing,
+   gP (Plane (0.8) (1, 0, 0)) defMat Nothing,
+   gP (Plane (0.8) (-1, 0, 0)) defMat Nothing,
    gP (Plane (0.6) (0, 1, 0)) Clay Nothing ]
 
 sphereGrid :: Group
