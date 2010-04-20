@@ -5,6 +5,7 @@ module Light (
    Light(..), LightSample(..), lightSample, lightEmittance, lightPdf) where
 
 import Color
+import Geometry
 import Math
 import Random
 
@@ -17,19 +18,29 @@ data LightSample = LightSample {
 
 data Light =
    SoftBox Spectrum | -- ^ An infinite area lightsurrounding the whole scene, emitting a constant amount of light from all directions.
-   Directional Normal Spectrum
+   Directional Normal Spectrum |
+   AreaLight Spectrum AnyBound
    
 lightSample :: Light -> Point -> Normal -> Rand LightSample  
 lightSample (SoftBox r) p n = lightSampleSB r p n
 lightSample (Directional r d) p n = lightSampleD r d p n
+lightSample (AreaLight r b) p n = sampleAreaLight b r p n
 
 lightEmittance :: Light -> Ray -> Spectrum
 lightEmittance (SoftBox r) _ = r
 lightEmittance (Directional _ _) _ = black
+lightEmittance (AreaLight _ _) _ = black -- ^ must be sampled by intersecting the shape directly and asking that intersection for le
 
 lightPdf :: Light -> Point -> Normal -> Vector -> Float
 lightPdf (SoftBox _) _ n wi = absDot n wi
 lightPdf (Directional _ _) _ _ _ = 0.0 -- zero chance to find the direction by sampling
+lightPdf (AreaLight _ b) p _ wi = boundPdf b p wi
+
+sampleAreaLight :: (Bound a) => a -> Spectrum -> Point -> Normal -> Rand LightSample
+sampleAreaLight shape lemit p _ = do
+   (ps, ns) <- boundSample shape p
+   wi <- return $ normalize $ ps `sub` p
+   return $! LightSample lemit wi (segmentRay p ps) (boundPdf shape p wi)
 
 lightSampleSB :: Spectrum -> Point -> Normal -> Rand LightSample
 lightSampleSB r pos n = do

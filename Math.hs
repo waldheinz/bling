@@ -31,6 +31,13 @@ data Ray = Ray {
    rayMax :: Float
    }
 
+-- | Creates a ray that connects the two specified points.
+segmentRay :: Point -> Point -> Ray
+segmentRay p1 p2 = Ray p1 dir epsilon (dist - epsilon) where
+   p1p2 = (p2 `sub` p1)
+   dist = len p1p2
+   dir = scalMul p1p2 (1.0 / dist)
+
 positionAt :: Ray -> Float -> Point
 positionAt (Ray o d _ _) t = o `add` (scalMul d t)
 

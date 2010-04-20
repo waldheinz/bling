@@ -18,7 +18,10 @@ class Intersectable a where
 
 class (Intersectable a) => Bound a where
    boundArea :: a -> Float -- ^ the area of the object
-   boundSample :: a -> Point -> Rand Point -- ^ a random point on the object, which is preferably visible from the given point
+   boundSample :: a -> Point -> Rand (Point, Normal) -- ^ a random point (along with its normal) on the object, which is preferably visible from the given point
+   boundPdf :: a -> Point -> Vector -> Float
+   
+   boundPdf a _ _ = 1.0 / boundArea a
    
 -- | a sphere has a radius and a position
 data Sphere = Sphere Float Point
@@ -27,7 +30,7 @@ instance Bound Sphere where
    boundArea (Sphere r _) = r * r * 4 * pi
    boundSample (Sphere r p) _ = do
       pt <- randomOnSphere
-      return $! add p $ scalMul pt r
+      return $! (add p $ scalMul pt r, pt)
 
 instance Intersectable Sphere where
    intersect ray@(Ray origin rd _ _) (Sphere r center)
@@ -67,3 +70,14 @@ data AnyIntersectable = forall a. Intersectable a => MkAnyIntersectable a
 instance Intersectable AnyIntersectable where
    intersect r (MkAnyIntersectable a) = intersect r a
    intersects r (MkAnyIntersectable a)  = intersects r a
+
+data AnyBound = forall a. Bound a => MkAnyBound a
+
+instance Intersectable AnyBound where
+   intersect r (MkAnyBound a) = intersect r a
+   intersects r (MkAnyBound a)  = intersects r a
+
+instance Bound AnyBound where
+   boundArea (MkAnyBound a) = boundArea a
+   boundSample (MkAnyBound a) p = boundSample a p
+   
