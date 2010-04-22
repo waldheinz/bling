@@ -5,6 +5,7 @@ import System.Random
 
 import Camera
 import Geometry
+import Image
 import Light
 import Material
 import Math
@@ -13,10 +14,6 @@ import Primitive
 import Random
 import Scene
 import Whitted
-
----
---- a camera transforms a pixel in normalized device coordinates (NDC) to a ray
----
    
 ---
 --- sampling and reconstruction
@@ -95,17 +92,6 @@ myCamera = pinHoleCamera myView
 
 myScene :: Scene
 myScene = Scene (MkAnyPrimitive myShape) myLights
-
-clamp :: Float -> Int
-clamp v = round ( (min 1 (max 0 v)) * 255 )
-
-makePgm :: Int -> Int -> [ Spectrum ] -> String
-makePgm width height s = "P3\n" ++ show width ++ " " ++ show height ++ "\n255\n" ++ stringify s
-  where 
-    stringify [] = ""
-    stringify ((r,g,b):xs) = show (clamp r) ++ " " ++
-      show (clamp g) ++ " " ++ show (clamp b) ++ " " ++
-      stringify xs
 
 main :: IO ()
 main = do

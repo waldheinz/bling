@@ -3,6 +3,7 @@ module Camera(Camera, View(..), pinHoleCamera) where
 
 import Math
 
+-- | a camera transforms a pixel in normalized device coordinates to a ray
 type Camera = (Float, Float) -> Ray
 
 -- | defines the view for projective camera models
