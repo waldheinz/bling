@@ -16,7 +16,7 @@ import Transport
 pathTracer :: Scene -> Ray -> Rand Spectrum
 pathTracer s r = nextVertex 0 True r (primIntersect s r) white black where
    nextVertex :: Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Rand Spectrum
-   
+--   nextVertex _ _ (Ray ro rd _ _ ) _ _ _ = return rd
    nextVertex 10 _ _ _ _ l = return $! l -- hard bound
    
    nextVertex _ True ray Nothing throughput l = -- nothing hit, specular bounce
