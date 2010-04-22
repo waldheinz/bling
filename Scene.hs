@@ -27,7 +27,7 @@ evalSample :: Scene -> LightSample -> Vector -> Bsdf -> Point -> Normal -> Spect
 evalSample scene sample wo bsdf _ n
    | isBlack li || isBlack f = black
    | primIntersects scene (testRay sample) = black
-   | otherwise = sScale f $ scalMul li $ (absDot wi n) / lPdf)
+   | otherwise = sScale f $ scalMul li $ (absDot wi n) / lPdf
    where
          lPdf = lightSamplePdf sample
          li = de sample

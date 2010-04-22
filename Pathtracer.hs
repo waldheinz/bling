@@ -2,7 +2,6 @@ module Pathtracer(pathTracer) where
 
 import Control.Monad
 
-import Color
 import Geometry
 import Light
 import Math

@@ -43,10 +43,10 @@ lightPdf (Directional _ _) _ _ _ = infinity -- zero chance to find the direction
 lightPdf (AreaLight _ b) p _ _ = boundPdf b p
 
 sampleAreaLight :: (Bound a) => a -> Spectrum -> Point -> Normal -> Rand LightSample
-sampleAreaLight shape lemit p _ = do
-   (ps, _) <- boundSample shape p
+sampleAreaLight shape lemit p n = do
+   (ps, ns) <- boundSample shape p
    wi <- return $ normalize $ ps `sub` p
-   return $! LightSample lemit wi (segmentRay p ps) (boundPdf shape p)
+   return $! LightSample (scalMul lemit (absDot ns n)) wi (segmentRay p ps) (boundPdf shape p)
 
 lightSampleSB :: Spectrum -> Point -> Normal -> Rand LightSample
 lightSampleSB r pos n = do

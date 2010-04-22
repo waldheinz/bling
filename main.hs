@@ -66,9 +66,9 @@ blue = Matte (0.3, 0.3, 0.8)
 
 myShape :: Group
 myShape = Group [
-   gP (Sphere (0.6) (1.3, 0, 0)) BluePaint Nothing,
+ --  gP (Sphere (0.6) (1.3, 0, 0)) BluePaint Nothing,
    gP blub defMat (Just blubLight),
-   gP (Sphere (0.6) (-1.3, 0, 0)) red Nothing,
+--   gP (Sphere (0.6) (-1.3, 0, 0)) red Nothing,
    gP (Plane (2) (0, 0, -1)) defMat Nothing,
    gP (Plane (5) (1, 0, 0)) defMat Nothing,
    gP (Plane (5) (-1, 0, 0)) defMat Nothing,
