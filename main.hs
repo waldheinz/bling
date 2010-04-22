@@ -82,7 +82,7 @@ myLights = [
     ]
 
 myView :: View
-myView = View (-4, 0, -4) (normalize (1, 0, 1)) (0, 1, 0) 1 1.0
+myView = View (-4, 2, -4) (normalize (1, 0.5, 1)) (0, 1, 0) 1 1.0
 
 myCamera :: Camera
 myCamera = pinHoleCamera myView
