@@ -26,7 +26,6 @@ viewPoint (View pos la up dist aspect) (u, v) = center `add` (scalMul right u') 
 
 -- | a simple "pinhole" camera
 pinHoleCamera :: View -> Camera
-pinHoleCamera view uv = Ray ro rd 0 infinity where
-   ro = (viewPos view)
-   rd = normalize $ sub pv ro
+pinHoleCamera view uv = Ray pv rd 0 infinity where
+   rd = normalize $ sub pv $ viewPos view
    pv = viewPoint view uv
