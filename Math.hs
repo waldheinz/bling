@@ -96,7 +96,7 @@ uniformConePdf cosThetaMax = 1.0 / (twoPi * (1.0 - cosThetaMax))
          
 uniformSampleCone :: LocalCoordinates -> Float -> Rand Vector
 uniformSampleCone (LocalCoordinates x y z) cosThetaMax = do
-   cosTheta <- rndR (cosThetaMax - epsilon, 1.0 - epsilon)
+   cosTheta <- rndR (cosThetaMax, 1.0)
    sinTheta <- return $ sqrt (1 - cosTheta * cosTheta)
    phi <- rndR (0, twoPi)
    return (

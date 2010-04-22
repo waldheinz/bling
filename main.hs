@@ -37,14 +37,14 @@ stratify res@(resX, _) pixel = do
          y <- (map fromIntegral [0::Int .. steps-1]) ]
       fpps = (fromIntegral steps) * (fromIntegral resX)
       pxAdd (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
-      steps = 1
+      steps = 2
    
 pixelColor :: ((Float, Float) -> Rand Spectrum) -> (Int, Int) -> (Int, Int) -> Rand Spectrum
 pixelColor f res pixel = do
    ndcs <- stratify res pixel
    y <- (mapM f ndcs)
    return (scalMul (foldl add black y) (1 / fromIntegral spp)) where
-      spp = 1 :: Int
+      spp = 4 :: Int
 
 blub :: Sphere
 blub = Sphere 0.6 (0,0,0)
@@ -66,9 +66,9 @@ blue = Matte (0.3, 0.3, 0.8)
 
 myShape :: Group
 myShape = Group [
- --  gP (Sphere (0.6) (1.3, 0, 0)) BluePaint Nothing,
+   gP (Sphere (0.6) (1.3, 0, 0)) red Nothing,
    gP blub defMat (Just blubLight),
---   gP (Sphere (0.6) (-1.3, 0, 0)) red Nothing,
+   gP (Sphere (0.6) (-1.3, 0, 0)) BluePaint Nothing,
    gP (Plane (2) (0, 0, -1)) defMat Nothing,
    gP (Plane (5) (1, 0, 0)) defMat Nothing,
    gP (Plane (5) (-1, 0, 0)) defMat Nothing,
