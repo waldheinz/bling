@@ -5,7 +5,6 @@ module Geometry where
 import Math
 import Random
 
-import Control.Exception(assert)
 import Debug.Trace
 import Maybe
 
@@ -75,7 +74,7 @@ instance Bound Sphere where
          return $! (add center $ scalMul rndPt r, rndPt)
          
       | otherwise = do -- sample only the visible part if outside
-         d <- uniformSampleCone cs $ assert (cosThetaMax <= 1.0) cosThetaMax
+         d <- uniformSampleCone cs cosThetaMax
          return $! (ps d, normalize $ sub (ps d) center)
          where
                cs = coordinateSystem dn
@@ -83,7 +82,7 @@ instance Bound Sphere where
                cosThetaMax = sqrt $ max 0 (1 - (r * r) / (sqLen $ sub p center))
                
                ps d
-                  | isJust int = positionAt ray $ assert (not $ isNaN t) t
+                  | isJust int = positionAt ray t
                   | otherwise = sub center $ scalMul dn r
                      where 
                            ray = Ray p d 0 infinity
@@ -92,7 +91,7 @@ instance Bound Sphere where
          
    boundPdf sp@(Sphere r center) pos
       | insideSphere sp pos = 1.0 / boundArea sp
-      | otherwise = uniformConePdf $ assert (not $ isNaN cosThetaMax) cosThetaMax
+      | otherwise = uniformConePdf cosThetaMax
       where
          cosThetaMax = sqrt $ max 0 (1 - r * r / (sqLen $ sub pos center))
 
@@ -110,10 +109,10 @@ instance Intersectable Sphere where
          a = sqLen rd
          b = 2 * (co `dot` rd)
          c = (sqLen co) - (r * r)
-         t = assert ((not $ isNaN t1) && (not $ isNaN t2)) $ if (t1 > tmin) then t1 else t2
+         t = if (t1 > tmin) then t1 else t2
          (t1, t2) = fromJust times
          times = solveQuadric a b c
-         hitPoint = positionAt ray $ assert (not $ isNaN t) t
+         hitPoint = positionAt ray t
          normalAt = normalize $ sub hitPoint center
 
    intersects (Ray ro rd tmin tmax) (Sphere rad sc)

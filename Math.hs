@@ -1,8 +1,6 @@
 
 module Math where
 
-import Control.Exception(assert)
-
 import Random
 
 ---
@@ -41,51 +39,35 @@ segmentRay p1 p2 = Ray p1 p1p2 epsilon (1 - epsilon) where
    p1p2 = (p2 `sub` p1)
 
 positionAt :: Ray -> Float -> Point
-positionAt (Ray o d _ _) t = assert (not $ isNaN t) $ o `add` (scalMul d t)
+positionAt (Ray o d _ _) t = o `add` (scalMul d t)
 
 -- | decides if a @t@ value is in the ray's bounds
 onRay :: Ray -> Float -> Bool
 onRay (Ray _ _ tmin tmax) t = t >= tmin && t <= tmax
 
 add :: Vector -> Vector -> Vector
-add (x, y, z) (a, b, c) =
-   assert ((not $ isNaN x) && (not $ isNaN y) && (not $ isNaN z))
-   assert ((not $ isNaN a) && (not $ isNaN b) && (not $ isNaN c))
-   (x+a, y+b, z+c)
+add (x, y, z) (a, b, c) = (x+a, y+b, z+c)
 
 sub :: Vector -> Vector -> Vector
-sub (x, y, z) (a, b, c) =
-   assert ((not $ isNaN x) && (not $ isNaN y) && (not $ isNaN z))
-   assert ((not $ isNaN a) && (not $ isNaN b) && (not $ isNaN c))
-   (x-a, y-b, z-c)
+sub (x, y, z) (a, b, c) = (x-a, y-b, z-c)
 
 neg :: Vector -> Vector
-neg (x, y, z) =
-   assert ((not $ isNaN x) && (not $ isNaN y) && (not $ isNaN z))
-   (-x, -y, -z)
+neg (x, y, z) = (-x, -y, -z)
 
 sqLen :: Vector -> Float
-sqLen (x, y, z) =
-   assert ((not $ isNaN x) && (not $ isNaN y) && (not $ isNaN z))
-   (x*x + y*y + z*z)
+sqLen (x, y, z) = (x*x + y*y + z*z)
 
 len :: Vector -> Float
 len v = sqrt (sqLen v)
 
 scalMul :: Vector -> Float -> Vector
-scalMul (x, y, z) f = 
-   assert (not $ isNaN f)
-   assert ((not $ isNaN x) && (not $ isNaN y) && (not $ isNaN z))
-   (x*f, y*f, z*f)
+scalMul (x, y, z) f = (x*f, y*f, z*f)
 
 cross :: Vector -> Vector -> Vector
 cross (ux,uy,uz) (vx,vy,vz) = (uy*vz - uz*vy, -(ux*vz - uz*vx), ux*vy - uy*vx)
 
 dot :: Vector -> Vector -> Float
-dot (x,y,z) (a,b,c) = 
-   assert ((not $ isNaN x) && (not $ isNaN y) && (not $ isNaN z))
-   assert ((not $ isNaN a) && (not $ isNaN b) && (not $ isNaN c))
-   x*a + y*b + z*c;
+dot (x,y,z) (a,b,c) =  x*a + y*b + z*c;
 
 absDot :: Vector -> Vector -> Float
 absDot v1 v2 = abs $ dot v1 v2
@@ -99,10 +81,10 @@ normalize v
 solveQuadric :: Float -> Float -> Float -> Maybe (Float, Float)
 solveQuadric a b c
    | discrim < 0.0 = Nothing
-   | otherwise = assert ((not $ isNaN t0) && (not $ isNaN t1)) Just (min t0 t1, max t0 t1)
+   | otherwise = Just (min t0 t1, max t0 t1)
    where
-         t0 = q / assert ((a /= 0) && (not $ isNaN a)) a
-         t1 = c / assert (q /= 0) q
+         t0 = q / a
+         t1 = c / q
          q
             | b < 0 = -0.5 * (b - rootDiscrim)
             | otherwise = -0.5 * (b + rootDiscrim)
@@ -110,12 +92,12 @@ solveQuadric a b c
          discrim = b * b - 4.0 * a * c
          
 uniformConePdf :: Float -> Float
-uniformConePdf cosThetaMax = 1.0 / (twoPi * (1.0 - assert (cosThetaMax < 1.0) cosThetaMax))
+uniformConePdf cosThetaMax = 1.0 / (twoPi * (1.0 - cosThetaMax))
          
 uniformSampleCone :: LocalCoordinates -> Float -> Rand Vector
 uniformSampleCone (LocalCoordinates x y z) cosThetaMax = do
-   cosTheta <- rndR (assert (cosThetaMax <= 1.0) cosThetaMax - epsilon, 1.0 - epsilon)
-   sinTheta <- return $ sqrt (1 - assert (cosTheta < 1.0) cosTheta * cosTheta)
+   cosTheta <- rndR (cosThetaMax - epsilon, 1.0 - epsilon)
+   sinTheta <- return $ sqrt (1 - cosTheta * cosTheta)
    phi <- rndR (0, twoPi)
    return (
       (scalMul x ((cos phi) * sinTheta)) `add`

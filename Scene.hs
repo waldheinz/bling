@@ -1,7 +1,6 @@
 module Scene where
 
 import Control.Monad
-import Control.Exception(assert)
 
 import Light
 import Math
@@ -28,7 +27,7 @@ evalSample :: Scene -> LightSample -> Vector -> Bsdf -> Point -> Normal -> Spect
 evalSample scene sample wo bsdf _ n
    | isBlack li || isBlack f = black
    | primIntersects scene (testRay sample) = black
-   | otherwise = sScale f $ scalMul li $ (absDot wi n) / (assert (not $ isNaN lPdf) lPdf)
+   | otherwise = sScale f $ scalMul li $ (absDot wi n) / lPdf)
    where
          lPdf = lightSamplePdf sample
          li = de sample

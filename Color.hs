@@ -2,8 +2,6 @@ module Color where
 
 import Math
 
-import Control.Exception(assert)
-
 -- | A Spectrum of colours.
 type Spectrum = Vector -- RGB for now
 
@@ -20,7 +18,7 @@ isBlack :: Spectrum -> Bool
 isBlack (r, g, b) = r < epsilon && g < epsilon && b < epsilon
 
 sScale :: Spectrum -> Spectrum -> Spectrum
-sScale (a, b, c) (d, e, f) = assert ((not $ isNaN a) && (not $ isNaN b) && (not $ isNaN c)) (a*d, b*e, c*f)
+sScale (a, b, c) (d, e, f) = (a*d, b*e, c*f)
 
 spectrumNaN :: Spectrum -> Bool
 spectrumNaN (r, g, b) = (isNaN r) || (isNaN g) || (isNaN b)

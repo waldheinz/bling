@@ -69,9 +69,9 @@ myShape = Group [
    gP (Sphere (0.6) (1.3, 0, 0)) BluePaint Nothing,
    gP blub defMat (Just blubLight),
    gP (Sphere (0.6) (-1.3, 0, 0)) red Nothing,
-   gP (Plane (0.8) (0, 0, -1)) defMat Nothing,
- --  gP (Plane (0.8) (1, 0, 0)) defMat Nothing,
---   gP (Plane (0.8) (-1, 0, 0)) defMat Nothing,
+   gP (Plane (2) (0, 0, -1)) defMat Nothing,
+   gP (Plane (5) (1, 0, 0)) defMat Nothing,
+   gP (Plane (5) (-1, 0, 0)) defMat Nothing,
    gP (Plane (0.6) (0, 1, 0)) Clay Nothing ]
 
 myLights :: [Light]
@@ -81,8 +81,11 @@ myLights = [
 --      SoftBox (0.8, 0.8, 0.8)
     ]
 
+resX = 800 :: Int
+resY = 600 :: Int
+
 myView :: View
-myView = View (-4, 2, -4) (normalize (1, 0.5, 1)) (0, 1, 0) 1 1.0
+myView = View (4, 2, -4) (-1,0,0) (0, 1, 0) 1.5 (fromIntegral resX / fromIntegral resY)
 
 myCamera :: Camera
 myCamera = pinHoleCamera myView
@@ -107,10 +110,7 @@ main = do
    writeFile "test.ppm" (makePgm resX resY (fromRand (runRand prng colours)))
    
    where
-         --scene = myScene
-         resX = 800 :: Int
-         resY = 800 :: Int
-         pixels = [ (x, y) | y <- [0..resX-1], x <- [0..resY-1]]
+         pixels = [ (x, y) | y <- [0..resY-1], x <- [0..resX-1]]
          pixelFunc = (\px -> pathTracer myScene (myCamera px))
          colours = mapM (pixelColor pixelFunc (resX, resY)) pixels
          
