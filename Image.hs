@@ -21,6 +21,22 @@ data Image = Image {
    imagePixels :: (Array Int WeightedSpectrum)
    }
 
+imageToPpm :: Image -> String
+imageToPpm (Image w h p) = "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n" ++ spixels 0
+   where
+      spixels pos
+         | pos == (w*h) = []
+         | otherwise = (ppmPixel $ p ! pos) ++ spixels (pos+1)
+
+ppmPixel :: WeightedSpectrum -> String
+ppmPixel ws = toString $ mulWeight ws
+   where
+      toString (r, g, b) = show (clamp r) ++ " " ++ show (clamp g) ++ " " ++ show (clamp b) ++ " "
+
+mulWeight :: WeightedSpectrum -> Spectrum
+mulWeight (0, _) = black
+mulWeight (w, s) = scalMul s (1.0 / w)
+
 addSample :: Image -> ImageSample -> Image
 addSample img@(Image w h pixels) (ImageSample sx sy sw ss)
    | isx > maxX || isy > maxY = img
