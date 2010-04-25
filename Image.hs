@@ -2,33 +2,24 @@
 module Image(makePgm, makeImage) where
 
 import Control.Monad.ST
-import Data.Array.ST
-import Data.Array
+import Data.Array.Diff
 
 import Color
 
 type WeightedSpectrum = (Float, Spectrum)
 
-data Image s = Image {
+data Image = Image {
    imageWidth :: Int,
    imageHeight :: Int,
-   imagePixels :: s -- (MArray s Int WeightedSpectrum)
+   imagePixels :: (Array Int WeightedSpectrum)
    }
 
--- makeImage :: Int -> Int -> ST Image
-makeImage w h = do
-   arr <- newArray (0, pxCount) v :: ST s (STArray s Int WeightedSpectrum)
-   return (Image w h arr) where
-      pxCount = w * h :: Int
-      v = (0.0, black) :: WeightedSpectrum
-         
+makeImage :: Int -> Int -> Image
+makeImage w h = Image w h pixels where
+    pixels = listArray (0, pxCount -1) (repeat v)
+    pxCount = w * h :: Int
+    v = (0.0, black) :: WeightedSpectrum
 
--- | creates an all-black image of the specified width and height
---makeImage :: Int -> Int -> Image -- | creates an all-black image of the specified width and height
---makeImage w h = Image w h pixels where
---   pxCount = w * h
---   pixels = array (0, pxCount) $ [(i, (0, black)) | i <- [0..pxCount]]
-   
 clamp :: Float -> Int
 clamp v = round ( (min 1 (max 0 v)) * 255 )
 
