@@ -5,9 +5,15 @@ import Control.Monad.ST
 import Data.Array.Diff
 
 import Color
+import Math
 
 type WeightedSpectrum = (Float, Spectrum)
-data ImageSample = ImageSample 
+data ImageSample = ImageSample {
+   samplePosX :: Float,
+   samplePosY :: Float,
+   sampleWeight :: Float,
+   sampleSpectrum :: Spectrum
+   }
 
 data Image = Image {
    imageWidth :: Int,
@@ -15,11 +21,23 @@ data Image = Image {
    imagePixels :: (Array Int WeightedSpectrum)
    }
 
-
+addSample :: Image -> ImageSample -> Image
+addSample img@(Image w h pixels) (ImageSample sx sy sw ss)
+   | isx > maxX || isy > maxY = img
+   | otherwise = (Image w h newPixels)
+   where
+      isx = floor sx
+      isy = floor sy
+      maxX = w - 1
+      maxY = h - 1
+      offset = isy * w + isx
+      newPixels = pixels // [(offset, newPixel)]
+      (oldW, oldS) = pixels ! offset
+      newPixel = (oldW + sw, add oldS ss)
 
 makeImage :: Int -> Int -> Image
 makeImage w h = Image w h pixels where
-    pixels = listArray (0, pxCount -1) (repeat v)
+    pixels = listArray (0, pxCount - 1) (repeat v)
     pxCount = w * h :: Int
     v = (0.0, black) :: WeightedSpectrum
 
@@ -33,4 +51,4 @@ makePgm width height s = "P3\n" ++ show width ++ " " ++ show height ++ "\n255\n"
     stringify ((r,g,b):xs) = show (clamp r) ++ " " ++
       show (clamp g) ++ " " ++ show (clamp b) ++ " " ++
       stringify xs
-)
+                
