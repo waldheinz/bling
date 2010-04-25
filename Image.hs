@@ -7,12 +7,15 @@ import Data.Array.Diff
 import Color
 
 type WeightedSpectrum = (Float, Spectrum)
+data ImageSample = ImageSample 
 
 data Image = Image {
    imageWidth :: Int,
    imageHeight :: Int,
    imagePixels :: (Array Int WeightedSpectrum)
    }
+
+
 
 makeImage :: Int -> Int -> Image
 makeImage w h = Image w h pixels where
@@ -30,3 +33,4 @@ makePgm width height s = "P3\n" ++ show width ++ " " ++ show height ++ "\n255\n"
     stringify ((r,g,b):xs) = show (clamp r) ++ " " ++
       show (clamp g) ++ " " ++ show (clamp b) ++ " " ++
       stringify xs
+)
