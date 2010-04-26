@@ -2,6 +2,7 @@ module Scene where
 
 import Control.Monad
 
+import Color
 import Light
 import Math
 import Primitive
@@ -17,6 +18,8 @@ instance Primitive Scene where
    primIntersect (Scene p _) = primIntersect p
    primIntersects (Scene p _) = primIntersects p
    primMaterial (Scene p _) = primMaterial p
+   
+type Integrator = Scene -> Ray -> Rand WeightedSpectrum
    
 evalLight :: Scene -> Point -> Normal -> Light -> Vector -> Bsdf -> Rand Spectrum
 evalLight scene p n light wo bsdf = do

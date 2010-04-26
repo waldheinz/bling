@@ -2,8 +2,10 @@
 
 import Control.Monad
 import System.Random
+import Debug.Trace
 
 import Camera
+import Color
 import Geometry
 import Image
 import Light
@@ -34,14 +36,14 @@ stratify res@(resX, _) pixel = do
          y <- (map fromIntegral [0::Int .. steps-1]) ]
       fpps = (fromIntegral steps) * (fromIntegral resX)
       pxAdd (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
-      steps = 10
+      steps = 2
    
 pixelColor :: ((Float, Float) -> Rand Spectrum) -> (Int, Int) -> (Int, Int) -> Rand Spectrum
 pixelColor f res pixel = do
    ndcs <- stratify res pixel
    y <- (mapM f ndcs)
    return (scalMul (foldl add black y) (1 / fromIntegral spp)) where
-      spp = 100 :: Int
+      spp = 4 :: Int
 
 blub :: Sphere
 blub = Sphere 0.6 (0,0,0)
@@ -79,10 +81,10 @@ myLights = [
     ]
 
 resX :: Int
-resX = 800
+resX = 150
 
 resY :: Int
-resY = 600
+resY = 150
 
 myView :: View
 myView = View (4, 2, -4) (-1,0,0) (0, 1, 0) 1.5 (fromIntegral resX / fromIntegral resY)
@@ -93,13 +95,29 @@ myCamera = pinHoleCamera myView
 myScene :: Scene
 myScene = Scene (MkAnyPrimitive myShape) myLights
 
-main :: IO ()
-main = do
-   prng <- newStdGen
-   writeFile "test.ppm" (makePgm resX resY (fromRand (runRand prng colours)))
+onePass :: Image -> Scene -> Camera -> Integrator -> Rand Image
+onePass img scene cam int = seq img seq pixels apply img pixels where
+   pixels = [ (fromIntegral x, fromIntegral y) | y <- [0..resY-1], x <- [0..resX-1]]
+   apply :: Image -> [(Float, Float)] -> Rand Image
+   apply i [] = return $! i
+   apply i (p@(px, py):xs) = do
+      ws <- int scene (cam p)
+      img' <- return $! addSample img $ ImageSample px py ws
+      seq img' (apply img' xs)
    
-   where
-         pixels = [ (x, y) | y <- [0..resY-1], x <- [0..resX-1]]
-         pixelFunc = (\px -> pathTracer myScene (myCamera px))
-         colours = mapM (pixelColor pixelFunc (resX, resY)) pixels
+   
+render :: Image -> Scene -> Camera -> Integrator -> IO ()
+render img sc cam int = do
+   putStrLn "Rendering..."
+   prng <- newStdGen
+   img' <- return $! fromRand $ runRand prng (onePass img sc cam int) 
+   putStrLn "Writing..."
+   writeFile "test.ppm" $ imageToPpm img'
+   seq img' render img' sc cam int
+
+main :: IO ()
+main = render (makeImage resX resY) myScene myCamera pathTracer
+--         pixels = [ (x, y) | y <- [0..resY-1], x <- [0..resX-1]]
+--         pixelFunc = (\px -> pathTracer myScene (myCamera px))
+--         colours = mapM (pixelColor pixelFunc (resX, resY)) pixels
          

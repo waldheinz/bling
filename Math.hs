@@ -164,3 +164,4 @@ localToWorld (LocalCoordinates (sx, sy, sz) (tx, ty, tz) (nx, ny, nz)) (x, y, z)
    (sx * x + tx * y + nx * z,
     sy * x + ty * y + ny * z,
     sz * x + tz * y + nz * z)
+

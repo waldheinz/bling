@@ -1,19 +1,17 @@
 
-module Image(makePgm, makeImage) where
+module Image(Image, ImageSample(..), imageWidth, imageHeight, imageToPpm, makeImage, addSample) where
 
-import Control.Monad.ST
+import Debug.Trace
 import Data.Array.Diff
 
 import Color
 import Math
 
-type WeightedSpectrum = (Float, Spectrum)
 data ImageSample = ImageSample {
-   samplePosX :: Float,
-   samplePosY :: Float,
-   sampleWeight :: Float,
-   sampleSpectrum :: Spectrum
-   }
+   samplePosX :: ! Float,
+   samplePosY :: ! Float,
+   sampleSpectrum :: ! WeightedSpectrum
+   } deriving Show
 
 data Image = Image {
    imageWidth :: Int,
@@ -38,9 +36,9 @@ mulWeight (0, _) = black
 mulWeight (w, s) = scalMul s (1.0 / w)
 
 addSample :: Image -> ImageSample -> Image
-addSample img@(Image w h pixels) (ImageSample sx sy sw ss)
+addSample img@(Image w h pixels) (ImageSample sx sy (sw, ss))
    | isx > maxX || isy > maxY = img
-   | otherwise = (Image w h newPixels)
+   | otherwise = seq newPixels (Image w h newPixels)
    where
       isx = floor sx
       isy = floor sy
@@ -48,7 +46,7 @@ addSample img@(Image w h pixels) (ImageSample sx sy sw ss)
       maxY = h - 1
       offset = isy * w + isx
       newPixels = pixels // [(offset, newPixel)]
-      (oldW, oldS) = pixels ! offset
+      (oldW, oldS) = (0.0, black) -- pixels ! offset
       newPixel = (oldW + sw, add oldS ss)
 
 makeImage :: Int -> Int -> Image

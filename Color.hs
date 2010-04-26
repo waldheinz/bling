@@ -30,3 +30,5 @@ pow (c1, c2, c3) (e1, e2, e3) = (p' c1 e1, p' c2 e2, p' c3 e3) where
       | c > 0 = c ** e
       | otherwise = 0
       
+type WeightedSpectrum = (Float, Spectrum)
+

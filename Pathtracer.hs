@@ -2,6 +2,7 @@ module Pathtracer(pathTracer) where
 
 import Control.Monad
 
+import Color
 import Geometry
 import Light
 import Math
@@ -10,21 +11,20 @@ import Random
 import Scene
 import Transport
 
--- pathTracer :: Integrator
-pathTracer :: Scene -> Ray -> Rand Spectrum
+pathTracer :: Integrator
 pathTracer s r = nextVertex 0 True r (primIntersect s r) white black where
-   nextVertex :: Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Rand Spectrum
+   nextVertex :: Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Rand WeightedSpectrum
 --   nextVertex _ _ (Ray ro rd _ _ ) _ _ _ = return rd
-   nextVertex 10 _ _ _ _ l = return $! l -- hard bound
+   nextVertex 10 _ _ _ _ l = return $! (1.0, l) -- hard bound
    
    nextVertex _ True ray Nothing throughput l = -- nothing hit, specular bounce
-      return $! (add l $ sScale throughput $ directLight ray)
+      return $! (1.0, (add l $ sScale throughput $ directLight ray))
    
    nextVertex _ False _ Nothing _ l = -- nothing hit, non-specular bounce
-      return $! l
+      return $! (1.0, l)
    
    nextVertex depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ dg _)) throughput l 
-      | isBlack throughput = return l
+      | isBlack throughput = return (1.0, l)
       | otherwise = do
          (BsdfSample _ pdf _ wi) <- sampleBsdf bsdf wo
          
