@@ -18,7 +18,7 @@ data Image = Image {
    imageHeight :: Int,
    imagePixels :: (Array Int WeightedSpectrum)
    }
-
+   
 imageToPpm :: Image -> String
 imageToPpm (Image w h p) = "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n" ++ spixels 0
    where
@@ -37,6 +37,7 @@ mulWeight (w, s) = scalMul s (1.0 / w)
 
 addSample :: Image -> ImageSample -> Image
 addSample img@(Image w h pixels) (ImageSample sx sy (sw, ss))
+   | w `seq` h `seq` pixels `seq` sx `seq` sy `seq` sw `seq` ss `seq` False = undefined
    | isx > maxX || isy > maxY = img
    | otherwise = seq newPixels (Image w h newPixels)
    where
@@ -45,9 +46,11 @@ addSample img@(Image w h pixels) (ImageSample sx sy (sw, ss))
       maxX = w - 1
       maxY = h - 1
       offset = isy * w + isx
-      newPixels = pixels // [(offset, newPixel)]
-      (oldW, oldS) = (0.0, black) -- pixels ! offset
-      newPixel = (oldW + sw, add oldS ss)
+      newPixels = newPixel `seq` (pixels // [(offset, newPixel)])
+      (oldW, oldS) = pixels ! offset
+      newSpectrum = add oldS ss
+      newWeight = oldW + sw
+      newPixel = seq newWeight seq newSpectrum (newWeight, newSpectrum)
 
 makeImage :: Int -> Int -> Image
 makeImage w h = Image w h pixels where
@@ -57,12 +60,4 @@ makeImage w h = Image w h pixels where
 
 clamp :: Float -> Int
 clamp v = round ( (min 1 (max 0 v)) * 255 )
-
-makePgm :: Int -> Int -> [ Spectrum ] -> String
-makePgm width height s = "P3\n" ++ show width ++ " " ++ show height ++ "\n255\n" ++ stringify s
-  where 
-    stringify [] = ""
-    stringify ((r,g,b):xs) = show (clamp r) ++ " " ++
-      show (clamp g) ++ " " ++ show (clamp b) ++ " " ++
-      stringify xs
-                
+    

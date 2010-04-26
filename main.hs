@@ -2,6 +2,7 @@
 
 import Control.Monad
 import System.Random
+import Text.Printf
 import Debug.Trace
 
 import Camera
@@ -37,13 +38,6 @@ stratify res@(resX, _) pixel = do
       fpps = (fromIntegral steps) * (fromIntegral resX)
       pxAdd (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
       steps = 2
-   
-pixelColor :: ((Float, Float) -> Rand Spectrum) -> (Int, Int) -> (Int, Int) -> Rand Spectrum
-pixelColor f res pixel = do
-   ndcs <- stratify res pixel
-   y <- (mapM f ndcs)
-   return (scalMul (foldl add black y) (1 / fromIntegral spp)) where
-      spp = 4 :: Int
 
 blub :: Sphere
 blub = Sphere 0.6 (0,0,0)
@@ -81,10 +75,10 @@ myLights = [
     ]
 
 resX :: Int
-resX = 150
+resX = 640
 
 resY :: Int
-resY = 150
+resY = 480
 
 myView :: View
 myView = View (4, 2, -4) (-1,0,0) (0, 1, 0) 1.5 (fromIntegral resX / fromIntegral resY)
@@ -96,28 +90,38 @@ myScene :: Scene
 myScene = Scene (MkAnyPrimitive myShape) myLights
 
 onePass :: Image -> Scene -> Camera -> Integrator -> Rand Image
-onePass img scene cam int = seq img seq pixels apply img pixels where
-   pixels = [ (fromIntegral x, fromIntegral y) | y <- [0..resY-1], x <- [0..resX-1]]
+onePass img scene cam int = apply img pixels where
+   pixels = imageSamples img
+   sx = fromIntegral $ imageWidth img
+   sy = fromIntegral $ imageHeight img
    apply :: Image -> [(Float, Float)] -> Rand Image
    apply i [] = return $! i
-   apply i (p@(px, py):xs) = do
+   apply i (p@(px, py):xs)
+      | i `seq` p `seq` xs `seq` False = undefined
+      | otherwise = do
       ws <- int scene (cam p)
-      img' <- return $! addSample img $ ImageSample px py ws
-      seq img' (apply img' xs)
+      ns <- return $! ImageSample (px * sx) (py * sy) ws
+      apply (ns `seq` i `seq` addSample i ns) xs
+
+imageSamples :: Image -> [(Float, Float)]
+imageSamples img = [ (fromIntegral x / fsx, fromIntegral y / fsy) | y <- [0..sy-1], x <- [0..sx-1]] where
+   fsx = fromIntegral sx
+   fsy = fromIntegral sy
+   sx = imageWidth img
+   sy = imageHeight img
+
    
-   
-render :: Image -> Scene -> Camera -> Integrator -> IO ()
-render img sc cam int = do
+render :: Int -> Image -> Scene -> Camera -> Integrator -> IO ()
+render pass img sc cam int = do
    putStrLn "Rendering..."
    prng <- newStdGen
    img' <- return $! fromRand $ runRand prng (onePass img sc cam int) 
-   putStrLn "Writing..."
-   writeFile "test.ppm" $ imageToPpm img'
-   seq img' render img' sc cam int
+   putStrLn $ "Writing " ++ fname ++ "..."
+   writeFile fname $ imageToPpm img'
+   seq img' render (pass + 1) img' sc cam int
+   where
+         fname = "pass-" ++ (printf "%05d" pass) ++ ".ppm"
 
 main :: IO ()
-main = render (makeImage resX resY) myScene myCamera pathTracer
---         pixels = [ (x, y) | y <- [0..resY-1], x <- [0..resX-1]]
---         pixelFunc = (\px -> pathTracer myScene (myCamera px))
---         colours = mapM (pixelColor pixelFunc (resX, resY)) pixels
+main = render 1 (makeImage resX resY) myScene myCamera pathTracer
          
