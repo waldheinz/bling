@@ -75,10 +75,10 @@ myLights = [
     ]
 
 resX :: Int
-resX = 640
+resX = 320
 
 resY :: Int
-resY = 480
+resY = 240
 
 myView :: View
 myView = View (4, 2, -4) (-1,0,0) (0, 1, 0) 1.5 (fromIntegral resX / fromIntegral resY)
@@ -100,7 +100,7 @@ onePass img scene cam int = apply img pixels where
       | i `seq` p `seq` xs `seq` False = undefined
       | otherwise = do
       ws <- int scene (cam p)
-      ns <- return $! ImageSample (px * sx) (py * sy) ws
+      ns <- return $! ImageSample (px * sx) (py * sy) (seq ws ws)
       apply (ns `seq` i `seq` addSample i ns) xs
 
 imageSamples :: Image -> [(Float, Float)]
