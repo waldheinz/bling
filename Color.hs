@@ -3,7 +3,8 @@ module Color (
    Spectrum(..), WeightedSpectrum, 
    white, black, 
    isBlack, sNaN,
-   fromXyz, sScale, sPow) where
+   fromXyz, sConst,
+   sScale, sPow) where
 
 import Math
 
@@ -23,6 +24,14 @@ white = Spectrum 1 1 1
 fromXyz :: (Float, Float, Float) -> Spectrum
 fromXyz (x, y, z) = Spectrum x y z
 
+sConst :: Float -> Spectrum
+sConst r = Spectrum r r r
+
+instance Fractional Spectrum where
+   Spectrum r1 g1 b1 / Spectrum r2 g2 b2 = Spectrum (r1/r2) (g1/g2) (b1/b2)
+   fromRational i = Spectrum i' i' i' where
+      i' = fromRational i
+   
 instance Num Spectrum where
    Spectrum r1 g1 b1 + Spectrum r2 g2 b2 = Spectrum (r1+r2) (g1+g2) (b1+b2)
    Spectrum r1 g1 b1 - Spectrum r2 g2 b2 = Spectrum (r1-r2) (g1-g2) (b1-b2)
