@@ -35,9 +35,12 @@ pathTracer s r = nextVertex 0 True r (primIntersect s r) white black where
          throughput' <- return $ sScale throughput $ scalMul (f wi) ((absDot wi n) / pdf)
             
          l' <- return $ add l (sScale throughput (add lHere intl))
-            
+         
+         
+         
          nextVertex (depth + 1) False outRay (primIntersect s outRay) throughput' l'
          where
+               pCont = if depth <= 3 then 1 else 0.5
                intl = if specBounce then intLe int wo else black
                f = evalBsdf bsdf wo
                wo = normalize $ neg rd
@@ -55,9 +58,3 @@ keepGoing 1 = return True
 keepGoing pAbort = do
    x <- rnd
    return $! (x < pAbort)
-
--- probability for aborting at the given recursion depth
-pCont :: Int -> Float
-pCont d
-   | d <= 3 = 1
-   | otherwise = 0.5

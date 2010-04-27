@@ -3,6 +3,7 @@
 import Control.Monad
 import System.Random
 import Text.Printf
+import Time
 
 import Camera
 import Geometry
@@ -51,10 +52,10 @@ myLights = [
     ]
 
 resX :: Int
-resX = 640
+resX = 320
 
 resY :: Int
-resY = 480
+resY = 240
 
 myView :: View
 myView = View (4, 2, -4) (-1,0,0) (0, 1, 0) 1.5 (fromIntegral resX / fromIntegral resY)
@@ -76,7 +77,7 @@ onePass img scene cam int = do
          sy = fromIntegral $ imageHeight img
          apply :: Image -> [(Float, Float)] -> Rand Image
          apply i [] = return $! i
-         apply i (p@(px, py):xs)
+         apply i ((px, py):xs)
              | seq i False = undefined
              | otherwise = do
             ws <- int scene (cam (px / sx, py / sy))
@@ -84,17 +85,31 @@ onePass img scene cam int = do
             apply (ns `seq` i `seq` addSample i ns) xs
 
 imageSamples :: Image -> (Float, Float) -> [(Float, Float)]
-imageSamples img (ox, oy) = [ (fromIntegral x  + ox, fromIntegral y + oy) | y <- [0..sy-1], x <- [0..sx-1]] where
---   fsx = fromIntegral sx
---   fsy = fromIntegral sy
+imageSamples img (ox, oy) = [ (fromIntegral x + ox, fromIntegral y + oy) | y <- [0..sy-1], x <- [0..sx-1]] where
    sx = imageWidth img
    sy = imageHeight img
+   
+-- | Pretty print the date in '1d 9h 9m 17s' format
+pretty :: TimeDiff -> String
+pretty td = join . filter (not . null) . map f $
+    [(years          ,"y") ,(months `mod` 12,"m")
+    ,(days   `mod` 28,"d") ,(hours  `mod` 24,"h")
+    ,(mins   `mod` 60,"m") ,(secs   `mod` 60,"s")]
+  where
+    secs    = abs $ tdSec td  ; mins   = secs   `div` 60
+    hours   = mins   `div` 60 ; days   = hours  `div` 24
+    months  = days   `div` 28 ; years  = months `div` 12
+    f (i,s) | i == 0    = []
+            | otherwise = show i ++ s
    
 render :: Int -> Image -> Scene -> Camera -> Integrator -> IO ()
 render pass img sc cam int = do
    putStrLn "Rendering..."
+   start <- getClockTime
    prng <- newStdGen
-   img' <- return $! fromRand $ runRand prng (onePass img sc cam int) 
+   img' <- return $! fromRand $ runRand prng (onePass img sc cam int)
+   stop <- getClockTime
+   putStrLn (pretty $ diffClockTimes stop start)
    putStrLn $ "Writing " ++ fname ++ "..."
    writeFile fname $ imageToPpm img'
    seq img' render (pass + 1) img' sc cam int
