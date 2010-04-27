@@ -13,6 +13,9 @@ black = (0, 0, 0)
 white :: Spectrum
 white = (1, 1, 1)
 
+-- instance Num Spectrum where
+--   Spectrum r1 g1 b1 + Spectrum r2 g2 b2 = 
+
 -- | Decides if a @Spectrum@ is black (within an epsilon value).
 isBlack :: Spectrum -> Bool
 isBlack (r, g, b) = r < epsilon && g < epsilon && b < epsilon
