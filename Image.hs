@@ -48,8 +48,9 @@ mulWeight (w, s) = scalMul s (1.0 / w)
 addSample :: Image -> ImageSample -> Image
 addSample img@(Image w h pixels) (ImageSample sx sy (sw, ss))
    | isx > maxX || isy > maxY = img
-   | otherwise = putPixel img offset newPixel
+   | otherwise = seq img' img'
    where
+      img' = seq img seq newPixel putPixel img offset newPixel
       isx = floor sx
       isy = floor sy
       maxX = w - 1

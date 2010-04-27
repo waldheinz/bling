@@ -3,41 +3,17 @@
 import Control.Monad
 import System.Random
 import Text.Printf
-import Debug.Trace
 
 import Camera
-import Color
 import Geometry
 import Image
 import Light
 import Material
-import Math
 import Pathtracer
 import Primitive
 import Random
 import Scene
-import Whitted
-   
----
---- sampling and reconstruction
----
-
--- creates the normalized device coordinates from xres and yres
-ndc :: (Int, Int) -> (Int, Int) -> (Float, Float)
-ndc (resX, resY) (px, py) = ((fromIntegral px / fromIntegral resX), (fromIntegral py / fromIntegral resY))
-
--- samples in x and y
-stratify :: (Int, Int) -> (Int, Int) -> Rand [(Float, Float)]
-stratify res@(resX, _) pixel = do
-   
-   return (map (pxAdd base) offsets) where
-      base = ndc res pixel
-      offsets = [(x / fpps , y / fpps) | 
-         x <- (map fromIntegral [0::Int .. steps-1]),
-         y <- (map fromIntegral [0::Int .. steps-1]) ]
-      fpps = (fromIntegral steps) * (fromIntegral resX)
-      pxAdd (x1, y1) (x2, y2) = (x1 + x2, y1 + y2)
-      steps = 2
+import Whitted()
 
 blub :: Sphere
 blub = Sphere 0.6 (0,0,0)
@@ -75,10 +51,10 @@ myLights = [
     ]
 
 resX :: Int
-resX = 100
+resX = 640
 
 resY :: Int
-resY = 100
+resY = 480
 
 myView :: View
 myView = View (4, 2, -4) (-1,0,0) (0, 1, 0) 1.5 (fromIntegral resX / fromIntegral resY)
@@ -90,26 +66,29 @@ myScene :: Scene
 myScene = Scene (MkAnyPrimitive myShape) myLights
 
 onePass :: Image -> Scene -> Camera -> Integrator -> Rand Image
-onePass img scene cam int = apply img pixels where
-   pixels = imageSamples img
-   sx = fromIntegral $ imageWidth img
-   sy = fromIntegral $ imageHeight img
-   apply :: Image -> [(Float, Float)] -> Rand Image
-   apply i [] = return $! i
-   apply i (p@(px, py):xs)
-      | i `seq` p `seq` xs `seq` False = undefined
-      | otherwise = do
-      ws <- int scene (cam p)
-      ns <- return $! ImageSample (px * sx) (py * sy) (seq ws ws)
-      apply (ns `seq` i `seq` addSample i ns) xs
+onePass img scene cam int = do
+   ox <- rnd
+   oy <- rnd
+   apply img $ pixels (ox, oy)
+      where
+         pixels = imageSamples img
+         sx = fromIntegral $ imageWidth img
+         sy = fromIntegral $ imageHeight img
+         apply :: Image -> [(Float, Float)] -> Rand Image
+         apply i [] = return $! i
+         apply i (p@(px, py):xs)
+             | seq i False = undefined
+             | otherwise = do
+            ws <- int scene (cam (px / sx, py / sy))
+            ns <- return $! (ImageSample px py $ seq ws ws)
+            apply (ns `seq` i `seq` addSample i ns) xs
 
-imageSamples :: Image -> [(Float, Float)]
-imageSamples img = [ (fromIntegral x / fsx, fromIntegral y / fsy) | y <- [0..sy-1], x <- [0..sx-1]] where
-   fsx = fromIntegral sx
-   fsy = fromIntegral sy
+imageSamples :: Image -> (Float, Float) -> [(Float, Float)]
+imageSamples img (ox, oy) = [ (fromIntegral x  + ox, fromIntegral y + oy) | y <- [0..sy-1], x <- [0..sx-1]] where
+--   fsx = fromIntegral sx
+--   fsy = fromIntegral sy
    sx = imageWidth img
    sy = imageHeight img
-
    
 render :: Int -> Image -> Scene -> Camera -> Integrator -> IO ()
 render pass img sc cam int = do
