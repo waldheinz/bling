@@ -1,9 +1,7 @@
 
 module Image(Image, ImageSample(..), imageWidth, imageHeight, imageToPpm, makeImage, addSample) where
 
-import Debug.Trace
 import Data.Array.Diff
-import Data.Array.IO
 
 import Color
 import Math
@@ -17,7 +15,7 @@ data ImageSample = ImageSample {
 data Image = Image {
    imageWidth :: Int,
    imageHeight :: Int,
-   imagePixels :: (DiffUArray Int Float)
+   _imagePixels :: (DiffUArray Int Float)
    }
    
 getPixel :: Image -> Int -> WeightedSpectrum
@@ -30,7 +28,7 @@ putPixel (Image w h p) o (sw, (sr, sg, sb)) = seq p' Image w h p' where
    o' = o * 4
    
 imageToPpm :: Image -> String
-imageToPpm i@(Image w h p) = "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n" ++ spixels 0
+imageToPpm i@(Image w h _) = "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n" ++ spixels 0
    where
       spixels pos
          | pos == (w*h) = []
@@ -46,7 +44,7 @@ mulWeight (0, _) = black
 mulWeight (w, s) = scalMul s (1.0 / w)
 
 addSample :: Image -> ImageSample -> Image
-addSample img@(Image w h pixels) (ImageSample sx sy (sw, ss))
+addSample img@(Image w h _) (ImageSample sx sy (sw, ss))
    | isx > maxX || isy > maxY = img
    | otherwise = seq img' img'
    where
