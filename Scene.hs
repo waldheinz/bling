@@ -30,7 +30,7 @@ evalSample :: Scene -> LightSample -> Vector -> Bsdf -> Point -> Normal -> Spect
 evalSample scene sample wo bsdf _ n
    | isBlack li || isBlack f = black
    | primIntersects scene (testRay sample) = black
-   | otherwise = sScale f $ scalMul li $ (absDot wi n) / lPdf
+   | otherwise = sScale (f * li) $ (absDot wi n) / lPdf
    where
          lPdf = lightSamplePdf sample
          li = de sample
@@ -39,7 +39,7 @@ evalSample scene sample wo bsdf _ n
    
 -- | samples all lights by sampling individual lights and summing up the results
 sampleAllLights :: Scene -> Point -> Normal -> Vector -> Bsdf -> Rand Spectrum
-sampleAllLights scene p n wo bsdf = (foldl (liftM2 add) (return black) spectri) -- sum up contributions
+sampleAllLights scene p n wo bsdf = (foldl (liftM2 (+)) (return black) spectri) -- sum up contributions
   where
     spectri = map (\l -> evalLight scene p n l wo bsdf) lights
     lights = sceneLights scene
@@ -55,4 +55,4 @@ sampleOneLight scene@(Scene _ lights) p n wo bsdf = do
   return $! scale y
   where
     lightCount = length lights
-    scale = (\y -> scalMul y (fromIntegral lightCount))
+    scale = (\y -> sScale y (fromIntegral lightCount))

@@ -4,7 +4,6 @@ module Image(Image, ImageSample(..), imageWidth, imageHeight, imageToPpm, makeIm
 import Data.Array.Diff
 
 import Color
-import Math
 
 data ImageSample = ImageSample {
    samplePosX :: ! Float,
@@ -19,11 +18,12 @@ data Image = Image {
    }
    
 getPixel :: Image -> Int -> WeightedSpectrum
-getPixel (Image _ _ p) o = (p ! o', (p ! (o' + 1), p ! (o' + 2), p ! (o' + 3))) where
+getPixel (Image _ _ p) o = (p ! o', s) where
+   s = Spectrum (p ! (o' + 1)) (p ! (o' + 2)) (p ! (o' + 3))
    o' = o * 4
    
 putPixel :: Image -> Int -> WeightedSpectrum -> Image
-putPixel (Image w h p) o (sw, (sr, sg, sb)) = seq p' Image w h p' where
+putPixel (Image w h p) o (sw, (Spectrum sr sg sb)) = seq p' Image w h p' where
    p' = p // [ (o', sw), (o' + 1, sr), (o' + 2, sg), (o' + 3, sb) ]
    o' = o * 4
    
@@ -37,11 +37,11 @@ imageToPpm i@(Image w h _) = "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n" ++ s
 ppmPixel :: WeightedSpectrum -> String
 ppmPixel ws = toString $ mulWeight ws
    where
-      toString (r, g, b) = show (clamp r) ++ " " ++ show (clamp g) ++ " " ++ show (clamp b) ++ " "
+      toString (Spectrum r g b) = show (clamp r) ++ " " ++ show (clamp g) ++ " " ++ show (clamp b) ++ " "
 
 mulWeight :: WeightedSpectrum -> Spectrum
 mulWeight (0, _) = black
-mulWeight (w, s) = scalMul s (1.0 / w)
+mulWeight (w, s) = sScale s (1.0 / w)
 
 addSample :: Image -> ImageSample -> Image
 addSample img@(Image w h _) (ImageSample sx sy (sw, ss))
@@ -55,7 +55,7 @@ addSample img@(Image w h _) (ImageSample sx sy (sw, ss))
       maxY = h - 1
       offset = isy * w + isx
       (oldW, oldS) = getPixel img offset
-      newPixel = (oldW + sw, add oldS ss)
+      newPixel = (oldW + sw, oldS + ss)
 
 makeImage :: Int -> Int -> Image
 makeImage w h = Image w h pixels where

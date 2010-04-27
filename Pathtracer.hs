@@ -1,7 +1,6 @@
 module Pathtracer(pathTracer) where
 
 import Control.Monad
-import Debug.Trace
 
 import Color
 import Geometry
@@ -19,7 +18,7 @@ pathTracer s r = nextVertex 0 True r (primIntersect s r) white black where
    nextVertex 10 _ _ _ _ l = return $! (1.0, seq l l) -- hard bound
    
    nextVertex _ True ray Nothing throughput l = -- nothing hit, specular bounce
-      return $! (1.0, (add l $ sScale throughput $ directLight ray))
+      return $! (1.0, (l + throughput * directLight ray))
    
    nextVertex _ False _ Nothing _ l = -- nothing hit, non-specular bounce
       return $! (1.0, seq l l)
@@ -32,9 +31,9 @@ pathTracer s r = nextVertex 0 True r (primIntersect s r) white black where
          lHere <- sampleOneLight s p n wo bsdf
          
          outRay <- return (Ray p wi epsilon infinity)
-         throughput' <- return $ sScale throughput $ scalMul (f wi) ((absDot wi n) / pdf)
+         throughput' <- return $! throughput * sScale (f wi) ((absDot wi n) / pdf)
             
-         l' <- return $ add l (sScale throughput (add lHere intl))
+         l' <- return $! l + (throughput * (lHere + intl))
          
          x <- rnd
          if (x > pCont)
@@ -51,12 +50,5 @@ pathTracer s r = nextVertex 0 True r (primIntersect s r) white black where
                p = dgP dg
          
    directLight :: Ray -> Spectrum
-   directLight ray = foldl add black (map (\l -> lightEmittance l ray) (sceneLights s))
+   directLight ray = foldl (+) black (map (\l -> lightEmittance l ray) (sceneLights s))
 
--- rolls a dice to decide if we should continue this path,
--- returning true with the specified probability
-keepGoing :: Float -> Rand Bool
-keepGoing 1 = return True
-keepGoing pAbort = do
-   x <- rnd
-   return $! (x < pAbort)

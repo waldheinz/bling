@@ -6,6 +6,7 @@ import Text.Printf
 import Time
 
 import Camera
+import Color
 import Geometry
 import Image
 import Light
@@ -20,19 +21,13 @@ blub :: Sphere
 blub = Sphere 0.6 (0,0,0)
 
 blubLight :: Light
-blubLight = AreaLight (1.0,1.0,1.0) (MkAnyBound blub)
+blubLight = AreaLight (fromXyz (1.0,1.0,1.0)) (MkAnyBound blub)
 
 defMat :: Matte
-defMat = Matte (0.8, 0.8, 0.8)
+defMat = Matte (fromXyz (0.8, 0.8, 0.8))
 
 red :: Matte
-red = Matte (0.8, 0.3, 0.3)
-
-green :: Matte
-green = Matte (0.3, 0.8, 0.3)
-
-blue :: Matte
-blue = Matte (0.3, 0.3, 0.8)
+red = Matte (fromXyz (0.8, 0.3, 0.3))
 
 myShape :: Group
 myShape = Group [

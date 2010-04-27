@@ -18,7 +18,7 @@ data LightSample = LightSample {
 
 data Light =
    SoftBox Spectrum | -- ^ An infinite area lightsurrounding the whole scene, emitting a constant amount of light from all directions.
-   Directional Normal Spectrum |
+   Directional Spectrum Normal |
    AreaLight Spectrum AnyBound
    
 lightLe :: Light -> Point -> Normal -> Normal -> Spectrum
@@ -46,7 +46,7 @@ sampleAreaLight :: (Bound a) => a -> Spectrum -> Point -> Normal -> Rand LightSa
 sampleAreaLight shape lemit p n = do
    (ps, ns) <- boundSample shape p
    wi <- return $ normalize $ ps `sub` p
-   return $! LightSample (scalMul lemit (absDot ns n)) wi (segmentRay p ps) (boundPdf shape p)
+   return $! LightSample (sScale lemit (absDot ns n)) wi (segmentRay p ps) (boundPdf shape p)
 
 lightSampleSB :: Spectrum -> Point -> Normal -> Rand LightSample
 lightSampleSB r pos n = do
@@ -64,7 +64,7 @@ lightSampleSB r pos n = do
 
 lightSampleD :: Spectrum -> Normal -> Point -> Normal -> Rand LightSample
 lightSampleD r d pos n = return (LightSample y d ray 1.0) where
-   y = scalMul r (absDot n d)
+   y = sScale r (absDot n d)
    ray = (Ray pos d epsilon infinity)
 
     

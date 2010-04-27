@@ -19,7 +19,7 @@ instance Bxdf Lafortune where
    bxdfAppearance _ = Glossy
    
    bxdfEval (Lafortune diffuse lobes) (wox, woy, woz) (wix, wiy, wiz) =
-      foldl add (scalMul diffuse invPi) $ map evalLobe lobes where
-         evalLobe (Lobe lX lY lZ lE) = pow v lE where
-            v = (scalMul lX (wox * wix)) `add` (scalMul lY (woy * wiy)) `add` (scalMul lZ (woz * wiz)) 
+      foldl (+) (sScale diffuse invPi) $ map evalLobe lobes where
+         evalLobe (Lobe lX lY lZ lE) = sPow v lE where
+            v = (sScale lX (wox * wix)) + (sScale lY (woy * wiy)) + (sScale lZ (woz * wiz)) 
       

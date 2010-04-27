@@ -26,5 +26,5 @@ whitted scene ray@(Ray _ rd _ _)
       evalInt :: Intersection -> Rand Spectrum
       evalInt int@(Intersection _ (DifferentialGeometry p n) _) = do
          l <- sampleAllLights scene p n wo (intBsdf int)
-         return $! add l $ intLe int wo
+         return $! l + intLe int wo
       

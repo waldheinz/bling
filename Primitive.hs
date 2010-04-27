@@ -36,7 +36,7 @@ class Primitive a where
    primMaterial :: a -> AnyMaterial
    primLight :: a -> Maybe Light
    
-   primMaterial _ = (MkAnyMaterial (Matte (1.0, 1.0, 0)))
+   primMaterial _ = undefined
    primLight _ = Nothing
    
 gP :: (Intersectable i, Material m) => i -> m -> Maybe Light -> AnyPrimitive
