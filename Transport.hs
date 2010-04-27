@@ -30,7 +30,7 @@ class Bxdf a where
    
    bxdfSample a wo = do
       wi <- cosineSampleHemisphere
-      return (BxdfSample wi (bxdfPdf a wo wi))
+      return (BxdfSample (bxdfEval a wo wi) wi (bxdfPdf a wo wi))
    
    bxdfPdf _ (_, _, woz)(_, _, wiz)
       | woz * wiz > 0 = invPi * abs wiz
@@ -46,6 +46,7 @@ instance Bxdf AnyBxdf where
    bxdfAppearance (MkAnyBxdf a) = bxdfAppearance a
    
 data BxdfSample = BxdfSample {
+   bxdfSampleF :: Spectrum,
    bxdfSampleWi :: Normal,
    bxdfSamplePdf :: Float
    }
@@ -61,8 +62,8 @@ data Bsdf = Bsdf AnyBxdf LocalCoordinates
 
 sampleBsdf :: Bsdf -> Vector -> Rand BsdfSample
 sampleBsdf (Bsdf bxdf sc) woW = do
-   (BxdfSample wi pdf) <- bxdfSample bxdf wo
-   return (BsdfSample bt pdf (bxdfEval bxdf wo wi) (localToWorld sc wi))
+   (BxdfSample f wi pdf) <- bxdfSample bxdf wo
+   return (BsdfSample bt pdf f (localToWorld sc wi))
       where
          bt = bxdfType bxdf
          wo = worldToLocal sc woW
