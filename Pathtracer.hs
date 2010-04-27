@@ -36,9 +36,11 @@ pathTracer s r = nextVertex 0 True r (primIntersect s r) white black where
             
          l' <- return $ add l (sScale throughput (add lHere intl))
          
-         
-         
-         nextVertex (depth + 1) False outRay (primIntersect s outRay) throughput' l'
+         x <- rnd
+         if (x > pCont)
+            then return $! (1.0, l)
+            else nextVertex (depth + 1) False outRay (primIntersect s outRay) throughput' l'
+            
          where
                pCont = if depth <= 3 then 1 else 0.5
                intl = if specBounce then intLe int wo else black
