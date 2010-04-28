@@ -15,6 +15,7 @@ import Pathtracer
 import Primitive
 import Random
 import Scene
+import Specular
 import Whitted()
 
 blub :: Sphere
@@ -31,13 +32,13 @@ red = Matte (fromXyz (0.8, 0.3, 0.3))
 
 myShape :: Group
 myShape = Group [
-   gP (Sphere (0.6) (1.3, 0, 0)) red Nothing,
+   gP (Sphere (0.6) (1.3, 0, 0)) (Glass 1.5) Nothing,
    gP blub defMat (Just blubLight),
-   gP (Sphere (0.6) (-1.3, 0, 0)) BluePaint Nothing,
-   gP (Plane (2) (0, 0, -1)) defMat Nothing,
-   gP (Plane (5) (1, 0, 0)) defMat Nothing,
-   gP (Plane (5) (-1, 0, 0)) defMat Nothing,
-   gP (Plane (0.6) (0, 1, 0)) Clay Nothing ]
+ --  gP (Sphere (0.6) (-1.3, 0, 0)) BluePaint Nothing,
+ --  gP (Plane (2) (0, 0, -1)) defMat Nothing,
+ --  gP (Plane (5) (1, 0, 0)) defMat Nothing,
+ --  gP (Plane (5) (-1, 0, 0)) defMat Nothing,
+   gP (Plane (0.6) (0, 1, 0)) defMat Nothing ]
 
 myLights :: [Light]
 myLights = [
@@ -47,13 +48,13 @@ myLights = [
     ]
 
 resX :: Int
-resX = 640
+resX = 400
 
 resY :: Int
-resY = 480
+resY = 400
 
 myView :: View
-myView = View (4, 2, -4) (-1,0,0) (0, 1, 0) 1.5 (fromIntegral resX / fromIntegral resY)
+myView = View (4, 2, -4) (1,0,0) (0, 1, 0) 1.5 (fromIntegral resX / fromIntegral resY)
 
 myCamera :: Camera
 myCamera = pinHoleCamera myView

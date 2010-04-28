@@ -52,7 +52,8 @@ data BxdfSample = BxdfSample {
    }
    
 data BsdfSample = BsdfSample {
-   bsdfsampleType :: BxdfType,
+   bsdfSampleType :: BxdfType,
+   bsdfSampleAppearance :: BxdfAppearance,
    bsdfSamplePdf :: Float,
    bsdfSampleTransport :: Spectrum,
    bsdfSampleWi :: Vector
@@ -63,8 +64,9 @@ data Bsdf = Bsdf AnyBxdf LocalCoordinates
 sampleBsdf :: Bsdf -> Vector -> Rand BsdfSample
 sampleBsdf (Bsdf bxdf sc) woW = do
    (BxdfSample f wi pdf) <- bxdfSample bxdf wo
-   return (BsdfSample bt pdf f (localToWorld sc wi))
+   return (BsdfSample bt ba pdf f (localToWorld sc wi))
       where
+         ba = bxdfAppearance bxdf
          bt = bxdfType bxdf
          wo = worldToLocal sc woW
          

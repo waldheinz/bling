@@ -2,7 +2,19 @@
 module Specular where
 
 import Color
+import Geometry
+import Material
+import Math
 import Transport
+
+data Glass = Glass Float
+
+instance Material Glass where
+   materialBsdf (Glass ior) dg = Bsdf bxdf cs
+      where
+         bxdf = MkAnyBxdf $ SpecularReflection white fresnel
+         fresnel = frDiel 1 ior
+         cs = coordinateSystem $ dgN dg
 
 data SpecularReflection = SpecularReflection {
    specReflR :: Spectrum,

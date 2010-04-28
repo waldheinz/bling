@@ -10,7 +10,7 @@ import Transport
 
 class Material a where
    materialBsdf :: a -> DifferentialGeometry -> Bsdf
-
+   
 data AnyMaterial = forall a. Material a => MkAnyMaterial a
 
 instance Material AnyMaterial where
@@ -19,9 +19,9 @@ instance Material AnyMaterial where
 data Matte = Matte Spectrum
 
 instance Material Matte where
-   materialBsdf (Matte r) int = (Bsdf bxdf sc) where
+   materialBsdf (Matte r) dg = (Bsdf bxdf sc) where
       bxdf = MkAnyBxdf $ Lambertian $ r
-      sc = coordinates int
+      sc = coordinates dg
    
 data Lambertian = Lambertian Spectrum
    
