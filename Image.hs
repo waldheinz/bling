@@ -35,8 +35,12 @@ imageToPpm i@(Image w h _) = "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n" ++ s
          | pos == (w*h) = []
          | otherwise = (ppmPixel $ getPixel i pos) ++ spixels (pos + 1)
 
+gamma :: Float -> (Float, Float, Float) -> (Float, Float, Float)
+gamma x (r, g, b) = (r ** x', g ** x', b ** x') where
+   x' = 1 / x
+
 ppmPixel :: WeightedSpectrum -> String
-ppmPixel ws = (toString . toRgb . mulWeight) ws
+ppmPixel ws = (toString . (gamma 2.2) .toRgb . mulWeight) ws
    where
       toString (r, g, b) = show (clamp r) ++ " " ++ show (clamp g) ++ " " ++ show (clamp b) ++ " "
 

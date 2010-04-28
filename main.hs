@@ -23,11 +23,11 @@ blub :: Sphere
 blub = Sphere 0.7 (-1,1,-1)
 
 blubLight :: Light
-blubLight = AreaLight (fromXyz (2.0,2.0,2.0)) (MkAnyBound blub)
+blubLight = AreaLight (fromXyz (1.0,1.0,1.0)) (MkAnyBound blub)
 
 defMat :: Matte
 defMat = Matte $ MkAnyTexture $ 
-   GraphPaper 0.08 (fromXyz (0.8, 0.8, 0.8)) (fromXyz (0.2, 0.2, 0.2))
+   GraphPaper 0.08 (fromXyz (0.8, 0.8, 0.8)) (fromXyz (0.05, 0.05, 0.05))
 
 myShape :: Group
 myShape = Group [
