@@ -11,6 +11,8 @@ import Math
 -- | A Spectrum of colours.
 data Spectrum = Spectrum Float Float Float deriving (Show, Eq)
 
+type WeightedSpectrum = (Float, Spectrum)
+
 -- | A "black" @Spectrum@ (no transmittance or emission) at all wavelengths
 black :: Spectrum
 black = Spectrum 0 0 0
@@ -18,8 +20,6 @@ black = Spectrum 0 0 0
 -- | A "white" @Spectrum@ (full transmission at any wavelength).
 white :: Spectrum
 white = Spectrum 1 1 1
-
--- (*) :: Spectrum -> Spectrum -> Spectrum
 
 fromXyz :: (Float, Float, Float) -> Spectrum
 fromXyz (x, y, z) = Spectrum x y z
@@ -65,5 +65,3 @@ sPow (Spectrum c1 c2 c3) (Spectrum e1 e2 e3) = Spectrum (p' c1 e1) (p' c2 e2) (p
       | c > 0 = c ** e
       | otherwise = 0
       
-type WeightedSpectrum = (Float, Spectrum)
-

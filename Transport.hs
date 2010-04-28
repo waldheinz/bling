@@ -59,9 +59,10 @@ data BsdfSample = BsdfSample {
    bsdfSampleWi :: Vector
    }
 
-data Bsdf = Bsdf AnyBxdf LocalCoordinates
+data Bsdf = Bsdf AnyBxdf LocalCoordinates | BlackbodyBsdf
 
 sampleBsdf :: Bsdf -> Vector -> Rand BsdfSample
+sampleBsdf BlackbodyBsdf woW = return $! BsdfSample Reflection Diffuse infinity black woW
 sampleBsdf (Bsdf bxdf sc) woW = do
    (BxdfSample f wi pdf) <- bxdfSample bxdf wo
    return (BsdfSample bt ba pdf f (localToWorld sc wi))
@@ -71,6 +72,7 @@ sampleBsdf (Bsdf bxdf sc) woW = do
          wo = worldToLocal sc woW
          
 evalBsdf :: Bsdf -> Vector -> Vector -> Spectrum
+evalBsdf BlackbodyBsdf _ _ = black
 evalBsdf (Bsdf bxdf sc@(LocalCoordinates _ _ n)) woW wiW
    | isReflection bxdf && ((dot woW n) * (dot wiW n) > 0) = bxdfEval bxdf wo wi 
    | otherwise = black

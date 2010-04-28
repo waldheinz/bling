@@ -34,3 +34,6 @@ rndR (lo, hi) = do
    t <- rnd
    return ((1.0 - t) * lo + t * hi)
 -- rndR range = Rand (randomR range)
+
+--instance Show (Rand a) where
+--   show (Rand a) = fromRand $ (runRand (mkStdGen 0) a)

@@ -1,6 +1,6 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
-module Material(Material(..), Measured(..), AnyMaterial(..), Matte(..)) where
+module Material(Material(..), Measured(..), AnyMaterial(..), Matte(..), Blackbody(..)) where
 
 import Color
 import Geometry
@@ -26,7 +26,12 @@ instance Material Matte where
       sc = coordinates dg
    
 data Lambertian = Lambertian Spectrum
-   
+
+data Blackbody = Blackbody
+
+instance Material Blackbody where
+   materialBsdf _ _ = BlackbodyBsdf
+
 instance Bxdf Lambertian where
    bxdfEval (Lambertian r) _ _ = sScale r invPi
    bxdfType _ = Reflection

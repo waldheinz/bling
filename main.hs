@@ -20,7 +20,7 @@ import Texture
 import Whitted()
 
 blub :: Sphere
-blub = Sphere 0.7 (-1,1,-1)
+blub = Sphere 1.1 (-1.3,0,0)
 
 blubLight :: Light
 blubLight = AreaLight (fromXyz (1.0,1.0,1.0)) (MkAnyBound blub)
@@ -31,13 +31,13 @@ defMat = Matte $ MkAnyTexture $
 
 myShape :: Group
 myShape = Group [
-   gP (Sphere (1.1) (1.0, 0.3, 0)) (Mirror $ fromXyz (0.9, 0.6, 0.6)) Nothing,
-   gP blub defMat (Just blubLight),
+   gP (Sphere (1.1) (1.3, 0.0, 0)) (Mirror $ fromXyz (0.9, 0.3, 0.3)) Nothing,
+   gP blub Blackbody (Just blubLight),
  --  gP (Sphere (0.6) (-1.3, 0, 0)) BluePaint Nothing,
- --  gP (Plane (2) (0, 0, -1)) defMat Nothing,
+   gP (Plane (3) (0, 0, -1)) BluePaint Nothing,
  --  gP (Plane (5) (1, 0, 0)) defMat Nothing,
  --  gP (Plane (5) (-1, 0, 0)) defMat Nothing,
-   gP (Plane (0.9) (0, 1, 0)) defMat Nothing ]
+   gP (Plane (1.1) (0, 1, 0)) defMat Nothing ]
 
 myLights :: [Light]
 myLights = [
@@ -47,13 +47,13 @@ myLights = [
     ]
 
 resX :: Int
-resX = 800
+resX = 640
 
 resY :: Int
-resY = 400
+resY = 360
 
 myView :: View
-myView = View (0, 2, -8) (0,0,0) (0, 1, 0) 1.8 (fromIntegral resX / fromIntegral resY)
+myView = View (6, 3, -4) (0,-0.5,0) (0, 1, 0) 1.8 (fromIntegral resX / fromIntegral resY)
 
 myCamera :: Camera
 myCamera = pinHoleCamera myView
@@ -63,11 +63,11 @@ myScene = Scene (MkAnyPrimitive myShape) myLights
 
 onePass :: Image -> Scene -> Camera -> Integrator -> Rand Image
 onePass img scene cam int = do
-   ox <- rnd
-   oy <- rnd
-   apply img $ pixels (ox, oy)
+   ox <- rndR (0, 1 / fromIntegral ns)
+   oy <- rndR (0, 1 / fromIntegral ns)
+   apply img $ map (shift (ox, oy)) $ stratify ns $ imageSamples img
       where
-         pixels = imageSamples img
+         ns = 2
          sx = fromIntegral $ imageWidth img
          sy = fromIntegral $ imageHeight img
          apply :: Image -> [(Float, Float)] -> Rand Image
@@ -76,11 +76,21 @@ onePass img scene cam int = do
              | seq i False = undefined
              | otherwise = do
             ws <- int scene (cam (px / sx, py / sy))
-            ns <- return $! (ImageSample px py $ seq ws ws)
-            apply (ns `seq` i `seq` addSample i ns) xs
-
-imageSamples :: Image -> (Float, Float) -> [(Float, Float)]
-imageSamples img (ox, oy) = [ (fromIntegral x + ox, fromIntegral y + oy) | y <- [0..sy-1], x <- [0..sx-1]] where
+            nxs <- seq ws return $! (ImageSample px py ws)
+            apply (nxs `seq` i `seq` addSample i nxs) xs
+      
+stratify :: Int -> [(Float, Float)] -> [(Float, Float)]
+stratify _ [] = []
+stratify 1 xs = xs
+stratify n (p:xs) = stratify' p ++ (stratify n xs) where
+   stratify' (px, py) = map (shift (px, py)) [(fromIntegral x / fn, fromIntegral y / fn) | y <- [0..n-1], x <- [0..n-1]]
+   fn = fromIntegral n
+         
+shift :: (Float, Float) -> (Float, Float) -> (Float, Float)
+shift (ox, oy) (x, y) = (x + ox, y + oy)
+   
+imageSamples :: Image -> [(Float, Float)]
+imageSamples img = [ (fromIntegral x, fromIntegral y) | y <- [0..sy-1], x <- [0..sx-1]] where
    sx = imageWidth img
    sy = imageHeight img
    
