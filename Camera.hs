@@ -2,6 +2,7 @@
 module Camera(Camera, View(..), pinHoleCamera) where
 
 import Math
+import Debug.Trace
 
 -- | a camera transforms a pixel in normalized device coordinates to a ray
 type Camera = (Float, Float) -> Ray
@@ -17,12 +18,13 @@ data View = View {
    
 -- | computes a point on the image plane
 viewPoint :: View -> (Float, Float) -> Point
-viewPoint (View pos la up dist aspect) (u, v) = center `add` (scalMul right u') `add` (scalMul up' v') where
+viewPoint (View pos la up dist aspect) (u, v) = vp where
+   vp = center `add` (scalMul right u') `add` (scalMul up' v')
    center = pos `add` (scalMul dir dist)
    right =  normalize $ up `cross` dir
    up' = cross right dir
    dir = normalize $ sub la pos
-   u' = u * aspect - 0.5
+   u' = (u - 0.5) * aspect
    v' = v - 0.5
 
 -- | a simple "pinhole" camera

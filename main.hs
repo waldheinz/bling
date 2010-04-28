@@ -75,7 +75,7 @@ onePass img scene cam int = do
          apply i ((px, py):xs)
              | seq i False = undefined
              | otherwise = do
-            ws <- int scene (cam (px / sx - 0.5, py / sy - 0.5))
+            ws <- int scene (cam (px / sx, py / sy))
             ns <- return $! (ImageSample px py $ seq ws ws)
             apply (ns `seq` i `seq` addSample i ns) xs
 
