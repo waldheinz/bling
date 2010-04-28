@@ -20,18 +20,18 @@ import Texture
 import Whitted()
 
 blub :: Sphere
-blub = Sphere 0.8 (-1,0,0)
+blub = Sphere 0.7 (-1,0,-1)
 
 blubLight :: Light
 blubLight = AreaLight (fromXyz (2.0,2.0,2.0)) (MkAnyBound blub)
 
 defMat :: Matte
 defMat = Matte $ MkAnyTexture $ 
-   GraphPaper (fromXyz (0.8, 0.8, 0.8)) (fromXyz (0.2, 0.2, 0.2))
+   GraphPaper 0.08 (fromXyz (0.8, 0.8, 0.8)) (fromXyz (0.2, 0.2, 0.2))
 
 myShape :: Group
 myShape = Group [
-   gP (Sphere (0.8) (1, 0, 0)) (Mirror $ Spectrum 0.9 0.6 0.6) Nothing,
+   gP (Sphere (1.1) (1.0, 0.3, 0)) (Mirror $ Spectrum 0.9 0.6 0.6) Nothing,
    gP blub defMat (Just blubLight),
  --  gP (Sphere (0.6) (-1.3, 0, 0)) BluePaint Nothing,
  --  gP (Plane (2) (0, 0, -1)) defMat Nothing,
@@ -47,7 +47,7 @@ myLights = [
     ]
 
 resX :: Int
-resX = 400
+resX = 800
 
 resY :: Int
 resY = 400
