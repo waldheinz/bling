@@ -1,3 +1,4 @@
+
 module Pathtracer(pathTracer) where
 
 import Control.Monad
@@ -12,46 +13,43 @@ import Scene
 import Transport
 
 pathTracer :: Integrator
-pathTracer s r = nextVertex 0 True r (primIntersect s r) white black where
-   nextVertex :: Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Rand WeightedSpectrum
---   nextVertex _ _ (Ray ro rd _ _ ) _ _ _ = return rd
-   nextVertex 10 _ _ _ _ l = return $! (1.0, seq l l) -- hard bound
-   
-   nextVertex _ True ray Nothing throughput l = -- nothing hit, specular bounce
-      return $! (1.0, (l + throughput * directLight ray))
-   
-   nextVertex _ False _ Nothing _ l = -- nothing hit, non-specular bounce
-      return $! (1.0, seq l l)
-   
-   nextVertex depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ dg _)) throughput l 
-      | isBlack throughput = return (1.0, l)
-      | otherwise = do
-         (BsdfSample _ smpApp pdf f wi) <- sampleBsdf bsdf wo
-         
-         lHere <- sampleOneLight s p n wo bsdf
-         
-         outRay <- return (Ray p wi epsilon infinity)
-         throughput' <- return $! throughput * sScale (f wi) ((absDot wi n) / pdf)
-            
-         l' <- return $! l + (throughput * (lHere + intl))
-         spec' <- return $! case smpApp of
-            Specular -> True
-            _ -> False
-         
-         x <- rnd
-         if (x > pCont)
-            then return $! (1.0, l)
-            else nextVertex (depth + 1) spec' outRay (primIntersect s outRay) throughput' l'
-            
-         where
-               pCont = if depth <= 3 then 1 else 0.5
-               intl = if specBounce then intLe int wo else black
-          --     f = evalBsdf bsdf wo
-               wo = normalize $ neg rd
-               bsdf = intBsdf int
-               n = dgN dg
-               p = dgP dg
-         
-   directLight :: Ray -> Spectrum
-   directLight ray = foldl (+) black (map (\l -> lightEmittance l ray) (sceneLights s))
+pathTracer s r = nextVertex s 0 True r (primIntersect s r) white black
 
+directLight :: Scene -> Ray -> Spectrum
+directLight s ray = foldl (+) black (map (\l -> lightEmittance l ray) (sceneLights s))
+
+nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Rand WeightedSpectrum
+nextVertex _ 10 _ _ _ _ l = return $! (1.0, seq l l) -- hard bound
+   
+nextVertex s _ True ray Nothing throughput l = -- nothing hit, specular bounce
+   return $! (1.0, (l + throughput * directLight s ray))
+   
+nextVertex _ _ False _ Nothing _ l = -- nothing hit, non-specular bounce
+   return $! (1.0, seq l l)
+   
+nextVertex s depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ dg _)) throughput l 
+   | isBlack throughput = return (1.0, l)
+   | otherwise = do
+      (BsdfSample _ smpApp pdf f wi) <- sampleBsdf bsdf wo
+      lHere <- sampleOneLight s p n wo bsdf
+      outRay <- return (Ray p wi epsilon infinity)
+      throughput' <- return $! throughput * sScale f ((absDot wi n) / pdf)
+      
+      l' <- return $! l + (throughput * (lHere + intl))
+      spec' <- return $! case smpApp of
+         Specular -> True
+         _ -> False
+         
+      x <- rnd
+      if (x > pCont)
+         then return $! (1.0, l)
+         else nextVertex s (depth + 1) spec' outRay (primIntersect s outRay) throughput' l'
+         
+      where
+            pCont = if depth <= 3 then 1 else 0.5
+            intl = if specBounce then intLe int wo else black
+            wo = normalize $ neg rd
+            bsdf = intBsdf int
+            n = dgN dg
+            p = dgP dg
+         

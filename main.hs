@@ -19,10 +19,10 @@ import Specular
 import Whitted()
 
 blub :: Sphere
-blub = Sphere 0.6 (0,0,0)
+blub = Sphere 0.6 (0,1.5,0)
 
 blubLight :: Light
-blubLight = AreaLight (fromXyz (1.0,1.0,1.0)) (MkAnyBound blub)
+blubLight = AreaLight (fromXyz (2.0,2.0,2.0)) (MkAnyBound blub)
 
 defMat :: Matte
 defMat = Matte (fromXyz (0.8, 0.8, 0.8))
@@ -32,13 +32,13 @@ red = Matte (fromXyz (0.8, 0.3, 0.3))
 
 myShape :: Group
 myShape = Group [
-   gP (Sphere (0.6) (1.3, 0, 0)) (Glass 1.5) Nothing,
+   gP (Sphere (0.8) (0, 0, 0)) (Glass 1.5) Nothing,
    gP blub defMat (Just blubLight),
  --  gP (Sphere (0.6) (-1.3, 0, 0)) BluePaint Nothing,
  --  gP (Plane (2) (0, 0, -1)) defMat Nothing,
  --  gP (Plane (5) (1, 0, 0)) defMat Nothing,
  --  gP (Plane (5) (-1, 0, 0)) defMat Nothing,
-   gP (Plane (0.6) (0, 1, 0)) defMat Nothing ]
+   gP (Plane (0.9) (0, 1, 0)) defMat Nothing ]
 
 myLights :: [Light]
 myLights = [
@@ -54,7 +54,7 @@ resY :: Int
 resY = 400
 
 myView :: View
-myView = View (4, 2, -4) (1,0,0) (0, 1, 0) 1.5 (fromIntegral resX / fromIntegral resY)
+myView = View (4, 2, -4) (0,0.5,0) (0, 1, 0) 1.5 (fromIntegral resX / fromIntegral resY)
 
 myCamera :: Camera
 myCamera = pinHoleCamera myView
