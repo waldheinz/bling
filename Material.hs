@@ -6,6 +6,7 @@ import Color
 import Geometry
 import Lafortune
 import Math
+import Texture
 import Transport
 
 class Material a where
@@ -16,11 +17,12 @@ data AnyMaterial = forall a. Material a => MkAnyMaterial a
 instance Material AnyMaterial where
    materialBsdf (MkAnyMaterial a) = materialBsdf a
 
-data Matte = Matte Spectrum
+data Matte = Matte AnyTexture
 
 instance Material Matte where
-   materialBsdf (Matte r) dg = (Bsdf bxdf sc) where
+   materialBsdf (Matte tex) dg = (Bsdf bxdf sc) where
       bxdf = MkAnyBxdf $ Lambertian $ r
+      r = evalTexture tex dg
       sc = coordinates dg
    
 data Lambertian = Lambertian Spectrum

@@ -11,7 +11,7 @@ import Maybe
 data DifferentialGeometry = DifferentialGeometry {
    dgP :: Point,
    dgN :: Normal
-   }
+   } deriving (Show)
 
 class Intersectable a where
    -- | intersects a ray with an object, possibly returning the distance
