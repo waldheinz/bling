@@ -32,7 +32,7 @@ red = Matte (fromXyz (0.8, 0.3, 0.3))
 
 myShape :: Group
 myShape = Group [
-   gP (Sphere (0.8) (0, 0, 0)) (Glass 1.5) Nothing,
+   gP (Sphere (0.8) (0, 0, 0)) (Mirror $ Spectrum 0.9 0.6 0.6) Nothing,
    gP blub defMat (Just blubLight),
  --  gP (Sphere (0.6) (-1.3, 0, 0)) BluePaint Nothing,
  --  gP (Plane (2) (0, 0, -1)) defMat Nothing,

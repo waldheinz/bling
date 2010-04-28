@@ -16,6 +16,13 @@ instance Material Glass where
          fresnel = frDiel 1 ior
          cs = coordinateSystem $ dgN dg
 
+data Mirror = Mirror Spectrum
+
+instance Material Mirror where
+   materialBsdf (Mirror r) dg = Bsdf bxdf cs where
+      bxdf = MkAnyBxdf $ SpecularReflection r frNoOp
+      cs = coordinateSystem $ dgN dg
+
 data SpecularReflection = SpecularReflection {
    specReflR :: Spectrum,
    specReflFresnel :: Fresnel
@@ -34,6 +41,9 @@ instance Bxdf SpecularReflection where
            pdf = 1.0
            
 type Fresnel = Float -> Spectrum
+
+frNoOp :: Fresnel
+frNoOp _ = white
 
 frDiel :: Float -> Float -> Fresnel
 frDiel ei et cosi
