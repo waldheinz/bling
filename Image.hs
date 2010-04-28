@@ -19,12 +19,13 @@ data Image = Image {
    
 getPixel :: Image -> Int -> WeightedSpectrum
 getPixel (Image _ _ p) o = (p ! o', s) where
-   s = Spectrum (p ! (o' + 1)) (p ! (o' + 2)) (p ! (o' + 3))
+   s = fromXyz (p ! (o' + 1), p ! (o' + 2), p ! (o' + 3))
    o' = o * 4
    
 putPixel :: Image -> Int -> WeightedSpectrum -> Image
-putPixel (Image w h p) o (sw, (Spectrum sr sg sb)) = seq p' Image w h p' where
-   p' = p // [ (o', sw), (o' + 1, sr), (o' + 2, sg), (o' + 3, sb) ]
+putPixel (Image w h p) o (sw, s) = seq p' Image w h p' where
+   (sx, sy, sz) = toXyz s
+   p' = p // [ (o', sw), (o' + 1, sx), (o' + 2, sy), (o' + 3, sz) ]
    o' = o * 4
    
 imageToPpm :: Image -> String
@@ -35,9 +36,9 @@ imageToPpm i@(Image w h _) = "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n" ++ s
          | otherwise = (ppmPixel $ getPixel i pos) ++ spixels (pos + 1)
 
 ppmPixel :: WeightedSpectrum -> String
-ppmPixel ws = toString $ mulWeight ws
+ppmPixel ws = (toString . toRgb . mulWeight) ws
    where
-      toString (Spectrum r g b) = show (clamp r) ++ " " ++ show (clamp g) ++ " " ++ show (clamp b) ++ " "
+      toString (r, g, b) = show (clamp r) ++ " " ++ show (clamp g) ++ " " ++ show (clamp b) ++ " "
 
 mulWeight :: WeightedSpectrum -> Spectrum
 mulWeight (0, _) = black

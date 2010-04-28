@@ -1,9 +1,9 @@
 
 module Color (
-   Spectrum(..), WeightedSpectrum, 
+   Spectrum, WeightedSpectrum, 
    white, black, 
    isBlack, sNaN,
-   fromXyz, sConst,
+   fromXyz, toXyz, toRgb, sConst,
    sScale, sPow) where
 
 import Math
@@ -23,6 +23,12 @@ white = Spectrum 1 1 1
 
 fromXyz :: (Float, Float, Float) -> Spectrum
 fromXyz (x, y, z) = Spectrum x y z
+
+toRgb :: Spectrum -> (Float, Float, Float)
+toRgb (Spectrum x y z) = (x, y, z)
+
+toXyz :: Spectrum -> (Float, Float, Float)
+toXyz (Spectrum x y z) = (x, y, z)
 
 sConst :: Float -> Spectrum
 sConst r = Spectrum r r r
