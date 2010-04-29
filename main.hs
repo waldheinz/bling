@@ -11,6 +11,7 @@ import Geometry
 import Image
 import Light
 import Material
+import Math
 import Pathtracer
 import Plastic
 import Primitive
@@ -21,37 +22,39 @@ import Texture
 import Whitted()
 
 blub :: Sphere
-blub = Sphere 1.1 (-1.3,0,0)
+blub = Sphere 1.1 (-4.3,0,0)
 
 blubLight :: Light
 blubLight = AreaLight (fromXyz (1.0,1.0,1.0)) (MkAnyBound blub)
 
 defMat :: Plastic
-defMat = Plastic $ MkAnyTexture $ 
-   GraphPaper 0.08 (fromXyz (0.8, 0.8, 0.8)) (fromXyz (0.05, 0.05, 0.05))
+defMat = Plastic
+   (MkAnyTexture $ GraphPaper 0.08 (fromXyz (0.7, 0.7, 0.7)) (fromXyz (0.05, 0.05, 0.05)))
+   (MkAnyTexture $ Constant $ fromXyz (0.99, 0.99, 0.99))
+   0.5
 
 myShape :: Group
 myShape = Group [
-   gP (Sphere (1.1) (1.3, 0.0, 0)) (Mirror $ fromXyz (0.9, 0.3, 0.3)) Nothing,
-   gP blub Blackbody (Just blubLight),
+   gP (Sphere (1.1) (-2.3, 0.0, 0)) (Mirror $ fromXyz (0.9, 0.3, 0.3)) Nothing,
+--   gP blub Blackbody (Just blubLight),
  --  gP (Sphere (0.6) (-1.3, 0, 0)) BluePaint Nothing,
-   gP (Plane (3) (0, 0, -1)) (BluePaint) Nothing,
+--   gP (Plane (3) (0, 0, -1)) (BluePaint) Nothing,
  --  gP (Plane (5) (1, 0, 0)) defMat Nothing,
  --  gP (Plane (5) (-1, 0, 0)) defMat Nothing,
    gP (Plane (1.1) (0, 1, 0)) defMat Nothing ]
 
 myLights :: [Light]
 myLights = [
-    blubLight
---    Directional (2, 2, 2) (normalize (-2, 2, -2))
+--    blubLight
+    Directional (fromXyz (2, 2, 2)) (normalize (-2, 2, -2))
 --      SoftBox (0.8, 0.8, 0.8)
     ]
 
 resX :: Int
-resX = 1920
+resX = 640
 
 resY :: Int
-resY = 1200
+resY = 480
 
 myView :: View
 myView = View (10, 3, -4) (0,-0.5,0) (0, 1, 0) 1.8 (fromIntegral resX / fromIntegral resY)

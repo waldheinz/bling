@@ -10,6 +10,11 @@ import Geometry
 class Texture t where
    evalTexture :: t -> DifferentialGeometry -> Spectrum
    
+data Constant = Constant Spectrum
+
+instance Texture Constant where
+   evalTexture (Constant r) _ = r
+   
 data GraphPaper = GraphPaper {
    graphPaperLineWidth :: Float,
    graphPaper :: Spectrum,
