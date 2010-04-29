@@ -31,7 +31,7 @@ defMat :: Plastic
 defMat = Plastic
    (MkAnyTexture $ GraphPaper 0.08 (fromXyz (0.7, 0.7, 0.7)) (fromXyz (0.05, 0.05, 0.05)))
    (MkAnyTexture $ Constant $ fromXyz (0.99, 0.99, 0.99))
-   0.5
+   0.01
 
 myShape :: Group
 myShape = Group [
@@ -46,8 +46,8 @@ myShape = Group [
 myLights :: [Light]
 myLights = [
 --    blubLight
-    Directional (fromXyz (2, 2, 2)) (normalize (-2, 2, -2))
---      SoftBox (0.8, 0.8, 0.8)
+--    Directional (fromXyz (2, 2, 2)) (normalize (2, 2, -2))
+      SoftBox (0.95, 0.95, 0.95)
     ]
 
 resX :: Int
