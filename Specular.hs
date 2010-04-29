@@ -10,7 +10,7 @@ import Transport
 data Glass = Glass Float
 
 instance Material Glass where
-   materialBsdf (Glass ior) dg = Bsdf bxdf cs
+   materialBsdf (Glass ior) dg = Bsdf [bxdf] cs
       where
          bxdf = MkAnyBxdf $ SpecularReflection white fresnel
          fresnel = frDiel 1 ior
@@ -19,7 +19,7 @@ instance Material Glass where
 data Mirror = Mirror Spectrum
 
 instance Material Mirror where
-   materialBsdf (Mirror r) dg = Bsdf bxdf cs where
+   materialBsdf (Mirror r) dg = Bsdf [bxdf] cs where
       bxdf = MkAnyBxdf $ SpecularReflection r frNoOp
       cs = coordinateSystem $ dgN dg
 

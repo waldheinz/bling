@@ -1,6 +1,6 @@
 
 -- | Provides a monad for computations requiring random numbers
-module Random(Rand, fromRand, runRand, rndR, rnd) where
+module Random(Rand, fromRand, runRand, rndR, rndRI, rnd) where
 
 import System.Random
 
@@ -27,6 +27,9 @@ fromRand (a, _) = a
 -- | Provides a random @Float@ in @[0..1)@
 rnd :: Rand Float
 rnd = Rand (random)
+
+rndRI :: (Int, Int) -> Rand Int
+rndRI range = Rand (randomR range)
 
 -- | Provides a random @Float@ in the specified range (left inclusive, right exclusive)
 rndR :: (Float, Float) -> Rand Float

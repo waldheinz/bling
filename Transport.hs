@@ -11,6 +11,7 @@ import Math
 import Random
 
 import Control.Monad
+import Data.List
 
 data BxdfAppearance = Diffuse | Glossy | Specular deriving Eq
 data BxdfType = Transmission | Reflection deriving Eq
@@ -20,6 +21,9 @@ isDiffuse b = bxdfAppearance b == Diffuse
 
 isReflection :: (Bxdf b) => b -> Bool
 isReflection b = bxdfType b == Reflection
+
+isTransmission :: (Bxdf b) => b -> Bool
+isTransmission b = bxdfType b == Transmission
 
 class Bxdf a where
    bxdfEval :: a -> Normal -> Normal -> Spectrum
@@ -59,24 +63,40 @@ data BsdfSample = BsdfSample {
    bsdfSampleWi :: Vector
    }
 
-data Bsdf = Bsdf AnyBxdf LocalCoordinates | BlackbodyBsdf
+emptyBsdfSample :: BsdfSample
+emptyBsdfSample = BsdfSample Reflection Diffuse infinity black (0,0,0)
+
+data Bsdf = Bsdf [AnyBxdf] LocalCoordinates 
+          | BlackbodyBsdf -- ^ a shortcut for blackbody emitters
 
 sampleBsdf :: Bsdf -> Vector -> Rand BsdfSample
-sampleBsdf BlackbodyBsdf woW = return $! BsdfSample Reflection Diffuse infinity black woW
-sampleBsdf (Bsdf bxdf sc) woW = do
-   (BxdfSample f wi pdf) <- bxdfSample bxdf wo
-   return (BsdfSample bt ba pdf f (localToWorld sc wi))
-      where
-         ba = bxdfAppearance bxdf
-         bt = bxdfType bxdf
-         wo = worldToLocal sc woW
-         
+sampleBsdf BlackbodyBsdf _ = return emptyBsdfSample
+sampleBsdf (Bsdf [] _ ) _ = return emptyBsdfSample
+sampleBsdf (Bsdf bs cs) woW = do
+   sNum <- rndRI (0, compCount - 1)
+   b <- return $! (bs !! sNum)
+   smp <- bxdfSample b wo
+   return $! sampleBsdf' wo woW (bxdfType b) (bxdfAppearance b) smp (del sNum bs) cs
+   where
+         wo = worldToLocal cs woW
+         compCount = length bs
+         del n xs = a ++ drop 1 b where
+            (a, b) = splitAt n xs
+  
+sampleBsdf' :: Vector -> Vector -> BxdfType -> BxdfAppearance -> BxdfSample -> [AnyBxdf] -> LocalCoordinates -> BsdfSample
+sampleBsdf' _ _ bt Specular (BxdfSample f wi pdf) _ cs = BsdfSample bt Specular pdf f (localToWorld cs wi)
+sampleBsdf' wo woW bt ba (BxdfSample f wi pdf) bs cs@(LocalCoordinates _ _ n) = BsdfSample bt ba pdf' f' wiW where
+      pdf' = (foldl' (+) pdf $ map (\b -> bxdfPdf b wo wi) bs) / (fromIntegral $ length bs + 1)
+      f' = foldl' (+) f $ map (\b -> bxdfEval b wo wi) (filter flt bs)
+      flt = if ((dot woW n) * (dot wiW n) < 0) then isTransmission else isReflection
+      wiW = localToWorld cs wi
+      
 evalBsdf :: Bsdf -> Vector -> Vector -> Spectrum
 evalBsdf BlackbodyBsdf _ _ = black
-evalBsdf (Bsdf bxdf sc@(LocalCoordinates _ _ n)) woW wiW
-   | isReflection bxdf && ((dot woW n) * (dot wiW n) > 0) = bxdfEval bxdf wo wi 
-   | otherwise = black
+evalBsdf (Bsdf bxdfs sc@(LocalCoordinates _ _ n)) woW wiW = 
+   foldl' (+) black $ map (\b -> bxdfEval b wo wi) $ filter flt bxdfs
    where
-      wo = worldToLocal sc woW
-      wi = worldToLocal sc wiW
+         flt = if ((dot woW n) * (dot wiW n) < 0) then isTransmission else isReflection
+         wo = worldToLocal sc woW
+         wi = worldToLocal sc wiW
       
