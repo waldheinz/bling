@@ -4,6 +4,7 @@ module Plastic where
 import Geometry
 import Material
 import Math
+import Microfacet
 import Specular
 import Texture
 import Transport

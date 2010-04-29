@@ -48,10 +48,10 @@ myLights = [
     ]
 
 resX :: Int
-resX = 640
+resX = 1920
 
 resY :: Int
-resY = 360
+resY = 1200
 
 myView :: View
 myView = View (10, 3, -4) (0,-0.5,0) (0, 1, 0) 1.8 (fromIntegral resX / fromIntegral resY)

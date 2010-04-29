@@ -3,7 +3,7 @@
 module Transport(
    Bsdf(..), BsdfSample(..), sampleBsdf, evalBsdf,
    Bxdf(..), AnyBxdf(..), BxdfSample(..), BxdfAppearance(..), BxdfType(..),
-   isDiffuse, isReflection
+   isDiffuse, isReflection, toSameHemisphere, cosTheta
    ) where
 
 import Color
@@ -15,6 +15,17 @@ import Data.List
 
 data BxdfAppearance = Diffuse | Glossy | Specular deriving Eq
 data BxdfType = Transmission | Reflection deriving Eq
+
+-- | turns the second vector so it lies within the same hemisphere as
+--   the first vector (assumed that both vectors are in shading coordinate
+--   system)
+toSameHemisphere :: Vector -> Vector -> Vector
+toSameHemisphere (_, _, z1) (x, y, z2)
+   | z1 * z2 >= 0 = (x, y, z2)
+   | otherwise = (x, y, -z2)
+
+cosTheta :: Vector -> Float
+cosTheta (_, _, z) = z
 
 isDiffuse :: (Bxdf b) => b -> Bool
 isDiffuse b = bxdfAppearance b == Diffuse

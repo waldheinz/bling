@@ -1,8 +1,10 @@
 
 -- | Provides a monad for computations requiring random numbers
-module Random(Rand, fromRand, runRand, rndR, rndRI, rnd) where
+module Random(Rand, Rand2D, fromRand, runRand, rndR, rndRI, rnd) where
 
 import System.Random
+
+type Rand2D = (Float, Float)
 
 -- | Marks a computation that requires random values
 data Rand a = Rand (StdGen -> (a, StdGen))

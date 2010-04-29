@@ -140,6 +140,9 @@ concentricSampleDisk' (sx, sy) = (r * cos theta, r * sin theta) where
             then (-sx, 4.0 - sy / (-sx)) -- third region
             else (-sy, 6.0 + sx / (-sy)) -- fourth region
 
+sphericalDirection :: Float -> Float -> Float -> Vector
+sphericalDirection sint cost phi = (sint * cos phi, sint * sin phi, cost)
+
 data LocalCoordinates = LocalCoordinates Vector Vector Vector
 
 coordinateSystem :: Vector -> LocalCoordinates
