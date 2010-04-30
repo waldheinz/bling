@@ -22,7 +22,23 @@ instance Bxdf Microfacet where
       wh = normalize $ add wo wi
       f = fresnel costh
       costh = dot wi wh
-
+      
+ --  bxdfSample mf wo = do
+ --     u1 <- rnd
+ --     u2 <- rnd
+ --     return $! bxdfSample' (u1, u2) mf wo
+   
+ --  bxdfPdf (Microfacet d _ _) wo wi
+ --     | sameHemisphere wo wi = mfDistPdf d wo wi
+ --     | otherwise = infinity
+   
+bxdfSample' rnd mf@(Microfacet d _ _) wo
+   | sameHemisphere wo wi = BxdfSample f wi pdf
+   | otherwise = BxdfSample black wi infinity
+   where
+         f = bxdfEval mf wo wi
+         (pdf, wi) = mfDistSample d rnd wo
+      
 mfG :: Vector -> Vector -> Vector -> Float
 mfG wo wi wh = min 1 $ min (2 * nDotWh * nDotWo / woDotWh) (2 * nDotWh * nDotWi / woDotWh) where
    nDotWh = abs $ cosTheta wh

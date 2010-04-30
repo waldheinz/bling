@@ -3,7 +3,7 @@
 module Transport(
    Bsdf(..), BsdfSample(..), sampleBsdf, evalBsdf,
    Bxdf(..), AnyBxdf(..), BxdfSample(..), BxdfAppearance(..), BxdfType(..),
-   isDiffuse, isReflection, toSameHemisphere, cosTheta
+   isDiffuse, isReflection, sameHemisphere, toSameHemisphere, cosTheta
    ) where
 
 import Color
@@ -23,6 +23,11 @@ toSameHemisphere :: Vector -> Vector -> Vector
 toSameHemisphere (_, _, z1) (x, y, z2)
    | z1 * z2 >= 0 = (x, y, z2)
    | otherwise = (x, y, -z2)
+
+-- | decides if two vectors in shading coordinate system lie within the
+--   same hemisphere
+sameHemisphere :: Vector -> Vector -> Bool
+sameHemisphere (_, _, z1) (_, _, z2) = (z1 * z2 > 0)
 
 cosTheta :: Vector -> Float
 cosTheta (_, _, z) = z

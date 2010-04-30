@@ -35,19 +35,19 @@ defMat = Plastic
 
 myShape :: Group
 myShape = Group [
-   gP (Sphere (1.1) (-2.3, 0.0, 0)) (Mirror $ fromXyz (0.9, 0.3, 0.3)) Nothing,
+   gP (Sphere (2) (0, 2, 0)) (Mirror $ fromXyz (0.9, 0.3, 0.3)) Nothing,
 --   gP blub Blackbody (Just blubLight),
  --  gP (Sphere (0.6) (-1.3, 0, 0)) BluePaint Nothing,
 --   gP (Plane (3) (0, 0, -1)) (BluePaint) Nothing,
  --  gP (Plane (5) (1, 0, 0)) defMat Nothing,
  --  gP (Plane (5) (-1, 0, 0)) defMat Nothing,
-   gP (Plane (1.1) (0, 1, 0)) defMat Nothing ]
+   gP (Plane 0 (0, 1, 0)) defMat Nothing ]
 
 myLights :: [Light]
 myLights = [
 --    blubLight
 --    Directional (fromXyz (2, 2, 2)) (normalize (2, 2, -2))
-      SoftBox (0.95, 0.95, 0.95)
+      SoftBox $ fromXyz (0.95, 0.95, 0.95)
     ]
 
 resX :: Int
@@ -57,7 +57,7 @@ resY :: Int
 resY = 480
 
 myView :: View
-myView = View (10, 3, -4) (0,-0.5,0) (0, 1, 0) 1.8 (fromIntegral resX / fromIntegral resY)
+myView = View (0, 2, 0) (0,1,0) (0, 1, 0) 1.8 (fromIntegral resX / fromIntegral resY)
 
 myCamera :: Camera
 myCamera = pinHoleCamera myView
