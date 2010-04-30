@@ -23,15 +23,16 @@ instance Bxdf Microfacet where
       f = fresnel costh
       costh = dot wi wh
       
- --  bxdfSample mf wo = do
- --     u1 <- rnd
- --     u2 <- rnd
- --     return $! bxdfSample' (u1, u2) mf wo
+   bxdfSample mf wo = do
+      u1 <- rnd
+      u2 <- rnd
+      return $! bxdfSample' (u1, u2) mf wo
    
- --  bxdfPdf (Microfacet d _ _) wo wi
- --     | sameHemisphere wo wi = mfDistPdf d wo wi
- --     | otherwise = infinity
+   bxdfPdf (Microfacet d _ _) wo wi
+      | sameHemisphere wo wi = mfDistPdf d wo wi
+      | otherwise = infinity
    
+bxdfSample' :: Rand2D -> Microfacet -> Vector -> BxdfSample
 bxdfSample' rnd mf@(Microfacet d _ _) wo
    | sameHemisphere wo wi = BxdfSample f wi pdf
    | otherwise = BxdfSample black wi infinity
@@ -50,8 +51,8 @@ data MfDistribution = Blinn Float
 
 mfDistPdf :: MfDistribution -> Vector -> Vector -> Float
 mfDistPdf (Blinn e) wo wi = (e + 2) * (cost ** e) / (2 * pi * 4 * (dot wo h)) where
-   h@(_, _, z) = normalize $ add wo wi
-   cost = abs z
+   h@(_, _, hz) = normalize $ add wo wi
+   cost = abs hz
 
 mfDistSample :: MfDistribution -> Rand2D -> Vector -> (Float, Vector)
 mfDistSample (Blinn e) (u1, u2) wo = (pdf, wi) where

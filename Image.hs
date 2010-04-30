@@ -5,6 +5,7 @@ module Image(
    imageToPpm, makeImage, addSample) where
 
 import Data.Array.Diff
+import Debug.Trace
 
 import Color
 
@@ -67,6 +68,7 @@ mulWeight (w, s) = sScale s (1.0 / w)
 addSample :: Image -> ImageSample -> Image
 addSample img@(Image w h _) (ImageSample sx sy (sw, ss))
    | isx > maxX || isy > maxY = img
+   | sNaN ss = trace ("skipping NaN sample at (" ++ (show sx) ++ ", " ++ (show sy) ++ ")") img
    | otherwise = seq img' img'
    where
       img' = seq img seq newPixel putPixel img offset newPixel
