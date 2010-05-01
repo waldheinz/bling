@@ -7,6 +7,11 @@ module Image(
 import Data.Array.Diff
 import Debug.Trace
 
+import Control.Monad
+import Control.Monad.ST
+import Data.Array.ST
+
+
 import Color
 
 -- | places a @WeightedSpectrum@ in an @Image@
@@ -16,12 +21,33 @@ data ImageSample = ImageSample {
    sampleSpectrum :: ! WeightedSpectrum
    } deriving Show
 
+
 -- | an image has a width, a height and some pixels
 data Image = Image {
    imageWidth :: Int,
    imageHeight :: Int,
    _imagePixels :: (DiffUArray Int Float)
    }
+   
+data STImage s = STImage {
+   w :: Int,
+   h :: Int,
+   _px :: (STUArray s Int Float)
+   }
+   
+mkImage :: Int -> Int -> ST s (STImage s)
+mkImage w h = do
+   pixels <- newArray (0, (w * h - 1)) 0.0 :: ST s (STUArray s Int Float)
+   return $ STImage w h pixels
+   
+addPixel :: STImage s -> Int -> WeightedSpectrum -> ST s (STImage s)
+addPixel (STImage w h p) o (sw, s) = do
+   osw <- readArray p o'
+   writeArray p o' (osw + sw)
+   return $ STImage w h p
+   where
+         (sx, sy, sz) = toXyz s
+         o' = o * 4
    
 -- | extracts the pixel at the specified offset from an Image
 getPixel :: Image -> Int -> WeightedSpectrum
