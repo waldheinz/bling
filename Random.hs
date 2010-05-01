@@ -34,7 +34,9 @@ rnd :: Rand Float
 rnd = Rand uniform
 
 rndRI :: (Int, Int) -> Rand Int
-rndRI range = undefined -- needs to be implemented via arithmetic like below                                                                 
+rndRI (lo, hi) = do
+   t <- rnd
+   return $ lo + round (t * fromIntegral (hi - lo))
 
 -- | Provides a random @Float@ in the specified range (left inclusive, right exclusive)                                                      
 rndR :: (Float, Float) -> Rand Float

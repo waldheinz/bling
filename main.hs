@@ -1,7 +1,6 @@
 --- RT - H
 
 import Control.Monad
-import System.Random
 import Text.Printf
 import Time
 
