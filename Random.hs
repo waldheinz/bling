@@ -1,6 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 
-module Random (Rand, Rand2D, fromRand, runRand, rndR, rndRI, rnd) where
+module Random (Rand, Rand2D, runRand, rndR, rndRI, rnd) where
 
 import Control.Monad.ST
 import Data.Vector.Unboxed
@@ -23,11 +23,6 @@ runRand seed (Rand c) = runST (do gen <- initialize $ singleton $ fromIntegral s
                                --   x <- c gen
                               --    seed' <- save gen
                               --    return (x,seed'))
-
--- | Extracts the result of a stochastic computation from the @Random@ Monad,                                                                
--- the rng state gets lost.                                                                                                                  
-fromRand :: (a, Seed) -> a
-fromRand (a, _) = a
 
 -- | Provides a random @Float@ in @[0..1)@                                                                                                   
 rnd :: Rand Float
