@@ -125,8 +125,7 @@ render :: Int -> Image -> Scene -> Camera -> Integrator -> IO ()
 render pass img sc cam int = do
    putStrLn "Rendering..."
    start <- getClockTime
-   prng <- newStdGen
-   img' <- return $! fromRand $ runRand prng (onePass img sc cam int)
+   img' <- return $! runRand 0 (onePass img sc cam int)
    stop <- getClockTime
    putStrLn (pretty $ diffClockTimes stop start)
    putStrLn $ "Writing " ++ fname ++ "..."
