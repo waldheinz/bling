@@ -1,6 +1,7 @@
 --- RT - H
 
 import Control.Monad
+import System.Random
 import Text.Printf
 import Time
 
@@ -40,10 +41,10 @@ plTest e kd  = Plastic
 
 myShape :: Group
 myShape = Group [
-   gP (Sphere (0.9) (1, 1, -1)) (plTest 0.001 (1, 0.56, 0)) Nothing,
-   gP (Sphere (0.9) (-1, 1, -1)) (plTest 0.01 (0.38, 0.05, 0.67)) Nothing,
-   gP (Sphere (0.9) (-1, 1, 1)) (plTest 0.1 (1, 0.96, 0)) Nothing,
-   gP (Sphere (0.9) (1, 1, 1)) (plTest 1 (0.04, 0.4, 0.64)) Nothing,
+   gP (Sphere (0.9) (1, 1, -1)) (plTest 0.01 (1, 0.56, 0)) Nothing,
+   gP (Sphere (0.9) (-1, 1, -1)) (plTest 0.05 (0.38, 0.05, 0.67)) Nothing,
+   gP (Sphere (0.9) (-1, 1, 1)) (plTest 0.25 (1, 0.96, 0)) Nothing,
+   gP (Sphere (0.9) (1, 1, 1)) (plTest 0.5 (0.04, 0.4, 0.64)) Nothing,
    
 --   gP blub Blackbody (Just blubLight),
  --  gP (Sphere (0.6) (-1.3, 0, 0)) BluePaint Nothing,
@@ -124,7 +125,8 @@ render :: Int -> Image -> Scene -> Camera -> Integrator -> IO ()
 render pass img sc cam int = do
    putStrLn "Rendering..."
    start <- getClockTime
-   img' <- return $! runRand 0 (onePass img sc cam int)
+   seed <- randomIO :: IO Int
+   img' <- return $! runRand seed (onePass img sc cam int)
    stop <- getClockTime
    putStrLn (pretty $ diffClockTimes stop start)
    putStrLn $ "Writing " ++ fname ++ "..."
