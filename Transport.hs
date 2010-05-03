@@ -11,10 +11,12 @@ import Math
 import Random
 
 import Control.Monad
+import Data.BitSet
 import Data.List
 
-data BxdfAppearance = Diffuse | Glossy | Specular deriving Eq
-data BxdfType = Transmission | Reflection deriving Eq
+
+data BxdfProps = Transmission | Reflection | Diffuse | Glossy | Specular deriving (Eq, Enum)
+newtype BxdfType = BitSet BxdfProps
 
 -- | turns the second vector so it lies within the same hemisphere as
 --   the first vector (assumed that both vectors are in shading coordinate
@@ -33,20 +35,19 @@ cosTheta :: Vector -> Float
 cosTheta (_, _, z) = z
 
 isDiffuse :: (Bxdf b) => b -> Bool
-isDiffuse b = bxdfAppearance b == Diffuse
+isDiffuse b = Diffuse `member` (bxdfType b)
 
 isReflection :: (Bxdf b) => b -> Bool
-isReflection b = bxdfType b == Reflection
+isReflection b = Reflection `member` (bxdfType b)
 
 isTransmission :: (Bxdf b) => b -> Bool
-isTransmission b = bxdfType b == Transmission
+isTransmission b = Transmission `member` (bxdfType b)
 
 class Bxdf a where
    bxdfEval :: a -> Normal -> Normal -> Spectrum
    bxdfSample :: a -> Normal -> Rand BxdfSample
    bxdfPdf :: a -> Normal -> Normal -> Float
-   bxdfType :: a -> BxdfType
-   bxdfAppearance :: a -> BxdfAppearance
+   bxdfType :: a -> BitSet BxdfType
    
    bxdfSample a wo = do
       wi <- cosineSampleHemisphere
@@ -63,7 +64,6 @@ instance Bxdf AnyBxdf where
    bxdfSample (MkAnyBxdf a) wo = bxdfSample a wo
    bxdfPdf (MkAnyBxdf a) wo wi = bxdfPdf a wo wi
    bxdfType (MkAnyBxdf a) = bxdfType a
-   bxdfAppearance (MkAnyBxdf a) = bxdfAppearance a
    
 data BxdfSample = BxdfSample {
    bxdfSampleF :: Spectrum,
@@ -73,7 +73,6 @@ data BxdfSample = BxdfSample {
    
 data BsdfSample = BsdfSample {
    bsdfSampleType :: BxdfType,
-   bsdfSampleAppearance :: BxdfAppearance,
    bsdfSamplePdf :: Float,
    bsdfSampleTransport :: Spectrum,
    bsdfSampleWi :: Vector
@@ -85,6 +84,12 @@ emptyBsdfSample = BsdfSample Reflection Diffuse infinity black (0,0,0)
 data Bsdf = Bsdf [AnyBxdf] LocalCoordinates 
           | BlackbodyBsdf -- ^ a shortcut for blackbody emitters
 
+-- | filters a Bsdf's components by appearance
+--filterBsdfAppearance :: BxdfAppearance -> Bsdf -> Bsdf
+--filterBsdfAppearance _ BlackbodyBsdf = BlackbodyBsdf
+--filterBsdfAppearance ap (Bsdf bs cs) = Bsdf bs' cs where
+--   bs' = filter (\b -> ap == bxdfAppearance b) bs
+
 sampleBsdf :: Bsdf -> Vector -> Rand BsdfSample
 sampleBsdf BlackbodyBsdf _ = return emptyBsdfSample
 sampleBsdf (Bsdf [] _ ) _ = return emptyBsdfSample
@@ -92,14 +97,14 @@ sampleBsdf (Bsdf bs cs) woW = do
    sNum <- rndRI (0, compCount - 1)
    b <- return $! (bs !! sNum)
    smp <- bxdfSample b wo
-   return $! sampleBsdf' wo woW (bxdfType b) (bxdfAppearance b) smp (del sNum bs) cs
+   return $! sampleBsdf' wo woW (bxdfType b) smp (del sNum bs) cs
    where
          wo = worldToLocal cs woW
          compCount = length bs
          del n xs = a ++ drop 1 b where
             (a, b) = splitAt n xs
   
-sampleBsdf' :: Vector -> Vector -> BxdfType -> BxdfAppearance -> BxdfSample -> [AnyBxdf] -> LocalCoordinates -> BsdfSample
+sampleBsdf' :: Vector -> Vector -> BxdfType -> BxdfSample -> [AnyBxdf] -> LocalCoordinates -> BsdfSample
 sampleBsdf' _ _ bt Specular (BxdfSample f wi pdf) _ cs = BsdfSample bt Specular pdf f (localToWorld cs wi)
 sampleBsdf' wo woW bt ba (BxdfSample f wi pdf) bs cs@(LocalCoordinates _ _ n) = BsdfSample bt ba pdf' f' wiW where
       pdf' = (foldl' (+) pdf $ map (\b -> bxdfPdf b wo wi) bs) / (fromIntegral $ length bs + 1)

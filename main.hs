@@ -81,7 +81,7 @@ onePass img scene cam int = do
    oy <- rndR (0, 1 / fromIntegral ns)
    apply img $ map (shift (ox, oy)) $ stratify ns $ imageSamples img
       where
-         ns = 3
+         ns = 2
          sx = fromIntegral $ imageWidth img
          sy = fromIntegral $ imageHeight img
          apply :: Image -> [(Float, Float)] -> Rand Image
