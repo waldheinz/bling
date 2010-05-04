@@ -1,13 +1,13 @@
 
 module Image(
    Image, ImageSample(..),
-   STImage(..), mkImage,
+   mkImage,
    imageWidth, imageHeight, 
-   imageToPpm, makeImage, addSample, addSTSample) where
+   imageToPpm, addSample) where
 
-import Data.Array.Diff
 import Debug.Trace
 
+import Control.Monad
 import Control.Monad.ST
 import Data.Array.ST
 
@@ -19,59 +19,78 @@ data ImageSample = ImageSample {
    samplePosY :: ! Float,
    sampleSpectrum :: ! WeightedSpectrum
    } deriving Show
-
-
--- | an image has a width, a height and some pixels
-data Image = Image {
+   
+-- | an image has a width, a height and some pixels 
+data Image s = Image {
    imageWidth :: Int,
    imageHeight :: Int,
-   _imagePixels :: (DiffUArray Int Float)
+   _imagePixels :: (STUArray s Int Float)
    }
    
-data STImage s = STImage {
-   _w :: Int,
-   _h :: Int,
-   _px :: (STUArray s Int Float)
-   }
-   
-mkImage :: Int -> Int -> ST s (STImage s)
+mkImage :: Int -> Int -> ST s (Image s)
 mkImage w h = do
-   pixels <- newArray (0, (w * h - 1)) 0.0 :: ST s (STUArray s Int Float)
-   return $ STImage w h pixels
+   pixels <- newArray (0, (w * h * 4)) 0.0 :: ST s (STUArray s Int Float)
+   return $ Image w h pixels
    
-addPixel :: STImage s -> Int -> WeightedSpectrum -> ST s (STImage s)
-addPixel (STImage w h p) o (sw, s) = do
+addPixel :: Image s -> Int -> WeightedSpectrum -> ST s (Image s)
+addPixel (Image w h p) o (sw, s) = do
    osw <- readArray p o'
    writeArray p o' (osw + sw)
-   return $ STImage w h p
+   return $ Image w h p
    where
          (sx, sy, sz) = toXyz s
          o' = o * 4
 
-addSTSample :: (STImage s) -> ImageSample -> (STImage s)
-addSTSample (STImage w h p) _ = do
-   STImage w h p
+
+-- | adds an sample to the specified image and returns the updated image
+addSample :: Image s -> ImageSample -> Image s
+addSample img@(Image w h _) (ImageSample sx sy (sw, ss))
+   | isx > maxX || isy > maxY = img
+   | sNaN ss = trace ("skipping NaN sample at (" ++ (show sx) ++ ", " ++ (show sy) ++ ")") img
+   | otherwise = img
+   where
+      img' = img -- seq img seq newPixel putPixel img offset newPixel
+      isx = floor sx
+      isy = floor sy
+      maxX = w - 1
+      maxY = h - 1
+      offset = isy * w + isx
+  --    (oldW, oldS) = getPixel img offset
+  --    newPixel = (oldW + sw, oldS + ss)
+
 
 -- | extracts the pixel at the specified offset from an Image
-getPixel :: Image -> Int -> WeightedSpectrum
-getPixel (Image _ _ p) o = (p ! o', s) where
-   s = fromXyz (p ! (o' + 1), p ! (o' + 2), p ! (o' + 3))
-   o' = o * 4
+getPixel :: Image s -> Int -> ST s WeightedSpectrum
+getPixel (Image _ _ p) o = do
+   w <- readArray p o'
+   x <- readArray p (o' + 1)
+   y <- readArray p (o' + 2)
+   z <- readArray p (o' + 3)
+   return $ (w, fromXyz (x, y, z)) where
+      o' = o * 4
    
+{-
 -- | puts an pixel to the specified offset in an Image
 putPixel :: Image -> Int -> WeightedSpectrum -> Image
 putPixel (Image w h p) o (sw, s) = seq p' Image w h p' where
    (sx, sy, sz) = toXyz s
    p' = p // [ (o', sw), (o' + 1, sx), (o' + 2, sy), (o' + 3, sz) ]
    o' = o * 4
-   
+  
+-}
+
 -- | converts an image to ppm format
-imageToPpm :: Image -> String
-imageToPpm i@(Image w h _) = "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n" ++ spixels 0
+imageToPpm :: Image s -> ST s String
+imageToPpm i@(Image w h _) = do
+   pData <- spixels 0
+   return $ "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n" ++ pData
    where
       spixels pos
-         | pos == (w*h) = []
-         | otherwise = (ppmPixel $ getPixel i pos) ++ spixels (pos + 1)
+         | pos == (w*h) = return $ []
+         | otherwise = do
+            p <- getPixel i pos
+            rest <- spixels (pos+1)
+            return $ (ppmPixel $ p) ++ rest
 
 -- | applies gamma correction to an RGB triple
 gamma :: Float -> (Float, Float, Float) -> (Float, Float, Float)
@@ -92,25 +111,3 @@ ppmPixel ws = (toString . (gamma 2.2) .toRgb . mulWeight) ws
 mulWeight :: WeightedSpectrum -> Spectrum
 mulWeight (0, _) = black
 mulWeight (w, s) = sScale s (1.0 / w)
-
--- | adds an sample to the specified image and returns the updated image
-addSample :: Image -> ImageSample -> Image
-addSample img@(Image w h _) (ImageSample sx sy (sw, ss))
-   | isx > maxX || isy > maxY = img
-   | sNaN ss = trace ("skipping NaN sample at (" ++ (show sx) ++ ", " ++ (show sy) ++ ")") img
-   | otherwise = seq img' img'
-   where
-      img' = seq img seq newPixel putPixel img offset newPixel
-      isx = floor sx
-      isy = floor sy
-      maxX = w - 1
-      maxY = h - 1
-      offset = isy * w + isx
-      (oldW, oldS) = getPixel img offset
-      newPixel = (oldW + sw, oldS + ss)
-
--- | creates a new all-black image of the specified width and height
-makeImage :: Int -> Int -> Image
-makeImage w h = Image w h pixels where
-    pixels = listArray (0, pxCount - 1) (repeat 0.0)
-    pxCount = w * h * 4 :: Int

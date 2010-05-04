@@ -49,10 +49,10 @@ myLights = [
     ]
 
 resX :: Int
-resX = 1024
+resX = 640
 
 resY :: Int
-resY = 768
+resY = 480
 
 myView :: View
 myView = View (3, 7, -6) (0,0.5,0) (0, 1, 0) 1.8 (fromIntegral resX / fromIntegral resY)
@@ -81,15 +81,15 @@ onePass img scene cam int = do
             nxs <- seq ws return $! (ImageSample px py ws)
             apply (nxs `seq` i `seq` addSample i nxs) xs
 -}
-onePassST :: Gen s -> STImage s -> Scene -> Camera -> Integrator -> ST s (STImage s)
+onePassST :: Gen s -> Image s -> Scene -> Camera -> Integrator -> ST s (Image s)
 onePassST gen img scene cam int = do
    ox <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
    oy <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
-   apply img $ map (shift (ox, oy)) $ stratify ns $ imageSamples (_w img) (_h img)
+   apply img $ map (shift (ox, oy)) $ stratify ns $ imageSamples (imageWidth img) (imageHeight img)
       where
-         ns = 2
-         sx = fromIntegral $ _w img
-         sy = fromIntegral $ _h img
+         ns = 1
+         sx = fromIntegral $ imageWidth img
+         sy = fromIntegral $ imageHeight img
   --       apply :: STImage s -> [(Float, Float)] -> ST s (STImage s)
          apply i [] = return $! i
          apply i ((px, py):xs)
@@ -97,7 +97,7 @@ onePassST gen img scene cam int = do
              | otherwise = do
             ws <- runRandST gen $ int scene (cam (px / sx, py / sy))
             nxs <- runRandST gen $ seq ws return $! (ImageSample px py ws)
-            apply (nxs `seq` i `seq` addSTSample i nxs) xs
+            apply (nxs `seq` i `seq` addSample i nxs) xs
 
 
 stratify :: Int -> [(Float, Float)] -> [(Float, Float)]
@@ -109,7 +109,7 @@ stratify n (p:xs) = stratify' p ++ (stratify n xs) where
          
 shift :: (Float, Float) -> (Float, Float) -> (Float, Float)
 shift (ox, oy) (x, y) = (x + ox, y + oy)
-   
+
 imageSamples :: Int -> Int -> [(Float, Float)]
 imageSamples sx sy = [ (fromIntegral x, fromIntegral y) | y <- [0..sy-1], x <- [0..sx-1]] where
    
@@ -126,7 +126,7 @@ pretty td = join . filter (not . null) . map f $
     f (i,s) | i == 0    = []
             | otherwise = show i ++ s
    
-render :: Int -> (STImage RealWorld) -> Scene -> Camera -> Integrator -> IO ()
+render :: Int -> (Image RealWorld) -> Scene -> Camera -> Integrator -> IO ()
 render pass img sc cam int = do
    putStrLn "Rendering..."
    start <- getClockTime
@@ -136,7 +136,8 @@ render pass img sc cam int = do
    stop <- getClockTime
    putStrLn (pretty $ diffClockTimes stop start)
    putStrLn $ "Writing " ++ fname ++ "..."
- --  writeFile fname $ imageToPpm img'
+   imgData <- stToIO $ imageToPpm img'
+   writeFile fname $ imgData
    seq img' render (pass + 1) img' sc cam int
    where
          fname = "pass-" ++ (printf "%05d" pass) ++ ".ppm"
