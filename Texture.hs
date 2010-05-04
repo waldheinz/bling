@@ -1,8 +1,6 @@
 
 module Texture where
 
-import Debug.Trace
-
 import Color
 import Geometry
 
@@ -18,7 +16,7 @@ graphPaper lw p l (DifferentialGeometry (x, _, z) _)
    where
          x' = abs x''
          z' = abs z''
-         (_, x'') = properFraction x
-         (_, z'') = properFraction z
+         (_, x'') = properFraction x :: (Int, Float)
+         (_, z'') = properFraction z :: (Int, Float)
          lo = lw / 2
          hi = 1.0 - lo
