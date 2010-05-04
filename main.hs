@@ -11,21 +11,12 @@ import Geometry
 import Image
 import Light
 import Material
-import Math
 import Pathtracer
 import Plastic
 import Primitive
 import Random
 import Scene
-import Specular
 import Texture
-import Whitted()
-
-blub :: Sphere
-blub = Sphere 1.1 (-4.3,0,0)
-
-blubLight :: Light
-blubLight = mkAreaLight (fromXyz (1.0,1.0,1.0)) blub
 
 defMat :: Material
 defMat = plasticMaterial
