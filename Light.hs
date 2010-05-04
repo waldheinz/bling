@@ -1,7 +1,7 @@
 
 -- | The functions dealing with colours, radiance and light sources
 module Light (
-   Spectrum, black, white, isBlack, sScale,
+   mkAreaLight,
    Light(..), LightSample(..), lightSample, lightEmittance, lightLe, lightPdf) where
 
 import Color

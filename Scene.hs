@@ -10,14 +10,12 @@ import Random
 import Transport
 
 data Scene = Scene {
-   scenePrimitive :: AnyPrimitive,
+   scenePrimitive :: Primitive,
    sceneLights :: [Light]
    }
 
-instance Primitive Scene where
-   primIntersect (Scene p _) = primIntersect p
-   primIntersects (Scene p _) = primIntersects p
-   primMaterial (Scene p _) = primMaterial p
+occluded :: Scene -> Ray -> Bool
+occluded (Scene p _) = primIntersects p
    
 type Integrator = Scene -> Ray -> Rand WeightedSpectrum
    
@@ -28,7 +26,7 @@ evalLight scene p n light wo bsdf us = (evalSample scene sample wo bsdf p n) whe
 evalSample :: Scene -> LightSample -> Vector -> Bsdf -> Point -> Normal -> Spectrum
 evalSample scene sample wo bsdf _ n
    | isBlack li || isBlack f = black
-   | primIntersects scene (testRay sample) = black
+   | occluded scene (testRay sample) = black
    | otherwise = sScale (f * li) $ (absDot wi n) / lPdf
    where
          lPdf = lightSamplePdf sample
@@ -38,7 +36,7 @@ evalSample scene sample wo bsdf _ n
    
 sampleLightMis :: Scene -> LightSample -> Bsdf -> Vector -> Normal -> Spectrum
 sampleLightMis scene (LightSample li wi ray pdf deltaLight) bsdf wo n
-   | (pdf == infinity) || (isBlack li) || (isBlack f) || (primIntersects scene ray) = black
+   | (pdf == infinity) || (isBlack li) || (isBlack f) || (occluded scene ray) = black
    | deltaLight = sScale (f * li) ((absDot wi n) / pdf)
    | otherwise = sScale (f * li) ((absDot wi n) * weight / pdf)
    where

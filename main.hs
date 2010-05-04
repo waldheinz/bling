@@ -25,33 +25,29 @@ blub :: Sphere
 blub = Sphere 1.1 (-4.3,0,0)
 
 blubLight :: Light
-blubLight = AreaLight (fromXyz (1.0,1.0,1.0)) (MkAnyBound blub)
+blubLight = mkAreaLight (fromXyz (1.0,1.0,1.0)) blub
 
-defMat :: Plastic
-defMat = Plastic
-   (MkAnyTexture $ GraphPaper 0.08 (fromXyz (0.7, 0.7, 0.7)) (fromXyz (0.05, 0.05, 0.05)))
-   (MkAnyTexture $ Constant $ fromXyz (0.99, 0.99, 0.99))
+defMat :: Material
+defMat = plasticMaterial
+   (graphPaper 0.08 (fromXyz (0.7, 0.7, 0.7)) (fromXyz (0.05, 0.05, 0.05)))
+   (constantSpectrum $ fromXyz (0.99, 0.99, 0.99))
    0.02
 
-plTest :: Float -> (Float, Float, Float) -> Plastic
-plTest e kd  = Plastic
-   (MkAnyTexture $ Constant $ fromXyz kd)
-   (MkAnyTexture $ Constant $ fromXyz (0.99, 0.99, 0.99))
+plTest :: Float -> (Float, Float, Float) -> Material
+plTest e kd  = plasticMaterial
+   (constantSpectrum $ fromXyz kd)
+   (constantSpectrum $ fromXyz (0.99, 0.99, 0.99))
    e
 
-myShape :: Group
+myShape :: Primitive
 myShape = Group [
    gP (Sphere (0.9) (1, 1, -1)) (plTest 0.01 (1, 0.56, 0)) Nothing,
    gP (Sphere (0.9) (-1, 1, -1)) (plTest 0.05 (0.38, 0.05, 0.67)) Nothing,
    gP (Sphere (0.9) (-1, 1, 1)) (plTest 0.25 (1, 0.96, 0)) Nothing,
    gP (Sphere (0.9) (1, 1, 1)) (plTest 0.5 (0.04, 0.4, 0.64)) Nothing,
-   
---   gP blub Blackbody (Just blubLight),
- --  gP (Sphere (0.6) (-1.3, 0, 0)) BluePaint Nothing,
---   gP (Plane (3) (0, 0, -1)) (BluePaint) Nothing,
- --  gP (Plane (5) (1, 0, 0)) defMat Nothing,
- --  gP (Plane (5) (-1, 0, 0)) defMat Nothing,
-   gP (Plane (-0.1) (0, 1, 0)) defMat Nothing ]
+   mkGeometricPrimitive (Plane (-0.1) (0, 1, 0)) defMat Nothing ]
+   where
+         gP = mkGeometricPrimitive
 
 myLights :: [Light]
 myLights = [
@@ -73,7 +69,7 @@ myCamera :: Camera
 myCamera = pinHoleCamera myView
 
 myScene :: Scene
-myScene = Scene (MkAnyPrimitive myShape) myLights
+myScene = Scene myShape myLights
 
 onePass :: Image -> Scene -> Camera -> Integrator -> Rand Image
 onePass img scene cam int = do

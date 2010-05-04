@@ -1,6 +1,7 @@
 
 module Primitive where
 
+import Color
 import Geometry
 import Light
 import Material
@@ -33,6 +34,10 @@ data Primitive
    = GeometricPrimitive (Ray -> Maybe (Float, DifferentialGeometry)) (Ray -> Bool) Material (Maybe Light)
    | Group [Primitive]
    
+mkGeometricPrimitive :: (Intersectable i) => i -> Material -> (Maybe Light) -> Primitive
+mkGeometricPrimitive int mat ml =
+   GeometricPrimitive (intersect int) (intersects int) mat ml
+
 primIntersect :: Primitive -> Ray -> Maybe Intersection
 primIntersect (Group []) _ = Nothing
 primIntersect (Group g) r = nearest r g
@@ -54,10 +59,6 @@ primMaterial _ = undefined
 primLight :: Primitive -> Maybe Light
 primLight (GeometricPrimitive _ _ _ l) = l
 primLight _ = Nothing
-
-mkGeometricPrimitive :: (Intersectable i) => i -> Material -> (Maybe Light) -> Primitive
-mkGeometricPrimitive int mat ml =
-   GeometricPrimitive (intersect int) (intersects int) mat ml
 
 nearest :: Ray -> [Primitive] -> Maybe Intersection
 nearest (Ray ro rd tmin tmax) i = nearest' i tmax Nothing where
