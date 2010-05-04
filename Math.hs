@@ -125,14 +125,14 @@ uniformSampleCone (LocalCoordinates x y z) cosThetaMax (u1, u2) = let
 -- | generates a random point on the unit sphere,
 -- see http://mathworld.wolfram.com/SpherePointPicking.html
 randomOnSphere :: Rand2D -> Vector
-randomOnSphere (u1, u2) = ((s u) * cos omega, (s u) * sin omega, u) where
+randomOnSphere (u1, u2) = (s * cos omega, s * sin omega, u) where
    u = u1 * 2 - 1
+   s = sqrt (1 - (u * u))
    omega = u2 * 2 * pi
-   s = (\u -> (sqrt (1 - (u * u))))
    
 cosineSampleHemisphere :: Rand2D -> Vector
-cosineSampleHemisphere rnd = (x, y, sqrt (max 0 (1 - x*x - y*y))) where
-   (x, y) = concentricSampleDisk rnd
+cosineSampleHemisphere u = (x, y, sqrt (max 0 (1 - x*x - y*y))) where
+   (x, y) = concentricSampleDisk u
    
 concentricSampleDisk :: Rand2D -> (Float, Float)
 concentricSampleDisk (u1, u2) = concentricSampleDisk' (sx, sy) where
