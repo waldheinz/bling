@@ -1,4 +1,3 @@
-{-# LANGUAGE ExistentialQuantification #-}
 
 module Primitive where
 
@@ -13,11 +12,11 @@ import Maybe(fromJust, isJust, isNothing)
 data Intersection = Intersection {
    intDist :: Float,
    intGeometry :: DifferentialGeometry,
-   intPrimitive :: AnyPrimitive
+   intPrimitive :: Primitive
    }
 
 intBsdf :: Intersection -> Bsdf
-intBsdf int = materialBsdf mat dg where
+intBsdf int = mat dg where
    mat = primMaterial prim
    prim = intPrimitive int
    dg = intGeometry int
@@ -30,33 +29,37 @@ intLe (Intersection _ (DifferentialGeometry p n) prim) wo
    where
          light = primLight prim
    
-class Primitive a where
-   primIntersect :: a -> Ray -> Maybe Intersection
-   primIntersects :: a -> Ray -> Bool
-   primMaterial :: a -> AnyMaterial
-   primLight :: a -> Maybe Light
+data Primitive
+   = GeometricPrimitive (Ray -> Maybe (Float, DifferentialGeometry)) (Ray -> Bool) Material (Maybe Light)
+   | Group [Primitive]
    
-   primMaterial _ = undefined
-   primLight _ = Nothing
-   
-gP :: (Intersectable i, Material m) => i -> m -> Maybe Light -> AnyPrimitive
-gP i m l = MkAnyPrimitive $ GeometricPrimitive (MkAnyIntersectable i) (MkAnyMaterial m) l
-
-data GeometricPrimitive = GeometricPrimitive AnyIntersectable AnyMaterial (Maybe Light)
-
-instance Primitive GeometricPrimitive where
-   primIntersect p@(GeometricPrimitive i _ _) ray = pi' (intersect ray i) where
+primIntersect :: Primitive -> Ray -> Maybe Intersection
+primIntersect (Group []) _ = Nothing
+primIntersect (Group g) r = nearest r g
+primIntersect p@(GeometricPrimitive int _ _ _) ray = pi' (int ray) where
       pi' :: Maybe (Float, DifferentialGeometry) -> Maybe Intersection
       pi' Nothing = Nothing
-      pi' (Just (t, dg)) = Just $ Intersection t dg (MkAnyPrimitive p)
-      
-   primIntersects (GeometricPrimitive i _ _) r = intersects r i
-   primMaterial (GeometricPrimitive _ m _) = m
-   primLight (GeometricPrimitive _ _ l) = l
+      pi' (Just (t, dg)) = Just $ Intersection t dg p
    
-data Group = Group [AnyPrimitive]
 
-nearest :: (Primitive i) => Ray -> [i] -> Maybe Intersection
+primIntersects :: Primitive -> Ray -> Bool
+primIntersects (Group []) _ = False
+primIntersects (Group (x:xs)) r = primIntersects x r || primIntersects (Group xs) r
+primIntersects (GeometricPrimitive _ i _ _) r = i r
+
+primMaterial :: Primitive -> Material
+primMaterial (GeometricPrimitive _ _ mat _) = mat
+primMaterial _ = undefined
+
+primLight :: Primitive -> Maybe Light
+primLight (GeometricPrimitive _ _ _ l) = l
+primLight _ = Nothing
+
+mkGeometricPrimitive :: (Intersectable i) => i -> Material -> (Maybe Light) -> Primitive
+mkGeometricPrimitive int mat ml =
+   GeometricPrimitive (intersect int) (intersects int) mat ml
+
+nearest :: Ray -> [Primitive] -> Maybe Intersection
 nearest (Ray ro rd tmin tmax) i = nearest' i tmax Nothing where
    nearest' [] _ mi = mi
    nearest' (x:xs) tmax' mi = nearest' xs newMax newNear where
@@ -66,18 +69,3 @@ nearest (Ray ro rd tmin tmax) i = nearest' i tmax Nothing where
       newMax = if (isNothing newNear)
                   then tmax'
                   else intDist $ fromJust newNear
-
-instance Primitive Group where
-   primIntersect (Group []) _ = Nothing
-   primIntersect (Group g) r = nearest r g
-   
-   primIntersects (Group []) _ = False
-   primIntersects (Group (x:xs)) r = primIntersects x r || primIntersects (Group xs) r
-   
-data AnyPrimitive = forall a. Primitive a => MkAnyPrimitive a
-
-instance Primitive AnyPrimitive where
-   primIntersect (MkAnyPrimitive a) r = primIntersect a r
-   primIntersects (MkAnyPrimitive a) r  = primIntersects a r
-   primMaterial (MkAnyPrimitive a) = primMaterial a
-   primLight (MkAnyPrimitive a) = primLight a

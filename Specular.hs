@@ -7,21 +7,16 @@ import Material
 import Math
 import Transport
 
-data Glass = Glass Float
+glassMaterial :: Float -> Material
+glassMaterial ior dg = mkBsdf [bxdf] cs where
+   bxdf = MkAnyBxdf $ SpecularReflection white fresnel
+   fresnel = frDiel 1 ior
+   cs = shadingCs dg
 
-instance Material Glass where
-   materialBsdf (Glass ior) dg = mkBsdf [bxdf] cs
-      where
-         bxdf = MkAnyBxdf $ SpecularReflection white fresnel
-         fresnel = frDiel 1 ior
-         cs = coordinateSystem $ dgN dg
-
-data Mirror = Mirror Spectrum
-
-instance Material Mirror where
-   materialBsdf (Mirror r) dg = mkBsdf [bxdf] cs where
-      bxdf = MkAnyBxdf $ SpecularReflection r frNoOp
-      cs = coordinateSystem $ dgN dg
+mirrorMaterial :: Spectrum -> Material
+mirrorMaterial r dg = mkBsdf [bxdf] cs where
+   bxdf = MkAnyBxdf $ SpecularReflection r frNoOp
+   cs = coordinateSystem $ dgN dg
 
 data SpecularReflection = SpecularReflection {
    specReflR :: Spectrum,

@@ -1,7 +1,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 module Transport(
-   Bsdf, mkBsdf, BsdfSample(..), sampleBsdf, evalBsdf,
+   Bsdf, mkBsdf, BsdfSample(..), sampleBsdf, evalBsdf, bsdfPdf,
    Bxdf(..), AnyBxdf(..), BxdfType, BxdfProp(..), mkBxdfType,
    isDiffuse, isReflection, sameHemisphere, toSameHemisphere, cosTheta
    ) where
@@ -90,6 +90,14 @@ data Bsdf = Bsdf (V.Vector AnyBxdf) LocalCoordinates
 filterBsdf :: BxdfProp -> Bsdf -> Bsdf
 filterBsdf ap (Bsdf bs cs) = Bsdf bs' cs where
    bs' = V.filter (\b -> member ap $ bxdfType b) bs
+
+bsdfPdf :: Bsdf -> Vector -> Vector -> Float
+bsdfPdf (Bsdf bs cs) woW wiW =
+   if (V.null bs)
+      then 0.0
+      else V.foldl' (+) 0.0 $ V.map (\b -> bxdfPdf b wo wi) bs where
+         wo = worldToLocal cs woW
+         wi = worldToLocal cs wiW
 
 sampleBsdf :: Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
 sampleBsdf (Bsdf bs cs) woW uComp uDir =

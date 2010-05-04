@@ -93,7 +93,20 @@ solveQuadric a b c
             | otherwise = -0.5 * (b + rootDiscrim)
          rootDiscrim = sqrt discrim
          discrim = b * b - 4.0 * a * c
-         
+                  
+-- | a combination strategy for multiple importance sampling
+type MisHeuristic = (Int, Float) -> (Int, Float) -> Float
+
+powerHeuristic :: MisHeuristic
+powerHeuristic (nf, fPdf) (ng, gPdf) = (f * f) / (f * f + g * g) where
+   f = fromIntegral nf * fPdf
+   g = fromIntegral ng * gPdf
+
+balanceHeuristic :: MisHeuristic
+balanceHeuristic (nf, fPdf) (ng, gPdf) = (fnf * fPdf) / (fnf * fPdf + fng * gPdf) where
+   fnf = fromIntegral nf
+   fng = fromIntegral ng
+
 uniformConePdf :: Float -> Float
 uniformConePdf cosThetaMax = 1.0 / (twoPi * (1.0 - cosThetaMax))
          

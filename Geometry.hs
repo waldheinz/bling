@@ -1,4 +1,3 @@
-{-# LANGUAGE ExistentialQuantification #-}
 
 module Geometry where
 
@@ -13,22 +12,21 @@ data DifferentialGeometry = DifferentialGeometry {
    dgN :: Normal
    } deriving (Show)
 
-class Intersectable a where
+shadingCs :: DifferentialGeometry -> LocalCoordinates
+shadingCs dg = coordinateSystem $ dgN dg
+
+class (Eq a) => Intersectable a where
    -- | intersects a ray with an object, possibly returning the distance
    --   along the ray where an intersection occured together with the
    --   object properties at the intersection point
-   intersect :: Ray -> a -> Maybe (Float, DifferentialGeometry)
+   intersect :: a -> Ray -> Maybe (Float, DifferentialGeometry)
    
    -- | decides if a ray intersects the object
-   intersects :: Ray -> a -> Bool
+   intersects :: a -> Ray -> Bool
    
    -- | the default implementation just test if @intersect@ returns something,
    --   should be overridded if this test can be performed cheaper
-   intersects r a
-      | isJust int = True
-      | otherwise = False
-      where
-            int = intersect r a
+   intersects a r = (isJust $ intersect a r)
             
 class (Intersectable a) => Bound a where
    -- | returns the surface area of the object
@@ -47,7 +45,7 @@ class (Intersectable a) => Bound a where
    boundPdf a _ = 1.0 / boundArea a
    
 -- | a sphere has a radius and a position
-data Sphere = Sphere Float Point
+data Sphere = Sphere Float Point deriving Eq
 
 insideSphere :: Sphere -> Point -> Bool
 insideSphere (Sphere r pos) pt = (sqLen $ sub pos pt) - r * r < epsilon
@@ -72,8 +70,7 @@ instance Bound Sphere where
       | insideSphere sp p = 
          let rndPt = randomOnSphere us 
              in (add center $ scalMul rndPt r, rndPt) -- sample full sphere if inside
-         
-         
+      
       | otherwise = (ps d, normalize $ sub (ps d) center) where -- sample only the visible part if outside
          d = uniformSampleCone cs cosThetaMax us
          cs = coordinateSystem dn
@@ -84,7 +81,7 @@ instance Bound Sphere where
             | otherwise = sub center $ scalMul dn r
             where
                   ray = Ray p d 0 infinity
-                  int = intersect ray sp
+                  int = intersect sp ray
                   t = fst $ fromJust int
          
    boundPdf sp@(Sphere r center) pos
@@ -97,7 +94,7 @@ debug :: Show a => a -> a
 debug x = trace (show x) x
 
 instance Intersectable Sphere where
-   intersect ray@(Ray origin rd tmin tmax) (Sphere r center)
+   intersect (Sphere r center) ray@(Ray origin rd tmin tmax)
       | isNothing times = Nothing
       | t1 > tmax = Nothing
       | t2 < tmin = Nothing
@@ -113,7 +110,7 @@ instance Intersectable Sphere where
          hitPoint = positionAt ray t
          normalAt = normalize $ sub hitPoint center
 
-   intersects (Ray ro rd tmin tmax) (Sphere rad sc)
+   intersects (Sphere rad sc) (Ray ro rd tmin tmax)
       | isNothing roots = False
       | otherwise = t0 < tmax && t1 > tmin
       where
@@ -126,30 +123,13 @@ instance Intersectable Sphere where
             roots = solveQuadric a b c
             
 -- | a plane has a distance from world-space origin and a normal
-data Plane = Plane Float Normal
+data Plane = Plane Float Normal deriving Eq
 
 instance Intersectable Plane where
-   intersect ray@(Ray ro rd _ _) (Plane d n)
+   intersect (Plane d n) ray@(Ray ro rd _ _)
       | not $ onRay ray t = Nothing
       | otherwise = Just $ (t, DifferentialGeometry (positionAt ray t) n)
       where
          t = -(ro `dot` n + d) / (rd `dot` n)
    
-   intersects r@(Ray ro rd _ _) (Plane d n) = onRay r (-((ro `dot` n + d) / (rd `dot` n)))
-   
-data AnyIntersectable = forall a. Intersectable a => MkAnyIntersectable a
-
-instance Intersectable AnyIntersectable where
-   intersect r (MkAnyIntersectable a) = intersect r a
-   intersects r (MkAnyIntersectable a)  = intersects r a
-
-data AnyBound = forall a. Bound a => MkAnyBound a
-
-instance Intersectable AnyBound where
-   intersect r (MkAnyBound a) = intersect r a
-   intersects r (MkAnyBound a)  = intersects r a
-
-instance Bound AnyBound where
-   boundArea (MkAnyBound a) = boundArea a
-   boundSample (MkAnyBound a) p = boundSample a p
-   
+   intersects (Plane d n) r@(Ray ro rd _ _) = onRay r (-((ro `dot` n + d) / (rd `dot` n)))

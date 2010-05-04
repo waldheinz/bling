@@ -13,16 +13,21 @@ data LightSample = LightSample {
    de :: Spectrum, -- ^ differential irradiance
    lightSampleWi :: Vector, -- ^ incident direction
    testRay :: Ray, -- ^ for visibility test
-   lightSamplePdf :: Float
+   lightSamplePdf :: Float,
+   lightSampleDelta :: Bool -- ^ does that light employ a delta-distributuion?
    }
 
 data Light =
-   SoftBox Spectrum | -- ^ An infinite area lightsurrounding the whole scene, emitting a constant amount of light from all directions.
-   Directional Spectrum Normal |
-   AreaLight Spectrum AnyBound
+   SoftBox Spectrum | -- ^ an infinite area light surrounding the whole scene, emitting a constant amount of light from all directions.
+   Directional Spectrum Normal | -- ^ 
+   AreaLight Spectrum Float (Point -> Rand2D -> (Point, Normal)) (Point -> Float)
+--   deriving (Eq)
    
+mkAreaLight :: (Bound b) => Spectrum -> b -> Light
+mkAreaLight r bound = AreaLight r (boundArea bound) (boundSample bound) (boundPdf bound)
+
 lightLe :: Light -> Point -> Normal -> Normal -> Spectrum
-lightLe (AreaLight r _) _ n wo
+lightLe (AreaLight r _ _ _) _ n wo
    | dot n wo > 0 = r
    | otherwise = black
 lightLe _ _ _ _ = black
@@ -30,39 +35,30 @@ lightLe _ _ _ _ = black
 lightSample :: Light -> Point -> Normal -> Rand2D -> LightSample  
 lightSample (SoftBox r) p n us = lightSampleSB r p n us
 lightSample (Directional r d) p n _ = lightSampleD r d p n
-lightSample (AreaLight r b) p n us = sampleAreaLight b r p n us 
+lightSample (AreaLight r area sample pdf) p n us = LightSample (sScale r (absDot ns n)) wi (segmentRay p ps) (pdf p) False where
+   (ps, ns) = sample p us
+   wi = normalize $ ps `sub` p
 
 lightEmittance :: Light -> Ray -> Spectrum
 lightEmittance (SoftBox r) _ = r
 lightEmittance (Directional _ _) _ = black
-lightEmittance (AreaLight _ _) _ = black -- ^ must be sampled by intersecting the shape directly and asking that intersection for le
+lightEmittance (AreaLight _ _ _ _) _ = black -- ^ must be sampled by intersecting the shape directly and asking that intersection for le
 
 lightPdf :: Light -> Point -> Normal -> Vector -> Float
 lightPdf (SoftBox _) _ n wi = absDot n wi
 lightPdf (Directional _ _) _ _ _ = infinity -- zero chance to find the direction by sampling
-lightPdf (AreaLight _ b) p _ _ = boundPdf b p
-
-sampleAreaLight :: (Bound a) => a -> Spectrum -> Point -> Normal -> Rand2D -> LightSample
-sampleAreaLight shape lemit p n = do
-   (ps, ns) <- boundSample shape p
-   wi <- return $ normalize $ ps `sub` p
-   return $! LightSample (sScale lemit (absDot ns n)) wi (segmentRay p ps) (boundPdf shape p)
+lightPdf (AreaLight _ _ _ pdf) p _ _ = pdf p
 
 lightSampleSB :: Spectrum -> Point -> Normal -> Rand2D -> LightSample
-lightSampleSB r pos n us = sample lDir
+lightSampleSB r pos n us = LightSample r (toWorld lDir) (ray $ toWorld lDir) (pdf lDir) False
    where
       lDir = cosineSampleHemisphere us
-      sample = (\ds -> LightSample r (toWorld ds) (ray $ toWorld ds) (pdf ds))
       ray = (\dir -> Ray pos dir epsilon infinity)
-      
-      pdf :: Vector -> Float
       pdf (_, _, z) = invPi * z
-      
-      toWorld :: Vector -> Vector
       toWorld v = localToWorld (coordinateSystem n) v
 
 lightSampleD :: Spectrum -> Normal -> Point -> Normal -> LightSample
-lightSampleD r d pos n = LightSample y d ray 1.0 where
+lightSampleD r d pos n = LightSample y d ray 1.0 True where
    y = sScale r (absDot n d)
    ray = (Ray pos d epsilon infinity)
 

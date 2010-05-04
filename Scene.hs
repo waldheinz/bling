@@ -36,6 +36,20 @@ evalSample scene sample wo bsdf _ n
          wi = lightSampleWi sample
          f = evalBsdf bsdf wo wi
    
+sampleLightMis :: Scene -> LightSample -> Bsdf -> Vector -> Normal -> Spectrum
+sampleLightMis scene (LightSample li wi ray pdf deltaLight) bsdf wo n
+   | (pdf == infinity) || (isBlack li) || (isBlack f) || (primIntersects scene ray) = black
+   | deltaLight = sScale (f * li) ((absDot wi n) / pdf)
+   | otherwise = sScale (f * li) ((absDot wi n) * weight / pdf)
+   where
+         f = evalBsdf bsdf wo wi
+         weight = powerHeuristic (1, pdf) (1, bsdfPdf bsdf wo wi)
+
+sampleBsdfMis :: Scene -> LightSample -> Spectrum
+sampleBsdfMis scene (LightSample li wi ray pdf deltaLight)
+   | deltaLight = black
+   | otherwise = undefined
+      
 -- | samples all lights by sampling individual lights and summing up the results
 sampleAllLights :: Scene -> Point -> Normal -> Vector -> Bsdf -> Rand Spectrum
 sampleAllLights scene p n wo bsdf = undefined
