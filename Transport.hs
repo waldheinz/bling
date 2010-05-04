@@ -1,7 +1,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 module Transport(
-   Bsdf, mkBsdf, BsdfSample(..), sampleBsdf, evalBsdf, bsdfPdf,
+   Bsdf, mkBsdf, BsdfSample(..), sampleBsdf, evalBsdf, bsdfPdf, filterBsdf,
    Bxdf(..), AnyBxdf(..), BxdfType, BxdfProp(..), mkBxdfType,
    isDiffuse, isReflection, sameHemisphere, toSameHemisphere, cosTheta
    ) where
@@ -10,7 +10,6 @@ import Color
 import Math
 import Random
 
-import Control.Monad
 import Data.BitSet
 import Data.List(foldl')
 import qualified Data.Vector as V
@@ -53,8 +52,8 @@ class Bxdf a where
    bxdfPdf :: a -> Normal -> Normal -> Float
    bxdfType :: a -> BxdfType
    
-   bxdfSample a wo rnd = (f, wi, pdf) where
-      wi = cosineSampleHemisphere rnd
+   bxdfSample a wo u = (f, wi, pdf) where
+      wi = cosineSampleHemisphere u
       f = bxdfEval a wo wi
       pdf = bxdfPdf a wo wi
       
