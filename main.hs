@@ -1,7 +1,10 @@
 --- RT - H
 
 import Control.Monad
+import Control.Monad.ST
+import GHC.IOBase
 import System.Random
+import System.Random.MWC
 import Text.Printf
 import Time
 
@@ -59,14 +62,14 @@ myCamera = pinHoleCamera myView
 
 myScene :: Scene
 myScene = Scene myShape myLights
-
+{-
 onePass :: Image -> Scene -> Camera -> Integrator -> Rand Image
 onePass img scene cam int = do
    ox <- rndR (0, 1 / fromIntegral ns)
    oy <- rndR (0, 1 / fromIntegral ns)
    apply img $ map (shift (ox, oy)) $ stratify ns $ imageSamples img
       where
-         ns = 3
+         ns = 2
          sx = fromIntegral $ imageWidth img
          sy = fromIntegral $ imageHeight img
          apply :: Image -> [(Float, Float)] -> Rand Image
@@ -77,7 +80,26 @@ onePass img scene cam int = do
             ws <- int scene (cam (px / sx, py / sy))
             nxs <- seq ws return $! (ImageSample px py ws)
             apply (nxs `seq` i `seq` addSample i nxs) xs
-      
+-}
+onePassST :: Gen s -> STImage s -> Scene -> Camera -> Integrator -> ST s (STImage s)
+onePassST gen img scene cam int = do
+   ox <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
+   oy <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
+   apply img $ map (shift (ox, oy)) $ stratify ns $ imageSamples (_w img) (_h img)
+      where
+         ns = 2
+         sx = fromIntegral $ _w img
+         sy = fromIntegral $ _h img
+  --       apply :: STImage s -> [(Float, Float)] -> ST s (STImage s)
+         apply i [] = return $! i
+         apply i ((px, py):xs)
+             | seq i False = undefined
+             | otherwise = do
+            ws <- runRandST gen $ int scene (cam (px / sx, py / sy))
+            nxs <- runRandST gen $ seq ws return $! (ImageSample px py ws)
+            apply (nxs `seq` i `seq` addSTSample i nxs) xs
+
+
 stratify :: Int -> [(Float, Float)] -> [(Float, Float)]
 stratify _ [] = []
 stratify 1 xs = xs
@@ -88,10 +110,8 @@ stratify n (p:xs) = stratify' p ++ (stratify n xs) where
 shift :: (Float, Float) -> (Float, Float) -> (Float, Float)
 shift (ox, oy) (x, y) = (x + ox, y + oy)
    
-imageSamples :: Image -> [(Float, Float)]
-imageSamples img = [ (fromIntegral x, fromIntegral y) | y <- [0..sy-1], x <- [0..sx-1]] where
-   sx = imageWidth img
-   sy = imageHeight img
+imageSamples :: Int -> Int -> [(Float, Float)]
+imageSamples sx sy = [ (fromIntegral x, fromIntegral y) | y <- [0..sy-1], x <- [0..sx-1]] where
    
 -- | Pretty print the date in '1d 9h 9m 17s' format
 pretty :: TimeDiff -> String
@@ -106,20 +126,25 @@ pretty td = join . filter (not . null) . map f $
     f (i,s) | i == 0    = []
             | otherwise = show i ++ s
    
-render :: Int -> Image -> Scene -> Camera -> Integrator -> IO ()
+render :: Int -> (STImage RealWorld) -> Scene -> Camera -> Integrator -> IO ()
 render pass img sc cam int = do
    putStrLn "Rendering..."
    start <- getClockTime
    seed <- randomIO :: IO Int
-   img' <- return $! runRand seed (onePass img sc cam int)
+   gen <- stToIO $ mkRndGen seed
+   img' <- stToIO $ onePassST gen img sc cam int
    stop <- getClockTime
    putStrLn (pretty $ diffClockTimes stop start)
    putStrLn $ "Writing " ++ fname ++ "..."
-   writeFile fname $ imageToPpm img'
+ --  writeFile fname $ imageToPpm img'
    seq img' render (pass + 1) img' sc cam int
    where
          fname = "pass-" ++ (printf "%05d" pass) ++ ".ppm"
 
 main :: IO ()
-main = render 1 (makeImage resX resY) myScene myCamera pathTracer
+main = do
+   putStrLn "Creating image..."
+   img <- stToIO $  mkImage resX resY
+   
+   render 1 img myScene myCamera pathTracer
          

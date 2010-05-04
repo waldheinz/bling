@@ -110,7 +110,7 @@ sampleBsdf (Bsdf bs cs) woW uComp uDir =
          wiW = localToWorld cs wi
          wo = worldToLocal cs woW
          bxdf = V.unsafeIndex bs sNum
-         sNum = min bxdfCount (floor (uComp * fromIntegral bxdfCount)) -- index of Bxdf to sample
+         sNum = min (bxdfCount-1) (floor (uComp * fromIntegral bxdfCount)) -- index of Bxdf to sample
          bxdfCount = V.length bs
 
 evalBsdf :: Bsdf -> Vector -> Vector -> Spectrum

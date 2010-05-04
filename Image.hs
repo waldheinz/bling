@@ -1,16 +1,15 @@
 
 module Image(
    Image, ImageSample(..),
-   STImage, mkImage,
+   STImage(..), mkImage,
    imageWidth, imageHeight, 
-   imageToPpm, makeImage, addSample) where
+   imageToPpm, makeImage, addSample, addSTSample) where
 
 import Data.Array.Diff
 import Debug.Trace
 
 import Control.Monad.ST
 import Data.Array.ST
-
 
 import Color
 
@@ -40,8 +39,6 @@ mkImage w h = do
    pixels <- newArray (0, (w * h - 1)) 0.0 :: ST s (STUArray s Int Float)
    return $ STImage w h pixels
    
-{-
-   
 addPixel :: STImage s -> Int -> WeightedSpectrum -> ST s (STImage s)
 addPixel (STImage w h p) o (sw, s) = do
    osw <- readArray p o'
@@ -50,9 +47,11 @@ addPixel (STImage w h p) o (sw, s) = do
    where
          (sx, sy, sz) = toXyz s
          o' = o * 4
-  
--}
-  
+
+addSTSample :: (STImage s) -> ImageSample -> (STImage s)
+addSTSample (STImage w h p) _ = do
+   STImage w h p
+
 -- | extracts the pixel at the specified offset from an Image
 getPixel :: Image -> Int -> WeightedSpectrum
 getPixel (Image _ _ p) o = (p ! o', s) where
