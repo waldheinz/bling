@@ -36,7 +36,7 @@ class (Intersectable a) => Bound a where
    
    -- | returns a random point (along with its normal) on the object, 
    --   which is preferably visible from the specified point
-   boundSample :: a -> Point -> Rand (Point, Normal)
+   boundSample :: a -> Point -> Rand2D -> (Point, Normal)
 
    -- | returns the pdf for the sample chosen by @boundSample@
    boundPdf :: a -> Point -> Float
@@ -68,26 +68,24 @@ sampleSphere co pt
 instance Bound Sphere where
    boundArea (Sphere r _) = r * r * 4 * pi
    
-   boundSample sp@(Sphere r center) p
-      | insideSphere sp p = do -- sample full sphere if inside
-         rndPt <- randomOnSphere
-         return $! (add center $ scalMul rndPt r, rndPt)
+   boundSample sp@(Sphere r center) p us
+      | insideSphere sp p = 
+         let rndPt = randomOnSphere us 
+             in (add center $ scalMul rndPt r, rndPt) -- sample full sphere if inside
          
-      | otherwise = do -- sample only the visible part if outside
-         d <- uniformSampleCone cs cosThetaMax
-         return $! (ps d, normalize $ sub (ps d) center)
-         where
-               cs = coordinateSystem dn
-               dn = normalize $ sub center p
-               cosThetaMax = sqrt $ max 0 (1 - (r * r) / (sqLen $ sub p center))
-               
-               ps d
-                  | isJust int = positionAt ray t
-                  | otherwise = sub center $ scalMul dn r
-                     where 
-                           ray = Ray p d 0 infinity
-                           int = intersect ray sp
-                           t = fst $ fromJust int
+         
+      | otherwise = (ps d, normalize $ sub (ps d) center) where -- sample only the visible part if outside
+         d = uniformSampleCone cs cosThetaMax us
+         cs = coordinateSystem dn
+         dn = normalize $ sub center p
+         cosThetaMax = sqrt $ max 0 (1 - (r * r) / (sqLen $ sub p center))
+         ps d
+            | isJust int = positionAt ray t
+            | otherwise = sub center $ scalMul dn r
+            where
+                  ray = Ray p d 0 infinity
+                  int = intersect ray sp
+                  t = fst $ fromJust int
          
    boundPdf sp@(Sphere r center) pos
       | insideSphere sp pos = 1.0 / boundArea sp

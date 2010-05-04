@@ -2,6 +2,7 @@
 module Pathtracer(pathTracer) where
 
 import Control.Monad
+import Data.BitSet
 
 import Color
 import Geometry
@@ -30,16 +31,18 @@ nextVertex _ _ False _ Nothing _ l = -- nothing hit, non-specular bounce
 nextVertex s depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ dg _)) throughput l 
    | isBlack throughput = return (1.0, l)
    | otherwise = do
-      (BsdfSample _ smpApp pdf f wi) <- sampleBsdf bsdf wo
+      bsdfDirU <- rnd2D
+      bsdfCompU <- rnd
+      (BsdfSample smpType pdf f wi) <- return $ sampleBsdf bsdf wo bsdfCompU bsdfDirU
       lHere <- sampleOneLight s p n wo bsdf
       outRay <- return (Ray p wi epsilon infinity)
       throughput' <- return $! throughput * sScale f ((absDot wi n) / pdf)
       
       l' <- return $! l + (throughput * (lHere + intl))
-      spec' <- return $! case smpApp of
-         Specular -> True
-         _ -> False
-         
+      spec' <- return $! if (Specular `member` smpType)
+                            then True
+                            else False
+      
       x <- rnd
       if (x > pCont)
          then return $! (1.0, l)

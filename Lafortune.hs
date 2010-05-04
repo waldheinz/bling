@@ -15,8 +15,7 @@ data Lafortune = Lafortune Spectrum [Lobe]
 
 instance Bxdf Lafortune where
    
-   bxdfType _ = Reflection
-   bxdfAppearance _ = Glossy
+   bxdfType _ = mkBxdfType [Reflection, Glossy]
    
    bxdfEval (Lafortune diffuse lobes) (wox, woy, woz) (wix, wiy, wiz) =
       foldl (+) (sScale diffuse invPi) $ map evalLobe lobes where

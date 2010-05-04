@@ -20,7 +20,7 @@ instance Material AnyMaterial where
 data Matte = Matte AnyTexture
 
 instance Material Matte where
-   materialBsdf (Matte tex) dg = (Bsdf [bxdf] sc) where
+   materialBsdf (Matte tex) dg = mkBsdf [bxdf] sc where
       bxdf = MkAnyBxdf $ Lambertian $ r
       r = evalTexture tex dg
       sc = coordinates dg
@@ -30,20 +30,20 @@ data Lambertian = Lambertian Spectrum
 data Blackbody = Blackbody
 
 instance Material Blackbody where
-   materialBsdf _ _ = BlackbodyBsdf
+   materialBsdf _ int = mkBsdf [] cs where
+      cs = coordinates int
 
 instance Bxdf Lambertian where
    bxdfEval (Lambertian r) _ _ = sScale r invPi
-   bxdfType _ = Reflection
-   bxdfAppearance _ = Diffuse
-
+   bxdfType _ = mkBxdfType [Reflection, Diffuse]
+   
 coordinates :: DifferentialGeometry -> LocalCoordinates
 coordinates dg = coordinateSystem $ dgN dg where
    
 data Measured = BrushedMetal | BluePaint | Felt | Clay | Primer
 
 instance Material Measured where
-   materialBsdf Primer int = (Bsdf [bxdf] sc) where
+   materialBsdf Primer int = mkBsdf [bxdf] sc where
       sc = coordinates int
       bxdf = MkAnyBxdf $ Lafortune (fromXyz (0.118230, 0.121218, 0.133209)) lobes
       
@@ -64,7 +64,7 @@ instance Material Measured where
       z3  = fromXyz ( -0.145110,  0.159127,  0.173224 )
       e3  = fromXyz ( 31.899719,  2.372852,  2.636161 )
    
-   materialBsdf Clay int = (Bsdf [bxdf] sc) where
+   materialBsdf Clay int = mkBsdf [bxdf] sc where
       sc = coordinates int
       bxdf = MkAnyBxdf $ Lafortune (fromXyz (0.383626, 0.260749, 0.274207)) lobes
       
@@ -85,7 +85,7 @@ instance Material Measured where
       z3  = fromXyz (   0.910783,   0.885239,   0.892451 )
       e3  = fromXyz ( 152.912795, 141.937171, 201.046802 )
    
-   materialBsdf Felt int = (Bsdf [bxdf] sc) where
+   materialBsdf Felt int = mkBsdf [bxdf] sc where
       sc = coordinates int
       bxdf = MkAnyBxdf $ Lafortune (fromXyz (0.025865, 0.025865, 0.025865)) lobes
       
@@ -106,7 +106,7 @@ instance Material Measured where
       z3  = fromXyz (-0.205529, -0.205529, -0.205529)
       e3  = fromXyz (94.117332, 94.117332, 94.117332)
    
-   materialBsdf BluePaint int = (Bsdf [bxdf] sc) where
+   materialBsdf BluePaint int = mkBsdf [bxdf] sc where
       sc = coordinates int
       bxdf = MkAnyBxdf $ Lafortune (fromXyz (0.3094, 0.39667, 0.70837)) lobes
       
@@ -127,7 +127,7 @@ instance Material Measured where
       z3  = fromXyz (0.706734, 0.696530, 0.687715)
       e3  = fromXyz (66.899060, 63.767912, 57.489181)
    
-   materialBsdf BrushedMetal int = (Bsdf [bxdf] sc) where
+   materialBsdf BrushedMetal int = mkBsdf [bxdf] sc where
       sc = coordinates int
       bxdf = MkAnyBxdf $ Lafortune black lobes
       

@@ -14,8 +14,7 @@ data Microfacet = Microfacet {
    }
 
 instance Bxdf Microfacet where
-   bxdfType _ = Reflection
-   bxdfAppearance _ = Glossy
+   bxdfType _ = mkBxdfType [Reflection, Glossy]
    bxdfEval (Microfacet d fresnel r) wo wi = sScale (r * f) ((mfDistD d wh) * (mfG wo wi wh) / (4 * costi * costo)) where
       costo = abs $ cosTheta wo
       costi = abs $ cosTheta wi
@@ -23,19 +22,16 @@ instance Bxdf Microfacet where
       f = fresnel costh
       costh = dot wi wh
       
-   bxdfSample mf wo = do
-      u1 <- rnd
-      u2 <- rnd
-      return $! bxdfSample' (u1, u2) mf wo
+   bxdfSample mf wo rnd = bxdfSample' rnd mf wo
    
    bxdfPdf (Microfacet d _ _) wo wi
       | sameHemisphere wo wi = mfDistPdf d wo wi
       | otherwise = infinity
    
-bxdfSample' :: Rand2D -> Microfacet -> Vector -> BxdfSample
+bxdfSample' :: Rand2D -> Microfacet -> Vector -> (Spectrum, Vector, Float)
 bxdfSample' rnd mf@(Microfacet d _ _) wo
-   | sameHemisphere wo wi = BxdfSample f wi pdf
-   | otherwise = BxdfSample black wi infinity
+   | sameHemisphere wo wi = (f, wi, pdf)
+   | otherwise = (black, undefined, infinity)
    where
          f = bxdfEval mf wo wi
          (pdf, wi) = mfDistSample d rnd wo

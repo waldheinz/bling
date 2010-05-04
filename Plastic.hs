@@ -16,7 +16,7 @@ data Plastic = Plastic {
    }
    
 instance Material Plastic where
-   materialBsdf (Plastic kd ks rough) dg = (Bsdf [diff, spec] sc) where
+   materialBsdf (Plastic kd ks rough) dg = mkBsdf [diff, spec] sc where
       diff = MkAnyBxdf $ Lambertian $ rd
       spec = MkAnyBxdf $ Microfacet (Blinn (1 / rough)) (frDiel 1.5 1.0) rs
       rd = evalTexture kd dg

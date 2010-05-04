@@ -21,10 +21,9 @@ instance Primitive Scene where
    
 type Integrator = Scene -> Ray -> Rand WeightedSpectrum
    
-evalLight :: Scene -> Point -> Normal -> Light -> Vector -> Bsdf -> Rand Spectrum
-evalLight scene p n light wo bsdf = do
-   sample <- lightSample light p n
-   return $! (evalSample scene sample wo bsdf p n)
+evalLight :: Scene -> Point -> Normal -> Light -> Vector -> Bsdf -> Rand2D -> Spectrum
+evalLight scene p n light wo bsdf us = (evalSample scene sample wo bsdf p n) where
+   sample = lightSample light p n us
    
 evalSample :: Scene -> LightSample -> Vector -> Bsdf -> Point -> Normal -> Spectrum
 evalSample scene sample wo bsdf _ n
@@ -39,20 +38,21 @@ evalSample scene sample wo bsdf _ n
    
 -- | samples all lights by sampling individual lights and summing up the results
 sampleAllLights :: Scene -> Point -> Normal -> Vector -> Bsdf -> Rand Spectrum
-sampleAllLights scene p n wo bsdf = (foldl (liftM2 (+)) (return black) spectri) -- sum up contributions
-  where
-    spectri = map (\l -> evalLight scene p n l wo bsdf) lights
-    lights = sceneLights scene
+sampleAllLights scene p n wo bsdf = undefined
+--   return (foldl (liftM2 (+)) (return black) spectri) -- sum up contributions
+--  where
+--    spectri = map (\l -> evalLight scene p n l wo bsdf) lights
+--    lights = sceneLights scene
 
 -- | samples one randomly chosen light source
 sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> Rand Spectrum
 sampleOneLight (Scene _ []) _ _ _ _ = return black -- no light sources -> no light
-sampleOneLight scene@(Scene _ (l:[])) p n wo bsdf = evalLight scene p n l wo bsdf -- eval the only light source
-sampleOneLight scene@(Scene _ lights) p n wo bsdf = do
-  lightNumF <-rndR (0, fromIntegral lightCount)
-  lightNum <- return $ floor lightNumF
-  y <- evalLight scene p n (lights !! lightNum) wo bsdf
-  return $! scale y
-  where
-    lightCount = length lights
-    scale = (\y -> sScale y (fromIntegral lightCount))
+sampleOneLight scene@(Scene _ (l:[])) p n wo bsdf = undefined -- evalLight scene p n l wo bsdf -- eval the only light source
+sampleOneLight scene@(Scene _ lights) p n wo bsdf = undefined
+--  lightNumF <-rndR (0, fromIntegral lightCount)
+--  lightNum <- return $ floor lightNumF
+--  y <- evalLight scene p n (lights !! lightNum) wo bsdf
+--  return $! scale y
+--  where
+--    lightCount = length lights
+--    scale = (\y -> sScale y (fromIntegral lightCount))

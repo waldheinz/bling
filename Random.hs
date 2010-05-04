@@ -1,6 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 
-module Random (Rand, Rand2D, runRand, rndR, rndRI, rnd) where
+module Random (Rand, Rand2D, runRand, rndR, rnd2D, rndRI, rnd) where
 
 import Control.Monad.ST
 import Data.Vector.Unboxed
@@ -38,3 +38,10 @@ rndR :: (Float, Float) -> Rand Float
 rndR (lo, hi) = do
    t <- rnd
    return ((1.0 - t) * lo + t * hi)
+
+rnd2D :: Rand Rand2D
+rnd2D = do
+   u1 <- rnd
+   u2 <- rnd
+   return (u1, u2)
+   

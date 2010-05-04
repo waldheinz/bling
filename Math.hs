@@ -77,6 +77,9 @@ normalize v
   | (sqLen v) /= 0 = scalMul v (1 / len v)
   | otherwise = (0, 1, 0)
 
+lerp :: Float -> Float -> Float -> Float
+lerp t v1 v2 = (1 - t) * v1 + t * v2
+
 -- Calculate the roots of the equation a * x^2 + b * x + c = 0
 solveQuadric :: Float -> Float -> Float -> Maybe (Float, Float)
 solveQuadric a b c
@@ -94,36 +97,34 @@ solveQuadric a b c
 uniformConePdf :: Float -> Float
 uniformConePdf cosThetaMax = 1.0 / (twoPi * (1.0 - cosThetaMax))
          
-uniformSampleCone :: LocalCoordinates -> Float -> Rand Vector
-uniformSampleCone (LocalCoordinates x y z) cosThetaMax = do
-   cosTheta <- rndR (cosThetaMax, 1.0)
-   sinTheta <- return $ sqrt (1 - cosTheta * cosTheta)
-   phi <- rndR (0, twoPi)
-   return (
+uniformSampleCone :: LocalCoordinates -> Float -> Rand2D -> Vector
+uniformSampleCone (LocalCoordinates x y z) cosThetaMax (u1, u2) = let
+   cosTheta = lerp u1 cosThetaMax 1.0
+   sinTheta = sqrt (1 - cosTheta * cosTheta)
+   phi = u2 * twoPi
+   in
+      (
       (scalMul x ((cos phi) * sinTheta)) `add`
       (scalMul y ((sin phi) * sinTheta)) `add`
-      (scalMul z cosTheta))
+      (scalMul z cosTheta)
+      )
       
 -- | generates a random point on the unit sphere,
 -- see http://mathworld.wolfram.com/SpherePointPicking.html
-randomOnSphere :: Rand Vector
-randomOnSphere = do
-   u <- rndR (-1, 1 :: Float)
-   omega <- rndR (0, 2 * pi :: Float)
-   return $! ((s u) * cos omega, (s u) * sin omega, u)
-   where
-      s = (\u -> (sqrt (1 - (u * u))))
+randomOnSphere :: Rand2D -> Vector
+randomOnSphere (u1, u2) = ((s u) * cos omega, (s u) * sin omega, u) where
+   u = u1 * 2 - 1
+   omega = u2 * 2 * pi
+   s = (\u -> (sqrt (1 - (u * u))))
    
-cosineSampleHemisphere :: Rand Vector
-cosineSampleHemisphere = do
-   (x, y) <- concentricSampleDisk
-   return $! (x, y, sqrt (max 0 (1 - x*x - y*y)))
+cosineSampleHemisphere :: Rand2D -> Vector
+cosineSampleHemisphere rnd = (x, y, sqrt (max 0 (1 - x*x - y*y))) where
+   (x, y) = concentricSampleDisk rnd
    
-concentricSampleDisk :: Rand (Float, Float)
-concentricSampleDisk = do
-   sx <- rndR (-1, 1 :: Float)
-   sy <- rndR (-1, 1 :: Float)
-   return $! concentricSampleDisk' (sx, sy)
+concentricSampleDisk :: Rand2D -> (Float, Float)
+concentricSampleDisk (u1, u2) = concentricSampleDisk' (sx, sy) where
+   sx = u1 * 2 - 1
+   sy = u2 * 2 - 1
 
 concentricSampleDisk' :: (Float, Float) -> (Float, Float)
 concentricSampleDisk' (0, 0) = (0, 0) -- handle degeneracy at the origin

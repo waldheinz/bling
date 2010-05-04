@@ -10,7 +10,7 @@ import Transport
 data Glass = Glass Float
 
 instance Material Glass where
-   materialBsdf (Glass ior) dg = Bsdf [bxdf] cs
+   materialBsdf (Glass ior) dg = mkBsdf [bxdf] cs
       where
          bxdf = MkAnyBxdf $ SpecularReflection white fresnel
          fresnel = frDiel 1 ior
@@ -19,7 +19,7 @@ instance Material Glass where
 data Mirror = Mirror Spectrum
 
 instance Material Mirror where
-   materialBsdf (Mirror r) dg = Bsdf [bxdf] cs where
+   materialBsdf (Mirror r) dg = mkBsdf [bxdf] cs where
       bxdf = MkAnyBxdf $ SpecularReflection r frNoOp
       cs = coordinateSystem $ dgN dg
 
@@ -29,16 +29,13 @@ data SpecularReflection = SpecularReflection {
    }
         
 instance Bxdf SpecularReflection where
-   bxdfType _ = Reflection
-   bxdfAppearance _ = Specular
+   bxdfType _ = mkBxdfType [Reflection, Specular]
    bxdfEval _ _ _ = black
    bxdfPdf _ _ _ = 0.0
-   bxdfSample (SpecularReflection r fresnel) (x, y, z) = do
-        return $! BxdfSample f wi pdf
-        where
-           f = sScale (r * fresnel z) (1.0 / abs z)
-           wi = (-x, -y, z)
-           pdf = 1.0
+   bxdfSample (SpecularReflection r fresnel) (x, y, z) _ = (f, wi, pdf) where
+      f = sScale (r * fresnel z) (1.0 / abs z)
+      wi = (-x, -y, z)
+      pdf = 1.0
            
 type Fresnel = Float -> Spectrum
 
