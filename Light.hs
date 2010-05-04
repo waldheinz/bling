@@ -35,7 +35,7 @@ lightLe _ _ _ _ = black
 lightSample :: Light -> Point -> Normal -> Rand2D -> LightSample  
 lightSample (SoftBox r) p n us = lightSampleSB r p n us
 lightSample (Directional r d) p n _ = lightSampleD r d p n
-lightSample (AreaLight r area sample pdf) p n us = LightSample (sScale r (absDot ns n)) wi (segmentRay p ps) (pdf p) False where
+lightSample (AreaLight r _ sample pdf) p n us = LightSample (sScale r (absDot ns n)) wi (segmentRay p ps) (pdf p) False where
    (ps, ns) = sample p us
    wi = normalize $ ps `sub` p
 
