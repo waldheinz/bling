@@ -10,14 +10,14 @@ import Random
 import Scene
 
 whitted :: Scene -> Ray -> Rand Spectrum
-whitted scene@(Scene p _) ray@(Ray _ rd _ _) 
+whitted scene@(Scene sp _) ray@(Ray _ rd _ _) 
    | isJust mint = evalInt $ fromJust mint
    | otherwise = return black -- $! direct ray
    where
       wo = neg rd
       
       mint :: Maybe Intersection
-      mint = primIntersect p ray
+      mint = primIntersect sp ray
          
 --      direct :: Ray -> Spectrum
 --      direct _ [] = black
