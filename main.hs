@@ -41,13 +41,11 @@ plTest e kd  = plasticMaterial
 
 myShape :: Primitive
 myShape = Group [
-   gP (Sphere (0.9) (1, 1, -1)) (plTest 0.01 (1, 0.56, 0)) Nothing,
-   gP (Sphere (0.9) (-1, 1, -1)) (plTest 0.05 (0.38, 0.05, 0.67)) Nothing,
-   gP (Sphere (0.9) (-1, 1, 1)) (plTest 0.25 (1, 0.96, 0)) Nothing,
-   gP (Sphere (0.9) (1, 1, 1)) (plTest 0.5 (0.04, 0.4, 0.64)) Nothing,
+   mkGeometricPrimitive (Sphere (0.9) (1, 1, -1)) (plTest 0.01 (1, 0.56, 0)) Nothing,
+   mkGeometricPrimitive (Sphere (0.9) (-1, 1, -1)) (plTest 0.05 (0.38, 0.05, 0.67)) Nothing,
+   mkGeometricPrimitive (Sphere (0.9) (-1, 1, 1)) (plTest 0.25 (1, 0.96, 0)) Nothing,
+   mkGeometricPrimitive (Sphere (0.9) (1, 1, 1)) (plTest 0.5 (0.04, 0.4, 0.64)) Nothing,
    mkGeometricPrimitive (Plane (-0.1) (0, 1, 0)) defMat Nothing ]
-   where
-         gP = mkGeometricPrimitive
 
 myLights :: [Light]
 myLights = [
