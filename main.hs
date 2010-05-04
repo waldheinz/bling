@@ -3,6 +3,7 @@
 import Control.Monad
 import Control.Monad.ST
 import GHC.IOBase
+import System.IO
 import System.Random
 import System.Random.MWC
 import Text.Printf
@@ -49,10 +50,10 @@ myLights = [
     ]
 
 resX :: Int
-resX = 640
+resX = 100
 
 resY :: Int
-resY = 480
+resY = 100
 
 myView :: View
 myView = View (3, 7, -6) (0,0.5,0) (0, 1, 0) 1.8 (fromIntegral resX / fromIntegral resY)
@@ -62,42 +63,24 @@ myCamera = pinHoleCamera myView
 
 myScene :: Scene
 myScene = Scene myShape myLights
-{-
-onePass :: Image -> Scene -> Camera -> Integrator -> Rand Image
-onePass img scene cam int = do
-   ox <- rndR (0, 1 / fromIntegral ns)
-   oy <- rndR (0, 1 / fromIntegral ns)
-   apply img $ map (shift (ox, oy)) $ stratify ns $ imageSamples img
-      where
-         ns = 2
-         sx = fromIntegral $ imageWidth img
-         sy = fromIntegral $ imageHeight img
-         apply :: Image -> [(Float, Float)] -> Rand Image
-         apply i [] = return $! i
-         apply i ((px, py):xs)
-             | seq i False = undefined
-             | otherwise = do
-            ws <- int scene (cam (px / sx, py / sy))
-            nxs <- seq ws return $! (ImageSample px py ws)
-            apply (nxs `seq` i `seq` addSample i nxs) xs
--}
-onePassST :: Gen s -> Image s -> Scene -> Camera -> Integrator -> ST s (Image s)
-onePassST gen img scene cam int = do
+
+onePass :: Gen s -> Image s -> Scene -> Camera -> Integrator -> ST s ()
+onePass gen img scene cam int = do
    ox <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
    oy <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
-   apply img $ map (shift (ox, oy)) $ stratify ns $ imageSamples (imageWidth img) (imageHeight img)
+   apply $ map (shift (ox, oy)) $ stratify ns $ imageSamples (imageWidth img) (imageHeight img)
       where
-         ns = 1
+         ns = 4
          sx = fromIntegral $ imageWidth img
          sy = fromIntegral $ imageHeight img
   --       apply :: STImage s -> [(Float, Float)] -> ST s (STImage s)
-         apply i [] = return $! i
-         apply i ((px, py):xs)
-             | seq i False = undefined
-             | otherwise = do
+         apply [] = return ()
+         apply ((px, py):xs) = do
             ws <- runRandST gen $ int scene (cam (px / sx, py / sy))
             nxs <- runRandST gen $ seq ws return $! (ImageSample px py ws)
-            apply (nxs `seq` i `seq` addSample i nxs) xs
+            addSample img nxs
+            apply xs
+            --apply (nxs `seq` i `seq` addSample i nxs) xs
 
 
 stratify :: Int -> [(Float, Float)] -> [(Float, Float)]
@@ -132,13 +115,16 @@ render pass img sc cam int = do
    start <- getClockTime
    seed <- randomIO :: IO Int
    gen <- stToIO $ mkRndGen seed
-   img' <- stToIO $ onePassST gen img sc cam int
+   stToIO $ onePass gen img sc cam int
    stop <- getClockTime
    putStrLn (pretty $ diffClockTimes stop start)
    putStrLn $ "Writing " ++ fname ++ "..."
-   imgData <- stToIO $ imageToPpm img'
-   writeFile fname $ imgData
-   seq img' render (pass + 1) img' sc cam int
+  -- imgData <- stToIO $ imageToPpm img
+   handle <- openFile fname WriteMode
+   writePpm img handle
+   hClose handle
+--   writeFile fname $ imgData
+   render (pass + 1) img sc cam int
    where
          fname = "pass-" ++ (printf "%05d" pass) ++ ".ppm"
 

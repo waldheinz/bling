@@ -3,13 +3,15 @@ module Image(
    Image, ImageSample(..),
    mkImage,
    imageWidth, imageHeight, 
-   imageToPpm, addSample) where
+   writePpm, addSample) where
 
 import Debug.Trace
 
 import Control.Monad
 import Control.Monad.ST
+import Data.List
 import Data.Array.ST
+import System.IO
 
 import Color
 
@@ -32,32 +34,37 @@ mkImage w h = do
    pixels <- newArray (0, (w * h * 4)) 0.0 :: ST s (STUArray s Int Float)
    return $ Image w h pixels
    
-addPixel :: Image s -> Int -> WeightedSpectrum -> ST s (Image s)
-addPixel (Image w h p) o (sw, s) = do
+addPixel :: Image s -> Int -> WeightedSpectrum -> ST s ()
+addPixel (Image _ _ p) o (sw, s) = do
    osw <- readArray p o'
    writeArray p o' (osw + sw)
-   return $ Image w h p
+   
+   ox <- readArray p (o' + 1)
+   writeArray p (o' + 1) (ox + sx)
+   
+   oy <- readArray p (o' + 2)
+   writeArray p (o' + 2) (oy + sy)
+   
+   oz <- readArray p (o' + 3)
+   writeArray p (o' + 3) (oz + sz)
+   
+--   Image w h p
    where
          (sx, sy, sz) = toXyz s
          o' = o * 4
 
-
--- | adds an sample to the specified image and returns the updated image
-addSample :: Image s -> ImageSample -> Image s
-addSample img@(Image w h _) (ImageSample sx sy (sw, ss))
-   | isx > maxX || isy > maxY = img
-   | sNaN ss = trace ("skipping NaN sample at (" ++ (show sx) ++ ", " ++ (show sy) ++ ")") img
-   | otherwise = img
+-- | adds an sample to the specified image
+addSample :: Image s -> ImageSample -> ST s ()
+addSample img@(Image w h _) (ImageSample sx sy ws@(_, ss))
+   | isx > maxX || isy > maxY = error "out of bounds sample"
+   | sNaN ss = trace ("skipping NaN sample at (" ++ (show sx) ++ ", " ++ (show sy) ++ ")") (return () )
+   | otherwise = addPixel img offset ws
    where
-      img' = img -- seq img seq newPixel putPixel img offset newPixel
       isx = floor sx
       isy = floor sy
       maxX = w - 1
       maxY = h - 1
       offset = isy * w + isx
-  --    (oldW, oldS) = getPixel img offset
-  --    newPixel = (oldW + sw, oldS + ss)
-
 
 -- | extracts the pixel at the specified offset from an Image
 getPixel :: Image s -> Int -> ST s WeightedSpectrum
@@ -69,29 +76,24 @@ getPixel (Image _ _ p) o = do
    return $ (w, fromXyz (x, y, z)) where
       o' = o * 4
    
-{-
--- | puts an pixel to the specified offset in an Image
-putPixel :: Image -> Int -> WeightedSpectrum -> Image
-putPixel (Image w h p) o (sw, s) = seq p' Image w h p' where
-   (sx, sy, sz) = toXyz s
-   p' = p // [ (o', sw), (o' + 1, sx), (o' + 2, sy), (o' + 3, sz) ]
-   o' = o * 4
-  
--}
-
 -- | converts an image to ppm format
 imageToPpm :: Image s -> ST s String
-imageToPpm i@(Image w h _) = do
-   pData <- spixels 0
-   return $ "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n" ++ pData
-   where
-      spixels pos
-         | pos == (w*h) = return $ []
-         | otherwise = do
-            p <- getPixel i pos
-            rest <- spixels (pos+1)
-            return $ (ppmPixel $ p) ++ rest
+imageToPpm img@(Image w h _) =
+   let
+       header = "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n"
+   in do
+      pixels <- mapM (getPixel img) [0..(w*h - 1)]
+      return $ header ++ (concat (map ppmPixel pixels))
 
+writePpm :: Image RealWorld -> Handle -> IO ()
+writePpm img@(Image w h _) handle = 
+   let
+       header = "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n"
+       pixel p = stToIO $ (liftM ppmPixel) $ getPixel img p
+   in do
+      hPutStr handle header
+      sequence_ $ map (\p -> pixel p >>= (hPutStr handle)) [0..(w*h-1)]
+      
 -- | applies gamma correction to an RGB triple
 gamma :: Float -> (Float, Float, Float) -> (Float, Float, Float)
 gamma x (r, g, b) = (r ** x', g ** x', b ** x') where
