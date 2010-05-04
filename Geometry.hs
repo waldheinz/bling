@@ -71,12 +71,12 @@ instance Bound Sphere where
          let rndPt = randomOnSphere us 
              in (add center $ scalMul rndPt r, rndPt) -- sample full sphere if inside
       
-      | otherwise = (ps d, normalize $ sub (ps d) center) where -- sample only the visible part if outside
+      | otherwise = (ps, normalize $ sub ps center) where -- sample only the visible part if outside
          d = uniformSampleCone cs cosThetaMax us
          cs = coordinateSystem dn
          dn = normalize $ sub center p
          cosThetaMax = sqrt $ max 0 (1 - (r * r) / (sqLen $ sub p center))
-         ps d
+         ps
             | isJust int = positionAt ray t
             | otherwise = sub center $ scalMul dn r
             where
