@@ -31,7 +31,7 @@ instance Bxdf Microfacet where
 bxdfSample' :: Rand2D -> Microfacet -> Vector -> (Spectrum, Vector, Float)
 bxdfSample' dirU mf@(Microfacet d _ _) wo
    | sameHemisphere wo wi = (f, wi, pdf)
-   | otherwise = (black, undefined, infinity)
+   | otherwise = (black, wo, infinity)
    where
          f = bxdfEval mf wo wi
          (pdf, wi) = mfDistSample d dirU wo
