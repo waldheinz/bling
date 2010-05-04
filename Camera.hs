@@ -2,7 +2,6 @@
 module Camera(Camera, View(..), pinHoleCamera) where
 
 import Math
-import Debug.Trace
 
 -- | a camera transforms a pixel in normalized device coordinates to a ray
 type Camera = (Float, Float) -> Ray
