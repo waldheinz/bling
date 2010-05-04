@@ -22,19 +22,19 @@ instance Bxdf Microfacet where
       f = fresnel costh
       costh = dot wi wh
       
-   bxdfSample mf wo rnd = bxdfSample' rnd mf wo
+   bxdfSample mf wo dirU = bxdfSample' dirU mf wo
    
    bxdfPdf (Microfacet d _ _) wo wi
       | sameHemisphere wo wi = mfDistPdf d wo wi
       | otherwise = infinity
    
 bxdfSample' :: Rand2D -> Microfacet -> Vector -> (Spectrum, Vector, Float)
-bxdfSample' rnd mf@(Microfacet d _ _) wo
+bxdfSample' dirU mf@(Microfacet d _ _) wo
    | sameHemisphere wo wi = (f, wi, pdf)
    | otherwise = (black, undefined, infinity)
    where
          f = bxdfEval mf wo wi
-         (pdf, wi) = mfDistSample d rnd wo
+         (pdf, wi) = mfDistSample d dirU wo
       
 mfG :: Vector -> Vector -> Vector -> Float
 mfG wo wi wh = min 1 $ min (2 * nDotWh * nDotWo / woDotWh) (2 * nDotWh * nDotWi / woDotWh) where
