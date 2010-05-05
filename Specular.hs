@@ -8,15 +8,40 @@ import Math
 import Transport
 
 glassMaterial :: Float -> Material
-glassMaterial ior dg = mkBsdf [bxdf] cs where
-   bxdf = MkAnyBxdf $ SpecularReflection white fresnel
-   fresnel = frDiel 1 ior
+glassMaterial ior dg = mkBsdf [refl, trans] cs where
+   refl = MkAnyBxdf $ SpecularReflection white $ frDiel 1 ior
+   trans = MkAnyBxdf $ SpecularTransmission white 1 ior
    cs = shadingCs dg
 
 mirrorMaterial :: Spectrum -> Material
 mirrorMaterial r dg = mkBsdf [bxdf] cs where
    bxdf = MkAnyBxdf $ SpecularReflection r frNoOp
    cs = coordinateSystem $ dgN dg
+
+data SpecularTransmission = SpecularTransmission {
+   specTransT :: Spectrum,
+   specTransEi :: Float,
+   specTransEt :: Float
+   }
+
+instance Bxdf SpecularTransmission where
+   bxdfType _ = mkBxdfType [Transmission, Specular]
+   bxdfEval _ _ _ = black
+   bxdfPdf _ _ _ = 0
+   bxdfSample (SpecularTransmission t ei' et') wo@(wox, woy, _) _
+      | sint2 > 1 = (black, wo, 0) -- total internal reflection
+      | otherwise = (f, wi, 1.0)
+         where
+               entering = cosTheta wo > 0
+               sint2 = eta * eta * sini2
+               eta = ei / et
+               (ei, et) = if entering then (ei', et') else (et', ei')
+               cost' = sqrt $ max 0 (1 - sint2)
+               cost = if entering then (-cost') else cost'
+               sini2 = sinTheta2 wo
+               wi = (eta * (-wox), eta * (-woy), cost)
+               f' = (frDiel ei et $ cosTheta wo)
+               f = sScale (t * (white - f')) (((et*et) / (ei*ei)) / (abs $ cosTheta wi))
 
 data SpecularReflection = SpecularReflection {
    specReflR :: Spectrum,
@@ -26,11 +51,10 @@ data SpecularReflection = SpecularReflection {
 instance Bxdf SpecularReflection where
    bxdfType _ = mkBxdfType [Reflection, Specular]
    bxdfEval _ _ _ = black
-   bxdfPdf _ _ _ = 0.0
-   bxdfSample (SpecularReflection r fresnel) (x, y, z) _ = (f, wi, pdf) where
+   bxdfPdf _ _ _ = 0
+   bxdfSample (SpecularReflection r fresnel) (x, y, z) _ = (f, wi, 1) where
       f = sScale (r * fresnel z) (1.0 / abs z)
       wi = (-x, -y, z)
-      pdf = 1.0
            
 type Fresnel = Float -> Spectrum
 
@@ -45,8 +69,8 @@ frDiel ei et cosi
       cost = sqrt $ max 0 (1 - sint * sint)
       sint = (ei' / et') * (sqrt $ max 0 (1 - cosi' * cosi'))
       cosi' = min 1 $ max (-1) cosi
-      ei' = if (cosi < 0) then ei else et
-      et' = if (cosi < 0) then et else ei
+      ei' = if (cosi > 0) then ei else et
+      et' = if (cosi > 0) then et else ei
 
 frDiel' :: Float -> Float -> Spectrum -> Spectrum -> Spectrum
 frDiel' cosi cost etai etat = (rPar * rPar + rPer * rPer) / 2.0 where

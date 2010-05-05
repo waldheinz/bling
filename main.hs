@@ -36,10 +36,10 @@ plTest e kd  = plasticMaterial
    e
 
 blub :: Sphere
-blub = Sphere 0.8 (-1,1,0)
+blub = Sphere 0.5 (-1,2,2)
 
 blubLight :: Light
-blubLight = mkAreaLight (fromXyz (0.95, 0.95, 0.95)) blub
+blubLight = mkAreaLight (fromXyz (15, 15, 15)) blub
 
 myShape :: Primitive
 myShape = Group [
@@ -47,16 +47,16 @@ myShape = Group [
  --  mkGeometricPrimitive (Sphere (0.9) (-1, 1, -1)) (plTest 0.01 (0.38, 0.05, 0.67)) Nothing,
  --  mkGeometricPrimitive (Sphere (0.9) (-1, 1, 1)) (plTest 0.1 (1, 0.96, 0)) Nothing,
  --  mkGeometricPrimitive (Sphere (0.9) (1, 1, 1)) (plTest 1 (0.04, 0.4, 0.64)) Nothing,
-   mkGeometricPrimitive (Sphere 0.8 (1, 1, 0)) (glassMaterial 1.5) Nothing,
+   mkGeometricPrimitive (Sphere 1.1 (1, 1.1, 0)) (glassMaterial 1.5) Nothing,
    mkGeometricPrimitive blub blackBodyMaterial (Just blubLight),
-   mkGeometricPrimitive (Plane (-0.1) (0, 1, 0)) gpMat Nothing
+   mkGeometricPrimitive (Plane (-0.0) (0, 1, 0)) gpMat Nothing
    ]
 
 myLights :: [Light]
 myLights = [
     blubLight
 --    Directional (fromXyz (2, 2, 2)) (normalize (2, 2, -2))
---      SoftBox $ fromXyz (0.95, 0.95, 0.95)
+  --    SoftBox $ fromXyz (0.15, 0.15, 0.15)
     ]
 
 resX :: Int

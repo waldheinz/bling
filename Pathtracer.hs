@@ -3,6 +3,7 @@ module Pathtracer(pathTracer) where
 
 import Control.Monad
 import Data.BitSet
+import Debug.Trace
 
 import Color
 import Geometry
@@ -39,9 +40,7 @@ nextVertex s@(Scene sp _) depth specBounce (Ray _ rd _ _) (Just int@(Intersectio
       throughput' <- return $! throughput * sScale f ((absDot wi n) / pdf)
       
       l' <- return $! l + (throughput * (lHere + intl))
-      spec' <- return $! if (Specular `member` smpType)
-                            then True
-                            else False
+      spec' <- return $! (Specular `member` smpType)
       
       x <- rnd
       if (x > pCont)

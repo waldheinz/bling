@@ -75,11 +75,10 @@ sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> Rand Spectrum
 sampleOneLight (Scene _ []) _ _ _ _ = return black -- no light sources -> no light
 sampleOneLight scene@(Scene _ (l:[])) p n wo bsdf =
    estimateDirect scene l p n wo bsdf
--- sampleOneLight scene@(Scene _ lights) p n wo bsdf = undefined
---  lightNumF <-rndR (0, fromIntegral lightCount)
---  lightNum <- return $ floor lightNumF
---  y <- evalLight scene p n (lights !! lightNum) wo bsdf
---  return $! scale y
---  where
---    lightCount = length lights
---    scale = (\y -> sScale y (fromIntegral lightCount))
+sampleOneLight scene@(Scene _ lights) p n wo bsdf = do
+   lightNumF <-rndR (0, fromIntegral lightCount)
+   lightNum <- return $ floor lightNumF
+   y <- estimateDirect scene (lights !! lightNum) p n wo bsdf
+   return $! scale y where
+      lightCount = length lights
+      scale = (\y -> sScale y (fromIntegral lightCount))
