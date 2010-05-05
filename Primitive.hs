@@ -38,6 +38,10 @@ mkGeometricPrimitive :: (Intersectable i) => i -> Material -> (Maybe Light) -> P
 mkGeometricPrimitive int mat ml =
    GeometricPrimitive (intersect int) (intersects int) mat ml
 
+primFlatten :: Primitive -> [Primitive]
+primFlatten (Group (p:xs)) = (primFlatten p) ++ (concat $ map primFlatten xs)
+primFlatten p = [p]
+
 primIntersect :: Primitive -> Ray -> Maybe Intersection
 primIntersect (Group []) _ = Nothing
 primIntersect (Group g) r = nearest r g
