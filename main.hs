@@ -56,10 +56,10 @@ myLights = [
     ]
 
 resX :: Int
-resX = 800
+resX = 320
 
 resY :: Int
-resY = 600
+resY = 240
 
 myView :: View
 myView = View (3, 3, -8) (2,0.5,0) (0, 1, 0) 1.8 (fromIntegral resX / fromIntegral resY)
@@ -74,7 +74,7 @@ onePass gen img scene cam int = do
    oy <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
    apply $ map (shift (ox, oy)) $ stratify ns $ imageSamples (imageWidth img) (imageHeight img)
       where
-         ns = 3
+         ns = 1
          sx = fromIntegral $ imageWidth img
          sy = fromIntegral $ imageHeight img
          apply [] = return ()

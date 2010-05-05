@@ -34,8 +34,8 @@ mkImage w h = do
    pixels <- newArray (0, (w * h * 4)) 0.0 :: ST s (STUArray s Int Float)
    return $ Image w h pixels
    
-addPixel :: Image s -> Int -> WeightedSpectrum -> ST s ()
-addPixel (Image _ _ p) o (sw, s) = do
+addPixel :: Image s -> (Int, Int, WeightedSpectrum) -> ST s ()
+addPixel (Image w _ p) (x, y, (sw, s)) = do
    osw <- readArray p o'
    writeArray p o' (osw + sw)
    
@@ -51,20 +51,20 @@ addPixel (Image _ _ p) o (sw, s) = do
 --   Image w h p
    where
          (sx, sy, sz) = toXyz s
-         o' = o * 4
+         o' = (x + y*w) * 4
+
+type Filter = ImageSample -> [(Int, Int, WeightedSpectrum)]
+
+boxFilter :: Filter
+boxFilter (ImageSample x y ws) = [(floor x, floor y, ws)]
 
 -- | adds an sample to the specified image
 addSample :: Image s -> ImageSample -> ST s ()
-addSample img@(Image w h _) (ImageSample sx sy ws@(_, ss))
-   | isx > maxX || isy > maxY = error "out of bounds sample"
+addSample img smp@(ImageSample sx sy (_, ss))
    | sNaN ss = trace ("skipping NaN sample at (" ++ (show sx) ++ ", " ++ (show sy) ++ ")") (return () )
-   | otherwise = addPixel img offset ws
+   | otherwise = sequence_ $ map (addPixel img) pixels
    where
-      isx = floor sx
-      isy = floor sy
-      maxX = w - 1
-      maxY = h - 1
-      offset = isy * w + isx
+         pixels = boxFilter smp
 
 -- | extracts the pixel at the specified offset from an Image
 getPixel :: Image s -> Int -> ST s WeightedSpectrum
