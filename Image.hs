@@ -76,15 +76,7 @@ getPixel (Image _ _ p) o = do
    return $ (w, fromXyz (x, y, z)) where
       o' = o * 4
    
--- | converts an image to ppm format
-imageToPpm :: Image s -> ST s String
-imageToPpm img@(Image w h _) =
-   let
-       header = "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n"
-   in do
-      pixels <- mapM (getPixel img) [0..(w*h - 1)]
-      return $ header ++ (concat (map ppmPixel pixels))
-
+-- | writes an image in ppm format
 writePpm :: Image RealWorld -> Handle -> IO ()
 writePpm img@(Image w h _) handle = 
    let
