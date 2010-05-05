@@ -3,7 +3,6 @@ module Pathtracer(pathTracer) where
 
 import Control.Monad
 import Data.BitSet
-import Debug.Trace
 
 import Color
 import Geometry

@@ -39,6 +39,8 @@ class (Intersectable a) => Bound a where
    -- | returns the pdf for the sample chosen by @boundSample@
    boundPdf :: a -> Point -> Float
    
+   boundAABB :: a -> AABB
+   
    -- | the default implementation returns the inverse of the area,
    --   which is suitable for a @boundSample@ implementation which
    --   chooses points uniformly on the surface
@@ -62,9 +64,11 @@ sampleSphere co pt
          a = sqLen rd
          b = 2 * (co `dot` rd)
          c = sqLen co - 1
-   
+         
 instance Bound Sphere where
    boundArea (Sphere r _) = r * r * 4 * pi
+   
+   boundAABB (Sphere r p) = emptyAABB `extendAABBP` (p `add` (r, r, r)) `extendAABBP` (p `add` (-r, -r, -r))
    
    boundSample sp@(Sphere r center) p us
       | insideSphere sp p = 

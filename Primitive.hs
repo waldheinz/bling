@@ -31,12 +31,23 @@ intLe (Intersection _ (DifferentialGeometry p n) prim) wo
          light = primLight prim
    
 data Primitive
-   = GeometricPrimitive (Ray -> Maybe (Float, DifferentialGeometry)) (Ray -> Bool) Material (Maybe Light)
+   = GeometricU (Ray -> Maybe (Float, DifferentialGeometry)) (Ray -> Bool) Material -- ^ an unbound primitive
+   | GeometricB (Ray -> Maybe (Float, DifferentialGeometry)) (Ray -> Bool) Material (Maybe Light) AABB -- ^ a bound primitive
    | Group [Primitive]
    
-mkGeometricPrimitive :: (Intersectable i) => i -> Material -> (Maybe Light) -> Primitive
-mkGeometricPrimitive int mat ml =
-   GeometricPrimitive (intersect int) (intersects int) mat ml
+-- | creates a @Primitive@ for the specified @Intersectable@ and @Material@
+mkPrim :: (Intersectable i) => i -> Material -> Primitive
+mkPrim int mat = GeometricU (intersect int) (intersects int) mat
+
+-- | creates a @Primitive@ for the specified @Bound@, @Material@ and possibly @Spectrum@ for light sources
+mkPrim' :: (Bound b) => b -> Material -> Maybe Spectrum -> Primitive
+mkPrim' b mat Nothing = GeometricB (intersect b) (intersects b) mat Nothing (boundAABB b)
+mkPrim' b mat (Just l) = GeometricB (intersect b) (intersects b) mat (Just $ mkAreaLight l b) (boundAABB b)
+
+primBounds :: Primitive -> AABB
+primBounds (Group g) = foldl extendAABB emptyAABB $ map primBounds g
+primBounds (GeometricB _ _ _ _ aabb) = aabb
+primBounds (GeometricU _ _ _) = error "bounds for an unbound requested"
 
 primFlatten :: Primitive -> [Primitive]
 primFlatten (Group (p:xs)) = (primFlatten p) ++ (concat $ map primFlatten xs)
@@ -45,23 +56,27 @@ primFlatten p = [p]
 primIntersect :: Primitive -> Ray -> Maybe Intersection
 primIntersect (Group []) _ = Nothing
 primIntersect (Group g) r = nearest r g
-primIntersect p@(GeometricPrimitive int _ _ _) ray = pi' (int ray) where
-      pi' :: Maybe (Float, DifferentialGeometry) -> Maybe Intersection
-      pi' Nothing = Nothing
-      pi' (Just (t, dg)) = Just $ Intersection t dg p
-   
+primIntersect p@(GeometricU int _ _) ray = hit2Int p (int ray)
+primIntersect p@(GeometricB int _ _ _ _) ray = hit2Int p (int ray)
+
+hit2Int :: Primitive -> Maybe (Float, DifferentialGeometry) -> Maybe Intersection
+hit2Int _ Nothing = Nothing
+hit2Int p (Just (t, dg)) = Just $ Intersection t dg p
 
 primIntersects :: Primitive -> Ray -> Bool
 primIntersects (Group []) _ = False
 primIntersects (Group (x:xs)) r = primIntersects x r || primIntersects (Group xs) r
-primIntersects (GeometricPrimitive _ i _ _) r = i r
+primIntersects (GeometricU _ i _) r = i r
+primIntersects (GeometricB _ i _ _ _) r = i r
 
 primMaterial :: Primitive -> Material
-primMaterial (GeometricPrimitive _ _ mat _) = mat
+primMaterial (GeometricU _ _ mat) = mat
+primMaterial (GeometricB _ _ mat _ _) = mat
 primMaterial _ = undefined
 
 primLight :: Primitive -> Maybe Light
-primLight (GeometricPrimitive _ _ _ l) = l
+primLight (GeometricU _ _ _) = Nothing
+primLight (GeometricB _ _ _ l _) = l
 primLight _ = Nothing
 
 nearest :: Ray -> [Primitive] -> Maybe Intersection

@@ -35,26 +35,22 @@ plTest e kd  = plasticMaterial
    (constantSpectrum $ fromXyz (0.85, 0.85, 0.85))
    e
 
-blub :: Sphere
-blub = Sphere 1.5 (-2,5,2)
-
-blubLight :: Light
-blubLight = mkAreaLight (fromXyz (35, 35, 35)) blub
-
 myShape :: Primitive
 myShape = Group [
  --  mkGeometricPrimitive (Sphere (0.9) (1, 1, -1)) (plTest 0.001 (1, 0.56, 0)) Nothing,
  --  mkGeometricPrimitive (Sphere (0.9) (-1, 1, -1)) (plTest 0.01 (0.38, 0.05, 0.67)) Nothing,
 --   mkGeometricPrimitive (Sphere (1.1) (-1, 1.1, 0)) (plTest 0.1 (1, 0.96, 0)) Nothing,
  --  mkGeometricPrimitive (Sphere (0.9) (1, 1, 1)) (plTest 1 (0.04, 0.4, 0.64)) Nothing,
-   mkGeometricPrimitive (Sphere 1.1 (1, 1.1, 0)) (glassMaterial 1.5) Nothing,
-   mkGeometricPrimitive blub blackBodyMaterial (Just blubLight),
-   mkGeometricPrimitive (Plane (-0.0) (0, 1, 0)) gpMat Nothing
+   mkPrim (Sphere 1.1 (1, 1.1, 0)) (glassMaterial 1.5),
+   mkPrim' (Sphere 1.5 (-2,5,2)) blackBodyMaterial (Just (fromXyz (35, 35, 35))),
+   mkPrim (Plane (-0.0) (0, 1, 0)) gpMat
    ]
+
+myScene :: Scene
+myScene = mkScene myLights [myShape]
 
 myLights :: [Light]
 myLights = [
-    blubLight
 --    Directional (fromXyz (2, 2, 2)) (normalize (2, 2, -2))
   --    SoftBox $ fromXyz (0.15, 0.15, 0.15)
     ]
@@ -71,8 +67,6 @@ myView = View (3, 3, -8) (2,0.5,0) (0, 1, 0) 1.8 (fromIntegral resX / fromIntegr
 myCamera :: Camera
 myCamera = pinHoleCamera myView
 
-myScene :: Scene
-myScene = Scene myShape myLights
 
 onePass :: Gen s -> Image s -> Scene -> Camera -> Integrator -> ST s ()
 onePass gen img scene cam int = do
@@ -83,15 +77,12 @@ onePass gen img scene cam int = do
          ns = 3
          sx = fromIntegral $ imageWidth img
          sy = fromIntegral $ imageHeight img
-  --       apply :: STImage s -> [(Float, Float)] -> ST s (STImage s)
          apply [] = return ()
          apply ((px, py):xs) = do
             ws <- runRandST gen $ int scene (cam (px / sx, py / sy))
             nxs <- runRandST gen $ seq ws return $! (ImageSample px py ws)
             addSample img nxs
             apply xs
-            --apply (nxs `seq` i `seq` addSample i nxs) xs
-
 
 stratify :: Int -> [(Float, Float)] -> [(Float, Float)]
 stratify _ [] = []

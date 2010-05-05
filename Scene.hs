@@ -1,7 +1,10 @@
-module Scene where
+module Scene (
+   Scene(..), mkScene,
+   Integrator, sampleOneLight
+   ) where
 
 import Control.Monad
-import Maybe (isJust, fromJust)
+import Data.Maybe (isJust, fromJust, catMaybes)
 
 import Color
 import Light
@@ -11,9 +14,14 @@ import Random
 import Transport
 
 data Scene = Scene {
-   scenePrimitive :: Primitive,
+   scenePrim :: Primitive,
    sceneLights :: [Light]
    }
+
+mkScene :: [Light] -> [Primitive] -> Scene
+mkScene l prims = Scene (Group ps) (l ++ gl) where
+   gl = catMaybes $ map (primLight) ps -- collect the geometric lights
+   ps = primFlatten $ Group prims
 
 occluded :: Scene -> Ray -> Bool
 occluded (Scene p _) = primIntersects p
