@@ -78,7 +78,7 @@ onePass gen img scene cam int = do
    oy <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
    apply $ map (shift (ox, oy)) $ stratify ns $ imageSamples (imageWidth img) (imageHeight img)
       where
-         ns = 1
+         ns = 3
          sx = fromIntegral $ imageWidth img
          sy = fromIntegral $ imageHeight img
   --       apply :: STImage s -> [(Float, Float)] -> ST s (STImage s)
