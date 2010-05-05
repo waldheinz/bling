@@ -1,6 +1,7 @@
 module Scene where
 
 import Control.Monad
+import Maybe (isJust, fromJust)
 
 import Color
 import Light
@@ -44,36 +45,37 @@ sampleLightMis scene (LightSample li wi ray pdf deltaLight) bsdf wo n
          weight = powerHeuristic (1, pdf) (1, bsdfPdf bsdf wo wi)
 
 sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Spectrum
-sampleBsdfMis scene light (BsdfSample _ bPdf f wi) n p
+sampleBsdfMis (Scene sp _) light (BsdfSample _ bPdf f wi) n p
    | (isBlack f) || (bPdf == infinity) = black
-   | occluded scene ray = black -- handle a hit geometric light here
+   | isJust lint = intLe (fromJust lint) (neg wi) -- TODO: need to check if the "right" light was hit
    | otherwise = 
-      let
-          lPdf = lightPdf light p n wi
+      let lPdf = lightPdf light p n wi
           weight = powerHeuristic (1, bPdf) (1, lPdf)
       in sScale (f * (lightEmittance light ray)) ((absDot wi n) * weight / bPdf)
    where
          ray = Ray p wi epsilon infinity
+         lint = primIntersect sp ray
          
 -- | samples all lights by sampling individual lights and summing up the results
 sampleAllLights :: Scene -> Point -> Normal -> Vector -> Bsdf -> Rand Spectrum
 sampleAllLights scene p n wo bsdf = undefined
 
 estimateDirect :: Scene -> Light -> Point -> Normal -> Vector -> Bsdf -> Rand Spectrum
-estimateDirect s l p n wo bsdf = do
+estimateDirect s l p n wo bsdf = 
+   let lSmp = lightSample l p n
+       bSmp = sampleBsdf bsdf wo
+   in do
    uL <- rnd2D
-   lSmp <- return $ lightSample l p n uL
    uBC <- rnd
    uBD <- rnd2D
-   bSmp <- return $ sampleBsdf bsdf wo uBC uBD
-   return $ (sampleLightMis s lSmp bsdf wo n) + (sampleBsdfMis s l bSmp n p)
+   return $ (sampleLightMis s (lSmp uL) bsdf wo n) + (sampleBsdfMis s l (bSmp uBC uBD) n p)
    
 -- | samples one randomly chosen light source
 sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> Rand Spectrum
 sampleOneLight (Scene _ []) _ _ _ _ = return black -- no light sources -> no light
 sampleOneLight scene@(Scene _ (l:[])) p n wo bsdf =
    estimateDirect scene l p n wo bsdf
-sampleOneLight scene@(Scene _ lights) p n wo bsdf = undefined
+-- sampleOneLight scene@(Scene _ lights) p n wo bsdf = undefined
 --  lightNumF <-rndR (0, fromIntegral lightCount)
 --  lightNum <- return $ floor lightNumF
 --  y <- evalLight scene p n (lights !! lightNum) wo bsdf

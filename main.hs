@@ -24,39 +24,47 @@ import Texture
 
 defMat :: Material
 defMat = plasticMaterial
-   (graphPaper 0.08 (fromXyz (0.7, 0.7, 0.7)) (fromXyz (0.05, 0.05, 0.05)))
-   (constantSpectrum $ fromXyz (0.99, 0.99, 0.99))
-   0.02
+   (graphPaper 0.08 (fromXyz (0.85, 0.85, 0.85)) (fromXyz (0.05, 0.05, 0.05)))
+   (constantSpectrum $ fromXyz (0.7, 0.7, 0.7))
+   0.1
 
 plTest :: Float -> (Float, Float, Float) -> Material
 plTest e kd  = plasticMaterial
    (constantSpectrum $ fromXyz kd)
-   (constantSpectrum $ fromXyz (0.99, 0.99, 0.99))
+   (constantSpectrum $ fromXyz (0.85, 0.85, 0.85))
    e
+
+blub :: Sphere
+blub = Sphere 0.9 (0,1,0)
+
+blubLight :: Light
+blubLight = mkAreaLight (fromXyz (0.95, 0.95, 0.95)) blub
 
 myShape :: Primitive
 myShape = Group [
-   mkGeometricPrimitive (Sphere (0.9) (1, 1, -1)) (plTest 0.001 (1, 0.56, 0)) Nothing,
-   mkGeometricPrimitive (Sphere (0.9) (-1, 1, -1)) (plTest 0.01 (0.38, 0.05, 0.67)) Nothing,
-   mkGeometricPrimitive (Sphere (0.9) (-1, 1, 1)) (plTest 0.1 (1, 0.96, 0)) Nothing,
-   mkGeometricPrimitive (Sphere (0.9) (1, 1, 1)) (plTest 1 (0.04, 0.4, 0.64)) Nothing,
-   mkGeometricPrimitive (Plane (-0.1) (0, 1, 0)) defMat Nothing ]
+ --  mkGeometricPrimitive (Sphere (0.9) (1, 1, -1)) (plTest 0.001 (1, 0.56, 0)) Nothing,
+ --  mkGeometricPrimitive (Sphere (0.9) (-1, 1, -1)) (plTest 0.01 (0.38, 0.05, 0.67)) Nothing,
+ --  mkGeometricPrimitive (Sphere (0.9) (-1, 1, 1)) (plTest 0.1 (1, 0.96, 0)) Nothing,
+ --  mkGeometricPrimitive (Sphere (0.9) (1, 1, 1)) (plTest 1 (0.04, 0.4, 0.64)) Nothing,
+   mkGeometricPrimitive blub blackBodyMaterial (Just blubLight),
+   mkGeometricPrimitive (Plane (-0.1) (0, 1, 0)) (plTest 0.05 (0.95, 0.56, 0.1)) Nothing
+   ]
 
 myLights :: [Light]
 myLights = [
---    blubLight
+    blubLight
 --    Directional (fromXyz (2, 2, 2)) (normalize (2, 2, -2))
-      SoftBox $ fromXyz (0.95, 0.95, 0.95)
+--      SoftBox $ fromXyz (0.95, 0.95, 0.95)
     ]
 
 resX :: Int
-resX = 100
+resX = 640
 
 resY :: Int
-resY = 100
+resY = 480
 
 myView :: View
-myView = View (3, 7, -6) (0,0.5,0) (0, 1, 0) 1.8 (fromIntegral resX / fromIntegral resY)
+myView = View (3, 3, -8) (0,0.5,0) (0, 1, 0) 1.8 (fromIntegral resX / fromIntegral resY)
 
 myCamera :: Camera
 myCamera = pinHoleCamera myView
@@ -70,7 +78,7 @@ onePass gen img scene cam int = do
    oy <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
    apply $ map (shift (ox, oy)) $ stratify ns $ imageSamples (imageWidth img) (imageHeight img)
       where
-         ns = 4
+         ns = 1
          sx = fromIntegral $ imageWidth img
          sy = fromIntegral $ imageHeight img
   --       apply :: STImage s -> [(Float, Float)] -> ST s (STImage s)
@@ -119,11 +127,9 @@ render pass img sc cam int = do
    stop <- getClockTime
    putStrLn (pretty $ diffClockTimes stop start)
    putStrLn $ "Writing " ++ fname ++ "..."
-  -- imgData <- stToIO $ imageToPpm img
    handle <- openFile fname WriteMode
    writePpm img handle
    hClose handle
---   writeFile fname $ imgData
    render (pass + 1) img sc cam int
    where
          fname = "pass-" ++ (printf "%05d" pass) ++ ".ppm"
