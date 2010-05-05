@@ -20,13 +20,14 @@ import Plastic
 import Primitive
 import Random
 import Scene
+import Specular
 import Texture
 
-defMat :: Material
-defMat = plasticMaterial
-   (graphPaper 0.08 (fromXyz (0.85, 0.85, 0.85)) (fromXyz (0.05, 0.05, 0.05)))
-   (constantSpectrum $ fromXyz (0.7, 0.7, 0.7))
-   0.1
+gpMat :: Material
+gpMat = plasticMaterial
+   (graphPaper 0.08 (fromXyz (0.95, 0.95, 0.95)) (fromXyz (0.05, 0.05, 0.05)))
+   (constantSpectrum $ fromXyz (0.4, 0.4, 0.2))
+   0.2
 
 plTest :: Float -> (Float, Float, Float) -> Material
 plTest e kd  = plasticMaterial
@@ -35,7 +36,7 @@ plTest e kd  = plasticMaterial
    e
 
 blub :: Sphere
-blub = Sphere 0.9 (0,1,0)
+blub = Sphere 0.8 (-1,1,0)
 
 blubLight :: Light
 blubLight = mkAreaLight (fromXyz (0.95, 0.95, 0.95)) blub
@@ -46,8 +47,9 @@ myShape = Group [
  --  mkGeometricPrimitive (Sphere (0.9) (-1, 1, -1)) (plTest 0.01 (0.38, 0.05, 0.67)) Nothing,
  --  mkGeometricPrimitive (Sphere (0.9) (-1, 1, 1)) (plTest 0.1 (1, 0.96, 0)) Nothing,
  --  mkGeometricPrimitive (Sphere (0.9) (1, 1, 1)) (plTest 1 (0.04, 0.4, 0.64)) Nothing,
+   mkGeometricPrimitive (Sphere 0.8 (1, 1, 0)) (glassMaterial 1.5) Nothing,
    mkGeometricPrimitive blub blackBodyMaterial (Just blubLight),
-   mkGeometricPrimitive (Plane (-0.1) (0, 1, 0)) (plTest 0.05 (0.95, 0.56, 0.1)) Nothing
+   mkGeometricPrimitive (Plane (-0.1) (0, 1, 0)) gpMat Nothing
    ]
 
 myLights :: [Light]
@@ -78,7 +80,7 @@ onePass gen img scene cam int = do
    oy <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
    apply $ map (shift (ox, oy)) $ stratify ns $ imageSamples (imageWidth img) (imageHeight img)
       where
-         ns = 3
+         ns = 1
          sx = fromIntegral $ imageWidth img
          sy = fromIntegral $ imageHeight img
   --       apply :: STImage s -> [(Float, Float)] -> ST s (STImage s)

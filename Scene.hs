@@ -47,12 +47,12 @@ sampleLightMis scene (LightSample li wi ray pdf deltaLight) bsdf wo n
 sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Spectrum
 sampleBsdfMis (Scene sp _) light (BsdfSample _ bPdf f wi) n p
    | (isBlack f) || (bPdf == infinity) = black
-   | isJust lint = intLe (fromJust lint) (neg wi) -- TODO: need to check if the "right" light was hit
-   | otherwise = 
-      let lPdf = lightPdf light p n wi
-          weight = powerHeuristic (1, bPdf) (1, lPdf)
-      in sScale (f * (lightEmittance light ray)) ((absDot wi n) * weight / bPdf)
+   | isJust lint = scale $ intLe (fromJust lint) (neg wi) -- TODO: need to check if the "right" light was hit
+   | otherwise = scale (lightEmittance light ray)
    where
+         lPdf = lightPdf light p n wi
+         weight = powerHeuristic (1, bPdf) (1, lPdf)
+         scale = (\li -> sScale (f * li) ((absDot wi n) * weight / bPdf))
          ray = Ray p wi epsilon infinity
          lint = primIntersect sp ray
          
