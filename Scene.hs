@@ -1,11 +1,12 @@
 module Scene (
-   Scene(..), mkScene,
+   Scene, mkScene, scenePrim, sceneLights, sceneCam,
    Integrator, sampleOneLight
    ) where
 
 import Control.Monad
 import Data.Maybe (isJust, fromJust, catMaybes)
 
+import Camera
 import Color
 import Light
 import Math
@@ -15,16 +16,17 @@ import Transport
 
 data Scene = Scene {
    scenePrim :: Primitive,
-   sceneLights :: [Light]
+   sceneLights :: [Light],
+   sceneCam :: Camera
    }
 
-mkScene :: [Light] -> [Primitive] -> Scene
-mkScene l prims = Scene (Group ps) (l ++ gl) where
+mkScene :: [Light] -> [Primitive] -> Camera -> Scene
+mkScene l prims cam = Scene (Group ps) (l ++ gl) cam where
    gl = catMaybes $ map (primLight) ps -- collect the geometric lights
    ps = primFlatten $ Group prims
 
 occluded :: Scene -> Ray -> Bool
-occluded (Scene p _) = primIntersects p
+occluded (Scene p _ _) = primIntersects p
    
 type Integrator = Scene -> Ray -> Rand WeightedSpectrum
    
@@ -53,7 +55,7 @@ sampleLightMis scene (LightSample li wi ray pdf deltaLight) bsdf wo n
          weight = powerHeuristic (1, pdf) (1, bsdfPdf bsdf wo wi)
 
 sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Spectrum
-sampleBsdfMis (Scene sp _) light (BsdfSample _ bPdf f wi) n p
+sampleBsdfMis (Scene sp _ _) light (BsdfSample _ bPdf f wi) n p
    | (isBlack f) || (bPdf == infinity) = black
    | isJust lint = scale $ intLe (fromJust lint) (neg wi) -- TODO: need to check if the "right" light was hit
    | otherwise = scale (lightEmittance light ray)
@@ -80,10 +82,10 @@ estimateDirect s l p n wo bsdf =
    
 -- | samples one randomly chosen light source
 sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> Rand Spectrum
-sampleOneLight (Scene _ []) _ _ _ _ = return black -- no light sources -> no light
-sampleOneLight scene@(Scene _ (l:[])) p n wo bsdf =
+sampleOneLight (Scene _ [] _) _ _ _ _ = return black -- no light sources -> no light
+sampleOneLight scene@(Scene _ (l:[]) _) p n wo bsdf =
    estimateDirect scene l p n wo bsdf
-sampleOneLight scene@(Scene _ lights) p n wo bsdf = do
+sampleOneLight scene@(Scene _ lights _) p n wo bsdf = do
    lightNumF <-rndR (0, fromIntegral lightCount)
    lightNum <- return $ floor lightNumF
    y <- estimateDirect scene (lights !! lightNum) p n wo bsdf

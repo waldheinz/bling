@@ -47,7 +47,7 @@ myShape = Group [
    ]
 
 myScene :: Scene
-myScene = mkScene myLights [myShape]
+myScene = mkScene myLights [myShape] myCamera
 
 myLights :: [Light]
 myLights = [
@@ -56,10 +56,10 @@ myLights = [
     ]
 
 resX :: Int
-resX = 320
+resX = 640
 
 resY :: Int
-resY = 240
+resY = 480
 
 myView :: View
 myView = View (3, 3, -8) (2,0.5,0) (0, 1, 0) 1.8 (fromIntegral resX / fromIntegral resY)
@@ -67,19 +67,18 @@ myView = View (3, 3, -8) (2,0.5,0) (0, 1, 0) 1.8 (fromIntegral resX / fromIntegr
 myCamera :: Camera
 myCamera = pinHoleCamera myView
 
-
-onePass :: Gen s -> Image s -> Scene -> Camera -> Integrator -> ST s ()
-onePass gen img scene cam int = do
+onePass :: Gen s -> Image s -> Scene -> Integrator -> ST s ()
+onePass gen img scene int = do
    ox <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
    oy <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
    apply $ map (shift (ox, oy)) $ stratify ns $ imageSamples (imageWidth img) (imageHeight img)
       where
-         ns = 1
+         ns = 3
          sx = fromIntegral $ imageWidth img
          sy = fromIntegral $ imageHeight img
          apply [] = return ()
          apply ((px, py):xs) = do
-            ws <- runRandST gen $ int scene (cam (px / sx, py / sy))
+            ws <- runRandST gen $ int scene ((sceneCam scene) (px / sx, py / sy))
             nxs <- runRandST gen $ seq ws return $! (ImageSample px py ws)
             addSample img nxs
             apply xs
@@ -110,20 +109,20 @@ pretty td = join . filter (not . null) . map f $
     f (i,s) | i == 0    = []
             | otherwise = show i ++ s
    
-render :: Int -> (Image RealWorld) -> Scene -> Camera -> Integrator -> IO ()
-render pass img sc cam int = do
+render :: Int -> (Image RealWorld) -> Scene -> Integrator -> IO ()
+render pass img sc int = do
    putStrLn "Rendering..."
    start <- getClockTime
    seed <- randomIO :: IO Int
    gen <- stToIO $ mkRndGen seed
-   stToIO $ onePass gen img sc cam int
+   stToIO $ onePass gen img sc int
    stop <- getClockTime
    putStrLn (pretty $ diffClockTimes stop start)
    putStrLn $ "Writing " ++ fname ++ "..."
    handle <- openFile fname WriteMode
    writePpm img handle
    hClose handle
-   render (pass + 1) img sc cam int
+   render (pass + 1) img sc int
    where
          fname = "pass-" ++ (printf "%05d" pass) ++ ".ppm"
 
@@ -132,5 +131,5 @@ main = do
    putStrLn "Creating image..."
    img <- stToIO $  mkImage resX resY
    
-   render 1 img myScene myCamera pathTracer
+   render 1 img myScene pathTracer
          

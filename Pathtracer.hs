@@ -14,7 +14,7 @@ import Scene
 import Transport
 
 pathTracer :: Integrator
-pathTracer s@(Scene p _) r = nextVertex s 0 True r (primIntersect p r) white black
+pathTracer scene r = nextVertex scene 0 True r (primIntersect (scenePrim scene) r) white black
 
 directLight :: Scene -> Ray -> Spectrum
 directLight s ray = foldl (+) black (map (\l -> lightEmittance l ray) (sceneLights s))
@@ -28,13 +28,13 @@ nextVertex s _ True ray Nothing throughput l = -- nothing hit, specular bounce
 nextVertex _ _ False _ Nothing _ l = -- nothing hit, non-specular bounce
    return $! (1.0, seq l l)
    
-nextVertex s@(Scene sp _) depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ dg _)) throughput l 
+nextVertex scene depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ dg _)) throughput l 
    | isBlack throughput = return (1.0, l)
    | otherwise = do
       bsdfDirU <- rnd2D
       bsdfCompU <- rnd
       (BsdfSample smpType pdf f wi) <- return $ sampleBsdf bsdf wo bsdfCompU bsdfDirU
-      lHere <- sampleOneLight s p n wo bsdf
+      lHere <- sampleOneLight scene p n wo bsdf
       outRay <- return (Ray p wi epsilon infinity)
       throughput' <- return $! throughput * sScale f ((absDot wi n) / pdf)
       
@@ -44,7 +44,7 @@ nextVertex s@(Scene sp _) depth specBounce (Ray _ rd _ _) (Just int@(Intersectio
       x <- rnd
       if (x > pCont)
          then return $! (1.0, l)
-         else nextVertex s (depth + 1) spec' outRay (primIntersect sp outRay) throughput' l'
+         else nextVertex scene (depth + 1) spec' outRay (primIntersect (scenePrim scene) outRay) throughput' l'
          
       where
             pCont = if depth <= 3 then 1 else 0.5
