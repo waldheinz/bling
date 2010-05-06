@@ -15,6 +15,9 @@ import Random
 import Scene
 import DefaultScenes
 
+myScene :: Scene
+myScene = plasticSpheres (fromIntegral resX / fromIntegral resY)
+
 resX :: Int
 resX = 640
 
@@ -27,7 +30,7 @@ onePass gen img scene int = do
    oy <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
    apply $ map (shift (ox, oy)) $ stratify ns $ imageSamples (imageWidth img) (imageHeight img)
       where
-         ns = 3
+         ns = 1
          sx = fromIntegral $ imageWidth img
          sy = fromIntegral $ imageHeight img
          apply [] = return ()
@@ -85,5 +88,5 @@ main = do
    putStrLn "Creating image..."
    img <- stToIO $  mkImage resX resY
    
-   render 1 img (glassSphere (fromIntegral resX / fromIntegral resY)) pathTracer
+   render 1 img myScene pathTracer
          

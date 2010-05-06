@@ -18,7 +18,7 @@ instance Bxdf Microfacet where
    bxdfEval (Microfacet d fresnel r) wo wi = sScale (r * f) ((mfDistD d wh) * (mfG wo wi wh) / (4 * costi * costo)) where
       costo = abs $ cosTheta wo
       costi = abs $ cosTheta wi
-      wh = normalize $ add wo wi
+      wh = normalize $ add wi wo
       f = fresnel costh
       costh = dot wi wh
       
@@ -31,7 +31,7 @@ instance Bxdf Microfacet where
 bxdfSample' :: Rand2D -> Microfacet -> Vector -> (Spectrum, Vector, Float)
 bxdfSample' dirU mf@(Microfacet d _ _) wo
    | sameHemisphere wo wi = (f, wi, pdf)
-   | otherwise = (black, wo, infinity)
+   | otherwise = (black, wo, 0)
    where
          f = bxdfEval mf wo wi
          (pdf, wi) = mfDistSample d dirU wo
