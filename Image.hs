@@ -35,20 +35,22 @@ mkImage w h = do
    return $ Image w h pixels
    
 addPixel :: Image s -> (Int, Int, WeightedSpectrum) -> ST s ()
-addPixel (Image w _ p) (x, y, (sw, s)) = do
-   osw <- readArray p o'
-   writeArray p o' (osw + sw)
+addPixel (Image w h p) (x, y, (sw, s))
+   | x < 0 || y < 0 = return ()
+   | x >= w || y >= h = return ()
+   | otherwise = do
+      osw <- readArray p o'
+      writeArray p o' (osw + sw)
    
-   ox <- readArray p (o' + 1)
-   writeArray p (o' + 1) (ox + sx)
+      ox <- readArray p (o' + 1)
+      writeArray p (o' + 1) (ox + sx)
    
-   oy <- readArray p (o' + 2)
-   writeArray p (o' + 2) (oy + sy)
+      oy <- readArray p (o' + 2)
+      writeArray p (o' + 2) (oy + sy)
    
-   oz <- readArray p (o' + 3)
-   writeArray p (o' + 3) (oz + sz)
-   
---   Image w h p
+      oz <- readArray p (o' + 3)
+      writeArray p (o' + 3) (oz + sz)
+      
    where
          (sx, sy, sz) = toXyz s
          o' = (x + y*w) * 4
@@ -58,13 +60,33 @@ type Filter = ImageSample -> [(Int, Int, WeightedSpectrum)]
 boxFilter :: Filter
 boxFilter (ImageSample x y ws) = [(floor x, floor y, ws)]
 
+sincFilter :: Float -> Float -> Float -> Filter
+sincFilter xw yw tau (ImageSample px py (sw, ss)) = [(x, y, (sw * ev x y, sScale ss (ev x y))) | (x, y) <- pixels] where
+   pixels = [(x :: Int, y :: Int) | y <- [y0..y1], x <- [x0..x1]]
+   x0 = ceiling (px - xw)
+   x1 = floor (px + xw)
+   y0 = ceiling (py - yw)
+   y1 = floor (py + yw)
+   ev x y = (sinc1D tau x') * (sinc1D tau y') where
+      x' = (fromIntegral x - px + 0.5) / xw
+      y' = (fromIntegral y - py + 0.5) / yw
+
+sinc1D :: Float -> Float -> Float
+sinc1D tau x
+   | x > 1 = 0
+   | x == 0 = 1
+   | otherwise = sinc * lanczos where
+      x' = x * pi
+      sinc = (sin (x' * tau)) / (x' * tau)
+      lanczos = (sin x') / x'
+
 -- | adds an sample to the specified image
 addSample :: Image s -> ImageSample -> ST s ()
 addSample img smp@(ImageSample sx sy (_, ss))
    | sNaN ss = trace ("skipping NaN sample at (" ++ (show sx) ++ ", " ++ (show sy) ++ ")") (return () )
    | otherwise = sequence_ $ map (addPixel img) pixels
    where
-         pixels = boxFilter smp
+         pixels = sincFilter 8 8 3 smp
 
 -- | extracts the pixel at the specified offset from an Image
 getPixel :: Image s -> Int -> ST s WeightedSpectrum
