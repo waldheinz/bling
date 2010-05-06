@@ -9,63 +9,17 @@ import System.Random.MWC
 import Text.Printf
 import Time
 
-import Camera
-import Color
-import Geometry
 import Image
-import Light
-import Material
 import Pathtracer
-import Plastic
-import Primitive
 import Random
 import Scene
-import Specular
-import Texture
-
-gpMat :: Material
-gpMat = plasticMaterial
-   (graphPaper 0.08 (fromXyz (0.04, 0.4, 0.64)) (fromXyz (0.05, 0.05, 0.05)))
-   (constantSpectrum $ fromXyz (0.1, 0.1, 0.1))
-   0.2
-
-plTest :: Float -> (Float, Float, Float) -> Material
-plTest e kd  = plasticMaterial
-   (constantSpectrum $ fromXyz kd)
-   (constantSpectrum $ fromXyz (0.85, 0.85, 0.85))
-   e
-
-myShape :: Primitive
-myShape = Group [
- --  mkGeometricPrimitive (Sphere (0.9) (1, 1, -1)) (plTest 0.001 (1, 0.56, 0)) Nothing,
- --  mkGeometricPrimitive (Sphere (0.9) (-1, 1, -1)) (plTest 0.01 (0.38, 0.05, 0.67)) Nothing,
---   mkGeometricPrimitive (Sphere (1.1) (-1, 1.1, 0)) (plTest 0.1 (1, 0.96, 0)) Nothing,
- --  mkGeometricPrimitive (Sphere (0.9) (1, 1, 1)) (plTest 1 (0.04, 0.4, 0.64)) Nothing,
-   mkPrim (Sphere 1.1 (1, 1.1, 0)) (glassMaterial 1.5),
-   mkPrim' (Sphere 1.5 (-2,5,2)) blackBodyMaterial (Just (fromXyz (35, 35, 35))),
-   mkPrim (Plane (-0.0) (0, 1, 0)) gpMat
-   ]
-
-myScene :: Scene
-myScene = mkScene myLights [myShape] myCamera
-
-myLights :: [Light]
-myLights = [
---    Directional (fromXyz (2, 2, 2)) (normalize (2, 2, -2))
-  --    SoftBox $ fromXyz (0.15, 0.15, 0.15)
-    ]
+import DefaultScenes
 
 resX :: Int
 resX = 640
 
 resY :: Int
 resY = 480
-
-myView :: View
-myView = View (3, 3, -8) (2,0.5,0) (0, 1, 0) 1.8 (fromIntegral resX / fromIntegral resY)
-
-myCamera :: Camera
-myCamera = pinHoleCamera myView
 
 onePass :: Gen s -> Image s -> Scene -> Integrator -> ST s ()
 onePass gen img scene int = do
@@ -131,5 +85,5 @@ main = do
    putStrLn "Creating image..."
    img <- stToIO $  mkImage resX resY
    
-   render 1 img myScene pathTracer
+   render 1 img (glassSphere (fromIntegral resX / fromIntegral resY)) pathTracer
          
