@@ -4,7 +4,6 @@ import Control.Monad
 import Control.Monad.ST
 import GHC.IOBase
 import System.IO
-import System.Random
 import System.Random.MWC
 import Text.Printf
 import Time
@@ -24,21 +23,20 @@ resX = 640
 resY :: Int
 resY = 480
 
-onePass :: Gen s -> Image s -> Scene -> Integrator -> ST s ()
-onePass gen img scene int = do
+passSamples :: Int
+passSamples = 1
+
+onePass :: Gen s -> Image s -> Int-> Scene -> Integrator -> ST s ()
+onePass gen img ns scene int = do
    ox <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
    oy <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
-   apply $ map (shift (ox, oy)) $ stratify ns $ imageSamples (imageWidth img) (imageHeight img)
+   sequence_ $ map (apply . shift (ox, oy)) $ imageSamples ns (imageWidth img) (imageHeight img)
       where
-         ns = 1
          sx = fromIntegral $ imageWidth img
          sy = fromIntegral $ imageHeight img
-         apply [] = return ()
-         apply ((px, py):xs) = do
+         apply (px, py) = do
             ws <- runRandST gen $ int scene ((sceneCam scene) (px / sx, py / sy))
-            nxs <- runRandST gen $ seq ws return $! (ImageSample px py ws)
-            addSample img nxs
-            apply xs
+            addSample img (ImageSample px py ws)
 
 stratify :: Int -> [(Float, Float)] -> [(Float, Float)]
 stratify _ [] = []
@@ -46,12 +44,12 @@ stratify 1 xs = xs
 stratify n (p:xs) = stratify' p ++ (stratify n xs) where
    stratify' (px, py) = map (shift (px, py)) [(fromIntegral x / fn, fromIntegral y / fn) | y <- [0..n-1], x <- [0..n-1]]
    fn = fromIntegral n
-         
+
 shift :: (Float, Float) -> (Float, Float) -> (Float, Float)
 shift (ox, oy) (x, y) = (x + ox, y + oy)
 
-imageSamples :: Int -> Int -> [(Float, Float)]
-imageSamples sx sy = [ (fromIntegral x, fromIntegral y) | y <- [0..sy-1], x <- [0..sx-1]] where
+imageSamples :: Int -> Int -> Int -> [(Float, Float)] -- TODO: account for filter extent here
+imageSamples ns sx sy = stratify ns [ (fromIntegral x, fromIntegral y) | y <- [0..sy-1], x <- [0..sx-1]]
    
 -- | Pretty print the date in '1d 9h 9m 17s' format
 pretty :: TimeDiff -> String
@@ -70,9 +68,9 @@ render :: Int -> (Image RealWorld) -> Scene -> Integrator -> IO ()
 render pass img sc int = do
    putStrLn "Rendering..."
    start <- getClockTime
-   seed <- randomIO :: IO Int
-   gen <- stToIO $ mkRndGen seed
-   stToIO $ onePass gen img sc int
+ --  seed <- randomIO :: IO Int
+   gen <- stToIO $ mkRndGen pass
+   stToIO $ onePass gen img passSamples sc int
    stop <- getClockTime
    putStrLn (pretty $ diffClockTimes stop start)
    putStrLn $ "Writing " ++ fname ++ "..."
