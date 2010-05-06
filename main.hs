@@ -15,7 +15,7 @@ import Scene
 import DefaultScenes
 
 myScene :: Scene
-myScene = plasticSpheres (fromIntegral resX / fromIntegral resY)
+myScene = glassSphere (fromIntegral resX / fromIntegral resY)
 
 resX :: Int
 resX = 640
@@ -24,7 +24,7 @@ resY :: Int
 resY = 480
 
 passSamples :: Int
-passSamples = 1
+passSamples = 4
 
 onePass :: Gen s -> Image s -> Int-> Scene -> Integrator -> ST s ()
 onePass gen img ns scene int = do
