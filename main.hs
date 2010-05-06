@@ -48,7 +48,7 @@ stratify n (p:xs) = stratify' p ++ (stratify n xs) where
 shift :: (Float, Float) -> (Float, Float) -> (Float, Float)
 shift (ox, oy) (x, y) = (x + ox, y + oy)
 
-imageSamples :: Int -> Int -> Int -> [(Float, Float)] -- TODO: account for filter extent here
+imageSamples :: Int -> Int -> Int -> [(Float, Float)] -- TODO: should account for filter extent
 imageSamples ns sx sy = stratify ns [ (fromIntegral x, fromIntegral y) | y <- [0..sy-1], x <- [0..sx-1]]
    
 -- | Pretty print the date in '1d 9h 9m 17s' format
@@ -73,18 +73,23 @@ render pass img sc int = do
    stToIO $ onePass gen img passSamples sc int
    stop <- getClockTime
    putStrLn (pretty $ diffClockTimes stop start)
+   
    putStrLn $ "Writing " ++ fname ++ "..."
-   handle <- openFile fname WriteMode
-   writePpm img handle
-   hClose handle
+   h1 <- openFile (fname ++ ".ppm") WriteMode
+   writePpm img h1
+   hClose h1
+   
+   h2 <- openFile (fname ++ ".hdr") WriteMode
+   writeRgbe img h2
+   hClose h2
+   
    render (pass + 1) img sc int
    where
-         fname = "pass-" ++ (printf "%05d" pass) ++ ".ppm"
+         fname = "pass-" ++ (printf "%05d" pass)
 
 main :: IO ()
 main = do
    putStrLn "Creating image..."
    img <- stToIO $  mkImage resX resY
-   
    render 1 img myScene pathTracer
          

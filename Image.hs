@@ -3,7 +3,7 @@ module Image(
    Image, ImageSample(..),
    mkImage,
    imageWidth, imageHeight, 
-   writePpm, addSample) where
+   writePpm, writeRgbe, addSample) where
 
 import Debug.Trace
 
@@ -11,6 +11,7 @@ import Control.Monad
 import Control.Monad.ST
 import Data.List
 import Data.Array.ST
+import qualified Data.ByteString as BS
 import System.IO
 
 import Color
@@ -98,6 +99,30 @@ getPixel (Image _ _ p) o = do
    return $ (w, fromXyz (x, y, z)) where
       o' = o * 4
    
+writeRgbe :: Image RealWorld -> Handle -> IO ()
+writeRgbe img@(Image w h _) hnd =
+   let header = "#?RGBE\nFORMAT=32-bit_rgbe\n\n-Y " ++ (show h) ++ " +X " ++ (show w) ++ "\n"
+       pixel p = stToIO $ (liftM $ toRgbe . toRgb . mulWeight) $ getPixel img p
+   in do
+      hPutStr hnd header
+      sequence_ $ map (\p -> pixel p >>= (BS.hPutStr hnd)) [0..(w*h-1)]
+      
+toRgbe :: (Float, Float, Float) -> BS.ByteString
+toRgbe (r, g, b)
+   | v < 0.00001 = BS.pack [0,0,0,0]
+   | otherwise = BS.pack $ map truncate [r * v'', g * v'', b * v'', fromIntegral $ e + 128]
+   where
+         v = max r $ max g b
+         (v', e) = frexp v
+         v'' = v' * 256.0 / v
+         
+frexp :: Float -> (Float, Int)
+frexp x = frexp' (x, 0) where
+   frexp' (s, e)
+      | s >= 1.0 = frexp' (s / 2, e + 1)
+      | s < 0.5 = frexp' (s * 2, e - 1)
+      | otherwise = (s, e)
+
 -- | writes an image in ppm format
 writePpm :: Image RealWorld -> Handle -> IO ()
 writePpm img@(Image w h _) handle = 
