@@ -84,7 +84,10 @@ sinc1D tau x
 -- | adds an sample to the specified image
 addSample :: Image s -> ImageSample -> ST s ()
 addSample img smp@(ImageSample sx sy (_, ss))
-   | sNaN ss = trace ("skipping NaN sample at (" ++ (show sx) ++ ", " ++ (show sy) ++ ")") (return () )
+   | sNaN ss = trace ("skipping NaN sample at ("
+      ++ (show sx) ++ ", " ++ (show sy) ++ ")") (return () )
+   | sInfinite ss = trace ("skipping infinite sample at ("
+      ++ (show sx) ++ ", " ++ (show sy) ++ ")") (return () )
    | otherwise = sequence_ $ map (addPixel img) pixels
    where
          pixels = sincFilter 3 3 3 smp

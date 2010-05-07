@@ -2,7 +2,7 @@
 module Color (
    Spectrum, WeightedSpectrum, 
    white, black, 
-   isBlack, sNaN,
+   isBlack, sNaN, sInfinite,
    fromXyz, toXyz, toRgb, sConst,
    sScale, sPow) where
 
@@ -57,6 +57,9 @@ sScale (Spectrum a b c) f = Spectrum (a*f) (b*f) (c*f)
 
 sNaN :: Spectrum -> Bool
 sNaN (Spectrum r g b) = (isNaN r) || (isNaN g) || (isNaN b)
+
+sInfinite :: Spectrum -> Bool
+sInfinite (Spectrum r g b) = (isInfinite r) || (isInfinite g) || (isInfinite b)
 
 sPow :: Spectrum -> Spectrum -> Spectrum
 sPow (Spectrum c1 c2 c3) (Spectrum e1 e2 e3) = Spectrum (p' c1 e1) (p' c2 e2) (p' c3 e3) where
