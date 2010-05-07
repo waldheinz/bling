@@ -15,16 +15,16 @@ import Scene
 import DefaultScenes
 
 myScene :: Scene
-myScene = glassSphere (fromIntegral resX / fromIntegral resY)
+myScene = sphereCube (fromIntegral resX / fromIntegral resY)
 
 resX :: Int
-resX = 640
+resX = 320
 
 resY :: Int
-resY = 480
+resY = 240
 
 passSamples :: Int
-passSamples = 4
+passSamples = 1
 
 onePass :: Gen s -> Image s -> Int-> Scene -> Integrator -> ST s ()
 onePass gen img ns scene int = do
@@ -75,10 +75,10 @@ render pass img sc int = do
    putStrLn (pretty $ diffClockTimes stop start)
    
    putStrLn $ "Writing " ++ fname ++ "..."
-   h1 <- openFile (fname ++ ".ppm") WriteMode
+{-   h1 <- openFile (fname ++ ".ppm") WriteMode
    writePpm img h1
    hClose h1
-   
+-}   
    h2 <- openFile (fname ++ ".hdr") WriteMode
    writeRgbe img h2
    hClose h2

@@ -117,6 +117,7 @@ toRgbe (r, g, b)
          v'' = v' * 256.0 / v
          
 frexp :: Float -> (Float, Int)
+frexp 0 = (0, 0)
 frexp x = frexp' (x, 0) where
    frexp' (s, e)
       | s >= 1.0 = frexp' (s / 2, e + 1)

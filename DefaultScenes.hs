@@ -4,6 +4,7 @@ module DefaultScenes(glassSphere, plasticSpheres, sphereCube) where
 import Camera
 import Color
 import Geometry
+import Lafortune
 import Light
 import Material
 import Plastic
@@ -25,16 +26,29 @@ plTest e kd  = plasticMaterial
    e
 
 sphereCube :: Float -> Scene
-sphereCube aspect = mkScene
-   [ SoftBox $ fromXyz (0.95, 0.95, 0.95) ]
-   [ Group spheres, mkPrim (Plane 0 (0, 1, 0)) (gpMat $ fromXyz (0.8, 0.8, 0.8)) ]
-   (pinHoleCamera (View (3, 7, -6) (0,0.5,0) (0, 1, 0) 1.8 aspect)) where
-      spheres = []
-
+sphereCube aspect = mkScene [ ]
+   [  Group spheres,
+      mkPrim' (Sphere 1.5 (0,0,0)) blackBodyMaterial (Just $ fromXyz (15,3,3)),
+      mkPrim (Plane pd (0, 1, 0)) (measuredMaterial Primer),
+      mkPrim (Plane pd (0, -1, 0)) (measuredMaterial Primer),
+      mkPrim (Plane pd (0, 0, 1)) (measuredMaterial Primer),
+      mkPrim (Plane pd (0, 0, 11)) (measuredMaterial Primer),
+      mkPrim (Plane pd (1, 0, 0)) (measuredMaterial Primer),
+      mkPrim (Plane pd (-1, 0, 0)) (measuredMaterial Primer)
+   ]
+   (pinHoleCamera (View (3, 10, -10) (0,0.0,0) (0, 1, 0) 1.8 aspect)) where
+      spheres = map (\pos -> mkPrim (Sphere r pos) (plTest 0.02  (0.9, 0.9, 0.9))) coords
+      coords = filter (\(x, y, z) -> (abs x > 1) || (abs y > 1) || (abs z > 1)) coords'
+      coords' = [(x,y,z) | x <- [(-cnt)..cnt], y <- [(-cnt)..cnt], z <- [(-cnt)..cnt]]
+      cnt = 3
+      r = 0.49
+      pd = 11
+    --  spMat = plTest 0.01 (0.9, 0.9, 0.9)
+      
 glassSphere :: Float -> Scene
 glassSphere aspect = mkScene [] 
    [
-      mkPrim (Sphere 1.1 (1, 1.1, 0)) (glassMaterial 1.5),
+      mkPrim (Sphere 1.1 (1, 1.1, 0)) (glassMaterial 1.5 white),
       mkPrim' (Sphere 1.5 (-2,5,2)) blackBodyMaterial (Just (fromXyz (35, 35, 35))),
       mkPrim (Plane (-0.0) (0, 1, 0)) (gpMat $ fromXyz (0.4, 0.5, 0.8))
    ] 

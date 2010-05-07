@@ -7,10 +7,10 @@ import Material
 import Math
 import Transport
 
-glassMaterial :: Float -> Material
-glassMaterial ior dg = mkBsdf [refl, trans] cs where
-   refl = MkAnyBxdf $ SpecularReflection white $ frDiel 1 ior
-   trans = MkAnyBxdf $ SpecularTransmission white 1 ior
+glassMaterial :: Float -> Spectrum -> Material
+glassMaterial ior r dg = mkBsdf [refl, trans] cs where
+   refl = MkAnyBxdf $ SpecularReflection r $ frDiel 1 ior
+   trans = MkAnyBxdf $ SpecularTransmission r 1 ior
    cs = shadingCs dg
 
 mirrorMaterial :: Spectrum -> Material
