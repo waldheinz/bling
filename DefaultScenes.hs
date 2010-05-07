@@ -29,12 +29,12 @@ sphereCube :: Float -> Scene
 sphereCube aspect = mkScene [ ]
    [  Group spheres,
       mkPrim' (Sphere 1.5 (0,0,0)) blackBodyMaterial (Just $ fromXyz (15,3,3)),
-      mkPrim (Plane pd (0, 1, 0)) (measuredMaterial Primer),
-      mkPrim (Plane pd (0, -1, 0)) (measuredMaterial Primer),
-      mkPrim (Plane pd (0, 0, 1)) (measuredMaterial Primer),
-      mkPrim (Plane pd (0, 0, 11)) (measuredMaterial Primer),
-      mkPrim (Plane pd (1, 0, 0)) (measuredMaterial Primer),
-      mkPrim (Plane pd (-1, 0, 0)) (measuredMaterial Primer)
+      mkPrim (Plane pd ( 0,  1,  0)) (measuredMaterial Primer),
+      mkPrim (Plane pd ( 0, -1,  0)) (measuredMaterial Primer),
+      mkPrim (Plane pd ( 0,  0,  1)) (measuredMaterial Primer),
+      mkPrim (Plane pd ( 0,  0, -1)) (measuredMaterial Primer),
+      mkPrim (Plane pd ( 1,  0,  0)) (measuredMaterial Primer),
+      mkPrim (Plane pd (-1,  0,  0)) (measuredMaterial Primer)
    ]
    (pinHoleCamera (View (3, 10, -10) (0,0.0,0) (0, 1, 0) 1.8 aspect)) where
       spheres = map (\pos -> mkPrim (Sphere r pos) (plTest 0.02  (0.9, 0.9, 0.9))) coords

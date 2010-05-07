@@ -42,7 +42,7 @@ nextVertex scene depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ dg _)
       spec' <- return $! (Specular `member` smpType)
       
       x <- rnd
-      if (x > pCont)
+      if (x > pCont || (pdf == 0.0))
          then return $! (1.0, l)
          else nextVertex scene (depth + 1) spec' outRay (primIntersect (scenePrim scene) outRay) throughput' l'
          

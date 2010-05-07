@@ -56,7 +56,7 @@ sampleLightMis scene (LightSample li wi ray pdf deltaLight) bsdf wo n
 
 sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Spectrum
 sampleBsdfMis (Scene sp _ _) light (BsdfSample _ bPdf f wi) n p
-   | (isBlack f) || (bPdf == infinity) = black
+   | (isBlack f) || (bPdf == 0) = black
    | isJust lint = scale $ intLe (fromJust lint) (neg wi) -- TODO: need to check if the "right" light was hit
    | otherwise = scale (lightEmittance light ray)
    where

@@ -117,12 +117,14 @@ toRgbe (r, g, b)
          v'' = v' * 256.0 / v
          
 frexp :: Float -> (Float, Int)
-frexp 0 = (0, 0)
-frexp x = frexp' (x, 0) where
-   frexp' (s, e)
-      | s >= 1.0 = frexp' (s / 2, e + 1)
-      | s < 0.5 = frexp' (s * 2, e - 1)
-      | otherwise = (s, e)
+frexp x
+   | isNaN x = error "NaN given to frexp"
+   | isInfinite x = error "infinity given to frexp"
+   | otherwise  = frexp' (x, 0) where
+      frexp' (s, e)
+         | s >= 1.0 = frexp' (s / 2, e + 1)
+         | s < 0.5 = frexp' (s * 2, e - 1)
+         | otherwise = (s, e)
 
 -- | writes an image in ppm format
 writePpm :: Image RealWorld -> Handle -> IO ()

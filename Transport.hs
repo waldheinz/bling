@@ -62,7 +62,7 @@ class Bxdf a where
       
    bxdfPdf _ (_, _, woz)(_, _, wiz)
       | woz * wiz > 0 = invPi * abs wiz
-      | otherwise = infinity
+      | otherwise = 0
 
 data AnyBxdf = forall a. Bxdf a => MkAnyBxdf a
 
@@ -80,7 +80,7 @@ data BsdfSample = BsdfSample {
    } deriving (Show)
 
 emptyBsdfSample :: BsdfSample
-emptyBsdfSample = BsdfSample (mkBxdfType [Reflection, Diffuse]) infinity black (0,0,0)
+emptyBsdfSample = BsdfSample (mkBxdfType [Reflection, Diffuse]) 0 black (0,1,0)
 
 -- | creates a Bsdf from a list of Bxdfs and a shading coordinate system
 mkBsdf :: [AnyBxdf] -> LocalCoordinates -> Bsdf
