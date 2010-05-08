@@ -22,15 +22,6 @@ instance Monad Rand where
 runRand :: Int -> Rand a -> a
 runRand seed (Rand c) = runST (do gen <- initialize $ singleton $ fromIntegral seed
                                   c gen)
-
-data SampleNeed = SampleNeed {
-   samples2D :: Int
-   }
-
-sample2D :: Int -> Rand Rand2D
-sample2D num = undefined
-   
-
 mkRndGen :: Int -> ST s (Gen s)
 mkRndGen seed = initialize $ singleton $ fromIntegral seed
 

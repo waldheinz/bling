@@ -1,7 +1,6 @@
 
 module Math where
 
-import DebugFractional
 import Random
 
 
@@ -160,6 +159,16 @@ concentricSampleDisk' (sx, sy) = (r * cos theta, r * sin theta) where
 
 sphericalDirection :: Flt -> Flt -> Flt -> Vector
 sphericalDirection sint cost phi = (sint * cos phi, sint * sin phi, cost)
+
+sphericalTheta :: Vector -> Float
+sphericalTheta (_, _, z) = acos $ max (-1) $ min 1 z
+
+sphericalPhi :: Vector -> Float
+sphericalPhi (x, y, _)
+   | p' < 0 = p' + 2 * pi
+   | otherwise = p'
+   where
+         p' = atan2 y x
 
 data LocalCoordinates = LocalCoordinates Vector Vector Vector
 

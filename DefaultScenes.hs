@@ -1,5 +1,5 @@
 
-module DefaultScenes(glassSphere, plasticSpheres, sphereCube) where
+module DefaultScenes(glassSphere, plasticSpheres, sphereCube, skyLightTest) where
 
 import Camera
 import Color
@@ -25,6 +25,14 @@ plTest e kd  = plasticMaterial
    (constantSpectrum $ fromXyz (0.85, 0.85, 0.85))
    e
 
+skyLightTest :: Float -> Scene
+skyLightTest aspect = mkScene [ mkProbeLight TestProbe ]
+   [
+      mkPrim (Sphere 1 (0, 1, 0)) (plTest 0.1 (0.9, 0.9, 0.9)),
+      mkPrim (Plane 0 ( 0,  1,  0)) (gpMat $ fromXyz (0.8, 0.8, 0.8))
+   ]
+   (pinHoleCamera (View (3, 2, -7) (0,1,0) (0, 1, 0) 1.8 aspect))
+   
 sphereCube :: Float -> Scene
 sphereCube aspect = mkScene [ ]
    [  Group spheres,
