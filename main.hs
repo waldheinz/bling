@@ -15,7 +15,7 @@ import Scene
 import DefaultScenes
 
 myScene :: Scene
-myScene = skyLightTest (fromIntegral resX / fromIntegral resY)
+myScene = blackBodyScene (fromIntegral resX / fromIntegral resY)
 
 resX :: Int
 resX = 800

@@ -1,9 +1,9 @@
 
-module Color (
+module Spectrum (
    Spectrum, WeightedSpectrum, 
    white, black, 
    isBlack, sNaN, sInfinite,
-   fromXyz, toXyz, toRgb, sConst,
+   fromXyz, toXyz, toRgb, sConst, sBlackBody,
    sScale, sPow) where
 
 import Data.Array.Unboxed
@@ -57,6 +57,9 @@ isBlack (Spectrum r g b) = r < epsilon && g < epsilon && b < epsilon
 sScale :: Spectrum -> Float -> Spectrum
 sScale (Spectrum a b c) f = Spectrum (a*f) (b*f) (c*f)
 
+sAdd :: Spectrum -> Spectrum -> Spectrum
+sAdd (Spectrum r1 g1 b1) (Spectrum r2 g2 b2) = Spectrum (r1+r2) (g1+g2) (b1+b2)
+
 sNaN :: Spectrum -> Bool
 sNaN (Spectrum r g b) = (isNaN r) || (isNaN g) || (isNaN b)
 
@@ -69,7 +72,18 @@ sPow (Spectrum c1 c2 c3) (Spectrum e1 e2 e3) = Spectrum (p' c1 e1) (p' c2 e2) (p
    p' c e
       | c > 0 = c ** e
       | otherwise = 0
-      
+   
+sBlackBody :: Double -> Spectrum
+sBlackBody t = sScale (foldl sAdd black $ map (\xyz -> fromXyz xyz) e) 1e10 where
+   e = map (\wl -> ((cieX wl) * (p wl), (cieY wl) * (p wl), (cieZ wl) * (p wl))) [cieStart .. cieEnd]
+   p = (\wl -> planck t (fromIntegral wl))
+
+planck :: Double -> Double -> Float
+planck t v =  realToFrac $ ((2 * h * v ** 3) / (c * c)) / (exp ((h*v) / (k*t)) - 1) where
+   h = 4.13566733e-15 -- Planck constant [eV s]
+   c = 299792458 -- speed of light in vacuum [m/s]
+   k = 8.617343e-5 -- Boltzmann constant [eV/K]
+   
 cieStart :: Int
 cieStart = 360
 
@@ -82,7 +96,7 @@ cieX lambda
    | otherwise = xArr ! lambda
    where
          xArr = listArray (cieStart, cieEnd) cieXValues :: UArray Int Float
-         
+    
 cieXValues :: [Float]
 cieXValues = [
    0.0001299000, 0.0001458470, 0.0001638021, 0.0001840037,
@@ -331,7 +345,7 @@ cieYValues = [
    0.0000009109300,  0.0000008492513,  0.0000007917212,  0.0000007380904,
    0.0000006881098,  0.0000006415300,  0.0000005980895,  0.0000005575746,
    0.0000005198080, 0.0000004846123, 0.0000004518100 ]
-    
+   
 cieZ :: Int -> Float
 cieZ lambda
    | (lambda < cieStart) || (lambda > cieEnd) = 0

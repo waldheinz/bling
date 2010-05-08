@@ -1,10 +1,10 @@
 
 module Lafortune where
 
-import Color
 import Geometry
 import Material
 import Math
+import Spectrum
 import Transport
 
 data Lobe = Lobe {

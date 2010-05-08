@@ -14,7 +14,7 @@ import Data.Array.ST
 import qualified Data.ByteString as BS
 import System.IO
 
-import Color
+import Spectrum
 
 -- | places a @WeightedSpectrum@ in an @Image@
 data ImageSample = ImageSample {

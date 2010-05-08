@@ -1,10 +1,10 @@
 
 module Specular where
 
-import Color
 import Geometry
 import Material
 import Math
+import Spectrum
 import Transport
 
 glassMaterial :: Float -> Spectrum -> Material

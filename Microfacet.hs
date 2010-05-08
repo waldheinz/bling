@@ -1,10 +1,10 @@
 
 module Microfacet where
 
-import Color
 import Math
 import Random
 import Specular
+import Spectrum
 import Transport
 
 data Microfacet = Microfacet {

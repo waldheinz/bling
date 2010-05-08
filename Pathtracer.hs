@@ -4,13 +4,13 @@ module Pathtracer(pathTracer) where
 import Control.Monad
 import Data.BitSet
 
-import Color
 import Geometry
 import Light
 import Math
 import Primitive
 import Random
 import Scene
+import Spectrum
 import Transport
 
 pathTracer :: Integrator

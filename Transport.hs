@@ -6,9 +6,9 @@ module Transport(
    isDiffuse, isReflection, sameHemisphere, toSameHemisphere, cosTheta, sinTheta2
    ) where
 
-import Color
 import Math
 import Random
+import Spectrum
 
 import Data.BitSet
 import Data.List(foldl')

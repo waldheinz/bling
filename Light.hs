@@ -4,10 +4,10 @@ module Light (
    mkAreaLight, mkProbeLight, TestProbe(..),
    Light(..), LightSample(..), lightSample, lightEmittance, lightLe, lightPdf) where
 
-import Color
 import Geometry
 import Math
 import Random
+import Spectrum
 
 data LightSample = LightSample {
    de :: Spectrum, -- ^ differential irradiance

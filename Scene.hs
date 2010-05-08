@@ -7,11 +7,11 @@ import Control.Monad
 import Data.Maybe (isJust, fromJust, catMaybes)
 
 import Camera
-import Color
 import Light
 import Math
 import Primitive
 import Random
+import Spectrum
 import Transport
 
 data Scene = Scene {

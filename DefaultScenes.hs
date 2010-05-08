@@ -1,8 +1,8 @@
 
-module DefaultScenes(glassSphere, plasticSpheres, sphereCube, skyLightTest) where
+module DefaultScenes(glassSphere, plasticSpheres, sphereCube, skyLightTest, blackBodyScene) where
 
 import Camera
-import Color
+import Spectrum
 import Geometry
 import Lafortune
 import Light
@@ -24,6 +24,15 @@ plTest e kd  = plasticMaterial
    (constantSpectrum $ fromXyz kd)
    (constantSpectrum $ fromXyz (0.85, 0.85, 0.85))
    e
+
+blackBodyScene :: Float -> Scene
+blackBodyScene aspect = mkScene []
+   [ Group emitters, mkPrim (Plane 0 ( 0,  1,  0)) (measuredMaterial Primer) ]
+   (pinHoleCamera (View (7, 5, -7) (0,1,0) (0, 1, 0) 1.8 aspect)) where
+      emitters = map (\pos -> mkPrim' (Sphere 0.4 pos) blackBodyMaterial (Just $ sBlackBody 500)) poss
+      poss = [(x, 0.5, z) | x <- [-2..2], z <- [-1..1]]
+      temps = [500, 1000 ..] 
+   
 
 skyLightTest :: Float -> Scene
 skyLightTest aspect = mkScene [ mkProbeLight TestProbe ]

@@ -1,8 +1,8 @@
 
 module Texture where
 
-import Color
 import Geometry
+import Spectrum
 
 type SpectrumTexture = DifferentialGeometry -> Spectrum
 

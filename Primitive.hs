@@ -1,11 +1,11 @@
 
 module Primitive where
 
-import Color
 import Geometry
 import Light
 import Material
 import Math
+import Spectrum
 import Transport
 
 import Maybe(fromJust, isJust, isNothing)

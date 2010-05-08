@@ -1,9 +1,9 @@
 
 module Material(Material, Lambertian(..), matteMaterial, blackBodyMaterial) where
 
-import Color
 import Geometry
 import Math
+import Spectrum
 import Texture
 import Transport
 
