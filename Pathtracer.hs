@@ -21,7 +21,7 @@ directLight s ray = foldl (+) black (map (\l -> lightEmittance l ray) (sceneLigh
 
 nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Rand WeightedSpectrum
 nextVertex _ 10 _ _ _ _ l = return $! (1.0, seq l l) -- hard bound
-   
+
 nextVertex s _ True ray Nothing throughput l = -- nothing hit, specular bounce
    return $! (1.0, (l + throughput * directLight s ray))
    
@@ -43,7 +43,7 @@ nextVertex scene depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ dg _)
       
       x <- rnd
       if (x > pCont || (pdf == 0.0))
-         then return $! (1.0, l)
+         then return $! (1.0, l')
          else nextVertex scene (depth + 1) spec' outRay (primIntersect (scenePrim scene) outRay) throughput' l'
          
       where

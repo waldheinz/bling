@@ -15,13 +15,13 @@ import Scene
 import DefaultScenes
 
 myScene :: Scene
-myScene = sphereCube (fromIntegral resX / fromIntegral resY)
+myScene = plasticSpheres (fromIntegral resX / fromIntegral resY)
 
 resX :: Int
-resX = 640
+resX = 800
 
 resY :: Int
-resY = 480
+resY = 600
 
 passSamples :: Int
 passSamples = 2
@@ -75,10 +75,10 @@ render pass img sc int = do
    putStrLn (pretty $ diffClockTimes stop start)
    
    putStrLn $ "Writing " ++ fname ++ "..."
-{-   h1 <- openFile (fname ++ ".ppm") WriteMode
+   h1 <- openFile (fname ++ ".ppm") WriteMode
    writePpm img h1
    hClose h1
--}   
+
    h2 <- openFile (fname ++ ".hdr") WriteMode
    writeRgbe img h2
    hClose h2

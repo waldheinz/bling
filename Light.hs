@@ -20,8 +20,11 @@ data LightSample = LightSample {
 data Light =
    SoftBox Spectrum | -- ^ an infinite area light surrounding the whole scene, emitting a constant amount of light from all directions.
    Directional Spectrum Normal | -- ^ 
-   AreaLight Spectrum Float (Point -> Rand2D -> (Point, Normal)) (Point -> Float)
---   deriving (Eq)
+   AreaLight Spectrum Float (Point -> Rand2D -> (Point, Normal)) (Point -> Float) |
+   ProbeLight ((Float, Float) -> Spectrum) (Normal -> Rand2D -> (Float, (Float, Float)))
+   
+mkProbeLight :: (LightProbe p) => p -> Light
+mkProbeLight p = ProbeLight (lightProbeEval p) (lightProbeSample p)
    
 mkAreaLight :: (Bound b) => Spectrum -> b -> Light
 mkAreaLight r bound = AreaLight r (boundArea bound) (boundSample bound) (boundPdf bound)
@@ -32,7 +35,16 @@ lightLe (AreaLight r _ _ _) _ n wo
    | otherwise = black
 lightLe _ _ _ _ = black
 
-lightSample :: Light -> Point -> Normal -> Rand2D -> LightSample  
+lightSample :: Light -> Point -> Normal -> Rand2D -> LightSample
+lightSample (ProbeLight eval sample) p n u =
+   let (pdf, (s, t)) = sample n u
+       de = eval (s, t)
+       theta = t * pi
+       phi = s * 2 * pi
+       wi = sphericalDirection (sin theta) (cos theta) phi
+       r = Ray p wi epsilon infinity
+   in LightSample de wi r pdf False
+                                           
 lightSample (SoftBox r) p n us = lightSampleSB r p n us
 lightSample (Directional r d) p n _ = lightSampleD r d p n
 lightSample (AreaLight r _ sample pdf) p n us = LightSample (sScale r (absDot ns n)) wi (segmentRay p ps) (pdf p) False where
@@ -62,4 +74,7 @@ lightSampleD r d pos n = LightSample y d ray 1.0 True where
    y = sScale r (absDot n d)
    ray = (Ray pos d epsilon infinity)
 
-    
+class LightProbe a where
+   lightProbeEval :: a -> (Float, Float) -> Spectrum
+   lightProbeSample :: a -> Normal -> Rand2D -> (Float, (Float, Float))
+   

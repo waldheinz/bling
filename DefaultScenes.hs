@@ -40,8 +40,8 @@ sphereCube aspect = mkScene [ ]
       spheres = map (\pos -> mkPrim (Sphere r pos) (plTest 0.02  (0.9, 0.9, 0.9))) coords
       coords = filter (\(x, y, z) -> (abs x > 1) || (abs y > 1) || (abs z > 1)) coords'
       coords' = [(x,y,z) | x <- [(-cnt)..cnt], y <- [(-cnt)..cnt], z <- [(-cnt)..cnt]]
-      cnt = 3
-      r = 0.49
+      cnt = 2
+      r = 0.4
       pd = 11
     --  spMat = plTest 0.01 (0.9, 0.9, 0.9)
       

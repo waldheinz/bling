@@ -9,9 +9,9 @@ import System.Random.MWC
 type Rand2D = (Float, Float)
 
 -- | Marks a computation that requires random values                                                                                         
-newtype Rand a = Rand {unR :: (forall s. Gen s -> ST s a) }
-
---newtype Rand a = Rand (ST s a)
+newtype Rand a = Rand {
+   unR :: (forall s. Gen s -> ST s a)
+   }
 
 -- | For allowing the Monadic syntax when using @Rand@                                                                                       
 instance Monad Rand where
@@ -22,9 +22,14 @@ instance Monad Rand where
 runRand :: Int -> Rand a -> a
 runRand seed (Rand c) = runST (do gen <- initialize $ singleton $ fromIntegral seed
                                   c gen)
-                               --   x <- c gen
-                              --    seed' <- save gen
-                              --    return (x,seed'))
+
+data SampleNeed = SampleNeed {
+   samples2D :: Int
+   }
+
+sample2D :: Int -> Rand Rand2D
+sample2D num = undefined
+   
 
 mkRndGen :: Int -> ST s (Gen s)
 mkRndGen seed = initialize $ singleton $ fromIntegral seed
