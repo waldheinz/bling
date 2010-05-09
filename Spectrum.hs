@@ -3,10 +3,13 @@ module Spectrum (
    Spectrum, WeightedSpectrum, 
    white, black, 
    isBlack, sNaN, sInfinite,
-   fromXyz, toXyz, toRgb, sConst, sBlackBody,
+   fromXyz,  toRGB, fromRGB, sConst, sBlackBody,
    sScale, sPow) where
 
 import Data.Array.Unboxed
+import Data.Colour.CIE
+import Data.Colour.SRGB
+import System.IO
 
 import Math
 
@@ -23,14 +26,26 @@ black = Spectrum 0 0 0
 white :: Spectrum
 white = Spectrum 1 1 1
 
+fromRGB :: (Float, Float, Float) -> Spectrum
+fromRGB (r, g, b) = Spectrum r g b
+ --  where 
+ --        r = channelRed rgb
+ --        g = channelGreen rgb
+ --        b = channelBlue rgb
+ --        rgb = toSRGB xyz
+--         xyz = cieXYZ x y z
+
 fromXyz :: (Float, Float, Float) -> Spectrum
-fromXyz (x, y, z) = Spectrum x y z
+fromXyz (x, y, z) = fromRGB (r, g, b) where
+   r =  3.240479 * x + (-1.537150) * y + (-0.498535) * z;
+   g = (-0.969256) * x +  1.875991 * y +  0.041556 * z;
+   b =  0.055648 * x + (-0.204043) * y +  1.057311 * z;
 
-toRgb :: Spectrum -> (Float, Float, Float)
-toRgb (Spectrum x y z) = (x, y, z)
+toRGB :: Spectrum -> (Float, Float, Float)
+toRGB (Spectrum r g b) = (r, g, b)
 
-toXyz :: Spectrum -> (Float, Float, Float)
-toXyz (Spectrum x y z) = (x, y, z)
+-- toXyz :: Spectrum -> (Float, Float, Float)
+-- toXyz (Spectrum x y z) = (x, y, z)
 
 sConst :: Float -> Spectrum
 sConst r = Spectrum r r r
@@ -73,16 +88,22 @@ sPow (Spectrum c1 c2 c3) (Spectrum e1 e2 e3) = Spectrum (p' c1 e1) (p' c2 e2) (p
       | c > 0 = c ** e
       | otherwise = 0
    
-sBlackBody :: Double -> Spectrum
-sBlackBody t = sScale (foldl sAdd black $ map (\xyz -> fromXyz xyz) e) 1e10 where
+sBlackBody :: Float -> Spectrum
+sBlackBody t = sScale (foldl sAdd black $ map (\xyz -> fromXyz xyz) e) (1 / (fromIntegral (cieEnd - cieStart))) where
    e = map (\wl -> ((cieX wl) * (p wl), (cieY wl) * (p wl), (cieZ wl) * (p wl))) [cieStart .. cieEnd]
    p = (\wl -> planck t (fromIntegral wl))
 
-planck :: Double -> Double -> Float
-planck t v =  realToFrac $ ((2 * h * v ** 3) / (c * c)) / (exp ((h*v) / (k*t)) - 1) where
-   h = 4.13566733e-15 -- Planck constant [eV s]
-   c = 299792458 -- speed of light in vacuum [m/s]
-   k = 8.617343e-5 -- Boltzmann constant [eV/K]
+planck :: RealFloat a => a -> a -> a
+planck temp w = (0.4e-9 * (3.74183e-16 * w' ^^ (-5))) / (exp (1.4388e-2 / (w' * temp)) - 1) where
+   w' = w * 1e-9
+   
+main :: IO ()
+main = do
+   h <- openFile "planck.dat" WriteMode
+   sequence_ $ map (hPutStrLn h) (map printp [1 .. 3000])
+   hClose h
+   where
+      printp x = (show x) ++ " " ++ (show (planck (3000.0 :: Double) (fromIntegral x)))
    
 cieStart :: Int
 cieStart = 360

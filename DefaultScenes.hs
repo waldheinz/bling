@@ -15,25 +15,25 @@ import Texture
 
 gpMat :: Spectrum -> Material
 gpMat c = plasticMaterial
-   (graphPaper 0.08 c (fromXyz (0.02, 0.02, 0.02)))
-   (constantSpectrum $ fromXyz (0.5, 0.5, 0.5))
+   (graphPaper 0.08 c (fromRGB (0.02, 0.02, 0.02)))
+   (constantSpectrum $ fromRGB (0.5, 0.5, 0.5))
    0.02
    
 plTest :: Float -> (Float, Float, Float) -> Material
 plTest e kd  = plasticMaterial
-   (constantSpectrum $ fromXyz kd)
-   (constantSpectrum $ fromXyz (0.85, 0.85, 0.85))
+   (constantSpectrum $ fromRGB kd)
+   (constantSpectrum $ fromRGB (0.85, 0.85, 0.85))
    e
 
 blackBodyScene :: Float -> Scene
 blackBodyScene aspect = mkScene []
-   [ Group emitters, mkPrim (Plane 0 ( 0,  1,  0)) (measuredMaterial Primer) ]
-   (pinHoleCamera (View (7, 5, -7) (0,1,0) (0, 1, 0) 1.8 aspect)) where
-      emitters = map (\pos -> mkPrim' (Sphere 0.4 pos) blackBodyMaterial (Just $ sBlackBody 500)) poss
-      poss = [(x, 0.5, z) | x <- [-2..2], z <- [-1..1]]
-      temps = [500, 1000 ..] 
+   [ Group emitters , mkPrim (Plane 0 ( 0,  1,  0)) (measuredMaterial Primer) ]
+   (pinHoleCamera (View (0, 5, -7) (0,1,0) (0, 1, 0) 1.8 aspect)) where
+      emitters = map (\(p, t) -> mkPrim' (Sphere 0.4 p) blackBodyMaterial (Just $ sBlackBody t)) pts
+      pts = zip poss temps
+      poss = [(x, 0.5, 0) | x <- [-3..3]]
+      temps = [1000, 2000 ..] 
    
-
 skyLightTest :: Float -> Scene
 skyLightTest aspect = mkScene [ mkProbeLight TestProbe ]
    [
@@ -72,12 +72,12 @@ glassSphere aspect = mkScene []
    (pinHoleCamera (View (3, 3, -8) (2,0.5,0) (0, 1, 0) 1.8 aspect))
 
 plasticSpheres :: Float -> Scene
-plasticSpheres aspect = mkScene [SoftBox $ fromXyz (0.95, 0.95, 0.95)]
+plasticSpheres aspect = mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)]
    [
       mkPrim (Sphere (0.9) (1, 1, -1)) (plTest 0.001 (1, 0.56, 0)),
       mkPrim (Sphere (0.9) (-1, 1, -1)) (plTest 0.01 (0.38, 0.05, 0.67)),
       mkPrim (Sphere (0.9) (-1, 1, 1)) (plTest 0.1 (1, 0.96, 0)),
       mkPrim (Sphere (0.9) (1, 1, 1)) (plTest 1 (0.04, 0.4, 0.64)),
-      mkPrim (Plane (-0.1) (0, 1, 0)) (gpMat $ fromXyz (0.8, 0.8, 0.8))
+      mkPrim (Plane (-0.1) (0, 1, 0)) (gpMat $ fromRGB (0.8, 0.8, 0.8))
    ]
    (pinHoleCamera (View (3, 7, -6) (0,0.5,0) (0, 1, 0) 1.8 aspect))

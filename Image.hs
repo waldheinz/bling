@@ -53,7 +53,7 @@ addPixel (Image w h p) (x, y, (sw, s))
       writeArray p (o' + 3) (oz + sz)
       
    where
-         (sx, sy, sz) = toXyz s
+         (sx, sy, sz) = toRGB s
          o' = (x + y*w) * 4
 
 type Filter = ImageSample -> [(Int, Int, WeightedSpectrum)]
@@ -96,16 +96,16 @@ addSample img smp@(ImageSample sx sy (_, ss))
 getPixel :: Image s -> Int -> ST s WeightedSpectrum
 getPixel (Image _ _ p) o = do
    w <- readArray p o'
-   x <- readArray p (o' + 1)
-   y <- readArray p (o' + 2)
-   z <- readArray p (o' + 3)
-   return $ (w, fromXyz (x, y, z)) where
+   r <- readArray p (o' + 1)
+   g <- readArray p (o' + 2)
+   b <- readArray p (o' + 3)
+   return $ (w, fromRGB (r, g, b)) where
       o' = o * 4
    
 writeRgbe :: Image RealWorld -> Handle -> IO ()
 writeRgbe img@(Image w h _) hnd =
    let header = "#?RGBE\nFORMAT=32-bit_rgbe\n\n-Y " ++ (show h) ++ " +X " ++ (show w) ++ "\n"
-       pixel p = stToIO $ (liftM $ toRgbe . toRgb . mulWeight) $ getPixel img p
+       pixel p = stToIO $ (liftM $ toRgbe . toRGB . mulWeight) $ getPixel img p
    in do
       hPutStr hnd header
       sequence_ $ map (\p -> pixel p >>= (BS.hPutStr hnd)) [0..(w*h-1)]
@@ -150,7 +150,7 @@ clamp v = round ( (min 1 (max 0 v)) * 255 )
 
 -- | converts a @WeightedSpectrum@ into what's expected to be found in a ppm file
 ppmPixel :: WeightedSpectrum -> String
-ppmPixel ws = (toString . (gamma 2.2) .toRgb . mulWeight) ws
+ppmPixel ws = (toString . (gamma 2.2) .toRGB . mulWeight) ws
    where
       toString (r, g, b) = show (clamp r) ++ " " ++ show (clamp g) ++ " " ++ show (clamp b) ++ " "
 

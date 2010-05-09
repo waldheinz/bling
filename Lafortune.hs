@@ -31,24 +31,24 @@ data Measured = BrushedMetal | BluePaint | Felt | Clay | Primer
 measuredMaterial :: Measured -> Material
 measuredMaterial Primer int = mkBsdf [bxdf] sc where
       sc = shadingCs int
-      bxdf = MkAnyBxdf $ Lafortune (fromXyz (0.118230, 0.121218, 0.133209)) lobes
+      bxdf = MkAnyBxdf $ Lafortune (fromRGB (0.118230, 0.121218, 0.133209)) lobes
       
       lobes = [lobe1, lobe2, lobe3]
       
       lobe1 = Lobe xy1 xy1 z1 e1
-      xy1 = fromXyz ( -0.399286, -1.033473, -1.058104 )
-      z1  = fromXyz (  0.167504,  0.009545, -0.068002 )
-      e1  = fromXyz (  2.466633,  7.637253,  8.117645 )
+      xy1 = fromRGB ( -0.399286, -1.033473, -1.058104 )
+      z1  = fromRGB (  0.167504,  0.009545, -0.068002 )
+      e1  = fromRGB (  2.466633,  7.637253,  8.117645 )
       
       lobe2 = Lobe xy2 xy2 z2 e2
-      xy2 = fromXyz ( -1.041861, -1.100108, -1.087779 )
-      z2  = fromXyz (  0.014375, -0.198147, -0.053605 )
-      e2  = fromXyz (  7.993722, 29.446268, 41.988990 )
+      xy2 = fromRGB ( -1.041861, -1.100108, -1.087779 )
+      z2  = fromRGB (  0.014375, -0.198147, -0.053605 )
+      e2  = fromRGB (  7.993722, 29.446268, 41.988990 )
       
       lobe3 = Lobe xy3 xy3 z3 e3
-      xy3 = fromXyz ( -1.098605, -0.379883, -0.449038 )
-      z3  = fromXyz ( -0.145110,  0.159127,  0.173224 )
-      e3  = fromXyz ( 31.899719,  2.372852,  2.636161 )
+      xy3 = fromRGB ( -1.098605, -0.379883, -0.449038 )
+      z3  = fromRGB ( -0.145110,  0.159127,  0.173224 )
+      e3  = fromRGB ( 31.899719,  2.372852,  2.636161 )
    
 measuredMaterial Clay int = mkBsdf [bxdf] sc where
       sc = shadingCs int
