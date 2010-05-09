@@ -3,6 +3,7 @@ module Pathtracer(pathTracer) where
 
 import Control.Monad
 import Data.BitSet
+import Data.Array.Unboxed
 
 import Geometry
 import Light
@@ -17,7 +18,7 @@ pathTracer :: Integrator
 pathTracer scene r = nextVertex scene 0 True r (primIntersect (scenePrim scene) r) white black
 
 directLight :: Scene -> Ray -> Spectrum
-directLight s ray = foldl (+) black (map (\l -> lightEmittance l ray) (sceneLights s))
+directLight s ray = foldl (+) black (map (\l -> lightEmittance l ray) (elems $ sceneLights s))
 
 nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Rand WeightedSpectrum
 nextVertex _ 10 _ _ _ _ l = return $! (1.0, seq l l) -- hard bound
@@ -34,7 +35,8 @@ nextVertex scene depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ dg _)
       bsdfDirU <- rnd2D
       bsdfCompU <- rnd
       (BsdfSample smpType pdf f wi) <- return $ sampleBsdf bsdf wo bsdfCompU bsdfDirU
-      lHere <- sampleOneLight scene p n wo bsdf
+      ulNum <- rnd
+      lHere <- sampleOneLight scene p n wo bsdf ulNum
       outRay <- return (Ray p wi epsilon infinity)
       throughput' <- return $! throughput * sScale f ((absDot wi n) / pdf)
       

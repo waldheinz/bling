@@ -4,6 +4,7 @@ module Scene (
    ) where
 
 import Control.Monad
+import Data.Array.Unboxed
 import Data.Maybe (isJust, fromJust, catMaybes)
 
 import Camera
@@ -16,12 +17,13 @@ import Transport
 
 data Scene = Scene {
    scenePrim :: Primitive,
-   sceneLights :: [Light],
+   sceneLights :: Array Int Light,
    sceneCam :: Camera
    }
 
 mkScene :: [Light] -> [Primitive] -> Camera -> Scene
-mkScene l prims cam = Scene (Group ps) (l ++ gl) cam where
+mkScene l prims cam = Scene (Group ps) (listArray (0, length lights - 1) lights) cam where
+   lights = l ++ gl
    gl = catMaybes $ map (primLight) ps -- collect the geometric lights
    ps = primFlatten $ Group prims
 
@@ -81,14 +83,12 @@ estimateDirect s l p n wo bsdf =
    return $ (sampleLightMis s (lSmp uL) bsdf wo n) + (sampleBsdfMis s l (bSmp uBC uBD) n p)
    
 -- | samples one randomly chosen light source
-sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> Rand Spectrum
-sampleOneLight (Scene _ [] _) _ _ _ _ = return black -- no light sources -> no light
-sampleOneLight scene@(Scene _ (l:[]) _) p n wo bsdf =
-   estimateDirect scene l p n wo bsdf
-sampleOneLight scene@(Scene _ lights _) p n wo bsdf = do
-   lightNumF <-rndR (0, fromIntegral lightCount)
-   lightNum <- return $ floor lightNumF
-   y <- estimateDirect scene (lights !! lightNum) p n wo bsdf
-   return $! scale y where
-      lightCount = length lights
-      scale = (\y -> sScale y (fromIntegral lightCount))
+sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> Float -> Rand Spectrum
+sampleOneLight scene@(Scene _ lights _) p n wo bsdf ulNum
+   | lightCount == 0 = return $ black
+   | lightCount == 1 = estimateDirect scene (lights ! 0)  p n wo bsdf
+   | otherwise = (liftM scale) (estimateDirect scene (lights ! lightNum) p n wo bsdf)
+      where
+            lightCount = snd $ bounds lights
+            lightNum = floor $ ulNum * (fromIntegral lightCount)
+            scale = (\y -> sScale y (fromIntegral lightCount))
