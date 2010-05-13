@@ -89,8 +89,12 @@ sPow (Spectrum c1 c2 c3) (Spectrum e1 e2 e3) = Spectrum (p' c1 e1) (p' c2 e2) (p
       | otherwise = 0
    
 sBlackBody :: Float -> Spectrum
-sBlackBody t = sScale (foldl sAdd black $ map (\xyz -> fromXyz xyz) e) (1 / (fromIntegral (cieEnd - cieStart))) where
-   e = map (\wl -> ((cieX wl) * (p wl), (cieY wl) * (p wl), (cieZ wl) * (p wl))) [cieStart .. cieEnd]
+sBlackBody t = sScale (fromXyz (x, y, z)) (1 / (fromIntegral (cieEnd - cieStart))) where
+  -- e = map (\wl -> ((cieX wl) * (p wl), (cieY wl) * (p wl), (cieZ wl) * (p wl))) [cieStart .. cieEnd]
+   
+   z = max 0 $ sum $ map (\wl -> (cieZ wl) * (p wl)) [cieStart .. cieEnd]
+   y = max 0 $ sum $ map (\wl -> (cieY wl) * (p wl)) [cieStart .. cieEnd]
+   x = max 0 $ sum $ map (\wl -> (cieX wl) * (p wl)) [cieStart .. cieEnd]
    p = (\wl -> planck t (fromIntegral wl))
 
 planck :: RealFloat a => a -> a -> a

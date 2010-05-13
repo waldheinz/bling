@@ -89,6 +89,6 @@ sampleOneLight scene@(Scene _ lights _) p n wo bsdf ulNum
    | lightCount == 1 = estimateDirect scene (lights ! 0)  p n wo bsdf
    | otherwise = (liftM scale) (estimateDirect scene (lights ! lightNum) p n wo bsdf)
       where
-            lightCount = snd $ bounds lights
+            lightCount = snd (bounds lights) + 1
             lightNum = floor $ ulNum * (fromIntegral lightCount)
             scale = (\y -> sScale y (fromIntegral lightCount))

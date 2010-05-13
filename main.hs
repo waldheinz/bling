@@ -18,13 +18,13 @@ myScene :: Scene
 myScene = blackBodyScene (fromIntegral resX / fromIntegral resY)
 
 resX :: Int
-resX = 1024
+resX = 640
 
 resY :: Int
-resY = 640
+resY = 480
 
 passSamples :: Int
-passSamples = 4
+passSamples = 1
 
 onePass :: Gen s -> Image s -> Int-> Scene -> Integrator -> ST s ()
 onePass gen img ns scene int = do

@@ -90,7 +90,7 @@ addSample img smp@(ImageSample sx sy (_, ss))
       ++ (show sx) ++ ", " ++ (show sy) ++ ")") (return () )
    | otherwise = sequence_ $ map (addPixel img) pixels
    where
-         pixels = sincFilter 3 3 3 smp
+         pixels = sincFilter 2 2 3 smp
 
 -- | extracts the pixel at the specified offset from an Image
 getPixel :: Image s -> Int -> ST s WeightedSpectrum

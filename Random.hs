@@ -32,7 +32,9 @@ runRandST gen (Rand c) = do
 
 -- | Provides a random @Float@ in @[0..1)@                                                                                                   
 rnd :: Rand Float
-rnd = Rand uniform
+rnd = do
+   u <- Rand uniform
+   return $ u - 2**(-33)
 
 rndRI :: (Int, Int) -> Rand Int
 rndRI (lo, hi) = do

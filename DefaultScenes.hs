@@ -27,8 +27,11 @@ plTest e kd  = plasticMaterial
 
 blackBodyScene :: Float -> Scene
 blackBodyScene aspect = mkScene []
-   [ Group emitters , mkPrim (Plane 0 ( 0,  1,  0)) (measuredMaterial Primer) ]
-   (pinHoleCamera (View (0, 5, -7) (0,1,0) (0, 1, 0) 1.8 aspect)) where
+   [  Group emitters , 
+      mkPrim (Plane 0 ( 0,  1,  0)) (measuredMaterial BrushedMetal),
+      mkPrim (Plane 2 ( 0,  0,  -1)) (measuredMaterial BluePaint)
+   ]
+   (pinHoleCamera (View (0, 3, -10) (0,0,0) (0, 1, 0) 1.8 aspect)) where
       emitters = map (\(p, t) -> mkPrim' (Sphere 0.4 p) blackBodyMaterial (Just $ sBlackBody t)) pts
       pts = zip poss temps
       poss = [(x, 0.5, 0) | x <- [-3..3]]
