@@ -3,13 +3,10 @@ module Spectrum (
    Spectrum, WeightedSpectrum, 
    white, black, 
    isBlack, sNaN, sInfinite,
-   fromXyz,  toRGB, fromRGB, sConst, sBlackBody,
+   fromXyz,  toRGB, fromRGB, sConst, sBlackBody, sAdd,
    sScale, sPow) where
 
 import Data.Array.Unboxed
-import Data.Colour.CIE
-import Data.Colour.SRGB
-import System.IO
 
 import Math
 
@@ -28,12 +25,6 @@ white = Spectrum 1 1 1
 
 fromRGB :: (Float, Float, Float) -> Spectrum
 fromRGB (r, g, b) = Spectrum r g b
- --  where 
- --        r = channelRed rgb
- --        g = channelGreen rgb
- --        b = channelBlue rgb
- --        rgb = toSRGB xyz
---         xyz = cieXYZ x y z
 
 fromXyz :: (Float, Float, Float) -> Spectrum
 fromXyz (x, y, z) = fromRGB (r, g, b) where
@@ -90,24 +81,14 @@ sPow (Spectrum c1 c2 c3) (Spectrum e1 e2 e3) = Spectrum (p' c1 e1) (p' c2 e2) (p
    
 sBlackBody :: Float -> Spectrum
 sBlackBody t = sScale (fromXyz (x, y, z)) (1 / (fromIntegral (cieEnd - cieStart))) where
-  -- e = map (\wl -> ((cieX wl) * (p wl), (cieY wl) * (p wl), (cieZ wl) * (p wl))) [cieStart .. cieEnd]
-   
    z = max 0 $ sum $ map (\wl -> (cieZ wl) * (p wl)) [cieStart .. cieEnd]
    y = max 0 $ sum $ map (\wl -> (cieY wl) * (p wl)) [cieStart .. cieEnd]
    x = max 0 $ sum $ map (\wl -> (cieX wl) * (p wl)) [cieStart .. cieEnd]
    p = (\wl -> planck t (fromIntegral wl))
 
 planck :: RealFloat a => a -> a -> a
-planck temp w = (0.4e-9 * (3.74183e-16 * w' ^^ (-5))) / (exp (1.4388e-2 / (w' * temp)) - 1) where
+planck temp w = (0.4e-9 * (3.74183e-16 * w' ^^ (-5::Int))) / (exp (1.4388e-2 / (w' * temp)) - 1) where
    w' = w * 1e-9
-   
-main :: IO ()
-main = do
-   h <- openFile "planck.dat" WriteMode
-   sequence_ $ map (hPutStrLn h) (map printp [1 .. 3000])
-   hClose h
-   where
-      printp x = (show x) ++ " " ++ (show (planck (3000.0 :: Double) (fromIntegral x)))
    
 cieStart :: Int
 cieStart = 360
