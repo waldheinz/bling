@@ -15,7 +15,7 @@ data DifferentialGeometry = DifferentialGeometry {
 shadingCs :: DifferentialGeometry -> LocalCoordinates
 shadingCs dg = coordinateSystem $ dgN dg
 
-class (Eq a) => Intersectable a where
+class Intersectable a where
    -- | intersects a ray with an object, possibly returning the distance
    --   along the ray where an intersection occured together with the
    --   object properties at the intersection point
