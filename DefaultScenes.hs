@@ -1,5 +1,5 @@
 
-module DefaultScenes(glassSphere, plasticSpheres, sphereCube, skyLightTest, blackBodyScene) where
+module DefaultScenes(glassSphere, plasticSpheres, sphereCube, skyLightTest, blackBodyScene, boxScene) where
 
 import Camera
 import Spectrum
@@ -12,6 +12,7 @@ import Primitive
 import Scene
 import Specular
 import Texture
+import TriangleMesh
 
 gpMat :: Spectrum -> Material
 gpMat c = plasticMaterial
@@ -24,6 +25,28 @@ plTest e kd  = plasticMaterial
    (constantSpectrum $ fromRGB kd)
    (constantSpectrum $ fromRGB (0.85, 0.85, 0.85))
    e
+
+boxScene :: Float -> Scene
+boxScene aspect = mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)] 
+   [box , mkPrim (Plane 1.5 ( 0,  1,  0)) (measuredMaterial BrushedMetal)]
+   (pinHoleCamera (View (0, 10, -10) (0,0,0) (0, 1, 0) 1.8 aspect))
+   where
+         box = Group $ map (\g -> mkPrim g (measuredMaterial BluePaint)) faces
+         faces = f1 ++ f2 ++ f3 ++ f4  ++ f5 ++ f6
+         f1 = triangulate [v1, v3, v4, v2]
+         f2 = triangulate [v5, v7, v8, v6]
+         f3 = triangulate [v1, v5, v6, v2]
+         f4 = triangulate [v3, v7, v8, v4]
+         f5 = triangulate [v1, v5, v7, v3]
+         f6 = triangulate [v2, v6, v8, v4]
+         v1 = Vertex ( 1,  1,  1)
+         v2 = Vertex ( 1,  1, -1)
+         v3 = Vertex ( 1, -1,  1)
+         v4 = Vertex ( 1, -1, -1)
+         v5 = Vertex (-1,  1,  1)
+         v6 = Vertex (-1,  1, -1)
+         v7 = Vertex (-1, -1,  1)
+         v8 = Vertex (-1, -1, -1)
 
 blackBodyScene :: Float -> Scene
 blackBodyScene aspect = mkScene []

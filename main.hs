@@ -15,7 +15,7 @@ import Scene
 import DefaultScenes
 
 myScene :: Scene
-myScene = blackBodyScene (fromIntegral resX / fromIntegral resY)
+myScene = boxScene (fromIntegral resX / fromIntegral resY)
 
 resX :: Int
 resX = 640
