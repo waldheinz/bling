@@ -1,14 +1,14 @@
 
-module TriangleMesh where
+module TriangleMesh (Vertex(..), Triangle, triangulate) where
 
 import Geometry
 import Math
 
 data Vertex = Vertex {
    vertexPos :: Point
-   }
+   } deriving (Show)
 
-data Triangle = Triangle Vertex Vertex Vertex
+data Triangle = Triangle Vertex Vertex Vertex deriving (Show)
 
 instance Intersectable Triangle where
    intersect (Triangle v1 v2 v3) r@(Ray ro rd tmin tmax)
@@ -31,4 +31,7 @@ instance Intersectable Triangle where
             p1 = vertexPos v1
             p2 = vertexPos v2
             p3 = vertexPos v3
-            
+
+triangulate :: [Vertex] -> [Triangle]
+triangulate (v1:v2:v3:xs) = [Triangle v1 v2 v3] ++ (triangulate $ [v1] ++ [v3] ++ xs)
+triangulate _ = []
