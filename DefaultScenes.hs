@@ -30,12 +30,12 @@ plTest e kd  = plasticMaterial
 
 boxScene :: Float -> Scene
 boxScene aspect = trace (show faces) $ mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)] 
-   [box , mkPrim (Plane 1.5 ( 0,  1,  0)) (measuredMaterial BrushedMetal)]
+   [box , mkPrim (Plane 1.2 ( 0,  1,  0)) (measuredMaterial BrushedMetal)]
    (pinHoleCamera (View (7, 7, -7) (0,0,0) (0, 1, 0) 1.8 aspect))
    where
          box = Group $ map (\g -> mkPrim g (measuredMaterial BluePaint)) faces
          faces = f1 ++ f2 ++ f3 ++ f4  ++ f5 ++ f6
-         f1 = triangulate [v1, v2, v3, v4] -- right face
+         f1 = triangulate [v1, v2, v4, v3] -- right face
          f2 = triangulate [v5, v7, v8, v6] -- left face
          f3 = triangulate [v1, v5, v6, v2] -- top face
          f4 = triangulate [v3, v7, v8, v4] -- 
