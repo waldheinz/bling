@@ -7,6 +7,7 @@ import Geometry
 import Lafortune
 import Light
 import Material
+import Math
 import Plastic
 import Primitive
 import Scene
@@ -31,7 +32,7 @@ plTest e kd  = plasticMaterial
 boxScene :: Float -> Scene
 boxScene aspect = trace (show faces) $ mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)] 
    [box , mkPrim (Plane 1.2 ( 0,  1,  0)) (measuredMaterial BrushedMetal)]
-   (pinHoleCamera (View (7, 7, -7) (0,0,0) (0, 1, 0) 1.8 aspect))
+   (pinHoleCamera (View (2, 3, -5) (0,-0.5,0) (0, 1, 0) 1.5 aspect))
    where
          box = Group $ map (\g -> mkPrim g (measuredMaterial BluePaint)) faces
          faces = f1 ++ f2 ++ f3 ++ f4  ++ f5 ++ f6

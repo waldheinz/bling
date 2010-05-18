@@ -18,13 +18,13 @@ myScene :: Scene
 myScene = boxScene (fromIntegral resX / fromIntegral resY)
 
 resX :: Int
-resX = 640
+resX = 800
 
 resY :: Int
-resY = 480
+resY = 600
 
 passSamples :: Int
-passSamples = 2
+passSamples = 4
 
 onePass :: Gen s -> Image s -> Int-> Scene -> Integrator -> ST s ()
 onePass gen img ns scene int = do
