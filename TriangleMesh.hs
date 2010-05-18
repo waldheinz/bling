@@ -1,7 +1,6 @@
 
 module TriangleMesh (Vertex(..), Triangle, triangulate) where
 
-import Debug.Trace
 import Geometry
 import Math
 
@@ -11,6 +10,23 @@ data Vertex = Vertex {
 
 data Triangle = Triangle Vertex Vertex Vertex deriving (Show)
 
+instance Bound Triangle where
+   boundArea (Triangle v1 v2 v3) = 0.5 * (len $ cross (sub p2 p1) (sub p3 p1)) where
+      p1 = vertexPos v1
+      p2 = vertexPos v2
+      p3 = vertexPos v3
+      
+   boundSample (Triangle v1 v2 v3) _ (u1, u2) = (p, n) where
+      p = (scalMul p1 b1) `add` (scalMul p2 b2 ) `add` (scalMul p3 (1 - b1 - b2))
+      (p1, p2, p3) = (vertexPos v1, vertexPos v2, vertexPos v3)
+      b1 = 1 - u1' -- first barycentric
+      b2 = u2 * u1' -- second barycentric
+      u1' = sqrt u1
+      n = normalize $ cross (sub p2 p1) (sub p3 p1)
+      
+   boundAABB (Triangle v1 v2 v3) = foldl extendAABBP emptyAABB [p1, p2, p3] where
+      (p1, p2, p3) = (vertexPos v1, vertexPos v2, vertexPos v3)
+      
 instance Intersectable Triangle where
    intersect (Triangle v1 v2 v3) r@(Ray ro rd tmin tmax)
       | divisor == 0 = Nothing
