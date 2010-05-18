@@ -35,10 +35,10 @@ boxScene aspect = trace (show faces) $ mkScene [SoftBox $ fromRGB (0.95, 0.95, 0
    where
          box = Group $ map (\g -> mkPrim g (measuredMaterial BluePaint)) faces
          faces = f1 ++ f2 ++ f3 ++ f4  ++ f5 ++ f6
-         f1 = triangulate [v1, v3, v4, v2]
-         f2 = triangulate [v5, v7, v8, v6]
-         f3 = triangulate [v1, v5, v6, v2]
-         f4 = triangulate [v3, v7, v8, v4]
+         f1 = triangulate [v1, v2, v3, v4] -- right face
+         f2 = triangulate [v5, v7, v8, v6] -- left face
+         f3 = triangulate [v1, v5, v6, v2] -- top face
+         f4 = triangulate [v3, v7, v8, v4] -- 
          f5 = triangulate [v1, v5, v7, v3]
          f6 = triangulate [v2, v6, v8, v4]
          v1 = Vertex ( 1,  1,  1)
