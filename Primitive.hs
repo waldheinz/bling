@@ -35,6 +35,11 @@ data Primitive
    | GeometricB (Ray -> Maybe (Float, DifferentialGeometry)) (Ray -> Bool) Material (Maybe Light) AABB -- ^ a bound primitive
    | Group [Primitive]
    
+instance Show Primitive where
+   show (Group ps) = "Group [" ++ (concat $ map show ps) ++ "]"
+   show (GeometricU _ _ _) = "<unbound>"
+   show (GeometricB _ _ _ _ _) = "<bound>"
+   
 -- | creates a @Primitive@ for the specified @Intersectable@ and @Material@
 mkPrim :: (Intersectable i) => i -> Material -> Primitive
 mkPrim int mat = GeometricU (intersect int) (intersects int) mat

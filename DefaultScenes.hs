@@ -14,6 +14,8 @@ import Specular
 import Texture
 import TriangleMesh
 
+import Debug.Trace
+
 gpMat :: Spectrum -> Material
 gpMat c = plasticMaterial
    (graphPaper 0.08 c (fromRGB (0.02, 0.02, 0.02)))
@@ -27,9 +29,9 @@ plTest e kd  = plasticMaterial
    e
 
 boxScene :: Float -> Scene
-boxScene aspect = mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)] 
-   [box , mkPrim (Plane 1.5 ( 0,  1,  0)) (measuredMaterial BrushedMetal)]
-   (pinHoleCamera (View (0, 10, -10) (0,0,0) (0, 1, 0) 1.8 aspect))
+boxScene aspect = trace (show faces) $ mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)] 
+   [box ]-- , mkPrim (Plane 1.5 ( 0,  1,  0)) (measuredMaterial BrushedMetal)]
+   (pinHoleCamera (View (7, 7, -7) (0,0,0) (0, 1, 0) 1.8 aspect))
    where
          box = Group $ map (\g -> mkPrim g (measuredMaterial BluePaint)) faces
          faces = f1 ++ f2 ++ f3 ++ f4  ++ f5 ++ f6

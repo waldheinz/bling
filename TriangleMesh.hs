@@ -1,6 +1,7 @@
 
 module TriangleMesh (Vertex(..), Triangle, triangulate) where
 
+import Debug.Trace
 import Geometry
 import Math
 
@@ -16,10 +17,11 @@ instance Intersectable Triangle where
       | b1 < 0 || b1 > 1 = Nothing
       | b2 < 0 || b1 + b2 > 1 = Nothing
       | t < tmin || t > tmax = Nothing
-      | otherwise = Just (t, DifferentialGeometry (positionAt r t) (normalize $ cross e1 e2))
+      | otherwise = Just (t, DifferentialGeometry (positionAt r t) n)
       where
+            n = normalize $ cross e2 e1
             t = (dot e2 s2) * invDiv
-            b2 = (dot e2 s2) * invDiv -- second barycentric
+            b2 = (dot rd s2) * invDiv -- second barycentric
             s2 = cross d e1
             b1 = (dot d s1) * invDiv -- first barycentric
             d = sub ro p1

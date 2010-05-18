@@ -15,6 +15,8 @@ import Random
 import Spectrum
 import Transport
 
+import Debug.Trace
+
 data Scene = Scene {
    scenePrim :: Primitive,
    sceneLights :: Array Int Light,

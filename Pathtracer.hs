@@ -47,7 +47,7 @@ nextVertex scene depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ dg _)
       if (x > pCont || (pdf == 0.0))
          then return $! (1.0, l')
          else nextVertex scene (depth + 1) spec' outRay (primIntersect (scenePrim scene) outRay) throughput' l'
-         
+
       where
             pCont = if depth <= 3 then 1 else 0.5
             intl = if specBounce then intLe int wo else black
