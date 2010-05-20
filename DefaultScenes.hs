@@ -31,7 +31,7 @@ plTest e kd  = plasticMaterial
 
 boxScene :: Float -> Scene
 boxScene aspect = trace (show faces) $ mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)] 
-   [box , mkPrim (Plane 1.2 ( 0,  1,  0)) (measuredMaterial BrushedMetal)]
+   [box , mkPrim (Plane 1.2 ( 0,  1,  0)) (measuredMaterial Primer)]
    (pinHoleCamera (View (2, 3, -5) (0,-0.5,0) (0, 1, 0) 1.5 aspect))
    where
          box = Group $ map (\g -> mkPrim g (measuredMaterial BluePaint)) faces

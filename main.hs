@@ -24,7 +24,7 @@ resY :: Int
 resY = 600
 
 passSamples :: Int
-passSamples = 4
+passSamples = 3
 
 onePass :: Gen s -> Image s -> Int-> Scene -> Integrator -> ST s ()
 onePass gen img ns scene int = do
