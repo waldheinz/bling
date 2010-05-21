@@ -4,9 +4,6 @@ module TriangleMesh (Vertex(..), Triangle, triangulate) where
 import Geometry
 import Math
 
--- import Text.ParserCombinators.Parsec
--- import Text.ParserCombinators.Parsec.Token(float)
-
 data Vertex = Vertex {
    vertexPos :: Point
    } deriving (Show)
@@ -56,9 +53,3 @@ instance Intersectable Triangle where
 triangulate :: [Vertex] -> [Triangle]
 triangulate (v1:v2:v3:xs) = [Triangle v1 v2 v3] ++ (triangulate $ [v1] ++ [v3] ++ xs)
 triangulate _ = []
-
--- vertex :: Parser Vertex
--- vertex = do
---   char 'v'
---   spaces
---   return $ Vertex (0,0,0)
