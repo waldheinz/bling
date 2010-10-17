@@ -2,7 +2,6 @@
 
 import Control.Monad
 import Control.Monad.ST
-import GHC.IOBase
 import System.IO
 import System.Random.MWC
 import Text.Printf

@@ -2,4 +2,6 @@ syntax: glob
 dist/**
 *~
 *.orig
+*.hdr
+*.ppm
 
