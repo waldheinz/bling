@@ -4,46 +4,62 @@ module WaveFront where
 import Primitive
 import TriangleMesh
 
+import Debug.Trace
+import Data.Vector.Mutable hiding (read)
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Token(float)
 
-waveFront :: Parser Primitive
-waveFront = do return $ Group []
+data WFState s = WFState {
+   vertices :: MVector s Vertex
+   }
 
-tidy :: Parser [String]
-tidy = many (try content)
-
-content :: Parser String
-content = do
-   x <- noneOf "#"
-   xs <- manyTill (noneOf "\n") eol
-   return $ x:xs
+type WFParser s a = GenParser Char (WFState s) a
    
-comment :: Parser String
-comment = do
-   char '#'
-   x <- manyTill (noneOf "\n") eol
-   return x
+waveFront :: Parser Primitive
+waveFront = do
+   many line
+   eof
+   return $ Group []
 
-vertices :: Parser [Vertex]
-vertices = many1 vertex
-
+line = do
+   (do try vertex; return () )
+   <|> try face
+   <|> ignore
+   
+ignore :: Parser ()
+ignore = do
+   ignored <- many (noneOf "\n")
+   eol
+   trace ignored $ return ()
+   
+face :: Parser ()
+face = do
+   char 'f'
+   indices <- many1 (try (do spaces; integ))
+   eol
+   return ()
+   
 vertex :: Parser Vertex
 vertex = do
    char 'v'
    spaces
-   x <- number
+   x <- flt
    spaces
-   y <- number
+   y <- flt
    spaces
-   z <- number
+   z <- flt
    eol
    return $ Vertex (x, y, z)
    
 eol = char '\n'
 
-number :: Parser Float
-number = do
+integ :: Parser Int
+integ = do
+   x <- many1 digit
+   return $ read x
+
+flt :: Parser Float
+flt = do
   sign <- option 1 ( do s <- oneOf "+-"
                         return $ if s == '-' then (-1.0) else (1.0))
   i <- many digit
