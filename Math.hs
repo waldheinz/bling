@@ -25,6 +25,13 @@ invTwoPi = 1 / (2 * pi)
 twoPi :: Flt
 twoPi = 2.0 * pi
 
+-- | Defines names for the three axii
+data Dimension
+    = X -- ^ the x - axis
+    | Y -- ^ the y - axis
+    | Z -- ^ the z - axis
+    deriving Show
+
 type Vector = (Flt, Flt, Flt)
 type Point = Vector
 type Normal = Vector
@@ -35,6 +42,16 @@ data Ray = Ray {
    rayMin :: Flt,
    rayMax :: Flt
    } deriving Show
+
+dominant :: Vector -> Dimension
+dominant (x, y, z)
+   | (ax > ay) && (ax > az) = X
+   | (ay > az) = Y
+   | otherwise = Z
+   where
+      ax = abs x
+      ay = abs y
+      az = abs z
 
 -- | Creates a ray that connects the two specified points.
 segmentRay :: Point -> Point -> Ray
@@ -83,7 +100,7 @@ normalize v
 lerp :: Flt -> Flt -> Flt -> Flt
 lerp t v1 v2 = (1 - t) * v1 + t * v2
 
--- Calculate the roots of the equation a * x^2 + b * x + c = 0
+-- | Calculate the roots of the equation a * x^2 + b * x + c = 0
 solveQuadric :: Flt -> Flt -> Flt -> Maybe (Flt, Flt)
 solveQuadric a b c
    | discrim < 0.0 = Nothing
@@ -185,7 +202,6 @@ coordinateSystem v@(x, y, z)
           v2 = (0, z * invLen, -y * invLen)
       in LocalCoordinates v2 (cross v v2) v
       
-      
 worldToLocal :: LocalCoordinates -> Vector -> Vector
 worldToLocal (LocalCoordinates sn tn nn) v = (dot v sn, dot v tn, dot v nn)
 
@@ -211,3 +227,6 @@ extendAABB (AABB (min1x, min1y, min1z) (max1x, max1y, max1z)) (AABB (min2x, min2
 extendAABBP :: AABB -> Point -> AABB
 extendAABBP (AABB pMin pMax) p = AABB (f min pMin p) (f max pMax p) where
    f cmp (x1, y1, z1) (x2, y2, z2) = (cmp x1 x2, cmp y1 y2, cmp z1 z2)
+
+maximumExtent :: AABB -> Dimension
+maximumExtent (AABB pmin pmax) = dominant $ sub pmax pmin

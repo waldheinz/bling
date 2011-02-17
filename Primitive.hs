@@ -49,6 +49,11 @@ mkPrim' :: (Bound b) => b -> Material -> Maybe Spectrum -> Primitive
 mkPrim' b mat Nothing = GeometricB (intersect b) (intersects b) mat Nothing (boundAABB b)
 mkPrim' b mat (Just l) = GeometricB (intersect b) (intersects b) mat (Just $ mkAreaLight l b) (boundAABB b)
 
+isBound :: Primitive -> Bool
+isBound (Group ps) = all isBound ps
+isBound (GeometricU _ _ _) = False
+isBound (GeometricB _ _ _ _ _) = True
+
 primBounds :: Primitive -> AABB
 primBounds (Group g) = foldl extendAABB emptyAABB $ map primBounds g
 primBounds (GeometricB _ _ _ _ aabb) = aabb

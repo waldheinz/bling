@@ -14,7 +14,7 @@ import Scene
 import DefaultScenes
 
 myScene :: Scene
-myScene = boxScene (fromIntegral resX / fromIntegral resY)
+myScene = sphereCube (fromIntegral resX / fromIntegral resY)
 
 resX :: Int
 resX = 800
@@ -23,7 +23,7 @@ resY :: Int
 resY = 600
 
 passSamples :: Int
-passSamples = 3
+passSamples = 1
 
 onePass :: Gen s -> Image s -> Int-> Scene -> Integrator -> ST s ()
 onePass gen img ns scene int = do
