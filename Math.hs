@@ -228,5 +228,9 @@ extendAABBP :: AABB -> Point -> AABB
 extendAABBP (AABB pMin pMax) p = AABB (f min pMin p) (f max pMax p) where
    f cmp (x1, y1, z1) (x2, y2, z2) = (cmp x1 x2, cmp y1 y2, cmp z1 z2)
 
+-- | finds the @Dimension@ along which an @AABB@ has it's maximum extent
 maximumExtent :: AABB -> Dimension
 maximumExtent (AABB pmin pmax) = dominant $ sub pmax pmin
+
+centroid :: AABB -> Point
+centroid (AABB pmin pmax) = add pmin $ scalMul (sub pmax pmin) 0.5 
