@@ -19,20 +19,20 @@ import Transport
 import Debug.Trace
 
 data Scene = Scene {
-   scenePrim :: Primitive,
+   scenePrim :: Bvh,
    sceneLights :: Array Int Light,
    sceneCam :: Camera
    }
 
 mkScene :: [Light] -> [Primitive] -> Camera -> Scene
-mkScene l prims cam = Scene (Group ps) (listArray (0, length lights - 1) lights) cam where
+mkScene l prims cam = Scene (mkBvh $ map MkAnyPrim ps) (listArray (0, length lights - 1) lights) cam where
    lights = l ++ gl
    gl = catMaybes $ map (primLight) ps -- collect the geometric lights
    ps = primFlatten $ Group prims
 
 occluded :: Scene -> Ray -> Bool
 occluded (Scene p _ _) = primIntersects p
-   
+
 type Integrator = Scene -> Ray -> Rand WeightedSpectrum
    
 evalLight :: Scene -> Point -> Normal -> Light -> Vector -> Bsdf -> Rand2D -> Spectrum

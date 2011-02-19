@@ -62,6 +62,11 @@ instance Prim Primitive where
       | isJust (i r) = Just $ let (t, dg) = fromJust (i r) in Intersection t dg p m
       | otherwise = Nothing
    
+   primWorldBounds (GeometricB _ _ _ _ b) = b
+   primWorldBounds (GeometricU _ _ b) = error "no bounds"
+   
+--    primWorldBounds 
+   
    primIntersects (Group []) _ = False
    primIntersects (Group (x:xs)) r = primIntersects x r || primIntersects (Group xs) r
    primIntersects (GeometricU _ i _) r = i r

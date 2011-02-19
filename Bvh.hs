@@ -1,25 +1,18 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 module Bvh 
-   ( Bvh ) 
+   ( Bvh, mkBvh ) 
    where
 
-import Data.Maybe (isJust)
+import Data.Maybe (isJust, isNothing, fromJust)
 
 import AABB
 import Math
 import Primitive
 
 data Bvh
-   = Node {
-      leftChild :: Bvh,
-      rightChild :: Bvh,
-      bounds :: AABB
-      }
-   | Leaf {
-      prim :: AnyPrim,
-      bounds :: AABB
-      }
+   = Node Bvh Bvh AABB
+   | Leaf AnyPrim AABB
 
 instance Prim Bvh where
    primIntersects bvh r = bvhIntersects bvh r
@@ -27,11 +20,30 @@ instance Prim Bvh where
    primWorldBounds (Node _ _ b) = b
    primWorldBounds (Leaf _ b) = b
 
--- mkBvh :: [AnyPrim] -> Bvh
--- mkBvh p =
+mkBvh :: [AnyPrim] -> Bvh
+mkBvh [p] = Leaf p $ primWorldBounds p
+mkBvh ps = Node (mkBvh left) (mkBvh right) allBounds where
+   (left, right) = splitMidpoint ps dim
+   dim = splitAxis ps
+   allBounds = foldl extendAABB emptyAABB $ map primWorldBounds ps
 
 bvhIntersect :: Bvh -> Ray -> Maybe Intersection
-bvhIntersect _ _ = Nothing
+bvhIntersect (Leaf p b) ray
+   | isNothing $ intersectAABB b ray = Nothing
+   | otherwise = primIntersect p ray
+bvhIntersect (Node l r b) ray@(Ray _ _ _ tmax)
+   | isNothing $ intersectAABB b ray = Nothing
+   | otherwise = near leftInt rightInt where
+      leftInt = bvhIntersect l ray
+      rightInt = bvhIntersect r ray
+
+near :: Maybe Intersection -> Maybe Intersection -> Maybe Intersection
+near Nothing i = i
+near i Nothing = i
+near mi1 mi2 = Just $ near' (fromJust mi1) (fromJust mi2) where
+   near' i1@(Intersection d1 _ _ _) i2@(Intersection d2 _ _ _)
+      | d1 < d2 = i1
+      | otherwise = i2
 
 bvhIntersects :: Bvh -> Ray -> Bool
 bvhIntersects (Leaf p b) r = (isJust $ intersectAABB b r) && (primIntersects p r)
