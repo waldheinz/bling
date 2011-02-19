@@ -32,6 +32,9 @@ data Dimension
     | Z -- ^ the z - axis
     deriving (Show, Eq)
 
+allDimensions :: [Dimension]
+allDimensions = [X, Y, Z]
+
 type Vector = (Flt, Flt, Flt)
 type Point = Vector
 type Normal = Vector

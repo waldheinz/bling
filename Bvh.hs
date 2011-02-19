@@ -22,6 +22,11 @@ data Bvh
       }
 
 instance Prim Bvh where
+   primIntersects bvh r = bvhIntersects bvh r
+   
+   
+bvhIntersects :: Bvh -> Ray -> Bool
+bvhIntersects _ _ = True
 
 -- mkBvh :: [AnyPrim] -> Bvh
 -- mkBvh [p] = GeometricB undefined (primIntersects tree) undefined Nothing (primBounds p) where

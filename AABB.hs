@@ -27,5 +27,24 @@ maximumExtent (AABB pmin pmax) = dominant $ sub pmax pmin
 centroid :: AABB -> Point
 centroid (AABB pmin pmax) = add pmin $ scalMul (sub pmax pmin) 0.5 
 
-intersectAABB :: Ray -> AABB -> Maybe (Flt, Flt)
-intersectAABB r b = Nothing
+intersectAABB :: AABB -> Ray -> Maybe (Flt, Flt)
+intersectAABB (AABB bMin bMax) (Ray o d tmin tmax)
+   | (t0 > t1) = Nothing
+   | otherwise = Just $ (t0, t1)
+      where
+	 (t0, t1) = minSlab (tmin, tmax) slabs
+	 minSlab :: (Flt, Flt) -> [(Flt, Flt)] -> (Flt, Flt)
+	 minSlab (a, b) [] = (a, b)
+	 minSlab (a1, b1) ((a2, b2):ps) = minSlab (max a1 a2, min b1 b2) ps
+   
+	 slabs = map testSlab allDimensions
+	 testSlab :: Dimension -> (Flt, Flt)
+	 testSlab dim = swap (tNear , 2) where
+	    tFar = ((component bMax dim) - oc) * dInv
+	    tNear = ((component bMin dim) - oc) * dInv
+	    oc = component o dim
+	    dInv = 1 / (component d dim)
+	    swap (near, far)
+	       | near > far = (far, near)
+	       | otherwise = (near, far)
+   
