@@ -1,6 +1,7 @@
 
 module TriangleMesh (Vertex(..), Triangle, triangulate) where
 
+import AABB
 import Geometry
 import Math
 

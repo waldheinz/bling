@@ -7,6 +7,7 @@ import Control.Monad
 import Data.Array.Unboxed
 import Data.Maybe (isJust, fromJust, catMaybes)
 
+import Bvh
 import Camera
 import Light
 import Math

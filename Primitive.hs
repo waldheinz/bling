@@ -1,6 +1,7 @@
 
 module Primitive where
 
+import AABB
 import Geometry
 import Light
 import Material
