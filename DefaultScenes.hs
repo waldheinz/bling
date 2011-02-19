@@ -7,7 +7,6 @@ import Geometry
 import Lafortune
 import Light
 import Material
-import Math
 import Plastic
 import Primitive
 import Scene

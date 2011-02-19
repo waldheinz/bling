@@ -9,7 +9,6 @@ import Debug.Trace
 
 import Control.Monad
 import Control.Monad.ST
-import Data.List
 import Data.Array.ST
 import qualified Data.ByteString as BS
 import System.IO

@@ -29,7 +29,7 @@ nextVertex s _ True ray Nothing throughput l = -- nothing hit, specular bounce
 nextVertex _ _ False _ Nothing _ l = -- nothing hit, non-specular bounce
    return $! (1.0, seq l l)
    
-nextVertex scene depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ dg _)) throughput l 
+nextVertex scene depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ dg _ _)) throughput l 
    | isBlack throughput = return (1.0, l)
    | otherwise = do
       bsdfDirU <- rnd2D

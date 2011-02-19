@@ -1,3 +1,4 @@
+{-# LANGUAGE ExistentialQuantification #-}
 
 module Bvh 
    ( Bvh ) 
@@ -16,14 +17,15 @@ data Bvh
       bounds :: AABB
       }
    | Leaf {
-      prim :: Primitive,
+      prim :: AnyPrim,
       bounds :: AABB
       }
 
--- mkBvh :: [Primitive] -> Primitive
--- mkBvh [p] = GeometricB undefined (intersects tree) undefined Nothing (primBounds p) where
+instance Prim Bvh where
+
+-- mkBvh :: [AnyPrim] -> Bvh
+-- mkBvh [p] = GeometricB undefined (primIntersects tree) undefined Nothing (primBounds p) where
 --   tree = Leaf p (primBounds p)
--- mkBvh 
 
 -- intersects :: Bvh -> Ray -> Bool
 -- intersects (Leaf p bounds) r = (isJust $ intersectAABB r bounds) and (primIntersects r p)
