@@ -28,8 +28,7 @@ instance Prim Bvh where
    primWorldBounds (Leaf _ b) = b
 
 -- mkBvh :: [AnyPrim] -> Bvh
--- mkBvh [p] = GeometricB undefined (primIntersects tree) undefined Nothing (primBounds p) where
---   tree = Leaf p (primBounds p)
+-- mkBvh p =
 
 bvhIntersect :: Bvh -> Ray -> Maybe Intersection
 bvhIntersect _ _ = Nothing
@@ -41,21 +40,21 @@ bvhIntersects (Node l r b) ray = (isJust $ intersectAABB b ray) &&
    
 -- | Splits the given @Primitive@ list along the specified @Dimension@
 --   in two lists
-splitMidpoint :: [Primitive] -> Dimension -> ([Primitive], [Primitive])
+splitMidpoint :: [AnyPrim] -> Dimension -> ([AnyPrim], [AnyPrim])
 splitMidpoint ps dim = ([l | l <- ps, toLeft l], [r | r <- ps, not $ toLeft r]) where
-   toLeft p = component (centroid $ primBounds p) dim < pMid
+   toLeft p = component (centroid $ primWorldBounds p) dim < pMid
    pMid = 0.5 * ((component (aabbMin cb) dim) + (component (aabbMax cb) dim))
    cb = centroidBounds ps
    
 -- | Finds the preferred split axis for a list of primitives. This
 --   is where the AABBs centroid's bounds have the maximum extent
-splitAxis :: [Primitive] -> Dimension
+splitAxis :: [AnyPrim] -> Dimension
 splitAxis = maximumExtent . centroidBounds
 
 -- | Finds the AABB of the specified @Primitive@'s centroids
-centroidBounds :: [Primitive] -> AABB
+centroidBounds :: [AnyPrim] -> AABB
 centroidBounds ps = foldl extendAABBP emptyAABB $ centroids ps
 
 -- | Finds the centroids of a list of primitives
-centroids :: [Primitive] -> [Point]
-centroids = map (centroid . primBounds)
+centroids :: [AnyPrim] -> [Point]
+centroids = map (centroid . primWorldBounds)
