@@ -23,18 +23,22 @@ data Bvh
 
 instance Prim Bvh where
    primIntersects bvh r = bvhIntersects bvh r
-   
-   
-bvhIntersects :: Bvh -> Ray -> Bool
-bvhIntersects _ _ = True
+   primIntersect bvh r = bvhIntersect bvh r
+   primWorldBounds (Node _ _ b) = b
+   primWorldBounds (Leaf _ b) = b
 
 -- mkBvh :: [AnyPrim] -> Bvh
 -- mkBvh [p] = GeometricB undefined (primIntersects tree) undefined Nothing (primBounds p) where
 --   tree = Leaf p (primBounds p)
 
--- intersects :: Bvh -> Ray -> Bool
--- intersects (Leaf p bounds) r = (isJust $ intersectAABB r bounds) and (primIntersects r p)
+bvhIntersect :: Bvh -> Ray -> Maybe Intersection
+bvhIntersect _ _ = Nothing
 
+bvhIntersects :: Bvh -> Ray -> Bool
+bvhIntersects (Leaf p b) r = (isJust $ intersectAABB b r) && (primIntersects p r)
+bvhIntersects (Node l r b) ray = (isJust $ intersectAABB b ray) &&
+   ((bvhIntersects l ray) || (bvhIntersects r ray))
+   
 -- | Splits the given @Primitive@ list along the specified @Dimension@
 --   in two lists
 splitMidpoint :: [Primitive] -> Dimension -> ([Primitive], [Primitive])
