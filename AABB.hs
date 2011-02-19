@@ -36,10 +36,10 @@ intersectAABB (AABB bMin bMax) (Ray o d tmin tmax)
 	 minSlab :: (Flt, Flt) -> [(Flt, Flt)] -> (Flt, Flt)
 	 minSlab (a, b) [] = (a, b)
 	 minSlab (a1, b1) ((a2, b2):ps) = minSlab (max a1 a2, min b1 b2) ps
-   
+	 
 	 slabs = map testSlab allDimensions
 	 testSlab :: Dimension -> (Flt, Flt)
-	 testSlab dim = swap (tNear , 2) where
+	 testSlab dim = swap (tNear , tFar) where
 	    tFar = ((component bMax dim) - oc) * dInv
 	    tNear = ((component bMin dim) - oc) * dInv
 	    oc = component o dim
