@@ -1,7 +1,6 @@
 
 module Pathtracer(pathTracer) where
 
-import Control.Monad
 import Data.BitSet
 import Data.Array.Unboxed
 

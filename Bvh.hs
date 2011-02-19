@@ -11,18 +11,18 @@ import Math
 import Primitive
 
 data Bvh
-   = Node Bvh Bvh AABB
+   = Node Dimension Bvh Bvh AABB
    | Leaf AnyPrim AABB
 
 instance Prim Bvh where
    primIntersects bvh r = bvhIntersects bvh r
    primIntersect bvh r = bvhIntersect bvh r
-   primWorldBounds (Node _ _ b) = b
+   primWorldBounds (Node _ _ _ b) = b
    primWorldBounds (Leaf _ b) = b
 
 mkBvh :: [AnyPrim] -> Bvh
 mkBvh [p] = Leaf p $ primWorldBounds p
-mkBvh ps = Node (mkBvh left) (mkBvh right) allBounds where
+mkBvh ps = Node dim (mkBvh left) (mkBvh right) allBounds where
    (left, right) = splitMidpoint ps dim
    dim = splitAxis ps
    allBounds = foldl extendAABB emptyAABB $ map primWorldBounds ps
@@ -31,11 +31,15 @@ bvhIntersect :: Bvh -> Ray -> Maybe Intersection
 bvhIntersect (Leaf p b) ray
    | isNothing $ intersectAABB b ray = Nothing
    | otherwise = primIntersect p ray
-bvhIntersect (Node l r b) ray@(Ray _ _ _ tmax)
+bvhIntersect (Node d l r b) ray@(Ray ro rd tmin tmax)
    | isNothing $ intersectAABB b ray = Nothing
-   | otherwise = near leftInt rightInt where
-      leftInt = bvhIntersect l ray
-      rightInt = bvhIntersect r ray
+   | otherwise = near firstInt otherInt where
+      (firstChild, otherChild) = if (component rd d > 0) then (l, r) else (r, l)
+      firstInt = bvhIntersect firstChild ray
+      tmax'
+	 | isJust firstInt = intDist $ fromJust firstInt
+	 | otherwise = tmax
+      otherInt = bvhIntersect otherChild $ Ray ro rd tmin tmax'
 
 near :: Maybe Intersection -> Maybe Intersection -> Maybe Intersection
 near Nothing i = i
@@ -47,7 +51,7 @@ near mi1 mi2 = Just $ near' (fromJust mi1) (fromJust mi2) where
 
 bvhIntersects :: Bvh -> Ray -> Bool
 bvhIntersects (Leaf p b) r = (isJust $ intersectAABB b r) && (primIntersects p r)
-bvhIntersects (Node l r b) ray = (isJust $ intersectAABB b ray) &&
+bvhIntersects (Node _ l r b) ray = (isJust $ intersectAABB b ray) &&
    ((bvhIntersects l ray) || (bvhIntersects r ray))
    
 -- | Splits the given @Primitive@ list along the specified @Dimension@
