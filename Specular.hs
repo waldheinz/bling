@@ -74,10 +74,10 @@ frDiel ei et cosi
 
 frDiel' :: Float -> Float -> Spectrum -> Spectrum -> Spectrum
 frDiel' cosi cost etai etat = (rPar * rPar + rPer * rPer) / 2.0 where
-   rPar = ((sScale etat cosi) - (sScale etai cost)) /
-          ((sScale etat cosi) + (sScale etai cost))
-   rPer = ((sScale etai cosi) - (sScale etat cost)) /
-          ((sScale etai cosi) + (sScale etat cost))
+   rPar = ((sScale etat cosi) - sScale etai cost) /
+          ((sScale etat cosi) + sScale etai cost)
+   rPer = ((sScale etai cosi) - sScale etat cost) /
+          ((sScale etai cosi) + sScale etat cost)
 
 frCond :: Spectrum -> Spectrum -> Fresnel
 frCond eta k cosi = (rPer2 + rPar2) / 2.0 where
@@ -88,4 +88,3 @@ frCond eta k cosi = (rPer2 + rPar2) / 2.0 where
    ec2 = sScale eta (2 * cosi)
    tmp = sScale (eta * eta + k * k) (cosi * cosi)
    tmpF = eta * eta + k * k
-
