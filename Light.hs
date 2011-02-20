@@ -51,7 +51,7 @@ lightSample (AreaLight r _ sample pdf) p n us = LightSample (sScale r (absDot ns
    wi = normalize $ ps `sub` p
 
 lightEmittance :: Light -> Ray -> Spectrum
-lightEmittance (ProbeLight eval _ _) (Ray _ d _ _) = eval (((sphericalPhi d) * invTwoPi), (sphericalTheta d) * invPi)
+lightEmittance (ProbeLight eval _ _) (Ray _ d _ _) = eval (sphericalPhi d * invTwoPi, sphericalTheta d * invPi)
 lightEmittance (SoftBox r) _ = r
 lightEmittance (Directional _ _) _ = black
 lightEmittance (AreaLight _ _ _ _) _ = black -- ^ must be sampled by intersecting the shape directly and asking that intersection for le
@@ -66,14 +66,14 @@ lightSampleSB :: Spectrum -> Point -> Normal -> Rand2D -> LightSample
 lightSampleSB r pos n us = LightSample r (toWorld lDir) (ray $ toWorld lDir) (pdf lDir) False
    where
       lDir = cosineSampleHemisphere us
-      ray = (\dir -> Ray pos dir epsilon infinity)
+      ray dir = Ray pos dir epsilon infinity
       pdf (_, _, z) = invPi * z
-      toWorld v = localToWorld (coordinateSystem n) v
+      toWorld = localToWorld (coordinateSystem n)
 
 lightSampleD :: Spectrum -> Normal -> Point -> Normal -> LightSample
 lightSampleD r d pos n = LightSample y d ray 1.0 True where
    y = sScale r (absDot n d)
-   ray = (Ray pos d epsilon infinity)
+   ray = Ray pos d epsilon infinity
 
 class LightProbe a where
    lightProbeEval :: a -> (Float, Float) -> Spectrum

@@ -63,11 +63,11 @@ frNoOp _ = white
 
 frDiel :: Float -> Float -> Fresnel
 frDiel ei et cosi
-   | sint > 1.0 = white -- total internal reflection
+   | sint > 1 = white -- total internal reflection
    | otherwise = frDiel' (abs cosi') cost (sConst ei') (sConst et')
    where
       cost = sqrt $ max 0 (1 - sint * sint)
-      sint = (ei' / et') * sqrt $ max 0 (1 - cosi' * cosi')
+      sint = (ei' / et') * sqrt (max 0 (1 - cosi' * cosi'))
       cosi' = min 1 $ max (-1) cosi
       ei' = if cosi > 0 then ei else et
       et' = if cosi > 0 then et else ei
