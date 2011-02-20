@@ -28,23 +28,17 @@ centroid :: AABB -> Point
 centroid (AABB pmin pmax) = add pmin $ scalMul (sub pmax pmin) 0.5 
 
 intersectAABB :: AABB -> Ray -> Maybe (Flt, Flt)
-intersectAABB (AABB bMin bMax) (Ray o d tmin tmax)
-   | (t0 > t1) = Nothing
-   | otherwise = Just $ (t0, t1)
-      where
-	 (t0, t1) = minSlab (tmin, tmax) slabs
-	 minSlab :: (Flt, Flt) -> [(Flt, Flt)] -> (Flt, Flt)
-	 minSlab (a, b) [] = (a, b)
-	 minSlab (a1, b1) ((a2, b2):ps) = minSlab (max a1 a2, min b1 b2) ps
-	 
-	 slabs = map testSlab allDimensions
-	 testSlab :: Dimension -> (Flt, Flt)
-	 testSlab dim = swap (tNear , tFar) where
-	    tFar = ((component bMax dim) - oc) * dInv
-	    tNear = ((component bMin dim) - oc) * dInv
-	    oc = component o dim
-	    dInv = 1 / (component d dim)
-	    swap (near, far)
-	       | near > far = (far, near)
-	       | otherwise = (near, far)
+intersectAABB (AABB bMin bMax) (Ray o d tmin tmax) = testSlabs allDimensions tmin tmax where
+   testSlabs :: [Dimension] -> Flt -> Flt -> Maybe (Flt, Flt)
+   testSlabs [] n f
+      | n > f = Nothing
+      | otherwise = Just (n, f)
+   testSlabs (dim:ds) near far
+      | near > far = Nothing
+      | otherwise = testSlabs ds (max near near') (min far far') where
+	 (near', far') = if tNear > tFar then (tFar, tNear) else (tNear, tFar)
+	 tFar = ((component bMax dim) - oc) * dInv
+	 tNear = ((component bMin dim) - oc) * dInv
+	 oc = component o dim
+	 dInv = 1 / (component d dim)
    
