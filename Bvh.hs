@@ -15,8 +15,8 @@ data Bvh
    | Leaf AnyPrim AABB
 
 instance Prim Bvh where
-   primIntersects bvh r = bvhIntersects bvh r
-   primIntersect bvh r = bvhIntersect bvh r
+   primIntersects = bvhIntersects
+   primIntersect = bvhIntersect
    primWorldBounds (Node _ _ _ b) = b
    primWorldBounds (Leaf _ b) = b
 
@@ -34,7 +34,7 @@ bvhIntersect (Leaf p b) ray
 bvhIntersect (Node d l r b) ray@(Ray ro rd tmin tmax)
    | isNothing $ intersectAABB b ray = Nothing
    | otherwise = near firstInt otherInt where
-      (firstChild, otherChild) = if (component rd d > 0) then (l, r) else (r, l)
+      (firstChild, otherChild) = if component rd d > 0 then (l, r) else (r, l)
       firstInt = bvhIntersect firstChild ray
       tmax'
 	 | isJust firstInt = intDist $ fromJust firstInt
@@ -50,16 +50,16 @@ near mi1 mi2 = Just $ near' (fromJust mi1) (fromJust mi2) where
       | otherwise = i2
 
 bvhIntersects :: Bvh -> Ray -> Bool
-bvhIntersects (Leaf p b) r = (isJust $ intersectAABB b r) && (primIntersects p r)
-bvhIntersects (Node _ l r b) ray = (isJust $ intersectAABB b ray) &&
-   ((bvhIntersects l ray) || (bvhIntersects r ray))
+bvhIntersects (Leaf p b) r = isJust (intersectAABB b r) && primIntersects p r
+bvhIntersects (Node _ l r b) ray = isJust (intersectAABB b ray) &&
+   (bvhIntersects l ray || bvhIntersects r ray)
    
 -- | Splits the given @Primitive@ list along the specified @Dimension@
 --   in two lists
 splitMidpoint :: [AnyPrim] -> Dimension -> ([AnyPrim], [AnyPrim])
 splitMidpoint ps dim = ([l | l <- ps, toLeft l], [r | r <- ps, not $ toLeft r]) where
    toLeft p = component (centroid $ primWorldBounds p) dim < pMid
-   pMid = 0.5 * ((component (aabbMin cb) dim) + (component (aabbMax cb) dim))
+   pMid = 0.5 * (component (aabbMin cb) dim + component (aabbMax cb) dim)
    cb = centroidBounds ps
    
 -- | Finds the preferred split axis for a list of primitives. This
