@@ -21,7 +21,7 @@ waveFront = do
    eof
    return $ Group []
 
-line = do
+line =
    (do try vertex; return () )
    <|> try face
    <|> ignore
@@ -61,7 +61,7 @@ integ = do
 flt :: Parser Float
 flt = do
   sign <- option 1 ( do s <- oneOf "+-"
-                        return $ if s == '-' then (-1.0) else (1.0))
+                        return $ if s == '-' then (-1.0) else 1.0)
   i <- many digit
-  d <- try (char '.' >> try (many (digit)))
-  return $ sign*(read (i++"."++d))
+  d <- try (char '.' >> try (many digit))
+  return $ sign * read (i++"."++d)
