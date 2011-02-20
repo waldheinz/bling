@@ -29,18 +29,18 @@ onePass :: Gen s -> Image s -> Int-> Scene -> Integrator -> ST s ()
 onePass gen img ns scene int = do
    ox <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
    oy <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
-   sequence_ $ map (apply . shift (ox, oy)) $ imageSamples ns (imageWidth img) (imageHeight img)
+   mapM_ (apply . shift (ox, oy)) $ imageSamples ns (imageWidth img) (imageHeight img)
       where
          sx = fromIntegral $ imageWidth img
          sy = fromIntegral $ imageHeight img
          apply (px, py) = do
-            ws <- runRandST gen $ int scene ((sceneCam scene) (px / sx, py / sy))
+            ws <- runRandST gen $ int scene (sceneCam scene (px / sx, py / sy))
             addSample img (ImageSample px py ws)
 
 stratify :: Int -> [(Float, Float)] -> [(Float, Float)]
 stratify _ [] = []
 stratify 1 xs = xs
-stratify n (p:xs) = stratify' p ++ (stratify n xs) where
+stratify n (p:xs) = stratify' p ++ stratify n xs where
    stratify' (px, py) = map (shift (px, py)) [(fromIntegral x / fn, fromIntegral y / fn) | y <- [0..n-1], x <- [0..n-1]]
    fn = fromIntegral n
 
@@ -63,7 +63,7 @@ pretty td = join . filter (not . null) . map f $
     f (i,s) | i == 0    = []
             | otherwise = show i ++ s
    
-render :: Int -> (Image RealWorld) -> Scene -> Integrator -> IO ()
+render :: Int -> Image RealWorld -> Scene -> Integrator -> IO ()
 render pass img sc int = do
    putStrLn "Rendering..."
    start <- getClockTime
@@ -84,7 +84,7 @@ render pass img sc int = do
    
    render (pass + 1) img sc int
    where
-         fname = "pass-" ++ (printf "%05d" pass)
+         fname = "pass-" ++ printf "%05d" pass
 
 main :: IO ()
 main = do

@@ -106,6 +106,6 @@ plasticSpheres aspect = mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)]
       mkPrim (Sphere 0.9 (-1, 1, -1)) (plTest 0.01 (0.38, 0.05, 0.67)),
       mkPrim (Sphere 0.9 (-1, 1, 1)) (plTest 0.1 (1, 0.96, 0)),
       mkPrim (Sphere 0.9 (1, 1, 1)) (plTest 1 (0.04, 0.4, 0.64)),
-      mkPrim (Plane -0.1 (0, 1, 0)) (gpMat $ fromRGB (0.8, 0.8, 0.8))
+      mkPrim (Plane (-0.1) (0, 1, 0)) (gpMat $ fromRGB (0.8, 0.8, 0.8))
    ]
    (pinHoleCamera (View (3, 7, -6) (0,0.5,0) (0, 1, 0) 1.8 aspect))

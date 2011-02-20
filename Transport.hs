@@ -29,25 +29,25 @@ toSameHemisphere (_, _, z1) (x, y, z2)
 -- | decides if two vectors in shading coordinate system lie within the
 --   same hemisphere
 sameHemisphere :: Vector -> Vector -> Bool
-sameHemisphere (_, _, z1) (_, _, z2) = (z1 * z2 > 0)
+sameHemisphere (_, _, z1) (_, _, z2) = z1 * z2 > 0
 
 cosTheta :: Vector -> Float
 cosTheta (_, _, z) = z
 
 sinTheta2 :: Vector -> Float
-sinTheta2 v = 1 - (cosTheta v) * (cosTheta v)
+sinTheta2 v = 1 - cosTheta v * cosTheta v
 
 isDiffuse :: (Bxdf b) => b -> Bool
-isDiffuse b = Diffuse `member` (bxdfType b)
+isDiffuse b = Diffuse `member` bxdfType b
 
 isReflection :: (Bxdf b) => b -> Bool
-isReflection b = Reflection `member` (bxdfType b)
+isReflection b = Reflection `member` bxdfType b
 
 isTransmission :: (Bxdf b) => b -> Bool
-isTransmission b = Transmission `member` (bxdfType b)
+isTransmission b = Transmission `member` bxdfType b
 
 mkBxdfType :: [BxdfProp] -> BxdfType
-mkBxdfType ps = foldl' (flip $ insert) empty ps
+mkBxdfType = foldl' (flip insert) empty
 
 class Bxdf a where
    bxdfEval :: a -> Normal -> Normal -> Spectrum
@@ -67,9 +67,9 @@ class Bxdf a where
 data AnyBxdf = forall a. Bxdf a => MkAnyBxdf a
 
 instance Bxdf AnyBxdf where
-   bxdfEval (MkAnyBxdf a) wo wi = bxdfEval a wo wi
-   bxdfSample (MkAnyBxdf a) wo = bxdfSample a wo
-   bxdfPdf (MkAnyBxdf a) wo wi = bxdfPdf a wo wi
+   bxdfEval (MkAnyBxdf a) = bxdfEval a
+   bxdfSample (MkAnyBxdf a) = bxdfSample a
+   bxdfPdf (MkAnyBxdf a) = bxdfPdf a
    bxdfType (MkAnyBxdf a) = bxdfType a
    
 data BsdfSample = BsdfSample {
@@ -84,18 +84,18 @@ emptyBsdfSample = BsdfSample (mkBxdfType [Reflection, Diffuse]) 0 black (0,1,0)
 
 -- | creates a Bsdf from a list of Bxdfs and a shading coordinate system
 mkBsdf :: [AnyBxdf] -> LocalCoordinates -> Bsdf
-mkBsdf bs cs = Bsdf (V.fromList bs) cs
+mkBsdf bs = Bsdf (V.fromList bs)
 
 data Bsdf = Bsdf (V.Vector AnyBxdf) LocalCoordinates
 
 -- | filters a Bsdf's components by appearance
 filterBsdf :: BxdfProp -> Bsdf -> Bsdf
 filterBsdf ap (Bsdf bs cs) = Bsdf bs' cs where
-   bs' = V.filter (\b -> member ap $ bxdfType b) bs
+   bs' = V.filter (member ap . bxdfType) bs
 
 bsdfPdf :: Bsdf -> Vector -> Vector -> Float
 bsdfPdf (Bsdf bs cs) woW wiW =
-   if (V.null bs)
+   if V.null bs
       then 0.0
       else V.foldl' (+) 0.0 $ V.map (\b -> bxdfPdf b wo wi) bs where
          wo = worldToLocal cs woW
@@ -103,11 +103,11 @@ bsdfPdf (Bsdf bs cs) woW wiW =
 
 sampleBsdf :: Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
 sampleBsdf (Bsdf bs cs) woW uComp uDir =
-   if (V.null bs)
+   if V.null bs
       then emptyBsdfSample
       else BsdfSample (bxdfType bxdf) pdf f wiW where
          f = V.foldl' (+) f' $ V.map (\b -> bxdfEval b wo wi) bs'
-         pdf = (V.foldl' (+) pdf' $ V.map (\b -> bxdfPdf b wo wi) bs') / (fromIntegral bxdfCount + 1)
+         pdf = V.foldl' (+) pdf' (V.map (\ b -> bxdfPdf b wo wi) bs') / (fromIntegral bxdfCount + 1)
          bs' = V.ifilter (\ i _ -> (i /= sNum)) bs -- filter out explicitely sampled Bxdf
          (f', wi, pdf') = bxdfSample bxdf wo uDir
          wiW = localToWorld cs wi
@@ -120,7 +120,7 @@ evalBsdf :: Bsdf -> Vector -> Vector -> Spectrum
 evalBsdf (Bsdf bxdfs sc@(LocalCoordinates _ _ n)) woW wiW = 
    V.foldl' (+) black $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bxdfs
    where
-         flt = if ((dot woW n) * (dot wiW n) < 0) then isTransmission else isReflection
+         flt = if dot woW n * dot wiW n < 0 then isTransmission else isReflection
          wo = worldToLocal sc woW
          wi = worldToLocal sc wiW
       
