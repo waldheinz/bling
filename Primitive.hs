@@ -10,7 +10,7 @@ import Math
 import Spectrum
 import Transport
 
-import Maybe(fromJust, isJust, isNothing)
+import Data.Maybe(fromJust, isJust, isNothing)
 
 data Intersection = Intersection {
    intDist :: Float,
@@ -48,7 +48,7 @@ data Primitive
    | Group [Primitive]
    
 instance Show Primitive where
-   show (Group ps) = "Group [" ++ (concat $ map show ps) ++ "]"
+   show (Group ps) = "Group [" ++ concatMap show ps ++ "]"
    show (GeometricU _ _ _) = "<unbound>"
    show (GeometricB _ _ _ _ _) = "<bound>"
    
@@ -74,7 +74,7 @@ instance Prim Primitive where
    
 -- | creates a @Primitive@ for the specified @Intersectable@ and @Material@
 mkPrim :: (Intersectable i) => i -> Material -> Primitive
-mkPrim int mat = GeometricU (intersect int) (intersects int) mat
+mkPrim int = GeometricU (intersect int) (intersects int)
 
 -- | creates a @Primitive@ for the specified @Bound@, @Material@ and possibly @Spectrum@ for light sources
 mkPrim' :: (Bound b) => b -> Material -> Maybe Spectrum -> Primitive
@@ -92,7 +92,7 @@ primBounds (GeometricB _ _ _ _ aabb) = aabb
 primBounds (GeometricU _ _ _) = error "bounds for an unbound requested"
 
 primFlatten :: Primitive -> [Primitive]
-primFlatten (Group (p:xs)) = (primFlatten p) ++ (concat $ map primFlatten xs)
+primFlatten (Group (p:xs)) = primFlatten p ++ concatMap primFlatten xs
 primFlatten p = [p]
 
 primLight :: Primitive -> Maybe Light
@@ -103,9 +103,9 @@ nearest :: (Prim a) => Ray -> [a] -> Maybe Intersection
 nearest (Ray ro rd tmin tmax) i = nearest' i tmax Nothing where
    nearest' [] _ mi = mi
    nearest' (x:xs) tmax' mi = nearest' xs newMax newNear where
-      clamped = (Ray ro rd tmin tmax')
-      newNear = if (isJust newNear') then newNear' else mi
+      clamped = Ray ro rd tmin tmax'
+      newNear = if isJust newNear' then newNear' else mi
       newNear' = primIntersect x clamped
-      newMax = if (isNothing newNear)
+      newMax = if isNothing newNear
                   then tmax'
                   else intDist $ fromJust newNear
