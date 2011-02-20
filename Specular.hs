@@ -40,8 +40,8 @@ instance Bxdf SpecularTransmission where
                cost = if entering then (-cost') else cost'
                sini2 = sinTheta2 wo
                wi = (eta * (-wox), eta * (-woy), cost)
-               f' = (frDiel ei et $ cosTheta wo)
-               f = sScale (t * (white - f')) (((et*et) / (ei*ei)) / (abs $ cosTheta wi))
+               f' = frDiel ei et $ cosTheta wo
+               f = sScale (t * (white - f')) (((et*et) / (ei*ei)) / abs (cosTheta wi))
 
 data SpecularReflection = SpecularReflection {
    specReflR :: Spectrum,
@@ -67,17 +67,17 @@ frDiel ei et cosi
    | otherwise = frDiel' (abs cosi') cost (sConst ei') (sConst et')
    where
       cost = sqrt $ max 0 (1 - sint * sint)
-      sint = (ei' / et') * (sqrt $ max 0 (1 - cosi' * cosi'))
+      sint = (ei' / et') * sqrt $ max 0 (1 - cosi' * cosi')
       cosi' = min 1 $ max (-1) cosi
-      ei' = if (cosi > 0) then ei else et
-      et' = if (cosi > 0) then et else ei
+      ei' = if cosi > 0 then ei else et
+      et' = if cosi > 0 then et else ei
 
 frDiel' :: Float -> Float -> Spectrum -> Spectrum -> Spectrum
 frDiel' cosi cost etai etat = (rPar * rPar + rPer * rPer) / 2.0 where
-   rPar = ((sScale etat cosi) - sScale etai cost) /
-          ((sScale etat cosi) + sScale etai cost)
-   rPer = ((sScale etai cosi) - sScale etat cost) /
-          ((sScale etai cosi) + sScale etat cost)
+   rPar = (sScale etat cosi - sScale etai cost) /
+          (sScale etat cosi + sScale etai cost)
+   rPer = (sScale etai cosi - sScale etat cost) /
+          (sScale etai cosi + sScale etat cost)
 
 frCond :: Spectrum -> Spectrum -> Fresnel
 frCond eta k cosi = (rPer2 + rPar2) / 2.0 where
