@@ -6,7 +6,7 @@ import Math
 import Random
 
 import Debug.Trace
-import Maybe
+import Data.Maybe
 
 data DifferentialGeometry = DifferentialGeometry {
    dgP :: Point,
@@ -27,7 +27,7 @@ class Intersectable a where
    
    -- | the default implementation just test if @intersect@ returns something,
    --   should be overridded if this test can be performed cheaper
-   intersects a r = (isJust $ intersect a r)
+   intersects a r = isJust $ intersect a r
             
 class (Intersectable a) => Bound a where
    -- | returns the surface area of the object
@@ -51,12 +51,12 @@ class (Intersectable a) => Bound a where
 data Sphere = Sphere Float Point deriving Eq
 
 insideSphere :: Sphere -> Point -> Bool
-insideSphere (Sphere r pos) pt = (sqLen $ sub pos pt) - r * r < epsilon
+insideSphere (Sphere r pos) pt = sqLen (sub pos pt) - r * r < epsilon
 
 sampleSphere :: Point -> Point -> Point
 sampleSphere co pt
    | isNothing roots = pt
-   | otherwise = normalize $ chosen
+   | otherwise = normalize chosen
       where
          chosen = add co $ scalMul rd t
          rd = pt `sub` co
@@ -80,7 +80,7 @@ instance Bound Sphere where
          d = uniformSampleCone cs cosThetaMax us
          cs = coordinateSystem dn
          dn = normalize $ sub center p
-         cosThetaMax = sqrt $ max 0 (1 - (r * r) / (sqLen $ sub p center))
+         cosThetaMax = sqrt $ max 0 (1 - (r * r) / sqLen (sub p center))
          ps
             | isJust int = positionAt ray t
             | otherwise = sub center $ scalMul dn r
@@ -93,7 +93,7 @@ instance Bound Sphere where
       | insideSphere sp pos = 1.0 / boundArea sp
       | otherwise = uniformConePdf cosThetaMax
       where
-         cosThetaMax = sqrt $ max 0 (1 - r * r / (sqLen $ sub pos center))
+         cosThetaMax = sqrt $ max 0 (1 - r * r / sqLen (sub pos center))
 
 debug :: Show a => a -> a
 debug x = trace (show x) x
@@ -103,13 +103,13 @@ instance Intersectable Sphere where
       | isNothing times = Nothing
       | t1 > tmax = Nothing
       | t2 < tmin = Nothing
-      | otherwise = Just $ (t, DifferentialGeometry hitPoint normalAt)
+      | otherwise = Just (t, DifferentialGeometry hitPoint normalAt)
       where
          co = origin `sub` center
          a = sqLen rd
          b = 2 * (co `dot` rd)
-         c = (sqLen co) - (r * r)
-         t = if (t1 > tmin) then t1 else t2
+         c = sqLen co - (r * r)
+         t = if t1 > tmin then t1 else t2
          (t1, t2) = fromJust times
          times = solveQuadric a b c
          hitPoint = positionAt ray t
@@ -133,7 +133,7 @@ data Plane = Plane Float Normal deriving Eq
 instance Intersectable Plane where
    intersect (Plane d n) ray@(Ray ro rd _ _)
       | not $ onRay ray t = Nothing
-      | otherwise = Just $ (t, DifferentialGeometry (positionAt ray t) n)
+      | otherwise = Just (t, DifferentialGeometry (positionAt ray t) n)
       where
          t = -(ro `dot` n + d) / (rd `dot` n)
    
