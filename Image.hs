@@ -26,12 +26,12 @@ data ImageSample = ImageSample {
 data Image s = Image {
    imageWidth :: Int,
    imageHeight :: Int,
-   _imagePixels :: (STUArray s Int Float)
+   _imagePixels :: STUArray s Int Float
    }
    
 mkImage :: Int -> Int -> ST s (Image s)
 mkImage w h = do
-   pixels <- newArray (0, (w * h * 4)) 0.0 :: ST s (STUArray s Int Float)
+   pixels <- newArray (0, w * h * 4) 0.0 :: ST s (STUArray s Int Float)
    return $ Image w h pixels
    
 addPixel :: Image s -> (Int, Int, WeightedSpectrum) -> ST s ()
@@ -67,7 +67,7 @@ sincFilter xw yw tau (ImageSample px py (sw, ss)) = [(x, y, (sw * ev x y, sScale
    x1 = floor (px + xw)
    y0 = ceiling (py - yw)
    y1 = floor (py + yw)
-   ev x y = (sinc1D tau x') * (sinc1D tau y') where
+   ev x y = sinc1D tau x' * sinc1D tau y' where
       x' = (fromIntegral x - px + 0.5) / xw
       y' = (fromIntegral y - py + 0.5) / yw
 
@@ -77,17 +77,17 @@ sinc1D tau x
    | x == 0 = 1
    | otherwise = sinc * lanczos where
       x' = x * pi
-      sinc = (sin (x' * tau)) / (x' * tau)
-      lanczos = (sin x') / x'
+      sinc = sin (x' * tau) / (x' * tau)
+      lanczos = sin x' / x'
 
 -- | adds an sample to the specified image
 addSample :: Image s -> ImageSample -> ST s ()
 addSample img smp@(ImageSample sx sy (_, ss))
    | sNaN ss = trace ("skipping NaN sample at ("
-      ++ (show sx) ++ ", " ++ (show sy) ++ ")") (return () )
+      ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | sInfinite ss = trace ("skipping infinite sample at ("
-      ++ (show sx) ++ ", " ++ (show sy) ++ ")") (return () )
-   | otherwise = sequence_ $ map (addPixel img) pixels
+      ++ show sx ++ ", " ++ show sy ++ ")") (return () )
+   | otherwise = mapM_ (addPixel img) pixels
    where
          pixels = filter smp
          -- filter = sincFilter 2 2 3
@@ -100,16 +100,16 @@ getPixel (Image _ _ p) o = do
    r <- readArray p (o' + 1)
    g <- readArray p (o' + 2)
    b <- readArray p (o' + 3)
-   return $ (w, fromRGB (r, g, b)) where
+   return (w, fromRGB (r, g, b)) where
       o' = o * 4
    
 writeRgbe :: Image RealWorld -> Handle -> IO ()
 writeRgbe img@(Image w h _) hnd =
-   let header = "#?RGBE\nFORMAT=32-bit_rgbe\n\n-Y " ++ (show h) ++ " +X " ++ (show w) ++ "\n"
-       pixel p = stToIO $ (liftM $ toRgbe . toRGB . mulWeight) $ getPixel img p
+   let header = "#?RGBE\nFORMAT=32-bit_rgbe\n\n-Y " ++ show h ++ " +X " ++ show w ++ "\n"
+       pixel p = stToIO $ liftM (toRgbe . toRGB . mulWeight) $ getPixel img p
    in do
       hPutStr hnd header
-      sequence_ $ map (\p -> pixel p >>= (BS.hPutStr hnd)) [0..(w*h-1)]
+      mapM_ (\p -> pixel p >>= BS.hPutStr hnd) [0..(w*h-1)]
       
 toRgbe :: (Float, Float, Float) -> BS.ByteString
 toRgbe (r, g, b)
@@ -135,10 +135,10 @@ writePpm :: Image RealWorld -> Handle -> IO ()
 writePpm img@(Image w h _) handle = 
    let
        header = "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n"
-       pixel p = stToIO $ (liftM ppmPixel) $ getPixel img p
+       pixel p = stToIO $ liftM ppmPixel $ getPixel img p
    in do
       hPutStr handle header
-      sequence_ $ map (\p -> pixel p >>= (hPutStr handle)) [0..(w*h-1)]
+      mapM_ (\p -> pixel p >>= hPutStr handle) [0..(w*h-1)]
       
 -- | applies gamma correction to an RGB triple
 gamma :: Float -> (Float, Float, Float) -> (Float, Float, Float)
@@ -147,11 +147,11 @@ gamma x (r, g, b) = (r ** x', g ** x', b ** x') where
 
 -- | converts a Float in [0..1] to an Int in [0..255], clamping values outside [0..1]
 clamp :: Float -> Int
-clamp v = round ( (min 1 (max 0 v)) * 255 )
+clamp v = round ( min 1 (max 0 v) * 255 )
 
 -- | converts a @WeightedSpectrum@ into what's expected to be found in a ppm file
 ppmPixel :: WeightedSpectrum -> String
-ppmPixel ws = (toString . (gamma 2.2) .toRGB . mulWeight) ws
+ppmPixel ws = (toString . gamma 2.2 .toRGB . mulWeight) ws
    where
       toString (r, g, b) = show (clamp r) ++ " " ++ show (clamp g) ++ " " ++ show (clamp b) ++ " "
 
