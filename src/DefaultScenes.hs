@@ -73,7 +73,7 @@ skyLightTest aspect = mkScene [ mkProbeLight TestProbe ]
 sphereCube :: Float -> Scene
 sphereCube aspect = mkScene [ ]
    [  Group spheres,
-      mkPrim' (Sphere 0.8 (0,0,0)) blackBodyMaterial (Just $ fromXyz (10,3,3))
+      mkPrim' (Sphere 0.8 (0,0,0)) blackBodyMaterial (Just $ fromXyz (2,3,3))
 --       mkPrim (Plane pd ( 0,  1,  0)) (measuredMaterial Primer),
 --       mkPrim (Plane pd ( 0, -1,  0)) (measuredMaterial Primer),
 --       mkPrim (Plane pd ( 0,  0,  1)) (measuredMaterial Primer),
