@@ -41,7 +41,10 @@ instance Prim AnyPrim where
    primIntersect (MkAnyPrim p) = primIntersect p
    primIntersects (MkAnyPrim p) = primIntersects p
    primWorldBounds (MkAnyPrim p) = primWorldBounds p
-   
+
+instance Show AnyPrim where
+   show (MkAnyPrim p) = "Any Prim"
+
 data Primitive
    = GeometricU (Ray -> Maybe (Float, DifferentialGeometry)) (Ray -> Bool) Material -- ^ an unbound primitive
    | GeometricB (Ray -> Maybe (Float, DifferentialGeometry)) (Ray -> Bool) Material (Maybe Light) AABB -- ^ a bound primitive

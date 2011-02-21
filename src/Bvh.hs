@@ -4,6 +4,7 @@ module Bvh
    ( Bvh, mkBvh ) 
    where
 
+import Data.Array
 import Data.Maybe (isJust, isNothing, fromJust)
 
 import AABB
@@ -19,6 +20,30 @@ instance Prim Bvh where
    primIntersect = bvhIntersect
    primWorldBounds (Node _ _ _ b) = b
    primWorldBounds (Leaf _ b) = b
+
+data LinearNode
+   = LinearNode Dimension Int AABB
+   | LinearLeaf AnyPrim AABB
+
+data LinearBvh
+   = MkLinearBvh (Array Int LinearNode)
+
+instance Show LinearNode where
+   show (LinearNode _ n _) = "node rc=" ++ show n
+   show (LinearLeaf _ _) = "leaf"
+   
+-- instance Prim LinearNode where
+   
+
+flatten :: Bvh -> Int -> (Int, [LinearNode])
+flatten (Leaf p b) n = (n + 1, [LinearLeaf p b])
+flatten (Node d l r b) n = (nr, [LinearNode d nl b] ++ ll ++ lr) where
+   (nl, ll) = flatten l (n + 1)
+   (nr, lr) = flatten r nl
+
+nodeCount :: Bvh -> Int
+nodeCount (Node _ l r _) = 1 + nodeCount l + nodeCount r
+nodeCount (Leaf _ _) = 1
 
 mkBvh :: [AnyPrim] -> Bvh
 mkBvh [p] = Leaf p $ primWorldBounds p
@@ -53,7 +78,7 @@ bvhIntersects :: Bvh -> Ray -> Bool
 bvhIntersects (Leaf p b) r = isJust (intersectAABB b r) && primIntersects p r
 bvhIntersects (Node _ l r b) ray = isJust (intersectAABB b ray) &&
    (bvhIntersects l ray || bvhIntersects r ray)
-   
+
 -- | Splits the given @Primitive@ list along the specified @Dimension@
 --   in two lists
 splitMidpoint :: [AnyPrim] -> Dimension -> ([AnyPrim], [AnyPrim])
@@ -61,7 +86,7 @@ splitMidpoint ps dim = ([l | l <- ps, toLeft l], [r | r <- ps, not $ toLeft r]) 
    toLeft p = component (centroid $ primWorldBounds p) dim < pMid
    pMid = 0.5 * (component (aabbMin cb) dim + component (aabbMax cb) dim)
    cb = centroidBounds ps
-   
+
 -- | Finds the preferred split axis for a list of primitives. This
 --   is where the AABBs centroid's bounds have the maximum extent
 splitAxis :: [AnyPrim] -> Dimension
