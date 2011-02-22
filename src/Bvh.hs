@@ -6,6 +6,8 @@ module Bvh
 
 import Data.Array
 import Data.Maybe (isJust, isNothing, fromJust)
+import Foreign.Storable
+import Foreign
 
 import AABB
 import Math
@@ -19,7 +21,7 @@ type Bvh = TreeBvh
 
 data LinearNode
    = LinearNode Dimension Int AABB
-   | LinearLeaf AnyPrim AABB
+   | LinearLeaf Int AABB
 
 data LinearBvh
    = MkLinearBvh (Array Int LinearNode)
@@ -28,8 +30,12 @@ instance Show LinearNode where
    show (LinearNode _ n _) = "node rc=" ++ show n
    show (LinearLeaf _ _) = "leaf"
    
--- instance Prim LinearNode where
+instance Storable LinearNode where
+   sizeOf _ = 5
+   alignment _ = 4
    
+--    peek p = do
+      
 
 flatten :: TreeBvh -> Int -> (Int, [LinearNode])
 flatten (Leaf p b) n = (n + 1, [LinearLeaf p b])
@@ -43,7 +49,7 @@ flatten (Node d l r b) n = (nr, [LinearNode d nl b] ++ ll ++ lr) where
 
 data TreeBvh
    = Node Dimension TreeBvh TreeBvh AABB
-   | Leaf AnyPrim AABB
+   | Leaf [AnyPrim] AABB
 
 instance Prim TreeBvh where
    primIntersects = bvhIntersects
@@ -52,7 +58,7 @@ instance Prim TreeBvh where
    primWorldBounds (Leaf _ b) = b
 
 mkBvh :: [AnyPrim] -> TreeBvh
-mkBvh [p] = Leaf p $ primWorldBounds p
+mkBvh [p] = Leaf [p] $ primWorldBounds p
 mkBvh ps = Node dim (mkBvh left) (mkBvh right) allBounds where
    (left, right) = splitMidpoint ps dim
    dim = splitAxis ps
@@ -61,7 +67,7 @@ mkBvh ps = Node dim (mkBvh left) (mkBvh right) allBounds where
 bvhIntersect :: TreeBvh -> Ray -> Maybe Intersection
 bvhIntersect (Leaf p b) ray
    | isNothing $ intersectAABB b ray = Nothing
-   | otherwise = primIntersect p ray
+   | otherwise = nearest ray p
 bvhIntersect (Node d l r b) ray@(Ray ro rd tmin tmax)
    | isNothing $ intersectAABB b ray = Nothing
    | otherwise = near firstInt otherInt where
@@ -81,7 +87,7 @@ near mi1 mi2 = Just $ near' (fromJust mi1) (fromJust mi2) where
       | otherwise = i2
 
 bvhIntersects :: TreeBvh -> Ray -> Bool
-bvhIntersects (Leaf p b) r = isJust (intersectAABB b r) && primIntersects p r
+bvhIntersects (Leaf p b) r = isJust (intersectAABB b r) && any (flip primIntersects r) p
 bvhIntersects (Node _ l r b) ray = isJust (intersectAABB b ray) &&
    (bvhIntersects l ray || bvhIntersects r ray)
 
