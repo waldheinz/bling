@@ -4,6 +4,7 @@ module Bvh
    ( Bvh, mkBvh ) 
    where
 
+import Control.Monad.ST
 import Data.Array
 import Data.Maybe (isJust, isNothing, fromJust)
 import Foreign.Storable
@@ -37,11 +38,15 @@ instance Storable LinearNode where
 --    peek p = do
       
 
-flatten :: TreeBvh -> Int -> (Int, [LinearNode])
-flatten (Leaf p b) n = (n + 1, [LinearLeaf p b])
-flatten (Node d l r b) n = (nr, [LinearNode d nl b] ++ ll ++ lr) where
-   (nl, ll) = flatten l (n + 1)
-   (nr, lr) = flatten r nl
+flatten :: TreeBvh -> Int -> Int -> ST m (Int, [LinearNode])
+flatten (Leaf p b) n poff = 
+   return (n + 1, [LinearLeaf undefined b])
+flatten (Node d l r b) n poff = do
+   (nl, ll) <- flatten l (n + 1) undefined
+   (nr, lr) <- flatten r nl undefined
+   return (nr, [LinearNode d nl b] ++ ll ++ lr) where
+   
+   
 
 --
 -- The simple "tree" BVH implementation
@@ -74,9 +79,9 @@ bvhIntersect (Node d l r b) ray@(Ray ro rd tmin tmax)
       (firstChild, otherChild) = if component rd d > 0 then (l, r) else (r, l)
       firstInt = bvhIntersect firstChild ray
       tmax'
-	 | isJust firstInt = intDist $ fromJust firstInt
+	 | isJust firstInt = intDist (fromJust firstInt)
 	 | otherwise = tmax
-      otherInt = bvhIntersect otherChild $ Ray ro rd tmin tmax'
+      otherInt = bvhIntersect otherChild (Ray ro rd tmin tmax')
 
 near :: Maybe Intersection -> Maybe Intersection -> Maybe Intersection
 near Nothing i = i
