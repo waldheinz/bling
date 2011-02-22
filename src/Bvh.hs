@@ -11,11 +11,13 @@ import AABB
 import Math
 import Primitive
 
-data Bvh
-   = Node Dimension Bvh Bvh AABB
+type Bvh = TreeBvh
+
+data TreeBvh
+   = Node Dimension TreeBvh TreeBvh AABB
    | Leaf AnyPrim AABB
 
-instance Prim Bvh where
+instance Prim TreeBvh where
    primIntersects = bvhIntersects
    primIntersect = bvhIntersect
    primWorldBounds (Node _ _ _ b) = b
@@ -35,24 +37,20 @@ instance Show LinearNode where
 -- instance Prim LinearNode where
    
 
-flatten :: Bvh -> Int -> (Int, [LinearNode])
+flatten :: TreeBvh -> Int -> (Int, [LinearNode])
 flatten (Leaf p b) n = (n + 1, [LinearLeaf p b])
 flatten (Node d l r b) n = (nr, [LinearNode d nl b] ++ ll ++ lr) where
    (nl, ll) = flatten l (n + 1)
    (nr, lr) = flatten r nl
 
-nodeCount :: Bvh -> Int
-nodeCount (Node _ l r _) = 1 + nodeCount l + nodeCount r
-nodeCount (Leaf _ _) = 1
-
-mkBvh :: [AnyPrim] -> Bvh
+mkBvh :: [AnyPrim] -> TreeBvh
 mkBvh [p] = Leaf p $ primWorldBounds p
 mkBvh ps = Node dim (mkBvh left) (mkBvh right) allBounds where
    (left, right) = splitMidpoint ps dim
    dim = splitAxis ps
    allBounds = foldl extendAABB emptyAABB $ map primWorldBounds ps
 
-bvhIntersect :: Bvh -> Ray -> Maybe Intersection
+bvhIntersect :: TreeBvh -> Ray -> Maybe Intersection
 bvhIntersect (Leaf p b) ray
    | isNothing $ intersectAABB b ray = Nothing
    | otherwise = primIntersect p ray
@@ -74,7 +72,7 @@ near mi1 mi2 = Just $ near' (fromJust mi1) (fromJust mi2) where
       | d1 < d2 = i1
       | otherwise = i2
 
-bvhIntersects :: Bvh -> Ray -> Bool
+bvhIntersects :: TreeBvh -> Ray -> Bool
 bvhIntersects (Leaf p b) r = isJust (intersectAABB b r) && primIntersects p r
 bvhIntersects (Node _ l r b) ray = isJust (intersectAABB b ray) &&
    (bvhIntersects l ray || bvhIntersects r ray)
