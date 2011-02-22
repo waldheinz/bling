@@ -1,5 +1,11 @@
 
-module AABB where
+module AABB (
+   AABB, aabbMin, aabbMax,
+   emptyAABB, extendAABB, extendAABBP, maximumExtent, centroid, intersectAABB
+) where
+
+import Foreign.Storable
+import Foreign
 
 import Math
 
@@ -8,6 +14,30 @@ data AABB = AABB {
    aabbMin :: Point, -- ^ the box' minimum
    aabbMax :: Point  -- ^ the box' maximum
    } deriving Show
+
+instance Storable AABB where
+   sizeOf _ = sizeOf (undefined :: Flt) * 6
+   alignment _ = alignment (undefined :: Flt)
+   
+   peek p = do
+      x1 <- peekElemOff q 0 :: IO Flt
+      y1 <- peekElemOff q 1 :: IO Flt
+      z1 <- peekElemOff q 2 :: IO Flt
+      x2 <- peekElemOff q 3 :: IO Flt
+      y2 <- peekElemOff q 4 :: IO Flt
+      z2 <- peekElemOff q 5 :: IO Flt
+      return (AABB (x1, y1, z1) (x2, y2, z2)) where
+	 q = castPtr p
+      
+   poke p (AABB (x1, y1, z1) (x2, y2, z2)) = do
+      pokeElemOff q 0 x1
+      pokeElemOff q 0 y1
+      pokeElemOff q 0 z1
+      pokeElemOff q 0 x2
+      pokeElemOff q 0 y2
+      pokeElemOff q 0 z2
+      where
+	 q = castPtr p
 
 emptyAABB :: AABB
 emptyAABB = AABB (infinity, infinity, infinity) (-infinity, -infinity, -infinity)

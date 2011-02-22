@@ -13,15 +13,9 @@ import Primitive
 
 type Bvh = TreeBvh
 
-data TreeBvh
-   = Node Dimension TreeBvh TreeBvh AABB
-   | Leaf AnyPrim AABB
-
-instance Prim TreeBvh where
-   primIntersects = bvhIntersects
-   primIntersect = bvhIntersect
-   primWorldBounds (Node _ _ _ b) = b
-   primWorldBounds (Leaf _ b) = b
+--
+-- The BVH using the tree flattened out to an array
+--
 
 data LinearNode
    = LinearNode Dimension Int AABB
@@ -42,6 +36,20 @@ flatten (Leaf p b) n = (n + 1, [LinearLeaf p b])
 flatten (Node d l r b) n = (nr, [LinearNode d nl b] ++ ll ++ lr) where
    (nl, ll) = flatten l (n + 1)
    (nr, lr) = flatten r nl
+
+--
+-- The simple "tree" BVH implementation
+--
+
+data TreeBvh
+   = Node Dimension TreeBvh TreeBvh AABB
+   | Leaf AnyPrim AABB
+
+instance Prim TreeBvh where
+   primIntersects = bvhIntersects
+   primIntersect = bvhIntersect
+   primWorldBounds (Node _ _ _ b) = b
+   primWorldBounds (Leaf _ b) = b
 
 mkBvh :: [AnyPrim] -> TreeBvh
 mkBvh [p] = Leaf p $ primWorldBounds p
