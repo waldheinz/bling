@@ -67,7 +67,7 @@ lightSampleSB r pos n us = LightSample r (toWorld lDir) (ray $ toWorld lDir) (pd
    where
       lDir = cosineSampleHemisphere us
       ray dir = Ray pos dir epsilon infinity
-      pdf (_, _, z) = invPi * z
+      pdf (MkVector _ _ z) = invPi * z
       toWorld = localToWorld (coordinateSystem n)
 
 lightSampleD :: Spectrum -> Normal -> Point -> Normal -> LightSample
@@ -79,7 +79,7 @@ class LightProbe a where
    lightProbeEval :: a -> (Float, Float) -> Spectrum
    lightProbeSample :: a -> Normal -> Rand2D -> (Float, (Float, Float))
    lightProbePdf :: a -> Normal -> Vector -> Float
-   
+
 data TestProbe = TestProbe
 
 instance LightProbe TestProbe where

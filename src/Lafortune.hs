@@ -20,7 +20,7 @@ instance Bxdf Lafortune where
    
    bxdfType _ = mkBxdfType [Reflection, Glossy]
    
-   bxdfEval (Lafortune diffuse lobes) (wox, woy, woz) (wix, wiy, wiz) =
+   bxdfEval (Lafortune diffuse lobes) (MkVector wox woy woz) (MkVector wix wiy wiz) =
       foldl (+) (sScale diffuse invPi) $ map evalLobe lobes where
          evalLobe (Lobe lX lY lZ lE) = sPow v lE where
             v = (sScale lX (wox * wix)) + (sScale lY (woy * wiy)) + (sScale lZ (woz * wiz)) 

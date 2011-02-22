@@ -22,17 +22,17 @@ type BxdfType = BitSet BxdfProp
 --   the first vector (assumed that both vectors are in shading coordinate
 --   system)
 toSameHemisphere :: Vector -> Vector -> Vector
-toSameHemisphere (_, _, z1) (x, y, z2)
-   | z1 * z2 >= 0 = (x, y, z2)
-   | otherwise = (x, y, -z2)
+toSameHemisphere (MkVector _ _ z1) (MkVector x y z2)
+   | z1 * z2 >= 0 = MkVector x y z2
+   | otherwise = MkVector x y (-z2)
 
 -- | decides if two vectors in shading coordinate system lie within the
 --   same hemisphere
 sameHemisphere :: Vector -> Vector -> Bool
-sameHemisphere (_, _, z1) (_, _, z2) = z1 * z2 > 0
+sameHemisphere (MkVector _ _ z1) (MkVector _ _ z2) = z1 * z2 > 0
 
 cosTheta :: Vector -> Float
-cosTheta (_, _, z) = z
+cosTheta (MkVector _ _ z) = z
 
 sinTheta2 :: Vector -> Float
 sinTheta2 v = 1 - cosTheta v * cosTheta v
@@ -60,7 +60,7 @@ class Bxdf a where
       f = bxdfEval a wo wi
       pdf = bxdfPdf a wo wi
       
-   bxdfPdf _ (_, _, woz)(_, _, wiz)
+   bxdfPdf _ (MkVector _ _ woz) (MkVector _ _ wiz)
       | woz * wiz > 0 = invPi * abs wiz
       | otherwise = 0
 
@@ -80,7 +80,7 @@ data BsdfSample = BsdfSample {
    } deriving (Show)
 
 emptyBsdfSample :: BsdfSample
-emptyBsdfSample = BsdfSample (mkBxdfType [Reflection, Diffuse]) 0 black (0,1,0)
+emptyBsdfSample = BsdfSample (mkBxdfType [Reflection, Diffuse]) 0 black (MkVector 0 1 0)
 
 -- | creates a Bsdf from a list of Bxdfs and a shading coordinate system
 mkBsdf :: [AnyBxdf] -> LocalCoordinates -> Bsdf

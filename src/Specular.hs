@@ -28,7 +28,7 @@ instance Bxdf SpecularTransmission where
    bxdfType _ = mkBxdfType [Transmission, Specular]
    bxdfEval _ _ _ = black
    bxdfPdf _ _ _ = 0
-   bxdfSample (SpecularTransmission t ei' et') wo@(wox, woy, _) _
+   bxdfSample (SpecularTransmission t ei' et') wo@(MkVector wox woy _) _
       | sint2 > 1 = (black, wo, 0) -- total internal reflection
       | otherwise = (f, wi, 1.0)
          where
@@ -39,7 +39,7 @@ instance Bxdf SpecularTransmission where
                cost' = sqrt $ max 0 (1 - sint2)
                cost = if entering then (-cost') else cost'
                sini2 = sinTheta2 wo
-               wi = (eta * (-wox), eta * (-woy), cost)
+               wi = MkVector (eta * (-wox)) (eta * (-woy)) cost
                f' = frDiel ei et $ cosTheta wo
                f = sScale (t * (white - f')) (((et*et) / (ei*ei)) / abs (cosTheta wi))
 
@@ -52,9 +52,9 @@ instance Bxdf SpecularReflection where
    bxdfType _ = mkBxdfType [Reflection, Specular]
    bxdfEval _ _ _ = black
    bxdfPdf _ _ _ = 0
-   bxdfSample (SpecularReflection r fresnel) (x, y, z) _ = (f, wi, 1) where
+   bxdfSample (SpecularReflection r fresnel) (MkVector x y z) _ = (f, wi, 1) where
       f = sScale (r * fresnel z) (1.0 / abs z)
-      wi = (-x, -y, z)
+      wi = MkVector (-x) (-y) z
            
 type Fresnel = Float -> Spectrum
 

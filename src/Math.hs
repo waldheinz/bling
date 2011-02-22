@@ -35,7 +35,14 @@ data Dimension
 allDimensions :: [Dimension]
 allDimensions = [X, Y, Z]
 
-type Vector = (Flt, Flt, Flt)
+data Vector
+   = MkVector
+      {-# UNPACK #-} !Flt
+      {-# UNPACK #-} !Flt
+      {-# UNPACK #-} !Flt
+   deriving (Eq, Show)
+   
+-- type Vector = (Flt, Flt, Flt)
 type Point = Vector
 type Normal = Vector
 
@@ -47,7 +54,7 @@ data Ray = Ray {
    } deriving Show
 
 dominant :: Vector -> Dimension
-dominant (x, y, z)
+dominant (MkVector x y z)
    | (ax > ay) && (ax > az) = X
    | (ay > az) = Y
    | otherwise = Z
@@ -55,6 +62,9 @@ dominant (x, y, z)
       ax = abs x
       ay = abs y
       az = abs z
+
+mkV :: (Flt, Flt, Flt) -> Vector
+mkV (x, y, z) = MkVector x y z
 
 -- | Creates a ray that connects the two specified points.
 segmentRay :: Point -> Point -> Ray
@@ -69,42 +79,42 @@ onRay :: Ray -> Flt -> Bool
 onRay (Ray _ _ tmin tmax) t = t >= tmin && t <= tmax
 
 component :: Vector -> Dimension -> Flt
-component (x, y, z) dim
+component (MkVector x y z) dim
    | dim == X = x
    | dim == Y = y
    | otherwise = z
 
 add :: Vector -> Vector -> Vector
-add (x, y, z) (a, b, c) = (x+a, y+b, z+c)
+add (MkVector x y z) (MkVector a b c) = MkVector (x+a) (y+b) (z+c)
 
 sub :: Vector -> Vector -> Vector
-sub (x, y, z) (a, b, c) = (x-a, y-b, z-c)
+sub (MkVector x y z) (MkVector a b c) = MkVector (x-a) (y-b) (z-c)
 
 neg :: Vector -> Vector
-neg (x, y, z) = (-x, -y, -z)
+neg (MkVector x y z) = MkVector (-x) (-y) (-z)
 
 sqLen :: Vector -> Flt
-sqLen (x, y, z) = (x*x + y*y + z*z)
+sqLen (MkVector x y z) = (x*x + y*y + z*z)
 
 len :: Vector -> Flt
 len v = sqrt (sqLen v)
 
 scalMul :: Vector -> Flt -> Vector
-scalMul (x, y, z) f = (x*f, y*f, z*f)
+scalMul (MkVector x y z) f = MkVector (x*f) (y*f) (z*f)
 
 cross :: Vector -> Vector -> Vector
-cross (ux,uy,uz) (vx,vy,vz) = (uy*vz - uz*vy, -(ux*vz - uz*vx), ux*vy - uy*vx)
+cross (MkVector ux uy uz) (MkVector vx vy vz) = MkVector (uy*vz - uz*vy) (-(ux*vz - uz*vx)) (ux*vy - uy*vx)
 
 dot :: Vector -> Vector -> Flt
-dot (x,y,z) (a,b,c) =  x*a + y*b + z*c;
+dot (MkVector x y z) (MkVector a b c) =  x*a + y*b + z*c;
 
 absDot :: Vector -> Vector -> Flt
-absDot v1 v2 = abs $ dot v1 v2
+absDot v1 v2 = abs (dot v1 v2)
 
 normalize :: Vector -> Normal
 normalize v
   | (sqLen v) /= 0 = scalMul v (1 / len v)
-  | otherwise = (0, 1, 0)
+  | otherwise = MkVector 0 1 0
 
 lerp :: Flt -> Flt -> Flt -> Flt
 lerp t v1 v2 = (1 - t) * v1 + t * v2
@@ -154,13 +164,13 @@ uniformSampleCone (LocalCoordinates x y z) cosThetaMax (u1, u2) = let
 -- | generates a random point on the unit sphere,
 -- see http://mathworld.wolfram.com/SpherePointPicking.html
 randomOnSphere :: Rand2D -> Vector
-randomOnSphere (u1, u2) = (s * cos omega, s * sin omega, u) where
+randomOnSphere (u1, u2) = MkVector (s * cos omega) (s * sin omega) u where
    u = u1 * 2 - 1
    s = sqrt (1 - (u * u))
    omega = u2 * 2 * pi
    
 cosineSampleHemisphere :: Rand2D -> Vector
-cosineSampleHemisphere u = (x, y, sqrt (max 0 (1 - x*x - y*y))) where
+cosineSampleHemisphere u = MkVector x y (sqrt (max 0 (1 - x*x - y*y))) where
    (x, y) = concentricSampleDisk u
    
 concentricSampleDisk :: Rand2D -> (Flt, Flt)
@@ -173,24 +183,24 @@ concentricSampleDisk' (0, 0) = (0, 0) -- handle degeneracy at the origin
 concentricSampleDisk' (sx, sy) = (r * cos theta, r * sin theta) where
    theta = theta' * pi / 4.0
    (r, theta') = 
-      if (sx >= -sy)
-         then if (sx > sy) -- first region
-            then if (sy > 0) 
+      if sx >= -sy
+         then if sx > sy -- first region
+            then if sy > 0
                then (sx, sy / sx)
                else (sx, 8.0 + sy / sx)  
             else (sy, 2.0 - sx / sy) -- second region
-         else if (sx <= sy)
+         else if sx <= sy
             then (-sx, 4.0 - sy / (-sx)) -- third region
             else (-sy, 6.0 + sx / (-sy)) -- fourth region
 
 sphericalDirection :: Flt -> Flt -> Flt -> Vector
-sphericalDirection sint cost phi = (sint * cos phi, sint * sin phi, cost)
+sphericalDirection sint cost phi = MkVector (sint * cos phi) (sint * sin phi) cost
 
 sphericalTheta :: Vector -> Float
-sphericalTheta (_, _, z) = acos $ max (-1) $ min 1 z
+sphericalTheta (MkVector _ _ z) = acos $ max (-1) $ min 1 z
 
 sphericalPhi :: Vector -> Float
-sphericalPhi (x, y, _)
+sphericalPhi (MkVector x y _)
    | p' < 0 = p' + 2 * pi
    | otherwise = p'
    where
@@ -199,24 +209,25 @@ sphericalPhi (x, y, _)
 data LocalCoordinates = LocalCoordinates Vector Vector Vector
 
 coordinateSystem :: Vector -> LocalCoordinates
-coordinateSystem v@(x, y, z)
+coordinateSystem v@(MkVector x y z)
    | abs x > abs y = 
       let 
           invLen = 1.0 / (sqrt (x*x + z*z))
-          v2 = (-z * invLen, 0, x * invLen)
+          v2 = MkVector (-z * invLen) 0 (x * invLen)
       in LocalCoordinates v2 (cross v v2) v
    | otherwise = 
       let
           invLen = 1.0 / (sqrt (y*y + z*z))
-          v2 = (0, z * invLen, -y * invLen)
+          v2 = MkVector 0 (z * invLen) (-y * invLen)
       in LocalCoordinates v2 (cross v v2) v
-      
+
 worldToLocal :: LocalCoordinates -> Vector -> Vector
-worldToLocal (LocalCoordinates sn tn nn) v = (dot v sn, dot v tn, dot v nn)
+worldToLocal (LocalCoordinates sn tn nn) v = MkVector (dot v sn) (dot v tn) (dot v nn)
 
 localToWorld :: LocalCoordinates -> Vector -> Vector
-localToWorld (LocalCoordinates (sx, sy, sz) (tx, ty, tz) (nx, ny, nz)) (x, y, z) =
-   (sx * x + tx * y + nx * z,
-    sy * x + ty * y + ny * z,
-    sz * x + tz * y + nz * z)
+localToWorld (LocalCoordinates (MkVector sx sy sz) (MkVector tx ty tz) (MkVector nx ny nz)) (MkVector x y z) =
+   MkVector
+      (sx * x + tx * y + nx * z)
+      (sy * x + ty * y + ny * z)
+      (sz * x + tz * y + nz * z)
 

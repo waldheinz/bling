@@ -2,6 +2,7 @@
 module Texture where
 
 import Geometry
+import Math
 import Spectrum
 
 type SpectrumTexture = DifferentialGeometry -> Spectrum
@@ -10,7 +11,7 @@ constantSpectrum :: Spectrum -> SpectrumTexture
 constantSpectrum r _ = r
 
 graphPaper :: Float -> Spectrum -> Spectrum -> SpectrumTexture
-graphPaper lw p l (DifferentialGeometry (x, _, z) _)
+graphPaper lw p l (DifferentialGeometry (MkVector x _ z) _)
    | x' < lo || z' < lo || x' > hi || z' > hi = l
    | otherwise = p
    where

@@ -47,7 +47,7 @@ data MfDistribution = Blinn Float
 
 mfDistPdf :: MfDistribution -> Vector -> Vector -> Float
 mfDistPdf (Blinn e) wo wi = (e + 2) * (cost ** e) / (2 * pi * 4 * dot wo h) where
-   h@(_, _, hz) = normalize $ add wo wi
+   h@(MkVector _ _ hz) = normalize $ add wo wi
    cost = abs hz
 
 mfDistSample :: MfDistribution -> Rand2D -> Vector -> (Float, Vector)

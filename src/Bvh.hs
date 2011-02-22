@@ -44,17 +44,21 @@ flatten (Leaf p b) n poff =
 flatten (Node d l r b) n poff = do
    (nl, ll) <- flatten l (n + 1) undefined
    (nr, lr) <- flatten r nl undefined
-   return (nr, [LinearNode d nl b] ++ ll ++ lr) where
+   return (nr, [LinearNode d nl b] ++ ll ++ lr)
    
-   
-
 --
 -- The simple "tree" BVH implementation
 --
 
 data TreeBvh
-   = Node Dimension TreeBvh TreeBvh AABB
-   | Leaf [AnyPrim] AABB
+   = Node
+      {-# UNPACK #-} !Dimension
+      {-# UNPACK #-} !TreeBvh
+      {-# UNPACK #-} !TreeBvh
+      {-# UNPACK #-} !AABB
+   | Leaf 
+      {-# UNPACK #-} ![AnyPrim]
+      {-# UNPACK #-} !AABB
 
 instance Prim TreeBvh where
    primIntersects = bvhIntersects

@@ -69,7 +69,9 @@ sampleSphere co pt
 instance Bound Sphere where
    boundArea (Sphere r _) = r * r * 4 * pi
    
-   boundAABB (Sphere r p) = emptyAABB `extendAABBP` (p `add` (r, r, r)) `extendAABBP` (p `add` (-r, -r, -r))
+   boundAABB (Sphere r p) = emptyAABB `extendAABBP`
+      (p `add` (MkVector r r r)) `extendAABBP`
+      (p `add` (MkVector (-r) (-r) (-r)))
    
    boundSample sp@(Sphere r center) p us
       | insideSphere sp p = 

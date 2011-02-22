@@ -19,36 +19,42 @@ instance Storable AABB where
    sizeOf _ = sizeOf (undefined :: Flt) * 6
    alignment _ = alignment (undefined :: Flt)
    
-   peek p = do
-      x1 <- peekElemOff q 0 :: IO Flt
-      y1 <- peekElemOff q 1 :: IO Flt
-      z1 <- peekElemOff q 2 :: IO Flt
-      x2 <- peekElemOff q 3 :: IO Flt
-      y2 <- peekElemOff q 4 :: IO Flt
-      z2 <- peekElemOff q 5 :: IO Flt
-      return (AABB (x1, y1, z1) (x2, y2, z2)) where
-	 q = castPtr p
+--    peek p = do
+--       x1 <- peekElemOff q 0 :: IO Flt
+--       y1 <- peekElemOff q 1 :: IO Flt
+--       z1 <- peekElemOff q 2 :: IO Flt
+--       x2 <- peekElemOff q 3 :: IO Flt
+--       y2 <- peekElemOff q 4 :: IO Flt
+--       z2 <- peekElemOff q 5 :: IO Flt
+--       return (AABB (x1, y1, z1) (x2, y2, z2)) where
+-- 	 q = castPtr p
       
-   poke p (AABB (x1, y1, z1) (x2, y2, z2)) = do
-      pokeElemOff q 0 x1
-      pokeElemOff q 0 y1
-      pokeElemOff q 0 z1
-      pokeElemOff q 0 x2
-      pokeElemOff q 0 y2
-      pokeElemOff q 0 z2
-      where
-	 q = castPtr p
+--    poke p (AABB (x1, y1, z1) (x2, y2, z2)) = do
+--       pokeElemOff q 0 x1
+--       pokeElemOff q 0 y1
+--       pokeElemOff q 0 z1
+--       pokeElemOff q 0 x2
+--       pokeElemOff q 0 y2
+--       pokeElemOff q 0 z2
+--       where
+-- 	 q = castPtr p
 
 emptyAABB :: AABB
-emptyAABB = AABB (infinity, infinity, infinity) (-infinity, -infinity, -infinity)
+emptyAABB = AABB
+   (MkVector infinity infinity infinity)
+   (MkVector (-infinity) (-infinity) (-infinity))
 
 extendAABB :: AABB -> AABB -> AABB
-extendAABB (AABB (min1x, min1y, min1z) (max1x, max1y, max1z)) (AABB (min2x, min2y, min2z) (max2x, max2y, max2z)) =
-   AABB (min min1x min2x, min min1y min2y, min min1z min2z) (max max1x max2x, max max1y max2y, max max1z max2z)
+extendAABB
+   (AABB (MkVector min1x min1y min1z) (MkVector max1x max1y max1z))
+   (AABB (MkVector min2x min2y min2z) (MkVector max2x max2y max2z)) =
+   AABB
+      (MkVector (min min1x min2x) (min min1y min2y) (min min1z min2z))
+      (MkVector (max max1x max2x) (max max1y max2y) (max max1z max2z))
 
 extendAABBP :: AABB -> Point -> AABB
 extendAABBP (AABB pMin pMax) p = AABB (f min pMin p) (f max pMax p) where
-   f cmp (x1, y1, z1) (x2, y2, z2) = (cmp x1 x2, cmp y1 y2, cmp z1 z2)
+   f cmp (MkVector x1 y1 z1) (MkVector x2 y2 z2) = MkVector (cmp x1 x2) (cmp y1 y2) (cmp z1 z2)
 
 -- | finds the @Dimension@ along which an @AABB@ has it's maximum extent
 maximumExtent :: AABB -> Dimension
