@@ -1,5 +1,6 @@
 
-module Material(Material, Lambertian(..), matteMaterial, blackBodyMaterial) where
+module Material(Material, Lambertian(..),
+   matteMaterial, blackBodyMaterial) where
 
 import Geometry
 import Math
@@ -8,6 +9,8 @@ import Texture
 import Transport
 
 type Material = DifferentialGeometry -> Bsdf
+
+
 
 matteMaterial :: SpectrumTexture -> Material
 matteMaterial tex dg = mkBsdf [bxdf] sc where

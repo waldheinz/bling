@@ -1,45 +1,56 @@
 
-module WaveFront where
+module WaveFront (
+   waveFrontParser
+   ) where
 
+import Lafortune
+import Math
 import Primitive
 import TriangleMesh
 
+import Control.Monad.ST
 import Debug.Trace
 import Data.Vector.Mutable hiding (read)
 import Text.ParserCombinators.Parsec
 import Text.ParserCombinators.Parsec.Token(float)
 
-data WFState s = WFState {
-   vertices :: MVector s Vertex
+data WFState = WFState {
+   vertices :: [Vertex],
+   tris :: [Triangle]
    }
 
-type WFParser s a = GenParser Char (WFState s) a
-   
-waveFront :: Parser Primitive
-waveFront = do
-   many line
-   eof
-   return $ Group []
+type WFParser a = GenParser Char WFState a
 
+waveFrontParser :: WFParser Primitive
+waveFrontParser = do
+   many line
+   (WFState _ tris) <- getState
+   eof
+   return $ Group (map (\ t-> mkPrim' t (measuredMaterial BluePaint) Nothing) tris)
+
+line :: WFParser ()
 line =
    (do try vertex; return () )
    <|> try face
    <|> ignore
-   
-ignore :: Parser ()
+
+ignore :: WFParser ()
 ignore = do
    ignored <- many (noneOf "\n")
    eol
    trace ignored $ return ()
    
-face :: Parser ()
+face :: WFParser ()
 face = do
    char 'f'
    indices <- many1 (try (do spaces; integ))
    eol
+   (WFState verts tris) <- getState
+   let tvs = map (verts !!) indices
+   setState (WFState verts (triangulate tvs ++ tris))
    return ()
    
-vertex :: Parser Vertex
+vertex :: WFParser ()
 vertex = do
    char 'v'
    spaces
@@ -49,16 +60,18 @@ vertex = do
    spaces
    z <- flt
    eol
-   return $ Vertex (x, y, z)
+   (WFState verts tris) <- getState
+   setState (WFState (verts ++ [Vertex (MkVector x y z)]) tris)
+   return ()
    
 eol = char '\n'
 
-integ :: Parser Int
+integ :: WFParser Int
 integ = do
    x <- many1 digit
    return $ read x
 
-flt :: Parser Float
+flt :: WFParser Float
 flt = do
   sign <- option 1 ( do s <- oneOf "+-"
                         return $ if s == '-' then (-1.0) else 1.0)

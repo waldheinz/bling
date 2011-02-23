@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 
 module Math where
 
@@ -26,14 +27,15 @@ twoPi :: Flt
 twoPi = 2.0 * pi
 
 -- | Defines names for the three axii
-data Dimension
-    = X -- ^ the x - axis
-    | Y -- ^ the y - axis
-    | Z -- ^ the z - axis
-    deriving (Show, Eq)
-
+type Dimension = Int
+dimX :: Dimension
+dimX = 1
+dimY :: Dimension
+dimY = 2
+dimZ :: Dimension
+dimZ = 3
 allDimensions :: [Dimension]
-allDimensions = [X, Y, Z]
+allDimensions = [dimX, dimY, dimZ]
 
 data Vector
    = MkVector
@@ -41,8 +43,7 @@ data Vector
       {-# UNPACK #-} !Flt
       {-# UNPACK #-} !Flt
    deriving (Eq, Show)
-   
--- type Vector = (Flt, Flt, Flt)
+
 type Point = Vector
 type Normal = Vector
 
@@ -55,9 +56,9 @@ data Ray = Ray {
 
 dominant :: Vector -> Dimension
 dominant (MkVector x y z)
-   | (ax > ay) && (ax > az) = X
-   | (ay > az) = Y
-   | otherwise = Z
+   | (ax > ay) && (ax > az) = dimX
+   | (ay > az) = dimY
+   | otherwise = dimZ
    where
       ax = abs x
       ay = abs y
@@ -79,11 +80,14 @@ onRay :: Ray -> Flt -> Bool
 onRay (Ray _ _ tmin tmax) t = t >= tmin && t <= tmax
 
 component :: Vector -> Dimension -> Flt
-component (MkVector x y z) dim
-   | dim == X = x
-   | dim == Y = y
+{-# INLINE component #-}
+component !(MkVector x y z) !d
+   | d == dimX = x
+   | d == dimY = y
    | otherwise = z
-
+-- component (MkVector _ y _) dimY = y
+-- component (MkVector _ _ z) dimZ = z
+  
 add :: Vector -> Vector -> Vector
 add (MkVector x y z) (MkVector a b c) = MkVector (x+a) (y+b) (z+c)
 
