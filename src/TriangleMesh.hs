@@ -5,6 +5,24 @@ import AABB
 import Geometry
 import Math
 
+mkBox :: Point -> Point -> 
+box = Group $ map (\g -> mkPrim g (measuredMaterial BluePaint)) faces
+         faces = f1 ++ f2 ++ f3 ++ f4  ++ f5 ++ f6
+         f1 = triangulate [v1, v2, v4, v3] -- right face
+         f2 = triangulate [v5, v7, v8, v6] -- left face
+         f3 = triangulate [v1, v5, v6, v2] -- top face
+         f4 = triangulate [v3, v7, v8, v4] -- 
+         f5 = triangulate [v1, v5, v7, v3]
+         f6 = triangulate [v2, v6, v8, v4]
+         v1 = Vertex ( 1,  1,  1)
+         v2 = Vertex ( 1,  1, -1)
+         v3 = Vertex ( 1, -1,  1)
+         v4 = Vertex ( 1, -1, -1)
+         v5 = Vertex (-1,  1,  1)
+         v6 = Vertex (-1,  1, -1)
+         v7 = Vertex (-1, -1,  1)
+         v8 = Vertex (-1, -1, -1)
+         
 data Vertex = Vertex {
    vertexPos :: Point
    } deriving (Show)

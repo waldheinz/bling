@@ -1,6 +1,7 @@
 
 module WaveFront (
-   waveFrontParser
+      waveFrontParser,
+      parseWaveFront
    ) where
 
 import Lafortune
@@ -21,12 +22,16 @@ data WFState = WFState {
 
 type WFParser a = GenParser Char WFState a
 
+parseWaveFront :: String -> Primitive
+parseWaveFront s = either (error . show) (id) pr where
+   pr = runParser waveFrontParser (WFState [] []) "unknown"  s
+
 waveFrontParser :: WFParser Primitive
 waveFrontParser = do
    many line
    (WFState _ tris) <- getState
    eof
-   return $ Group (map (\ t-> mkPrim' t (measuredMaterial BluePaint) Nothing) tris)
+   return $ Group (map (\ t-> MkAnyPrim $ mkPrim t (measuredMaterial BluePaint) Nothing) tris)
 
 line :: WFParser ()
 line =
@@ -39,15 +44,15 @@ ignore = do
    ignored <- many (noneOf "\n")
    eol
    trace ignored $ return ()
-   
+
 face :: WFParser ()
 face = do
    char 'f'
    indices <- many1 (try (do spaces; integ))
    eol
    (WFState verts tris) <- getState
-   let tvs = map (verts !!) indices
-   setState (WFState verts (triangulate tvs ++ tris))
+   let tvs = map (verts !!) $ map pred indices
+   setState (WFState verts (triangulate (reverse tvs) ++ tris))
    return ()
    
 vertex :: WFParser ()

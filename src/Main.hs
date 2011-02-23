@@ -9,21 +9,33 @@ import Time
 
 import Image
 import Pathtracer
+import Primitive
 import Random
 import Scene
-import DefaultScenes
+import WaveFront
+-- import DefaultScenes
 
 myScene :: Scene
-myScene = sphereCube (fromIntegral resX / fromIntegral resY)
+myScene = undefined --sphereCube (fromIntegral resX / fromIntegral resY)
 
 resX :: Int
-resX = 800
+resX = 600
 
 resY :: Int
 resY = 600
 
 passSamples :: Int
-passSamples = 2
+passSamples = 1
+
+main :: IO ()
+main = do
+   putStrLn "Creating image..."
+   img <- stToIO $ mkImage resX resY
+   putStrLn "Reading Model..."
+   inp <- readFile "examples/bunny.obj"
+   let prim = parseWaveFront inp
+   putStrLn (show $ primWorldBounds prim)
+   render 1 img (primScene prim) pathTracer
 
 onePass :: Gen s -> Image s -> Int-> Scene -> Integrator -> ST s ()
 onePass gen img ns scene int = do
@@ -85,10 +97,3 @@ render pass img sc int = do
    render (pass + 1) img sc int
    where
          fname = "pass-" ++ printf "%05d" pass
-
-main :: IO ()
-main = do
-   putStrLn "Creating image..."
-   img <- stToIO $  mkImage resX resY
-   render 1 img myScene pathTracer
-         

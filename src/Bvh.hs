@@ -7,6 +7,7 @@ module Bvh
 import Control.Monad.ST
 import Data.Array
 import Data.Maybe (isJust, isNothing, fromJust)
+import Debug.Trace
 import Foreign.Storable
 import Foreign
 
@@ -67,8 +68,12 @@ instance Prim TreeBvh where
    primWorldBounds (Leaf _ b) = b
 
 mkBvh :: [AnyPrim] -> TreeBvh
+mkBvh [] = Leaf [] emptyAABB
 mkBvh [p] = Leaf [p] $ primWorldBounds p
-mkBvh ps = Node dim (mkBvh left) (mkBvh right) allBounds where
+mkBvh ps
+   | null left = Leaf right allBounds
+   | null right = Leaf left allBounds
+   | otherwise = Node dim (mkBvh left) (mkBvh right) allBounds where
    (left, right) = splitMidpoint ps dim
    dim = splitAxis ps
    allBounds = foldl extendAABB emptyAABB $ map primWorldBounds ps

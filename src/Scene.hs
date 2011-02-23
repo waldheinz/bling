@@ -1,12 +1,13 @@
 module Scene (
    Scene, mkScene, scenePrim, sceneLights, sceneCam,
-   Integrator, sampleOneLight
+   Integrator, sampleOneLight, primScene
    ) where
 
 import Control.Monad
 import Data.Array.Unboxed
 import Data.Maybe (isJust, fromJust, catMaybes)
 
+import AABB
 import Bvh
 import Camera
 import Light
@@ -24,11 +25,19 @@ data Scene = Scene {
    sceneCam :: Camera
    }
 
-mkScene :: [Light] -> [Primitive] -> Camera -> Scene
-mkScene l prims cam = Scene (mkBvh $ map MkAnyPrim ps) (listArray (0, length lights - 1) lights) cam where
+primScene :: (Prim a) => a -> Scene
+primScene p = mkScene lights prim cam where
+   lights = [SoftBox (fromRGB (0.95, 0.95, 0.95))]
+   prim = p
+   cam = pinHoleCamera (View (mkV(8, 0, 8)) (mkV(0,0,0)) (mkV(0, 1, 0)) 1.8 1)
+   bounds = primWorldBounds p
+   
+   
+mkScene :: (Prim a) => [Light] -> a -> Camera -> Scene
+mkScene l prim cam = Scene (mkBvh  ps) (listArray (0, length lights - 1) lights) cam where
    lights = l ++ gl
    gl = catMaybes $ map (primLight) ps -- collect the geometric lights
-   ps = primFlatten $ Group prims
+   ps = primFlatten prim
 
 occluded :: Scene -> Ray -> Bool
 occluded (Scene p _ _) = primIntersects p

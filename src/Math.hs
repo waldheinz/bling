@@ -37,6 +37,10 @@ dimZ = 3
 allDimensions :: [Dimension]
 allDimensions = [dimX, dimY, dimZ]
 
+--
+-- Vectors
+--
+
 data Vector
    = MkVector
       {-# UNPACK #-} !Flt
@@ -45,7 +49,14 @@ data Vector
    deriving (Eq, Show)
 
 type Point = Vector
+
+mkPoint :: Flt -> Flt -> Flt -> Point
+mkPoint x y z = MkVector x y z
+
 type Normal = Vector
+
+mkNormal :: Flt -> Flt -> Flt -> Normal
+mkNormal x y z = MkVector x y z
 
 data Ray = Ray {
    rayOrigin :: Point,

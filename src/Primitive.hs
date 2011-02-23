@@ -34,6 +34,11 @@ class Prim a where
    primIntersect :: a -> Ray -> Maybe Intersection
    primIntersects :: a -> Ray -> Bool
    primWorldBounds :: a -> AABB
+   primFlatten :: a -> [AnyPrim]
+   primFlatten p = [MkAnyPrim p]
+   
+   primLight :: a -> Maybe Light
+   primLight _ = Nothing
    
 data AnyPrim = forall a . Prim a => MkAnyPrim a
 
@@ -41,13 +46,14 @@ instance Prim AnyPrim where
    primIntersect (MkAnyPrim p) = primIntersect p
    primIntersects (MkAnyPrim p) = primIntersects p
    primWorldBounds (MkAnyPrim p) = primWorldBounds p
+   primFlatten (MkAnyPrim p) = primFlatten p
 
 instance Show AnyPrim where
    show (MkAnyPrim p) = "Any Prim"
 
 data Primitive
    = Geometric (Ray -> Maybe (Float, DifferentialGeometry)) (Ray -> Bool) Material (Maybe Light) AABB -- ^ a bound primitive
-   | Group [Primitive]
+   | Group [AnyPrim]
 
 instance Show Primitive where
    show (Group ps) = "Group [" ++ concatMap show ps ++ "]"
@@ -61,27 +67,20 @@ instance Prim Primitive where
       | otherwise = Nothing
 
    primWorldBounds (Geometric _ _ _ _ b) = b
-
+   primWorldBounds (Group g) = foldl extendAABB emptyAABB $ map primWorldBounds g
+   
    primIntersects (Group []) _ = False
    primIntersects (Group (x:xs)) r = primIntersects x r || primIntersects (Group xs) r
    primIntersects (Geometric _ i _ _ _) r = i r
-
+   
+   primFlatten g@(Geometric _ _ _ _ _) = [MkAnyPrim g]
+   primFlatten (Group (p:xs)) = primFlatten p ++ concatMap primFlatten xs
+   primLight (Geometric _ _ _ l _) = l
+   
 -- | creates a @Primitive@ for the specified @Bound@, @Material@ and possibly @Spectrum@ for light sources
 mkPrim :: (Geometry b) => b -> Material -> Maybe Spectrum -> Primitive
 mkPrim b mat Nothing = Geometric (intersect b) (intersects b) mat Nothing (boundAABB b)
 mkPrim b mat (Just l) = Geometric (intersect b) (intersects b) mat (Just $ mkAreaLight l b) (boundAABB b)
-
-primBounds :: Primitive -> AABB
-primBounds (Group g) = foldl extendAABB emptyAABB $ map primBounds g
-primBounds (Geometric _ _ _ _ aabb) = aabb
-
-primFlatten :: Primitive -> [Primitive]
-primFlatten (Group (p:xs)) = primFlatten p ++ concatMap primFlatten xs
-primFlatten p = [p]
-
-primLight :: Primitive -> Maybe Light
-primLight (Geometric _ _ _ l _) = l
-primLight _ = Nothing
 
 nearest :: (Prim a) => Ray -> [a] -> Maybe Intersection
 nearest (Ray ro rd tmin tmax) i = nearest' i tmax Nothing where
