@@ -11,7 +11,7 @@ data Vertex = Vertex {
 
 data Triangle = Triangle Vertex Vertex Vertex deriving (Show)
 
-instance Bound Triangle where
+instance Geometry Triangle where
    boundArea (Triangle v1 v2 v3) = 0.5 * (len $ cross (sub p2 p1) (sub p3 p1)) where
       p1 = vertexPos v1
       p2 = vertexPos v2
@@ -28,7 +28,6 @@ instance Bound Triangle where
    boundAABB (Triangle v1 v2 v3) = foldl extendAABBP emptyAABB [p1, p2, p3] where
       (p1, p2, p3) = (vertexPos v1, vertexPos v2, vertexPos v3)
       
-instance Intersectable Triangle where
    intersect (Triangle v1 v2 v3) r@(Ray ro rd tmin tmax)
       | divisor == 0 = Nothing
       | b1 < 0 || b1 > 1 = Nothing

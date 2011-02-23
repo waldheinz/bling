@@ -74,7 +74,7 @@ skyLightTest aspect = mkScene [ mkProbeLight TestProbe ]
 sphereCube :: Float -> Scene
 sphereCube aspect = mkScene [ ]
    [  Group spheres,
-      mkPrim' (Sphere 0.8 (MkVector 0 0 0)) blackBodyMaterial (Just $ fromXyz (2,3,3))
+      mkPrim (Sphere 0.8 (MkVector 0 0 0)) blackBodyMaterial (Just $ fromXyz (2,3,3))
 --       mkPrim (Plane pd ( 0,  1,  0)) (measuredMaterial Primer),
 --       mkPrim (Plane pd ( 0, -1,  0)) (measuredMaterial Primer),
 --       mkPrim (Plane pd ( 0,  0,  1)) (measuredMaterial Primer),
@@ -83,7 +83,7 @@ sphereCube aspect = mkScene [ ]
 --       mkPrim (Plane pd (-1,  0,  0)) (measuredMaterial Primer)
    ]
    (pinHoleCamera (View (MkVector 3 10 (-10)) (MkVector 0 0 0) (MkVector 0 1 0) 1.8 aspect)) where
-      spheres = map (\pos -> mkPrim' (Sphere r pos) (plTest 0.02  (0.9, 0.9, 0.9)) Nothing) coords
+      spheres = map (\pos -> mkPrim (Sphere r pos) (plTest 0.02  (0.9, 0.9, 0.9)) Nothing) coords
       coords = map mkV $ filter (\(x, y, z) -> (abs x > 1) || (abs y > 1) || (abs z > 1)) coords'
       coords' = [(x,y,z) | x <- [(-cnt)..cnt], y <- [(-cnt)..cnt], z <- [(-cnt)..cnt]]
       cnt = 4
@@ -103,10 +103,10 @@ glassSphere aspect = mkScene []
 plasticSpheres :: Float -> Scene
 plasticSpheres aspect = mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)]
    [
-      mkPrim (Sphere 0.9 (mkV (1, 1, -1))) (plTest 0.001 (1, 0.56, 0)),
-      mkPrim (Sphere 0.9 (mkV (-1, 1, -1))) (plTest 0.01 (0.38, 0.05, 0.67)),
-      mkPrim (Sphere 0.9 (mkV (-1, 1, 1))) (plTest 0.1 (1, 0.96, 0)),
-      mkPrim (Sphere 0.9 (mkV (1, 1, 1))) (plTest 1 (0.04, 0.4, 0.64)),
-      mkPrim (Plane (-0.1) (mkV (0, 1, 0))) (gpMat $ fromRGB (0.8, 0.8, 0.8))
+      mkPrim (Sphere 0.9 (mkV (1, 1, -1))) (plTest 0.001 (1, 0.56, 0)) Nothing,
+      mkPrim (Sphere 0.9 (mkV (-1, 1, -1))) (plTest 0.01 (0.38, 0.05, 0.67)) Nothing,
+      mkPrim (Sphere 0.9 (mkV (-1, 1, 1))) (plTest 0.1 (1, 0.96, 0)) Nothing,
+      mkPrim (Sphere 0.9 (mkV (1, 1, 1))) (plTest 1 (0.04, 0.4, 0.64)) Nothing
+--      mkPrim (Plane (-0.1) (mkV (0, 1, 0))) (gpMat $ fromRGB (0.8, 0.8, 0.8))
    ]
    (pinHoleCamera (View (mkV(3, 7, -6)) (mkV(0,0.5,0)) (mkV(0, 1, 0)) 1.8 aspect))

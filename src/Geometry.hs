@@ -16,7 +16,7 @@ data DifferentialGeometry = DifferentialGeometry {
 shadingCs :: DifferentialGeometry -> LocalCoordinates
 shadingCs dg = coordinateSystem $ dgN dg
 
-class Intersectable a where
+class Geometry a where
    -- | intersects a ray with an object, possibly returning the distance
    --   along the ray where an intersection occured together with the
    --   object properties at the intersection point
@@ -28,8 +28,7 @@ class Intersectable a where
    -- | the default implementation just test if @intersect@ returns something,
    --   should be overridded if this test can be performed cheaper
    intersects a r = isJust $ intersect a r
-            
-class (Intersectable a) => Bound a where
+   
    -- | returns the surface area of the object
    boundArea :: a -> Float
    
@@ -66,7 +65,7 @@ sampleSphere co pt
          b = 2 * (co `dot` rd)
          c = sqLen co - 1
          
-instance Bound Sphere where
+instance Geometry Sphere where
    boundArea (Sphere r _) = r * r * 4 * pi
    
    boundAABB (Sphere r p) = emptyAABB `extendAABBP`
@@ -96,11 +95,7 @@ instance Bound Sphere where
       | otherwise = uniformConePdf cosThetaMax
       where
          cosThetaMax = sqrt $ max 0 (1 - r * r / sqLen (sub pos center))
-
-debug :: Show a => a -> a
-debug x = trace (show x) x
-
-instance Intersectable Sphere where
+   
    intersect (Sphere r center) ray@(Ray origin rd tmin tmax)
       | isNothing times = Nothing
       | t1 > tmax = Nothing
@@ -129,14 +124,3 @@ instance Intersectable Sphere where
             (t0, t1) = fromJust roots
             roots = solveQuadric a b c
             
--- | a plane has a distance from world-space origin and a normal
-data Plane = Plane Float Normal deriving Eq
-
-instance Intersectable Plane where
-   intersect (Plane d n) ray@(Ray ro rd _ _)
-      | not $ onRay ray t = Nothing
-      | otherwise = Just (t, DifferentialGeometry (positionAt ray t) n)
-      where
-         t = -(ro `dot` n + d) / (rd `dot` n)
-   
-   intersects (Plane d n) r@(Ray ro rd _ _) = onRay r (-((ro `dot` n + d) / (rd `dot` n)))

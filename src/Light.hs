@@ -26,8 +26,8 @@ data Light =
 mkProbeLight :: (LightProbe p) => p -> Light
 mkProbeLight p = ProbeLight (lightProbeEval p) (lightProbeSample p) (lightProbePdf p)
    
-mkAreaLight :: (Bound b) => Spectrum -> b -> Light
-mkAreaLight r bound = AreaLight r (boundArea bound) (boundSample bound) (boundPdf bound)
+mkAreaLight :: (Geometry g) => Spectrum -> g -> Light
+mkAreaLight r g = AreaLight r (boundArea g) (boundSample g) (boundPdf g)
 
 lightLe :: Light -> Point -> Normal -> Normal -> Spectrum
 lightLe (AreaLight r _ _ _) _ n wo
