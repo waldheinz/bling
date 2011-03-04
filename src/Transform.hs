@@ -1,12 +1,11 @@
 
 module Transform (
-      Transform, identity, translate, inverse,
+      Transform, identity, translate, scale, inverse,
       transPoint, transVector
    ) where
 
 import Math
-
-import Control.Applicative
+import List (transpose)
 
 data Matrix = MkMatrix {
    m00 :: Flt, m01 :: Flt, m02 :: Flt, m03 :: Flt,
@@ -21,8 +20,24 @@ toList m = [
    [m10 m, m11 m, m12 m, m13 m],
    [m20 m, m21 m, m22 m, m23 m],
    [m30 m, m31 m, m32 m, m33 m]]
-   
 
+fromList :: [[Flt]] -> Matrix
+fromList (
+   (m00:m01:m02:m03:[]):
+   (m10:m11:m12:m13:[]):
+   (m20:m21:m22:m23:[]):
+   (m30:m31:m32:m33:[]):[]) = MkMatrix
+   m00 m01 m02 m03
+   m10 m11 m12 m13
+   m20 m21 m22 m23
+   m30 m31 m32 m33
+
+mul :: Matrix -> Matrix -> Matrix
+mul m1 m2 = fromList l where
+   l = [[sum $ zipWith (*) row col | col <- transpose a] | row <- b]
+   a = toList m1
+   b = toList m2
+   
 instance Show Matrix where
    show = show . toList
 
@@ -76,6 +91,11 @@ scale (MkVector sx sy sz) = MkTransform m i where
 -- | Creates the inverse of a given @Transform@.
 inverse :: Transform -> Transform
 inverse (MkTransform m i) = MkTransform i m
+
+concat :: Transform -> Transform -> Transform
+concat (MkTransform m1 i1) (MkTransform m2 i2) = MkTransform m' i' where
+   m' = mul m1 m2
+   i' = mul i2 i1
 
 -- | Applies a @Transform@ to a @Point@
 transPoint :: Transform -> Point -> Point
