@@ -5,7 +5,7 @@ module Transform (
    ) where
 
 import Math
-import List (transpose)
+import Data.List (transpose)
 
 data Matrix = MkMatrix {
    m00 :: Flt, m01 :: Flt, m02 :: Flt, m03 :: Flt,
