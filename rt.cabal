@@ -6,22 +6,10 @@ Maintainer:          waldheinz@gmail.com
 Build-Type:          Simple
 Cabal-Version:       >=1.2
 
---
--- the optimized executable
---
 
 Executable rt
    hs-source-dirs:    src
    Main-is:           Main.hs
    Build-Depends:     base >= 3 && < 5, haskell98, array, mwc-random, vector, random, bitset, bytestring, parsec
    ghc-options:       -Wall -O2 -fexcess-precision
-
---
--- the profiling executable
---
-
-Executable rt-prof
-   hs-source-dirs:    src
-   Main-is:           Main.hs
-   Build-Depends:     base >= 3 && < 5, haskell98, array, mwc-random, vector, random, bitset, bytestring, parsec
-   ghc-options:       -auto-all
+   ghc-prof-options:  -prof -auto-all 

@@ -3,9 +3,10 @@ module Transform (
       Transform, identity, translate, inverse,
       transPoint, transVector
    ) where
-      
+
 import Math
-      
+
+import Control.Applicative
 
 data Matrix = MkMatrix {
    m00 :: Flt, m01 :: Flt, m02 :: Flt, m03 :: Flt,
@@ -13,12 +14,26 @@ data Matrix = MkMatrix {
    m20 :: Flt, m21 :: Flt, m22 :: Flt, m23 :: Flt,
    m30 :: Flt, m31 :: Flt, m32 :: Flt, m33 :: Flt
    }
+
+toList :: Matrix -> [[Flt]]
+toList m = [
+   [m00 m, m01 m, m02 m, m03 m],
+   [m10 m, m11 m, m12 m, m13 m],
+   [m20 m, m21 m, m22 m, m23 m],
+   [m30 m, m31 m, m32 m, m33 m]]
    
+
+instance Show Matrix where
+   show = show . toList
+
 -- | An affine transformation
 data Transform = MkTransform {
    matrix :: Matrix,
    inverted :: Matrix
    }
+
+instance Show Transform where
+   show (MkTransform m _) = show m
 
 -- | The identity transformation
 identity :: Transform

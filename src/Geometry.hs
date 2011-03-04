@@ -5,7 +5,6 @@ import AABB
 import Math
 import Random
 
-import Debug.Trace
 import Data.Maybe
 
 data DifferentialGeometry = DifferentialGeometry {
@@ -39,12 +38,14 @@ class Geometry a where
    -- | returns the pdf for the sample chosen by @boundSample@
    boundPdf :: a -> Point -> Float
    
-   boundAABB :: a -> AABB
-   
    -- | the default implementation returns the inverse of the area,
    --   which is suitable for a @boundSample@ implementation which
    --   chooses points uniformly on the surface
    boundPdf a _ = 1.0 / boundArea a
+   
+   bounds :: a -> AABB
+   
+   
    
 -- | a sphere has a radius and a position
 data Sphere = Sphere Float Point deriving Eq
@@ -68,7 +69,7 @@ sampleSphere co pt
 instance Geometry Sphere where
    boundArea (Sphere r _) = r * r * 4 * pi
    
-   boundAABB (Sphere r p) = emptyAABB `extendAABBP`
+   bounds (Sphere r p) = emptyAABB `extendAABBP`
       (p `add` (MkVector r r r)) `extendAABBP`
       (p `add` (MkVector (-r) (-r) (-r)))
    
