@@ -12,13 +12,13 @@ data Vertex = Vertex {
 data Triangle = Triangle Vertex Vertex Vertex deriving (Show)
 
 instance Geometry Triangle where
-   boundArea (Triangle v1 v2 v3) = 0.5 * (len $ cross (sub p2 p1) (sub p3 p1)) where
+   boundArea (Triangle v1 v2 v3) = 0.5 * len (cross (sub p2 p1) (sub p3 p1)) where
       p1 = vertexPos v1
       p2 = vertexPos v2
       p3 = vertexPos v3
       
    boundSample (Triangle v1 v2 v3) _ (u1, u2) = (p, n) where
-      p = (scalMul p1 b1) `add` (scalMul p2 b2 ) `add` (scalMul p3 (1 - b1 - b2))
+      p = scalMul p1 b1 `add` scalMul p2 b2 `add` scalMul p3 (1 - b1 - b2)
       (p1, p2, p3) = (vertexPos v1, vertexPos v2, vertexPos v3)
       b1 = 1 - u1' -- first barycentric
       b2 = u2 * u1' -- second barycentric
@@ -36,10 +36,10 @@ instance Geometry Triangle where
       | otherwise = Just (t, DifferentialGeometry (positionAt r t) n)
       where
             n = normalize $ cross e2 e1
-            t = (dot e2 s2) * invDiv
-            b2 = (dot rd s2) * invDiv -- second barycentric
+            t = dot e2 s2 * invDiv
+            b2 = dot rd s2 * invDiv -- second barycentric
             s2 = cross d e1
-            b1 = (dot d s1) * invDiv -- first barycentric
+            b1 = dot d s1 * invDiv -- first barycentric
             d = sub ro p1
             invDiv = 1 / divisor
             divisor = dot s1 e1
@@ -51,5 +51,5 @@ instance Geometry Triangle where
             p3 = vertexPos v3
 
 triangulate :: [Vertex] -> [Triangle]
-triangulate (v1:v2:v3:xs) = [Triangle v1 v2 v3] ++ (triangulate $ [v1] ++ [v3] ++ xs)
+triangulate (v1:v2:v3:xs) = Triangle v1 v2 v3 : triangulate ([v1] ++ [v3] ++ xs)
 triangulate _ = []
