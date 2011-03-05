@@ -51,12 +51,12 @@ data Vector
 type Point = Vector
 
 mkPoint :: Flt -> Flt -> Flt -> Point
-mkPoint x y z = MkVector x y z
+mkPoint = MkVector
 
 type Normal = Vector
 
 mkNormal :: Flt -> Flt -> Flt -> Normal
-mkNormal x y z = MkVector x y z
+mkNormal = MkVector
 
 data Ray = Ray {
    rayOrigin :: Point,
@@ -68,7 +68,7 @@ data Ray = Ray {
 dominant :: Vector -> Dimension
 dominant (MkVector x y z)
    | (ax > ay) && (ax > az) = dimX
-   | (ay > az) = dimY
+   | ay > az = dimY
    | otherwise = dimZ
    where
       ax = abs x
@@ -81,10 +81,10 @@ mkV (x, y, z) = MkVector x y z
 -- | Creates a ray that connects the two specified points.
 segmentRay :: Point -> Point -> Ray
 segmentRay p1 p2 = Ray p1 p1p2 epsilon (1 - epsilon) where
-   p1p2 = (p2 `sub` p1)
+   p1p2 = p2 `sub` p1
 
 positionAt :: Ray -> Flt -> Point
-positionAt (Ray o d _ _) t = o `add` (scalMul d t)
+positionAt (Ray o d _ _) t = o `add` scalMul d t
 
 -- | decides if a @t@ value is in the ray's bounds
 onRay :: Ray -> Flt -> Bool
@@ -109,7 +109,7 @@ neg :: Vector -> Vector
 neg (MkVector x y z) = MkVector (-x) (-y) (-z)
 
 sqLen :: Vector -> Flt
-sqLen (MkVector x y z) = (x*x + y*y + z*z)
+sqLen (MkVector x y z) = x*x + y*y + z*z
 
 len :: Vector -> Flt
 len v = sqrt (sqLen v)
@@ -128,7 +128,7 @@ absDot v1 v2 = abs (dot v1 v2)
 
 normalize :: Vector -> Normal
 normalize v
-  | (sqLen v) /= 0 = scalMul v (1 / len v)
+  | sqLen v /= 0 = scalMul v (1 / len v)
   | otherwise = MkVector 0 1 0
 
 lerp :: Flt -> Flt -> Flt -> Flt
@@ -171,9 +171,9 @@ uniformSampleCone (LocalCoordinates x y z) cosThetaMax (u1, u2) = let
    phi = u2 * twoPi
    in
       (
-      (scalMul x ((cos phi) * sinTheta)) `add`
-      (scalMul y ((sin phi) * sinTheta)) `add`
-      (scalMul z cosTheta)
+      scalMul x (cos phi * sinTheta) `add`
+      scalMul y (sin phi * sinTheta) `add`
+      scalMul z cosTheta
       )
       
 -- | generates a random point on the unit sphere,
@@ -194,19 +194,17 @@ concentricSampleDisk (u1, u2) = concentricSampleDisk' (sx, sy) where
    sy = u2 * 2 - 1
 
 concentricSampleDisk' :: (Flt, Flt) -> (Flt, Flt)
-concentricSampleDisk' (0, 0) = (0, 0) -- handle degeneracy at the origin
+concentricSampleDisk' (0, 0) = (0, 0) -- handle degeneracy at origin
 concentricSampleDisk' (sx, sy) = (r * cos theta, r * sin theta) where
    theta = theta' * pi / 4.0
-   (r, theta') = 
-      if sx >= -sy
-         then if sx > sy -- first region
-            then if sy > 0
-               then (sx, sy / sx)
-               else (sx, 8.0 + sy / sx)  
-            else (sy, 2.0 - sx / sy) -- second region
-         else if sx <= sy
-            then (-sx, 4.0 - sy / (-sx)) -- third region
-            else (-sy, 6.0 + sx / (-sy)) -- fourth region
+   (r, theta')
+      | sx >= (-sy) =
+         if sx > sy then
+            if sy > 0 then (sx, sy / sx) else (sx, 8.0 + sy / sx)
+         else
+            (sy, 2.0 - sx / sy)
+      | sx <= sy = (-sx, 4.0 - sy / (-sx))
+      | otherwise = (-sy, 6.0 + sx / (-sy))
 
 sphericalDirection :: Flt -> Flt -> Flt -> Vector
 sphericalDirection sint cost phi = MkVector (sint * cos phi) (sint * sin phi) cost
@@ -227,12 +225,12 @@ coordinateSystem :: Vector -> LocalCoordinates
 coordinateSystem v@(MkVector x y z)
    | abs x > abs y = 
       let 
-          invLen = 1.0 / (sqrt (x*x + z*z))
+          invLen = 1.0 / sqrt (x*x + z*z)
           v2 = MkVector (-z * invLen) 0 (x * invLen)
       in LocalCoordinates v2 (cross v v2) v
    | otherwise = 
       let
-          invLen = 1.0 / (sqrt (y*y + z*z))
+          invLen = 1.0 / sqrt (y*y + z*z)
           v2 = MkVector 0 (z * invLen) (-y * invLen)
       in LocalCoordinates v2 (cross v v2) v
 

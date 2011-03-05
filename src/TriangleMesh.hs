@@ -4,6 +4,7 @@ module TriangleMesh (Vertex(..), Triangle, triangulate) where
 import AABB
 import Geometry
 import Math
+import Primitive
 
 data Vertex = Vertex {
    vertexPos :: !Point
@@ -25,7 +26,7 @@ instance Geometry Triangle where
       u1' = sqrt u1
       n = normalize $ cross (sub p2 p1) (sub p3 p1)
       
-   bounds (Triangle v1 v2 v3) = foldl extendAABBP emptyAABB [p1, p2, p3] where
+   worldBounds (Triangle v1 v2 v3) = foldl extendAABBP emptyAABB [p1, p2, p3] where
       (p1, p2, p3) = (vertexPos v1, vertexPos v2, vertexPos v3)
       
    intersect (Triangle v1 v2 v3) r@(Ray ro rd tmin tmax)
@@ -53,3 +54,11 @@ instance Geometry Triangle where
 triangulate :: [Vertex] -> [Triangle]
 triangulate (v1:v2:v3:xs) = Triangle v1 v2 v3 : triangulate ([v1] ++ [v3] ++ xs)
 triangulate _ = []
+
+data TriangleMesh = MkMesh
+
+instance Prim TriangleMesh where
+   primIntersect = error "primIntersect TriangleMesh called"
+   primIntersects = error "primIntersect TriangleMesh called"
+   
+

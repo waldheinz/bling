@@ -43,9 +43,9 @@ class Geometry a where
    --   chooses points uniformly on the surface
    boundPdf a _ = 1.0 / boundArea a
    
-   bounds :: a -> AABB
+   localBounds :: a -> AABB
    
-   
+   worldBounds :: a -> AABB
    
 -- | a sphere has a radius and a position
 data Sphere = Sphere Float Point deriving Eq
@@ -69,7 +69,9 @@ sampleSphere co pt
 instance Geometry Sphere where
    boundArea (Sphere r _) = r * r * 4 * pi
    
-   bounds (Sphere r p) = emptyAABB `extendAABBP`
+   localBounds = worldBounds
+   
+   worldBounds (Sphere r p) = emptyAABB `extendAABBP`
       (p `add` (MkVector r r r)) `extendAABBP`
       (p `add` (MkVector (-r) (-r) (-r)))
    

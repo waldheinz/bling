@@ -35,7 +35,6 @@ class Prim a where
    primIntersects :: a -> Ray -> Bool
    primWorldBounds :: a -> AABB
    primFlatten :: a -> [AnyPrim]
-   primFlatten p = [MkAnyPrim p]
    
    primLight :: a -> Maybe Light
    primLight _ = Nothing
@@ -79,8 +78,8 @@ instance Prim Primitive where
    
 -- | creates a @Primitive@ for the specified @Bound@, @Material@ and possibly @Spectrum@ for light sources
 mkPrim :: (Geometry b) => b -> Material -> Maybe Spectrum -> Primitive
-mkPrim b mat Nothing = Geometric (intersect b) (intersects b) mat Nothing (boundAABB b)
-mkPrim b mat (Just l) = Geometric (intersect b) (intersects b) mat (Just $ mkAreaLight l b) (boundAABB b)
+mkPrim b mat Nothing = Geometric (intersect b) (intersects b) mat Nothing (worldBounds b)
+mkPrim b mat (Just l) = Geometric (intersect b) (intersects b) mat (Just $ mkAreaLight l b) (worldBounds b)
 
 nearest :: (Prim a) => Ray -> [a] -> Maybe Intersection
 nearest (Ray ro rd tmin tmax) i = nearest' i tmax Nothing where
