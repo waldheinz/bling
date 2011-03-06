@@ -24,8 +24,8 @@ class Geometry a where
    -- | decides if a ray intersects the object
    intersects :: a -> Ray -> Bool
    
-   -- | the default implementation just test if @intersect@ returns something,
-   --   should be overridded if this test can be performed cheaper
+   -- | the default implementation just tests if @intersect@ returns something,
+   --   should be overridden if this test can be performed cheaper
    intersects a r = isJust $ intersect a r
    
    -- | returns the surface area of the object

@@ -1,6 +1,6 @@
 
 module AABB (
-   AABB, aabbMin, aabbMax,
+   AABB(..),
    emptyAABB, extendAABB, extendAABBP, maximumExtent, centroid, intersectAABB
 ) where
 

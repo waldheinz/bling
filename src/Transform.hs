@@ -4,8 +4,9 @@ module Transform (
       transPoint, transVector
    ) where
 
+import AABB
 import Math
-import Data.List (transpose)
+import Data.List (transpose, foldl')
 
 data Matrix = MkMatrix {
    m00 :: Flt, m01 :: Flt, m02 :: Flt, m03 :: Flt,
@@ -126,3 +127,17 @@ transNormal (MkTransform m _) (MkVector x y z) = mkNormal xp yp zp where
 transRay :: Transform -> Ray -> Ray
 transRay t (Ray ro rd tmin tmax) =
    Ray (transPoint t ro) (transVector t rd) tmin tmax
+
+-- | Applies a @Transform@ to an @AABB@
+transBox :: Transform -> AABB -> AABB
+transBox t (AABB (MkVector mx my mz) (MkVector nx ny nz)) = b' where
+   b' = foldl' extendAABBP emptyAABB [p0, p1, p2, p3, p4, p5, p6, p7]
+   p0 = transPoint t (mkPoint mx my mz)
+   p1 = transPoint t (mkPoint mx my nz)
+   p2 = transPoint t (mkPoint mx ny mz)
+   p3 = transPoint t (mkPoint mx ny nz)
+   p4 = transPoint t (mkPoint nx my mz)
+   p5 = transPoint t (mkPoint nx my nz)
+   p6 = transPoint t (mkPoint nx ny mz)
+   p7 = transPoint t (mkPoint nx ny nz)
+   
