@@ -1,7 +1,7 @@
 
 module Transform (
       Transform, identity, translate, scale, inverse,
-      transPoint, transVector
+      transPoint, transVector, transBox
    ) where
 
 import AABB
