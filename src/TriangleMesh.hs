@@ -16,6 +16,9 @@ data Vertex = Vertex {
    vertexPos :: !Point
    } deriving (Show)
 
+vToWorld :: Transform -> Vertex -> Vertex
+vToWorld t v = v { vertexPos = (transPoint t (vertexPos v)) }
+
 data Triangle = Triangle {
    mesh :: TriangleMesh,
    vertex0 :: Vertex,
@@ -88,5 +91,5 @@ triangulate m _ = []
 mkMesh :: Material -> Transform -> [[Vertex]] -> TriangleMesh
 mkMesh m t vs = empty { tris = ts } where
    empty = MkMesh m t []
-   ts = concatMap (triangulate empty) vs
+   ts = concatMap (triangulate empty) (map (map (vToWorld t)) vs)
    

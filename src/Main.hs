@@ -13,29 +13,25 @@ import Primitive
 import Random
 import Scene
 import WaveFront
--- import DefaultScenes
+import DefaultScenes
 
 myScene :: Scene
-myScene = undefined --sphereCube (fromIntegral resX / fromIntegral resY)
+myScene = mengerScene (fromIntegral resX / fromIntegral resY)
 
 resX :: Int
-resX = 600
+resX = 1024
 
 resY :: Int
-resY = 600
+resY = 768
 
 passSamples :: Int
-passSamples = 1
+passSamples = 3
 
 main :: IO ()
 main = do
    putStrLn "Creating image..."
    img <- stToIO $ mkImage resX resY
-   putStrLn "Reading Model..."
-   inp <- readFile "examples/bunny.obj"
-   let prim = parseWaveFront inp
-   putStrLn (show $ primWorldBounds prim)
-   render 1 img (primScene prim) pathTracer
+   render 1 img myScene pathTracer
 
 onePass :: Gen s -> Image s -> Int-> Scene -> Integrator -> ST s ()
 onePass gen img ns scene int = do

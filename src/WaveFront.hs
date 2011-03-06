@@ -7,6 +7,7 @@ module WaveFront (
 import Lafortune
 import Math
 import Primitive
+import Transform
 import TriangleMesh
 
 import Control.Monad.ST
@@ -17,21 +18,21 @@ import Text.ParserCombinators.Parsec.Token(float)
 
 data WFState = WFState {
    vertices :: [Vertex],
-   tris :: [Triangle]
+   tris :: [[Vertex]]
    }
 
 type WFParser a = GenParser Char WFState a
 
-parseWaveFront :: String -> Primitive
-parseWaveFront s = either (error . show) (id) pr where
-   pr = runParser waveFrontParser (WFState [] []) "unknown"  s
+parseWaveFront :: Transform -> String -> TriangleMesh
+parseWaveFront t s = either (error . show) (id) pr where
+   pr = runParser (waveFrontParser t) (WFState [] []) "unknown"  s
 
-waveFrontParser :: WFParser Primitive
-waveFrontParser = do
+waveFrontParser :: Transform -> WFParser TriangleMesh
+waveFrontParser t = do
    many line
    (WFState _ tris) <- getState
    eof
-   return $ Group (map (\ t-> MkAnyPrim $ mkPrim t (measuredMaterial BluePaint) Nothing) tris)
+   return $ mkMesh (measuredMaterial BluePaint) t tris
 
 line :: WFParser ()
 line =
@@ -52,7 +53,7 @@ face = do
    eol
    (WFState verts tris) <- getState
    let tvs = map (verts !!) $ map pred indices
-   setState (WFState verts (triangulate (reverse tvs) ++ tris))
+   setState (WFState verts ((reverse tvs) : tris))
    return ()
    
 vertex :: WFParser ()

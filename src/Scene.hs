@@ -26,18 +26,18 @@ data Scene = Scene {
    }
 
 primScene :: (Prim a) => a -> Scene
-primScene p = mkScene lights prim cam where
+primScene p = mkScene lights prims cam where
    lights = [SoftBox (fromRGB (0.95, 0.95, 0.95))]
-   prim = p
+   prims = [p]
    cam = pinHoleCamera (View (mkV(8, 0, 8)) (mkV(0,0,0)) (mkV(0, 1, 0)) 1.8 1)
    bounds = primWorldBounds p
    
    
-mkScene :: (Prim a) => [Light] -> a -> Camera -> Scene
-mkScene l prim cam = Scene (mkBvh  ps) (listArray (0, length lights - 1) lights) cam where
+mkScene :: (Prim a) => [Light] -> [a] -> Camera -> Scene
+mkScene l prims cam = Scene (mkBvh  ps) (listArray (0, length lights - 1) lights) cam where
    lights = l ++ gl
    gl = catMaybes $ map (primLight) ps -- collect the geometric lights
-   ps = primFlatten prim
+   ps = concatMap primFlatten prims
 
 occluded :: Scene -> Ray -> Bool
 occluded (Scene p _ _) = primIntersects p

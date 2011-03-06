@@ -53,6 +53,9 @@ type Point = Vector
 mkPoint :: Flt -> Flt -> Flt -> Point
 mkPoint = MkVector
 
+mkPoint' :: (Flt, Flt, Flt) -> Point
+mkPoint' (x, y, z) = mkPoint x y z
+
 type Normal = Vector
 
 mkNormal :: Flt -> Flt -> Flt -> Normal

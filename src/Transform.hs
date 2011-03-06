@@ -1,7 +1,7 @@
 
 module Transform (
       Transform, identity, translate, scale, inverse,
-      transPoint, transVector, transBox
+      transPoint, transVector, transBox, concatTrans
    ) where
 
 import AABB
@@ -93,8 +93,8 @@ scale (MkVector sx sy sz) = MkTransform m i where
 inverse :: Transform -> Transform
 inverse (MkTransform m i) = MkTransform i m
 
-concat :: Transform -> Transform -> Transform
-concat (MkTransform m1 i1) (MkTransform m2 i2) = MkTransform m' i' where
+concatTrans :: Transform -> Transform -> Transform
+concatTrans (MkTransform m1 i1) (MkTransform m2 i2) = MkTransform m' i' where
    m' = mul m1 m2
    i' = mul i2 i1
 

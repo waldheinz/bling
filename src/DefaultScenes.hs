@@ -13,9 +13,27 @@ import Primitive
 import Scene
 import Specular
 import Texture
+import Transform
 import TriangleMesh
 
 import Debug.Trace
+
+mengerScene :: Float -> Scene
+mengerScene aspect = mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)]
+      (
+         (mengerSponge (measuredMaterial Clay) 2 identity) ++
+         [mkBox (measuredMaterial BluePaint) (concatTrans (scale (MkVector 20 1 20)) (translate (MkVector 0 (-3.5) 0)))]
+      )
+   (pinHoleCamera (View (mkV(3, 7, -6)) (mkV(0,0,0)) (mkV(0, 1, 0)) 1.8 aspect))
+
+mengerSponge :: Material -> Int -> Transform -> [TriangleMesh]
+mengerSponge m 0 t = [mkBox m t]
+mengerSponge m d t = concatMap (mengerSponge m (d-1)) ts where
+   ts = map (\v -> foldl concatTrans t [s, translate v]) vs
+   s = scale (MkVector (1/3) (1/3) (1/3))
+   vs = map (mkPoint') coords
+   coords = filter vm [(x, y, z) | x <- [-1..1], y <- [-1..1], z <- [-1..1]]
+   vm (a, b, c) = (length $ filter (/=0) [a, b, c]) > 1 -- valid coord?
 
 gpMat :: Spectrum -> Material
 gpMat c = plasticMaterial
@@ -28,6 +46,24 @@ plTest e kd  = plasticMaterial
    (constantSpectrum $ fromRGB kd)
    (constantSpectrum $ fromRGB (0.85, 0.85, 0.85))
    e
+   
+mkBox :: Material -> Transform -> TriangleMesh
+mkBox m t = mkMesh m t [f1, f2, f3, f4, f5, f6] where
+   f1 = [v1, v2, v4, v3] -- right face
+   f2 = [v5, v7, v8, v6] -- left face
+   f3 = [v1, v5, v6, v2] -- top face
+   f4 = [v3, v7, v8, v4] -- 
+   f5 = [v1, v5, v7, v3]
+   f6 = [v2, v6, v8, v4]
+   v1 = Vertex (mkPoint' ( 1,  1,  1))
+   v2 = Vertex (mkPoint' ( 1,  1, -1))
+   v3 = Vertex (mkPoint' ( 1, -1,  1))
+   v4 = Vertex (mkPoint' ( 1, -1, -1))
+   v5 = Vertex (mkPoint' (-1,  1,  1))
+   v6 = Vertex (mkPoint' (-1,  1, -1))
+   v7 = Vertex (mkPoint' (-1, -1,  1))
+   v8 = Vertex (mkPoint' (-1, -1, -1))
+   
 {-
 boxScene :: Float -> Scene
 boxScene aspect = trace (show faces) $ mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)] 
@@ -73,7 +109,7 @@ skyLightTest aspect = mkScene [ mkProbeLight TestProbe ]
    
 sphereCube :: Float -> Scene
 sphereCube aspect = mkScene [ ]
-   [  Group spheres,
+   (spheres ++ [ 
       mkPrim (Sphere 0.8 (MkVector 0 0 0)) blackBodyMaterial (Just $ fromXyz (2,3,3))
 --       mkPrim (Plane pd ( 0,  1,  0)) (measuredMaterial Primer),
 --       mkPrim (Plane pd ( 0, -1,  0)) (measuredMaterial Primer),
@@ -81,7 +117,7 @@ sphereCube aspect = mkScene [ ]
 --       mkPrim (Plane pd ( 0,  0, -1)) (measuredMaterial Primer),
 --       mkPrim (Plane pd ( 1,  0,  0)) (measuredMaterial Primer),
 --       mkPrim (Plane pd (-1,  0,  0)) (measuredMaterial Primer)
-   ]
+   ])
    (pinHoleCamera (View (MkVector 3 10 (-10)) (MkVector 0 0 0) (MkVector 0 1 0) 1.8 aspect)) where
       spheres = map (\pos -> mkPrim (Sphere r pos) (plTest 0.02  (0.9, 0.9, 0.9)) Nothing) coords
       coords = map mkV $ filter (\(x, y, z) -> (abs x > 1) || (abs y > 1) || (abs z > 1)) coords'
