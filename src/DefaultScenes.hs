@@ -21,8 +21,8 @@ import Debug.Trace
 mengerScene :: Float -> Scene
 mengerScene aspect = mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)]
       (
-         (mengerSponge (measuredMaterial Clay) 2 identity) ++
-         [mkBox (measuredMaterial BluePaint) (concatTrans (scale (MkVector 20 1 20)) (translate (MkVector 0 (-3.5) 0)))]
+         (mengerSponge (measuredMaterial BluePaint) 3 identity) ++
+         [mkBox (measuredMaterial BrushedMetal) (concatTrans (scale (MkVector 20 1 20)) (translate (MkVector 0 (-2.6) 0)))]
       )
    (pinHoleCamera (View (mkV(3, 7, -6)) (mkV(0,0,0)) (mkV(0, 1, 0)) 1.8 aspect))
 

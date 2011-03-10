@@ -1,11 +1,12 @@
 module Scene (
    Scene, mkScene, scenePrim, sceneLights, sceneCam,
-   Integrator, sampleOneLight, primScene
+   Integrator, sampleOneLight, primScene, ppScene
    ) where
 
 import Control.Monad
 import Data.Array.Unboxed
 import Data.Maybe (isJust, fromJust, catMaybes)
+import Text.PrettyPrint
 
 import AABB
 import Bvh
@@ -25,13 +26,19 @@ data Scene = Scene {
    sceneCam :: Camera
    }
 
+ppScene :: Scene -> Doc
+ppScene (Scene p ls c) = vcat [
+   text "bounds" <+> text (show (primWorldBounds p)),
+   text "number of lights" <+> (int (rangeSize (bounds ls))),
+   text "BVH stats" $$ nest 3 (ppBvh p)
+   ]
+
 primScene :: (Prim a) => a -> Scene
 primScene p = mkScene lights prims cam where
    lights = [SoftBox (fromRGB (0.95, 0.95, 0.95))]
    prims = [p]
    cam = pinHoleCamera (View (mkV(8, 0, 8)) (mkV(0,0,0)) (mkV(0, 1, 0)) 1.8 1)
    bounds = primWorldBounds p
-   
    
 mkScene :: (Prim a) => [Light] -> [a] -> Camera -> Scene
 mkScene l prims cam = Scene (mkBvh  ps) (listArray (0, length lights - 1) lights) cam where

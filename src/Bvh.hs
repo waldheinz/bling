@@ -1,7 +1,6 @@
-{-# LANGUAGE ExistentialQuantification #-}
 
 module Bvh 
-   ( Bvh, mkBvh ) 
+   ( Bvh, mkBvh, ppBvh ) 
    where
 
 import Control.Monad.ST
@@ -10,6 +9,7 @@ import Data.Maybe (isJust, isNothing, fromJust)
 import Debug.Trace
 import Foreign.Storable
 import Foreign
+import Text.PrettyPrint
 
 import AABB
 import Math
@@ -37,7 +37,6 @@ instance Storable LinearNode where
    alignment _ = 4
    
 --    peek p = do
-      
 
 flatten :: TreeBvh -> Int -> Int -> ST m (Int, [LinearNode])
 flatten (Leaf p b) n poff = 
@@ -60,6 +59,46 @@ data TreeBvh
    | Leaf 
       {-# UNPACK #-} ![AnyPrim]
       {-# UNPACK #-} !AABB
+
+--
+-- pretty printing BVH stats
+---
+
+ppBvh :: TreeBvh -> Doc
+ppBvh t = vcat [
+   text "primitive count" <+> (int p),
+   text "maximum depth" <+> (int md),
+   text "maximum leaf prims" <+> (int (maxPrims t)),
+   text "number of leaves" <+> (int l),
+   text "avg. depth" <+> (float ((fromIntegral sd) / (fromIntegral l))),
+   text "avg. prims per leaf" <+> (float ((fromIntegral p) / (fromIntegral l)))
+   ] where
+      (md, sd) = maxDepth t
+      l = leafCount t
+      p = primCount t
+
+primCount :: TreeBvh -> Int
+primCount (Leaf ps _) = length ps
+primCount (Node _ l r _) = (primCount l) + (primCount r)
+
+maxPrims :: TreeBvh -> Int
+maxPrims (Leaf ps _) = length ps
+maxPrims (Node _ l r _) = max (maxPrims l) (maxPrims r)
+
+maxDepth :: TreeBvh -> (Int, Int)
+maxDepth t = maxDepth' t (0, 0) where
+   maxDepth' (Leaf _ _) (m, s) = (m + 1, s + 1)
+   maxDepth' (Node _ l r _) (m, s) = (max ml mr, sl + sr) where
+      (ml, sl) = maxDepth' l (m + 1, s + 1)
+      (mr, sr) = maxDepth' r (m + 1, s + 1)
+
+leafCount :: TreeBvh -> Int
+leafCount t = leafCount' t where
+   leafCount' (Leaf _ _) = 1
+   leafCount' (Node _ l r _) = (leafCount' l) + (leafCount' r)
+
+instance Show TreeBvh where
+   show (Leaf ps b) = "Leaf (" ++ (show (length ps)) ++ " nodes)"
 
 instance Prim TreeBvh where
    primIntersects = bvhIntersects

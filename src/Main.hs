@@ -5,6 +5,7 @@ import Control.Monad.ST
 import System.IO
 import System.Random.MWC
 import Text.Printf
+import qualified Text.PrettyPrint as PP
 import Time
 
 import Image
@@ -29,8 +30,9 @@ passSamples = 3
 
 main :: IO ()
 main = do
-   putStrLn "Creating image..."
+   putStrLn (PP.render (PP.text "Scene stats" PP.$$ PP.nest 3 (ppScene myScene)))
    img <- stToIO $ mkImage resX resY
+   
    render 1 img myScene pathTracer
 
 onePass :: Gen s -> Image s -> Int-> Scene -> Integrator -> ST s ()
