@@ -9,11 +9,13 @@ import Math
 import Spectrum
 import Transport
 
+
+
 data Lobe = Lobe
-   Spectrum
-   Spectrum
-   Spectrum
-   Spectrum
+   Spectrum -- ^ X
+   Spectrum -- ^ Y
+   Spectrum -- ^ Z
+   Spectrum -- ^ exponent
    
 data Lafortune = Lafortune Spectrum [Lobe]
 
@@ -25,6 +27,8 @@ instance Bxdf Lafortune where
       foldl (+) (sScale diffuse invPi) $ map evalLobe lobes where
          evalLobe (Lobe lX lY lZ lE) = sPow v lE where
             v = sScale lX (wox * wix) + sScale lY (woy * wiy) + sScale lZ (woz * wiz)
+      
+   
       
 data Measured = BrushedMetal | BluePaint | Felt | Clay | Primer
 
