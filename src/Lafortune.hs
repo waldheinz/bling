@@ -1,5 +1,7 @@
 
-module Lafortune where
+module Lafortune (
+   measuredMaterial, Measured(..)
+   ) where
 
 import Geometry
 import Material
@@ -7,12 +9,11 @@ import Math
 import Spectrum
 import Transport
 
-data Lobe = Lobe {
-   lobeX :: Spectrum,
-   lobeY :: Spectrum,
-   lobeZ :: Spectrum,
-   lobeE :: Spectrum
-   }
+data Lobe = Lobe
+   Spectrum
+   Spectrum
+   Spectrum
+   Spectrum
    
 data Lafortune = Lafortune Spectrum [Lobe]
 
@@ -23,9 +24,8 @@ instance Bxdf Lafortune where
    bxdfEval (Lafortune diffuse lobes) (MkVector wox woy woz) (MkVector wix wiy wiz) =
       foldl (+) (sScale diffuse invPi) $ map evalLobe lobes where
          evalLobe (Lobe lX lY lZ lE) = sPow v lE where
-            v = (sScale lX (wox * wix)) + (sScale lY (woy * wiy)) + (sScale lZ (woz * wiz)) 
+            v = sScale lX (wox * wix) + sScale lY (woy * wiy) + sScale lZ (woz * wiz)
       
-
 data Measured = BrushedMetal | BluePaint | Felt | Clay | Primer
 
 measuredMaterial :: Measured -> Material
