@@ -7,7 +7,7 @@ import Microfacet
 import Specular
 import Texture
 import Transport
-   
+
 plasticMaterial :: SpectrumTexture -> SpectrumTexture -> Float -> Material
 plasticMaterial kd ks rough dg = mkBsdf [diff, spec] sc where
    diff = MkAnyBxdf $ Lambertian rd

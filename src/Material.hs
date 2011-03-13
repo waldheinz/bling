@@ -10,8 +10,6 @@ import Transport
 
 type Material = DifferentialGeometry -> Bsdf
 
-
-
 matteMaterial :: SpectrumTexture -> Material
 matteMaterial tex dg = mkBsdf [bxdf] sc where
    bxdf = MkAnyBxdf $ Lambertian $ tex dg

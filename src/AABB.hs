@@ -13,7 +13,11 @@ import Math
 data AABB = AABB {
    aabbMin :: Point, -- ^ the box' minimum
    aabbMax :: Point  -- ^ the box' maximum
-   } deriving Show
+   }
+
+instance Show AABB where
+   show b = "AABB [min=" ++ show (aabbMin b) ++ ", max="
+      ++ show (aabbMax b) ++ "]"
 
 instance Storable AABB where
    sizeOf _ = sizeOf (undefined :: Flt) * 6

@@ -46,9 +46,13 @@ data Vector
       {-# UNPACK #-} !Flt
       {-# UNPACK #-} !Flt
       {-# UNPACK #-} !Flt
-   deriving (Eq, Show)
+   deriving (Eq)
 
 type Point = Vector
+
+instance Show Vector where
+   show (MkVector x y z) = "(" ++ show x ++ ", " ++ 
+      show y ++ ", " ++ show z ++ ")"
 
 mkPoint :: Flt -> Flt -> Flt -> Point
 mkPoint = MkVector

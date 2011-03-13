@@ -13,6 +13,7 @@ import Pathtracer
 import Primitive
 import Random
 import Scene
+import SceneFile
 import WaveFront
 import DefaultScenes
 
@@ -20,20 +21,21 @@ myScene :: Scene
 myScene = mengerScene (fromIntegral resX / fromIntegral resY)
 
 resX :: Int
-resX = 1024
+resX = 640
 
 resY :: Int
-resY = 768
+resY = 480
 
 passSamples :: Int
-passSamples = 3
+passSamples = 1
 
 main :: IO ()
 main = do
-   putStrLn (PP.render (PP.text "Scene stats" PP.$$ PP.nest 3 (ppScene myScene)))
    img <- stToIO $ mkImage resX resY
-   
-   render 1 img myScene pathTracer
+   ss <- readFile "/home/trem/test.bling"
+   let s = parseScene ss
+   putStrLn (PP.render (PP.text "Scene stats" PP.$$ PP.nest 3 (ppScene s)))
+   render 1 img s pathTracer
 
 onePass :: Gen s -> Image s -> Int-> Scene -> Integrator -> ST s ()
 onePass gen img ns scene int = do

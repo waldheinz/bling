@@ -13,7 +13,7 @@ data View = View {
    viewUp :: Normal, -- ^ the "up" vector
    viewFocalLength :: Float, -- ^ focal length
    viewAspect :: Float -- ^ aspect ratio of image plane
-   }
+   } deriving (Show)
    
 -- | computes a point on the image plane
 viewPoint :: View -> (Float, Float) -> Point
@@ -25,9 +25,10 @@ viewPoint (View pos la up dist aspect) (u, v) = vp where
    dir = normalize $ sub la pos
    u' = (u - 0.5) * aspect
    v' = v - 0.5
-
+   
 -- | a simple "pinhole" camera
 pinHoleCamera :: View -> Camera
 pinHoleCamera view uv = Ray pv rd 0 infinity where
    rd = normalize $ sub pv $ viewPos view
    pv = viewPoint view uv
+   
