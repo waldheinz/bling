@@ -1,6 +1,6 @@
 
 module Transform (
-      Transform, identity, translate, scale, inverse,
+      Transform, identity, translate, scale, inverse, fromMatrix,
       transPoint, transVector, transBox, concatTrans
    ) where
 
@@ -50,6 +50,10 @@ data Transform = MkTransform {
 
 instance Show Transform where
    show (MkTransform m _) = show m
+
+-- | Creates a @Transform@ from the two matrices
+fromMatrix :: ([[Flt]], [[Flt]]) -> Transform
+fromMatrix (m, i) = MkTransform (fromList m) (fromList i)
 
 -- | The identity transformation
 identity :: Transform

@@ -9,7 +9,7 @@ import Math
 import Spectrum
 import Transport
 
-
+import Data.List (foldl')
 
 data Lobe = Lobe
    Spectrum -- ^ X
@@ -24,12 +24,13 @@ instance Bxdf Lafortune where
    bxdfType _ = mkBxdfType [Reflection, Glossy]
    
    bxdfEval (Lafortune diffuse lobes) (MkVector wox woy woz) (MkVector wix wiy wiz) =
-      foldl (+) (sScale diffuse invPi) $ map evalLobe lobes where
+      foldl' (+) (sScale diffuse invPi) $ map evalLobe lobes where
          evalLobe (Lobe lX lY lZ lE) = sPow v lE where
-            v = sScale lX (wox * wix) + sScale lY (woy * wiy) + sScale lZ (woz * wiz)
-      
-   
-      
+            v = vx + vy + vz
+            vx = sScale lX (wox * wix)
+            vy = sScale lY (woy * wiy)
+            vz = sScale lZ (woz * wiz)
+            
 data Measured = BrushedMetal | BluePaint | Felt | Clay | Primer
 
 measuredMaterial :: Measured -> Material

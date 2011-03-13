@@ -3,7 +3,7 @@ module Spectrum (
    Spectrum, WeightedSpectrum, 
    white, black, 
    isBlack, sNaN, sInfinite,
-   fromXyz,  toRGB, fromRGB, sConst, sBlackBody, sAdd,
+   fromXyz,  toRGB, fromRGB, sConst, sBlackBody, sAdd, sY,
    sScale, sPow) where
 
 import Data.Array.Unboxed
@@ -34,6 +34,10 @@ fromXyz (x, y, z) = fromRGB (r, g, b) where
 
 toRGB :: Spectrum -> (Float, Float, Float)
 toRGB (Spectrum r g b) = (r, g, b)
+
+-- | the brightness
+sY :: Spectrum -> Flt
+sY (Spectrum r g b) = 0.212671 * r + 0.715160 * g + 0.072169 * b
 
 -- toXyz :: Spectrum -> (Float, Float, Float)
 -- toXyz (Spectrum x y z) = (x, y, z)
