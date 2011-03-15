@@ -8,6 +8,7 @@ import Light
 import Material
 import Math
 import Spectrum
+import Transform
 import Transport
 
 import Data.Maybe(fromJust, isJust, isNothing)
@@ -39,6 +40,13 @@ class Prim a where
    primLight :: a -> Maybe Light
    primLight _ = Nothing
    
+   -- | returns the geometry that should be used for shading computations
+   shadingGeometry :: a -> Transform -> DifferentialGeometry -> DifferentialGeometry
+   
+   -- | the default implementation just returns the provided DG, so the
+   --   geometry used for shading is the same as for reflection calculations
+   shadingGeometry _ _ dg = dg
+   
 data AnyPrim = forall a . Prim a => MkAnyPrim a
 
 instance Prim AnyPrim where
@@ -47,17 +55,10 @@ instance Prim AnyPrim where
    primWorldBounds (MkAnyPrim p) = primWorldBounds p
    primFlatten (MkAnyPrim p) = primFlatten p
 
-instance Show AnyPrim where
-   show (MkAnyPrim p) = "Any Prim"
-
 data Primitive
    = Geometric (Ray -> Maybe (Float, DifferentialGeometry)) (Ray -> Bool) Material (Maybe Light) AABB -- ^ a bound primitive
    | Group [AnyPrim]
 
-instance Show Primitive where
-   show (Group ps) = "Group [" ++ concatMap show ps ++ "]"
-   show (Geometric _ _ _ _ _) = "<Geometric>"
-   
 instance Prim Primitive where
    primIntersect (Group []) _ = Nothing
    primIntersect (Group g) r = nearest r g
@@ -74,7 +75,10 @@ instance Prim Primitive where
    
    primFlatten g@(Geometric _ _ _ _ _) = [MkAnyPrim g]
    primFlatten (Group (p:xs)) = primFlatten p ++ concatMap primFlatten xs
+   primFlatten (Group []) = []
+   
    primLight (Geometric _ _ _ l _) = l
+   primLight (Group _) = error "primLight for a group requested"
    
 -- | creates a @Primitive@ for the specified @Bound@, @Material@ and possibly @Spectrum@ for light sources
 mkPrim :: (Geometry b) => b -> Material -> Maybe Spectrum -> Primitive
