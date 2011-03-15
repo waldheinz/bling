@@ -41,7 +41,7 @@ sceneParser = do
    many line
    eof
    s <- getState
-   return (mkScene [SoftBox $ fromRGB (0.65, 0.95, 0.95)] (prims s) (camera s))
+   return (mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)] (prims s) (camera s))
    
 line :: SceneParser ()
 line = do try comment <|> try mesh <|> try cam <|> do try (char '\n'); return ()
@@ -88,7 +88,7 @@ pMaterial = do
    ds <- pSpectrum
    char '\n'
    string "endMaterial\n"
-   return (matteMaterial (constantSpectrum ds))
+   return  (measuredMaterial Primer) --  (matteMaterial (constantSpectrum ds))
    
 mesh :: SceneParser ()
 mesh = do
@@ -96,10 +96,8 @@ mesh = do
    vertexCount <- try (do spaces; integ)
    faceCount <- try (do spaces; integ)
    char '\n'
-   char 'm' -- the transform matrix
-   m <- matrix
-   char 'i' -- the inverse matrix
-   i <- matrix
+   m <- matrix 'm'
+   i <- matrix 'i'
    mat <- pMaterial
    vertices <- count vertexCount vertex
    let va = listArray (0, vertexCount-1) vertices
@@ -110,6 +108,7 @@ mesh = do
    
 face :: (Array Int Vertex) -> SceneParser [Vertex]
 face vs = do
+   char 'f'
    indices <- many1 (try (do (many (char ' ')); integ))
    char '\n'
    return (map (vs !) indices)
@@ -126,15 +125,20 @@ pVec = do
    
 vertex :: SceneParser Vertex
 vertex = do
+   char 'v'
    v <- pVec
    char '\n'
    return (Vertex v)
 
-matrix :: SceneParser [[Flt]]
-matrix = do
-   m <- count 4 (count 4 (try (do (many (char ' ')); flt)))
-   char '\n'
-   return m
+matrix :: Char -> SceneParser [[Flt]]
+matrix p = do
+   m <- count 4 row
+   return m where
+      row = do
+         char p
+         r <- count 4 (try (do spaces; flt))
+         char '\n'
+         return r
    
 -- | parse an integer
 integ :: SceneParser Int

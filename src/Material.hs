@@ -23,4 +23,4 @@ data Lambertian = Lambertian Spectrum
 instance Bxdf Lambertian where
    bxdfEval (Lambertian r) _ _ = sScale r invPi
    bxdfType _ = mkBxdfType [Reflection, Diffuse]
-     
+   

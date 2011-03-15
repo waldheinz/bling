@@ -21,13 +21,13 @@ myScene :: Scene
 myScene = mengerScene (fromIntegral resX / fromIntegral resY)
 
 resX :: Int
-resX = 640
+resX = 1024
 
 resY :: Int
-resY = 480
+resY = 768
 
 passSamples :: Int
-passSamples = 1
+passSamples = 4
 
 main :: IO ()
 main = do
