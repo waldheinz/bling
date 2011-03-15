@@ -10,15 +10,9 @@ import Time
 
 import Image
 import Pathtracer
-import Primitive
 import Random
 import Scene
 import SceneFile
-import WaveFront
-import DefaultScenes
-
-myScene :: Scene
-myScene = mengerScene (fromIntegral resX / fromIntegral resY)
 
 resX :: Int
 resX = 1024
