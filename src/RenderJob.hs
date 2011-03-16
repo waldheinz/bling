@@ -1,7 +1,10 @@
 
-module SceneFile (parseScene) where
+module RenderJob (
+   Job, parseJob, ppJob, jobScene, imageSizeX, imageSizeY
+   ) where
 
 import Camera
+import Image
 import Lafortune
 import Light
 import Material
@@ -17,36 +20,58 @@ import TriangleMesh
 import Data.Array
 import Debug.Trace
 import Text.ParserCombinators.Parsec
+import qualified Text.PrettyPrint as PP
 
+data Job = MkJob {
+   jobScene :: Scene,
+   imageSizeX :: Int,
+   imageSizeY :: Int
+   }
+   
+ppJob :: Job -> PP.Doc
+ppJob (MkJob sc sx sy) = PP.vcat [
+   PP.text "Image Size" PP.<+> PP.text ((show sx) ++ "x" ++ (show sy)),
+   PP.text "Scene" PP.$$ PP.nest 3 (ppScene sc)
+   ]
+   
 data PState = PState {
    resX :: Int,
    resY :: Int,
+   filter :: Filter,
    camera :: Camera,
    prims :: [AnyPrim]
    }
-
+   
 startState :: PState
-startState = PState 1024 768
+startState = PState 1024 768 Box
    (pinHoleCamera (View (mkV(3, 7, -6)) (mkV(0,0,0)) (mkV(0, 1, 0)) 1.8 (4.0/3.0)))
    []
+   
+parseJob :: String -> Job
+parseJob s = either (error . show) (id) pr where
+   pr = runParser jobParser startState "unknown source"  s
+   
+type JobParser a = GenParser Char PState a
 
-parseScene :: String -> Scene
-parseScene s = either (error . show) (id) pr where
-   pr = runParser sceneParser startState "unknown source"  s
+jobParser :: JobParser Job
+jobParser = do
+   many object
+   eof
+   (PState sx sy flt cam ps) <- getState
+   let scn = (mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)] ps cam)
+   return (MkJob scn sx sy)
 
-type SceneParser a = GenParser Char PState a
-
-sceneParser :: SceneParser Scene
+sceneParser :: JobParser Scene
 sceneParser = do
    many object
    eof
    s <- getState
    return (mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)] (prims s) (camera s))
    
-object :: SceneParser ()
+object :: JobParser ()
 object = do try comment <|> try mesh <|> try cam <|> do try (char '\n'); return ()
 
-cam :: SceneParser ()
+cam :: JobParser ()
 cam = do
    string "beginCamera\n"
    string "pos"
@@ -71,7 +96,7 @@ cam = do
    oldState <- getState
    setState oldState {camera = pinHoleCamera v}
    
-pSpectrum :: SceneParser Spectrum
+pSpectrum :: JobParser Spectrum
 pSpectrum = do
    spaces
    r <- flt
@@ -81,7 +106,7 @@ pSpectrum = do
    b <- flt
    return (fromRGB (r, g, b))
 
-pMaterial :: SceneParser Material
+pMaterial :: JobParser Material
 pMaterial = do
    string "beginMaterial\n"
    string "diffuse"
@@ -90,7 +115,7 @@ pMaterial = do
    string "endMaterial\n"
    return  (measuredMaterial Primer) --  (matteMaterial (constantSpectrum ds))
    
-mesh :: SceneParser ()
+mesh :: JobParser ()
 mesh = do
    string "mesh"
    vertexCount <- try (do spaces; integ)
@@ -106,14 +131,14 @@ mesh = do
    let mesh = mkMesh mat (fromMatrix (m, i)) faces
    setState oldState {prims=[MkAnyPrim mesh] ++ prims oldState}
    
-face :: (Array Int Vertex) -> SceneParser [Vertex]
+face :: (Array Int Vertex) -> JobParser [Vertex]
 face vs = do
    char 'f'
    indices <- many1 (try (do (many (char ' ')); integ))
    char '\n'
    return (map (vs !) indices)
    
-pVec :: SceneParser Vector
+pVec :: JobParser Vector
 pVec = do
    spaces
    x <- flt
@@ -123,14 +148,14 @@ pVec = do
    z <- flt
    return (MkVector x y z)
    
-vertex :: SceneParser Vertex
+vertex :: JobParser Vertex
 vertex = do
    char 'v'
    v <- pVec
    char '\n'
    return (Vertex v)
 
-matrix :: Char -> SceneParser [[Flt]]
+matrix :: Char -> JobParser [[Flt]]
 matrix p = do
    m <- count 4 row
    return m where
@@ -141,13 +166,13 @@ matrix p = do
          return r
    
 -- | parse an integer
-integ :: SceneParser Int
+integ :: JobParser Int
 integ = do
    x <- many1 digit
    return (read x)
 
 -- | parse a floating point number
-flt :: SceneParser Flt
+flt :: JobParser Flt
 flt = do
   sign <- option 1 ( do s <- oneOf "+-"
                         return $ if s == '-' then (-1.0) else 1.0)
@@ -155,9 +180,10 @@ flt = do
   d <- try (char '.' >> try (many digit))
   return $ sign * read (i++"."++d)
 
-comment :: SceneParser ()
+comment :: JobParser ()
 comment = do
    char '#'
    many (noneOf "\n")
    char '\n'
    return ()
+   

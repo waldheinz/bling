@@ -10,25 +10,19 @@ import Time
 import Image
 import Pathtracer
 import Random
+import RenderJob
 import Scene
-import SceneFile
-
-resX :: Int
-resX = 1024
-
-resY :: Int
-resY = 768
 
 passSamples :: Int
 passSamples = 4
 
 main :: IO ()
 main = do
-   img <- stToIO $ mkImage boxFilter resX resY
    ss <- readFile "/home/trem/test.bling"
-   let s = parseScene ss
-   putStrLn (PP.render (PP.text "Scene stats" PP.$$ PP.nest 3 (ppScene s)))
-   render 1 img s pathTracer
+   let job = parseJob ss
+   img <- stToIO $ mkImage Box (imageSizeX job) (imageSizeY job)
+   putStrLn (PP.render (PP.text "Scene stats" PP.$$ PP.nest 3 (ppJob job)))
+   render 1 img (jobScene job) pathTracer
 
 onePass :: Gen s -> Image s -> Int-> Scene -> Integrator -> ST s ()
 onePass gen img ns scene int = do
@@ -90,3 +84,4 @@ render pass img sc int = do
    render (pass + 1) img sc int
    where
          fname = "pass-" ++ printf "%05d" pass
+         

@@ -1,18 +1,18 @@
 
 module Image(
-   Image, ImageSample(..),
-   mkImage, boxFilter, sincFilter,
+   Image, ImageSample(..), Filter(..),
+   mkImage,
    imageWidth, imageHeight, 
    writePpm, writeRgbe, addSample) where
 
-import Debug.Trace
-
 import Control.Monad
 import Control.Monad.ST
+import Debug.Trace
 import Data.Array.ST
 import qualified Data.ByteString as BS
 import System.IO
 
+import Math
 import Spectrum
 
 -- | places a @WeightedSpectrum@ in an @Image@
@@ -22,20 +22,20 @@ data ImageSample = ImageSample {
    sampleSpectrum :: ! WeightedSpectrum
    } deriving Show
 
-type Filter = ImageSample -> [(Int, Int, WeightedSpectrum)]
+data Filter = Box | Sinc Flt Flt Flt
 
 -- | an image has a width, a height and some pixels 
 data Image s = Image {
    imageWidth :: Int,
    imageHeight :: Int,
-   _filter :: Filter,
+   imageFilter :: Filter,
    _imagePixels :: STUArray s Int Float
    }
    
 mkImage :: Filter -> Int -> Int -> ST s (Image s)
-mkImage f w h = do
+mkImage flt w h = do
    pixels <- newArray (0, w * h * 4) 0.0 :: ST s (STUArray s Int Float)
-   return $ Image w h f pixels
+   return $ Image w h flt pixels
    
 addPixel :: Image s -> (Int, Int, WeightedSpectrum) -> ST s ()
 addPixel (Image w h f p) (x, y, (sw, s))
@@ -58,10 +58,11 @@ addPixel (Image w h f p) (x, y, (sw, s))
          (sx, sy, sz) = toRGB s
          o' = (x + y*w) * 4
 
-boxFilter :: Filter
-boxFilter (ImageSample x y ws) = [(floor x, floor y, ws)]
+filterSample :: Filter -> ImageSample -> [(Int, Int, WeightedSpectrum)]
+filterSample Box (ImageSample x y ws) = [(floor x, floor y, ws)]
+filterSample (Sinc xw yw tau) smp = sincFilter xw yw tau smp
 
-sincFilter :: Float -> Float -> Float -> Filter
+sincFilter :: Float -> Float -> Float -> ImageSample -> [(Int, Int, WeightedSpectrum)]
 sincFilter xw yw tau (ImageSample px py (sw, ss)) = [(x, y, (sw * ev x y, sScale ss (ev x y))) | (x, y) <- pixels] where
    pixels = [(x :: Int, y :: Int) | y <- [y0..y1], x <- [x0..x1]]
    x0 = ceiling (px - xw)
@@ -90,7 +91,7 @@ addSample img smp@(ImageSample sx sy (_, ss))
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | otherwise = mapM_ (addPixel img) pixels
    where
-         pixels = (_filter img) smp
+         pixels = filterSample (imageFilter img) smp
 
 -- | extracts the pixel at the specified offset from an Image
 getPixel :: Image s -> Int -> ST s WeightedSpectrum
