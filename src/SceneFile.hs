@@ -38,13 +38,13 @@ type SceneParser a = GenParser Char PState a
 
 sceneParser :: SceneParser Scene
 sceneParser = do
-   many line
+   many object
    eof
    s <- getState
    return (mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)] (prims s) (camera s))
    
-line :: SceneParser ()
-line = do try comment <|> try mesh <|> try cam <|> do try (char '\n'); return ()
+object :: SceneParser ()
+object = do try comment <|> try mesh <|> try cam <|> do try (char '\n'); return ()
 
 cam :: SceneParser ()
 cam = do
@@ -161,5 +161,3 @@ comment = do
    many (noneOf "\n")
    char '\n'
    return ()
-
-   

@@ -1,4 +1,3 @@
---- RT - H
 
 import Control.Monad
 import Control.Monad.ST
@@ -25,7 +24,7 @@ passSamples = 4
 
 main :: IO ()
 main = do
-   img <- stToIO $ mkImage resX resY
+   img <- stToIO $ mkImage boxFilter resX resY
    ss <- readFile "/home/trem/test.bling"
    let s = parseScene ss
    putStrLn (PP.render (PP.text "Scene stats" PP.$$ PP.nest 3 (ppScene s)))

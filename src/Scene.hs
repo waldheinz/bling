@@ -11,6 +11,7 @@ import Text.PrettyPrint
 import AABB
 import Bvh
 import Camera
+import Image
 import Light
 import Math
 import Primitive

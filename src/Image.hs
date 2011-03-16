@@ -1,7 +1,7 @@
 
 module Image(
    Image, ImageSample(..),
-   mkImage,
+   mkImage, boxFilter, sincFilter,
    imageWidth, imageHeight, 
    writePpm, writeRgbe, addSample) where
 
@@ -21,21 +21,24 @@ data ImageSample = ImageSample {
    samplePosY :: ! Float,
    sampleSpectrum :: ! WeightedSpectrum
    } deriving Show
-   
+
+type Filter = ImageSample -> [(Int, Int, WeightedSpectrum)]
+
 -- | an image has a width, a height and some pixels 
 data Image s = Image {
    imageWidth :: Int,
    imageHeight :: Int,
+   _filter :: Filter,
    _imagePixels :: STUArray s Int Float
    }
    
-mkImage :: Int -> Int -> ST s (Image s)
-mkImage w h = do
+mkImage :: Filter -> Int -> Int -> ST s (Image s)
+mkImage f w h = do
    pixels <- newArray (0, w * h * 4) 0.0 :: ST s (STUArray s Int Float)
-   return $ Image w h pixels
+   return $ Image w h f pixels
    
 addPixel :: Image s -> (Int, Int, WeightedSpectrum) -> ST s ()
-addPixel (Image w h p) (x, y, (sw, s))
+addPixel (Image w h f p) (x, y, (sw, s))
    | x < 0 || y < 0 = return ()
    | x >= w || y >= h = return ()
    | otherwise = do
@@ -54,8 +57,6 @@ addPixel (Image w h p) (x, y, (sw, s))
    where
          (sx, sy, sz) = toRGB s
          o' = (x + y*w) * 4
-
-type Filter = ImageSample -> [(Int, Int, WeightedSpectrum)]
 
 boxFilter :: Filter
 boxFilter (ImageSample x y ws) = [(floor x, floor y, ws)]
@@ -89,13 +90,11 @@ addSample img smp@(ImageSample sx sy (_, ss))
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | otherwise = mapM_ (addPixel img) pixels
    where
-         pixels = filter smp
-         -- filter = sincFilter 2 2 3
-         filter = boxFilter
+         pixels = (_filter img) smp
 
 -- | extracts the pixel at the specified offset from an Image
 getPixel :: Image s -> Int -> ST s WeightedSpectrum
-getPixel (Image _ _ p) o = do
+getPixel (Image _ _ _ p) o = do
    w <- readArray p o'
    r <- readArray p (o' + 1)
    g <- readArray p (o' + 2)
@@ -104,7 +103,7 @@ getPixel (Image _ _ p) o = do
       o' = o * 4
    
 writeRgbe :: Image RealWorld -> Handle -> IO ()
-writeRgbe img@(Image w h _) hnd =
+writeRgbe img@(Image w h _ _) hnd =
    let header = "#?RGBE\nFORMAT=32-bit_rgbe\n\n-Y " ++ show h ++ " +X " ++ show w ++ "\n"
        pixel p = stToIO $ liftM (toRgbe . toRGB . mulWeight) $ getPixel img p
    in do
@@ -119,7 +118,7 @@ toRgbe (r, g, b)
          v = max r $ max g b
          (v', e) = frexp v
          v'' = v' * 256.0 / v
-         
+
 frexp :: Float -> (Float, Int)
 frexp x
    | isNaN x = error "NaN given to frexp"
@@ -132,7 +131,7 @@ frexp x
 
 -- | writes an image in ppm format
 writePpm :: Image RealWorld -> Handle -> IO ()
-writePpm img@(Image w h _) handle = 
+writePpm img@(Image w h _ _) handle =
    let
        header = "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n"
        pixel p = stToIO $ liftM ppmPixel $ getPixel img p
