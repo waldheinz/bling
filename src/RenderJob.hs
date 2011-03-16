@@ -18,7 +18,6 @@ import Transport
 import TriangleMesh
 
 import Data.Array
-import Debug.Trace
 import Text.ParserCombinators.Parsec
 import qualified Text.PrettyPrint as PP
 
@@ -35,8 +34,8 @@ ppJob (MkJob sc sx sy) = PP.vcat [
    ]
    
 data PState = PState {
-   resX :: Int,
-   resY :: Int,
+   _resX :: Int,
+   _resY :: Int,
    filter :: Filter,
    camera :: Camera,
    prims :: [AnyPrim]

@@ -1,6 +1,8 @@
 
 beginImage
-   useFilter box
-   size 1024 768
+useFilter box
+size 1024 768
 endImage
+
+
 

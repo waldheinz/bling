@@ -1,6 +1,7 @@
 
 import Control.Monad
 import Control.Monad.ST
+import System (getArgs)
 import System.IO
 import System.Random.MWC
 import Text.Printf
@@ -18,13 +19,15 @@ passSamples = 4
 
 main :: IO ()
 main = do
-   ss <- readFile "/home/trem/test.bling"
+   args <- getArgs
+   let fName = head args
+   ss <- readFile fName
    let job = parseJob ss
    img <- stToIO $ mkImage Box (imageSizeX job) (imageSizeY job)
    putStrLn (PP.render (PP.text "Scene stats" PP.$$ PP.nest 3 (ppJob job)))
    render 1 img (jobScene job) pathTracer
-
-onePass :: Gen s -> Image s -> Int-> Scene -> Integrator -> ST s ()
+   
+onePass :: Gen s -> Image s -> Int -> Scene -> Integrator -> ST s ()
 onePass gen img ns scene int = do
    ox <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
    oy <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
