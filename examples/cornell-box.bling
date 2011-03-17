@@ -11,12 +11,18 @@ up 0.0 1.0 0.0
 fov 1.3
 endCamera
 
-
 beginMaterial
-type measured
-name Primer
+type plastic
+beginTexture kd
+type constant
+rgb 0.9 0.9 0.9
+endTexture
+beginTexture ks
+type constant
+rgb 0.1 0.1 0.1
+endTexture
+rough 2.0
 endMaterial
-
 
 # floor
 beginMesh
@@ -51,11 +57,83 @@ v 556.0 548.8 559.2
 f 3 2 1 0
 endMesh
 
+# short block
+
+beginMesh
+vertexCount 20
+faceCount 5
+v 130.0 165.0  65.0
+v  82.0 165.0 225.0
+v 240.0 165.0 272.0
+v 290.0 165.0 114.0
+v 290.0   0.0 114.0
+v 290.0 165.0 114.0
+v 240.0 165.0 272.0
+v 240.0   0.0 272.0
+v 130.0   0.0  65.0
+v 130.0 165.0  65.0
+v 290.0 165.0 114.0
+v 290.0   0.0 114.0
+v  82.0   0.0 225.0
+v  82.0 165.0 225.0
+v 130.0 165.0  65.0
+v 130.0   0.0  65.0
+v 240.0   0.0 272.0
+v 240.0 165.0 272.0
+v  82.0 165.0 225.0
+v  82.0   0.0 225.0
+f 3 2 1 0
+f 7 6 5 4
+f 11 10 9 8
+f 15 14 13 12
+f 19 18 17 16
+endMesh
+
+# tall block
+
+beginMesh
+vertexCount 20
+faceCount 5
+v 423.0 330.0 247.0
+v 265.0 330.0 296.0
+v 314.0 330.0 456.0
+v 472.0 330.0 406.0
+v 423.0   0.0 247.0
+v 423.0 330.0 247.0
+v 472.0 330.0 406.0
+v 472.0   0.0 406.0
+v 472.0   0.0 406.0
+v 472.0 330.0 406.0
+v 314.0 330.0 456.0
+v 314.0   0.0 456.0
+v 314.0   0.0 456.0
+v 314.0 330.0 456.0
+v 265.0 330.0 296.0
+v 265.0   0.0 296.0
+v 265.0   0.0 296.0
+v 265.0 330.0 296.0
+v 423.0 330.0 247.0
+v 423.0   0.0 247.0
+f 3 2 1 0
+f 7 6 5 4
+f 11 10 9 8
+f 15 14 13 12
+f 19 18 17 16
+endMesh
+
 # right wall
 
 beginMaterial
-type measured
-name BluePaint
+type plastic
+beginTexture kd
+type constant
+rgb 0.2 0.9 0.2
+endTexture
+beginTexture ks
+type constant
+rgb 0.1 0.1 0.1
+endTexture
+rough 2.0
 endMaterial
 
 beginMesh
@@ -69,6 +147,20 @@ f 3 2 1 0
 endMesh
 
 # left wall
+
+beginMaterial
+type plastic
+beginTexture kd
+type constant
+rgb 0.9 0.2 0.2
+endTexture
+beginTexture ks
+type constant
+rgb 0.1 0.1 0.1
+endTexture
+rough 2.0
+endMaterial
+
 beginMesh
 vertexCount 4
 faceCount 1
@@ -77,69 +169,6 @@ v 549.6   0.0 559.2
 v 556.0 548.8 559.2
 v 556.0 548.8   0.0
 f 3 2 1 0
-endMesh
-
-# short block
-beginMesh
-vertexCount 20
-faceCount 5
-v 130.0 165.0  65.0
-v  82.0 165.0 225.0
-v 240.0 165.0 272.0
-v 290.0 165.0 114.0
-v 290.0   0.0 114.0
-v 290.0 165.0 114.0
-v 240.0 165.0 272.0
-v 240.0   0.0 272.0
-v 130.0   0.0  65.0
-v 130.0 165.0  65.0
-v 290.0 165.0 114.0
-v 290.0   0.0 114.0
-v  82.0   0.0 225.0
-v  82.0 165.0 225.0
-v 130.0 165.0  65.0
-v 130.0   0.0  65.0
-v 240.0   0.0 272.0
-v 240.0 165.0 272.0
-v  82.0 165.0 225.0
-v  82.0   0.0 225.0
-f 3 2 1 0
-f 7 6 5 4
-f 11 10 9 8
-f 15 14 13 12
-f 19 18 17 16
-endMesh
-
-
-# tall block
-beginMesh
-vertexCount 20
-faceCount 5
-v 423.0 330.0 247.0
-v 265.0 330.0 296.0
-v 314.0 330.0 456.0
-v 472.0 330.0 406.0
-v 423.0   0.0 247.0
-v 423.0 330.0 247.0
-v 472.0 330.0 406.0
-v 472.0   0.0 406.0
-v 472.0   0.0 406.0
-v 472.0 330.0 406.0
-v 314.0 330.0 456.0
-v 314.0   0.0 456.0
-v 314.0   0.0 456.0
-v 314.0 330.0 456.0
-v 265.0 330.0 296.0
-v 265.0   0.0 296.0
-v 265.0   0.0 296.0
-v 265.0 330.0 296.0
-v 423.0 330.0 247.0
-v 423.0   0.0 247.0
-f 3 2 1 0
-f 7 6 5 4
-f 11 10 9 8
-f 15 14 13 12
-f 19 18 17 16
 endMesh
 
 beginDirectionalLight
@@ -152,12 +181,12 @@ endDirectionalLight
 # rgb 0.9 0.9 0.9
 # endEmission
 
-beginMesh
-vertexCount 4
-faceCount 1
-v 343.0 508.7 227.0
-v 343.0 508.7 332.0
-v 213.0 508.7 332.0
-v 213.0 508.7 227.0
-f 3 2 1 0
-endMesh
+#beginMesh
+#vertexCount 4
+#faceCount 1
+#v 343.0 508.7 227.0
+#v 343.0 508.7 332.0
+#v 213.0 508.7 332.0
+#v 213.0 508.7 227.0
+#f 3 2 1 0
+#endMesh

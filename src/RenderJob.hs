@@ -11,6 +11,7 @@ import Light
 import Material
 import Math
 import Pathtracer
+import Plastic
 import Primitive
 import Scene
 import Spectrum
@@ -206,12 +207,39 @@ pMaterial = do
          m <- pMeasuredMaterial
          return (measuredMaterial m)
          
+      "plastic" -> pPlasticMaterial
+      
       _ -> fail ("unknown material type " ++ t)
       
    _ <- string "endMaterial\n"
    s <- getState
    setState s { material = m }
 
+pPlasticMaterial :: JobParser Material
+pPlasticMaterial = do
+   kd <- pTexture "kd"
+   ks <- pTexture "ks"
+   rough <- namedFloat "rough"
+   return (plasticMaterial kd ks rough)
+   
+pTexture :: String -> JobParser SpectrumTexture
+pTexture n = do
+   _ <- string "beginTexture"
+   spaces
+   _ <- string n
+   _ <- char '\n'
+   _ <- string "type"
+   spaces
+   tp <- many (noneOf "\n")
+   char '\n'
+   tx <- case tp of
+      "constant" -> do
+         s <- pSpectrum
+         return (constantSpectrum s)
+      _ -> fail ("unknown texture type " ++ tp)
+   _ <- string "endTexture\n"
+   return tx
+   
 pMeasuredMaterial :: JobParser Measured
 pMeasuredMaterial = do
    _ <- string "name"
@@ -233,6 +261,14 @@ pMesh = do
    let mesh = mkMesh (material s) (emit s) (transform s) faces
    setState s {prims=[MkAnyPrim mesh] ++ prims s}
 
+namedFloat :: String -> JobParser Flt
+namedFloat n = do
+   _ <- string n
+   _ <- spaces
+   res <- flt <|> fail ("cannot parse " ++ n ++ " value")
+   _ <- char '\n'
+   return res
+   
 namedInt :: String -> JobParser Int
 namedInt n = do
    _ <- string n
