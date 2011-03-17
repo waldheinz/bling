@@ -1,8 +1,9 @@
 
-module Pathtracer(pathTracer) where
+module Pathtracer (pathTracer) where
 
 import Data.BitSet
 import Data.Array.Unboxed
+import Debug.Trace
 
 import Geometry
 import Light
@@ -20,7 +21,8 @@ directLight :: Scene -> Ray -> Spectrum
 directLight s ray = foldl (+) black (map (`lightEmittance` ray) (elems $ sceneLights s))
 
 nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Rand WeightedSpectrum
-nextVertex _ 10 _ _ _ _ l = return $! (1.0, seq l l) -- hard bound
+nextVertex _ 10 _ _ _ _ l =
+{-   trace ("hard bound " ++ show l)-} return $! (1.0, seq l l) -- hard bound
 
 nextVertex s _ True ray Nothing throughput l = -- nothing hit, specular bounce
    return $! (1.0, l + throughput * directLight s ray)
@@ -28,19 +30,18 @@ nextVertex s _ True ray Nothing throughput l = -- nothing hit, specular bounce
 nextVertex _ _ False _ Nothing _ l = -- nothing hit, non-specular bounce
    return $! (1.0, seq l l)
    
-nextVertex scene depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ dg _ _)) throughput l 
+nextVertex scene depth specBounce (Ray _ rd _ _) (Just int) throughput l 
    | isBlack throughput = return (1.0, l)
    | otherwise = do
       bsdfDirU <- rnd2D
       bsdfCompU <- rnd
-      (BsdfSample smpType pdf f wi) <- return $ sampleBsdf bsdf wo bsdfCompU bsdfDirU
+      let (BsdfSample smpType pdf f wi) = sampleBsdf bsdf wo bsdfCompU bsdfDirU
       ulNum <- rnd
       lHere <- sampleOneLight scene p n wo bsdf ulNum
       let outRay = (Ray p wi epsilon infinity)
-      throughput' <- return $! throughput * sScale f (absDot wi n / pdf)
-      
-      l' <- return $! l + (throughput * (lHere + intl))
-      spec' <- return $! (Specular `member` smpType)
+      let throughput' = throughput * sScale f (absDot wi n / pdf)
+      let l' = l + (throughput * (lHere + intl))
+      let spec' = Specular `member` smpType
       
       x <- rnd
       if x > pCont || (pdf == 0.0)
@@ -48,10 +49,11 @@ nextVertex scene depth specBounce (Ray _ rd _ _) (Just int@(Intersection _ dg _ 
          else nextVertex scene (depth + 1) spec' outRay (primIntersect (scenePrim scene) outRay) throughput' l'
 
       where
-            pCont = if depth <= 3 then 1 else 0.5
-            intl = if specBounce then intLe int wo else black
-            wo = normalize $ neg rd
-            bsdf = intBsdf int
-            n = dgN dg
-            p = dgP dg
+         dg = intGeometry int
+         pCont = if depth <= 3 then 1 else 0.5
+         intl = if specBounce then intLe int wo else black
+         wo = neg rd
+         bsdf = intBsdf int
+         n = dgN dg
+         p = dgP dg
          
