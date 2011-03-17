@@ -94,8 +94,25 @@ object =
       <|> try pSize
       <|> try pSamplesPerPixel
       <|> try pEmission
+      <|> try pLight
       <|> do try (char '\n'); return ()
 
+pLight :: JobParser ()
+pLight = do
+   l <- pDirectionalLight
+   s <- getState
+   setState s { lights = l : (lights s) }
+
+pDirectionalLight :: JobParser Light
+pDirectionalLight = do
+   _ <- string "beginDirectionalLight\n"
+   s <- pSpectrum <|> fail "missing spectrum"
+   _ <- string "normal" <|> fail "missing normal"
+   n <- pVec <|> fail "could not parse normal"
+   _ <- char '\n'
+   _ <- string "endDirectionalLight\n"
+   return (Directional s (normalize n))
+   
 pEmission :: JobParser ()
 pEmission = do
    _ <- string "beginEmission\n"
