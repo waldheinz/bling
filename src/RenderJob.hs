@@ -154,15 +154,16 @@ pSpectrum = do
    g <- flt
    spaces
    b <- flt
+   spaces
+   _ <- char '\n'
    return (fromRGB (r, g, b))
 
 pMaterial :: JobParser Material
 pMaterial = do
-   string "beginMaterial\n"
-   string "diffuse"
+   _ <- string "beginMaterial\n"
+   _ <- string "diffuse"
    ds <- pSpectrum
-   char '\n'
-   string "endMaterial\n"
+   _ <- string "endMaterial\n"
    return  (measuredMaterial Primer) --  (matteMaterial (constantSpectrum ds))
    
 pMesh :: JobParser ()
@@ -188,10 +189,10 @@ namedInt n = do
    
 face :: (Array Int Vertex) -> JobParser [Vertex]
 face vs = do
-   char 'f'
-   indices <- many1 (try (do (many (char ' ')); integ))
-   char '\n'
-   return (map (vs !) indices)
+   _ <- char 'f'
+   is <- many1 (try (do _ <- (many (char ' ')); integ))
+   _ <- char '\n'
+   return (map (vs !) is)
    
 pVec :: JobParser Vector
 pVec = do
@@ -205,9 +206,9 @@ pVec = do
    
 vertex :: JobParser Vertex
 vertex = do
-   char 'v'
+   _ <- char 'v'
    v <- pVec
-   char '\n'
+   _ <- char '\n'
    return (Vertex v)
 
 matrix :: Char -> JobParser [[Flt]]
@@ -215,9 +216,9 @@ matrix p = do
    m <- count 4 row
    return m where
       row = do
-         char p
+         _ <- char p
          r <- count 4 (try (do spaces; flt))
-         char '\n'
+         _ <- char '\n'
          return r
    
 -- | parse an integer
@@ -237,7 +238,7 @@ flt = do
 
 comment :: JobParser ()
 comment = do
-   char '#'
-   many (noneOf "\n")
-   char '\n'
+   _ <- char '#'
+   _ <- many (noneOf "\n")
+   _ <- char '\n'
    return ()
