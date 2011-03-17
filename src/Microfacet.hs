@@ -43,7 +43,8 @@ mfG wo wi wh = min 1 $ min (2 * nDotWh * nDotWo / woDotWh) (2 * nDotWh * nDotWi 
    nDotWi = abs $ cosTheta wi
    woDotWh = absDot wo wh
 
-data Distribution = Blinn Float
+data Distribution
+   = Blinn Float
 
 mfDistPdf :: Distribution -> Vector -> Vector -> Float
 mfDistPdf (Blinn e) wo wi = (e + 2) * (cost ** e) / (2 * pi * 4 * dot wo h) where

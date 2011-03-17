@@ -19,6 +19,7 @@ import Texture
 import Transform
 import Transport
 import TriangleMesh
+import Whitted
 
 import Control.Monad (liftM)
 import Data.Array

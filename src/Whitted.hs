@@ -2,28 +2,26 @@ module Whitted (whitted) where
 
 import Data.Maybe(isJust, fromJust)
 
-import Color
 import Geometry
 import Math
 import Primitive
 import Random
 import Scene
+import Spectrum
 
-whitted :: Scene -> Ray -> Rand Spectrum
-whitted scene@(Scene sp _) ray@(Ray _ rd _ _) 
+whitted :: Integrator
+whitted sc ray@(Ray _ rd _ _) 
    | isJust mint = evalInt $ fromJust mint
-   | otherwise = return black -- $! direct ray
+   | otherwise = return (1, black) -- $! direct ray
    where
       wo = neg rd
-
-      mint :: Maybe Intersection
-      mint = primIntersect sp ray
+      mint = primIntersect (scenePrim sc) ray
 
 --      direct :: Ray -> Spectrum
 --      direct _ [] = black
 --      direct (l:ls) = (lightEmittance l ray) `add` (direct ls)
-
-      evalInt :: Intersection -> Rand Spectrum
-      evalInt int@(Intersection _ (DifferentialGeometry p n) _) = do
-         l <- sampleAllLights scene p n wo (intBsdf int)
-         return $! l + intLe int wo
+         
+      evalInt :: Intersection -> Rand (Flt, Spectrum)
+      evalInt int@(Intersection _ (DifferentialGeometry p n) _ _) = do
+         l <- sampleAllLights sc p n wo (intBsdf int)
+         return $! (1, l + intLe int wo)

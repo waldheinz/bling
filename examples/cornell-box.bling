@@ -1,7 +1,7 @@
 
 filter box
-imageSize 600 600
-samplesPerPixel 3
+imageSize 400 400
+samplesPerPixel 1
 
 # camera
 beginCamera
@@ -156,22 +156,23 @@ v 556.0 548.8   0.0
 f 3 2 1 0
 endMesh
 
-beginDirectionalLight
-rgb 1.0 1.0 1.0
-normal -0.5 0.5 -1.0
-endDirectionalLight
+#beginDirectionalLight
+#rgb 1.0 1.0 1.0
+#normal -0.5 0.5 -1.0
+#endDirectionalLight
 
 # light source
-# beginEmission
-# rgb 0.9 0.9 0.9
-# endEmission
+beginEmission
+rgb 0.9 0.9 0.9
+endEmission
 
-#beginMesh
-#vertexCount 4
-#faceCount 1
-#v 343.0 508.7 227.0
-#v 343.0 508.7 332.0
-#v 213.0 508.7 332.0
-#v 213.0 508.7 227.0
-#f 3 2 1 0
-#endMesh
+beginMesh
+vertexCount 4
+faceCount 1
+v 343.0 508.7 227.0
+v 343.0 508.7 332.0
+v 213.0 508.7 332.0
+v 213.0 508.7 227.0
+f 3 2 1 0
+endMesh
+

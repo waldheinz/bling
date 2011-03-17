@@ -1,6 +1,6 @@
 module Scene (
    Scene, mkScene, scenePrim, sceneLights, sceneCam,
-   Integrator, sampleOneLight, ppScene
+   Integrator, sampleOneLight, sampleAllLights, ppScene
    ) where
 
 import Control.Monad
