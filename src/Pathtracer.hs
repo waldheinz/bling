@@ -21,8 +21,7 @@ directLight :: Scene -> Ray -> Spectrum
 directLight s ray = foldl (+) black (map (`lightEmittance` ray) (elems $ sceneLights s))
 
 nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Rand WeightedSpectrum
-nextVertex _ 10 _ _ _ _ l =
-{-   trace ("hard bound " ++ show l)-} return $! (1.0, seq l l) -- hard bound
+-- nextVertex _ 10 _ _ _ _ l = return $! (1.0, seq l l) -- hard bound
 
 nextVertex s _ True ray Nothing throughput l = -- nothing hit, specular bounce
    return $! (1.0, l + throughput * directLight s ray)
@@ -39,7 +38,7 @@ nextVertex scene depth specBounce (Ray _ rd _ _) (Just int) throughput l
       ulNum <- rnd
       lHere <- sampleOneLight scene p n wo bsdf ulNum
       let outRay = (Ray p wi epsilon infinity)
-      let throughput' = throughput * sScale f ((absDot wi n) / pdf)
+      let throughput' = throughput * sScale f (absDot wi n / pdf)
       let l' = l + (throughput * (lHere + intl))
       let spec' = Specular `member` smpType
       
@@ -47,10 +46,10 @@ nextVertex scene depth specBounce (Ray _ rd _ _) (Just int) throughput l
       if x > pCont || (pdf == 0.0)
          then return $! (1.0, l')
          else nextVertex scene (depth + 1) spec' outRay (primIntersect (scenePrim scene) outRay) throughput' l'
-
+         
       where
          dg = intGeometry int
-         pCont = if depth <= 3 then 1 else 0.5
+         pCont = if depth <= 3 then 1 else min 0.5 (sY throughput)
          intl = if specBounce then intLe int wo else black
          wo = neg rd
          bsdf = intBsdf int

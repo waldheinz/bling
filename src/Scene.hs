@@ -6,13 +6,10 @@ module Scene (
 import Control.Monad
 import Data.Array.Unboxed
 import Data.Maybe (isJust, fromJust, catMaybes)
-import Debug.Trace
 import Text.PrettyPrint
 
-import AABB
 import Bvh
 import Camera
-import Image
 import Light
 import Math
 import Primitive
@@ -44,7 +41,7 @@ occluded :: Scene -> Ray -> Bool
 occluded (Scene p _ _) = primIntersects p
 
 type Integrator = Scene -> Ray -> Rand WeightedSpectrum
-   
+
 evalLight :: Scene -> Point -> Normal -> Light -> Vector -> Bsdf -> Rand2D -> Spectrum
 evalLight scene p n light wo bsdf us = (evalSample scene sample wo bsdf p n) where
    sample = lightSample light p n us
