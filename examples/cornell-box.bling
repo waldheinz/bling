@@ -1,7 +1,7 @@
 
 filter box
-imageSize 640 480
-samplesPerPixel 1
+imageSize 600 600
+samplesPerPixel 3
 
 # camera
 beginCamera
@@ -12,16 +12,11 @@ fov 1.3
 endCamera
 
 beginMaterial
-type plastic
+type matte
 beginTexture kd
 type constant
 rgb 0.9 0.9 0.9
 endTexture
-beginTexture ks
-type constant
-rgb 0.1 0.1 0.1
-endTexture
-rough 2.0
 endMaterial
 
 # floor
@@ -124,16 +119,11 @@ endMesh
 # right wall
 
 beginMaterial
-type plastic
+type matte
 beginTexture kd
 type constant
 rgb 0.2 0.9 0.2
 endTexture
-beginTexture ks
-type constant
-rgb 0.1 0.1 0.1
-endTexture
-rough 2.0
 endMaterial
 
 beginMesh
@@ -149,16 +139,11 @@ endMesh
 # left wall
 
 beginMaterial
-type plastic
+type matte
 beginTexture kd
 type constant
 rgb 0.9 0.2 0.2
 endTexture
-beginTexture ks
-type constant
-rgb 0.1 0.1 0.1
-endTexture
-rough 2.0
 endMaterial
 
 beginMesh

@@ -1,5 +1,5 @@
 
-module Microfacet where
+module Microfacet(Microfacet(..), Distribution(..)) where
 
 import Math
 import Random
@@ -8,7 +8,7 @@ import Spectrum
 import Transport
 
 data Microfacet = Microfacet {
-   microfacetDistribution :: MfDistribution,
+   microfacetDistribution :: Distribution,
    microfacetFresnel :: Fresnel,
    microfacetReflectance :: Spectrum
    }
@@ -43,14 +43,14 @@ mfG wo wi wh = min 1 $ min (2 * nDotWh * nDotWo / woDotWh) (2 * nDotWh * nDotWi 
    nDotWi = abs $ cosTheta wi
    woDotWh = absDot wo wh
 
-data MfDistribution = Blinn Float
+data Distribution = Blinn Float
 
-mfDistPdf :: MfDistribution -> Vector -> Vector -> Float
+mfDistPdf :: Distribution -> Vector -> Vector -> Float
 mfDistPdf (Blinn e) wo wi = (e + 2) * (cost ** e) / (2 * pi * 4 * dot wo h) where
    h@(MkVector _ _ hz) = normalize $ add wo wi
    cost = abs hz
 
-mfDistSample :: MfDistribution -> Rand2D -> Vector -> (Float, Vector)
+mfDistSample :: Distribution -> Rand2D -> Vector -> (Float, Vector)
 mfDistSample (Blinn e) (u1, u2) wo = (pdf, wi) where
    pdf = (e + 2) * (cost ** e) / (2 * pi * 4 * dot wo h) -- possible divide by zero?
    wi = add (neg wo) (scalMul h (2 * dot h wo))
@@ -59,6 +59,6 @@ mfDistSample (Blinn e) (u1, u2) wo = (pdf, wi) where
    sint = sqrt $ max 0 (1 - cost * cost)
    phi = u2 * 2 * pi
    
-mfDistD :: MfDistribution -> Vector -> Float
+mfDistD :: Distribution -> Vector -> Float
 mfDistD (Blinn e) wh = (e + 2) * invTwoPi * (costh ** e) where
    costh = abs $ cosTheta wh

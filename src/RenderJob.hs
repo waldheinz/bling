@@ -208,13 +208,18 @@ pMaterial = do
          return (measuredMaterial m)
          
       "plastic" -> pPlasticMaterial
-      
+      "matte" -> pMatteMaterial
       _ -> fail ("unknown material type " ++ t)
       
    _ <- string "endMaterial\n"
    s <- getState
    setState s { material = m }
 
+pMatteMaterial :: JobParser Material
+pMatteMaterial = do
+   kd <- pTexture "kd"
+   return (matteMaterial kd)
+   
 pPlasticMaterial :: JobParser Material
 pPlasticMaterial = do
    kd <- pTexture "kd"
