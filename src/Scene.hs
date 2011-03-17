@@ -34,11 +34,12 @@ ppScene (Scene p ls c) = vcat [
    ]
    
 mkScene :: (Prim a) => [Light] -> [a] -> Camera -> Scene
-mkScene l prims cam = Scene (mkBvh  ps) (listArray (0, length lights - 1) lights) cam where
+mkScene l prims cam = Scene (mkBvh ps) la cam where
+   la = listArray (0, length lights - 1) lights
    lights = l ++ gl
-   gl = catMaybes $ map (primLight) ps -- collect the geometric lights
+   gl = catMaybes $ map primLight ps -- collect the geometric lights
    ps = concatMap primFlatten prims
-
+   
 occluded :: Scene -> Ray -> Bool
 occluded (Scene p _ _) = primIntersects p
 

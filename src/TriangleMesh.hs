@@ -89,7 +89,7 @@ instance Prim TriangleMesh where
 triangulate :: TriangleMesh -> [Vertex] -> [Triangle]
 triangulate m (v1:v2:v3:xs) = Triangle m v1 v2 v3 : triangulate m ([v1] ++ [v3] ++ xs)
 triangulate _ _ = []
-   
+
 mkMesh :: Material -> Maybe Spectrum -> Transform -> [[Vertex]] -> TriangleMesh
 mkMesh m l t vs = empty { tris = ts } where
    empty = MkMesh m l t []

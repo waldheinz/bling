@@ -54,6 +54,7 @@ instance Prim AnyPrim where
    primIntersects (MkAnyPrim p) = primIntersects p
    primWorldBounds (MkAnyPrim p) = primWorldBounds p
    primFlatten (MkAnyPrim p) = primFlatten p
+   primLight (MkAnyPrim p) = primLight p
 
 data Primitive
    = Geometric (Ray -> Maybe (Float, DifferentialGeometry)) (Ray -> Bool) Material (Maybe Light) AABB -- ^ a bound primitive
@@ -83,7 +84,7 @@ instance Prim Primitive where
 -- | creates a @Primitive@ for the specified @Bound@, @Material@ and possibly @Spectrum@ for light sources
 mkPrim :: (Geometry b) => b -> Material -> Maybe Spectrum -> Primitive
 mkPrim b mat Nothing = Geometric (intersect b) (intersects b) mat Nothing (worldBounds b)
-mkPrim b mat (Just l) = Geometric (intersect b) (intersects b) mat (Just $ mkAreaLight l b) (worldBounds b)
+mkPrim b mat (Just l) = Geometric (intersect b) (intersects b) mat (Just (mkAreaLight l b)) (worldBounds b)
 
 nearest :: (Prim a) => Ray -> [a] -> Maybe Intersection
 nearest (Ray ro rd tmin tmax) i = nearest' i tmax Nothing where

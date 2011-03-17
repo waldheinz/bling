@@ -50,6 +50,7 @@ data PState = PState {
    material :: Material,
    _spp :: Int,
    emit :: Maybe Spectrum, -- ^ the emission for the next primitives
+   lights :: [Light],
    prims :: [AnyPrim]
    }
    
@@ -60,6 +61,7 @@ startState = PState 1024 768 Box
    (measuredMaterial Primer)
    2
    Nothing
+   []
    []
    
 parseJob :: String -> Job
@@ -72,8 +74,8 @@ jobParser :: JobParser Job
 jobParser = do
    many object
    eof
-   (PState sx sy flt cam _ _ spp _ ps) <- getState
-   let scn = (mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)] ps cam)
+   (PState sx sy flt cam _ _ spp _ ls ps) <- getState
+   let scn = mkScene ls ps cam
    return (MkJob scn pathTracer flt spp sx sy)
 
 sceneParser :: JobParser Scene
@@ -81,7 +83,7 @@ sceneParser = do
    many object
    eof
    s <- getState
-   return (mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)] (prims s) (camera s))
+   return (mkScene [] (prims s) (camera s))
    
 object :: JobParser ()
 object =
