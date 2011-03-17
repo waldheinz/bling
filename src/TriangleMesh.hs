@@ -8,6 +8,7 @@ import Geometry
 import Material
 import Math
 import Primitive
+import Spectrum
 import Transform
 
 import Data.List (foldl')
@@ -20,10 +21,10 @@ vToWorld :: Transform -> Vertex -> Vertex
 vToWorld t v = v { vertexPos = (transPoint t (vertexPos v)) }
 
 data Triangle = Triangle {
-   mesh :: TriangleMesh,
-   vertex0 :: Vertex,
-   vertex1 :: Vertex,
-   vertex2 :: Vertex
+   _mesh :: TriangleMesh,
+   _vertex0 :: Vertex,
+   _vertex1 :: Vertex,
+   _vertex2 :: Vertex
    }
 
 instance Geometry Triangle where
@@ -71,13 +72,14 @@ instance Geometry Triangle where
 
 data TriangleMesh = MkMesh {
    mat :: Material,
+   light :: Maybe Spectrum,
    toWorld :: Transform,
    tris :: [Triangle]
    }
 
 instance Prim TriangleMesh where
    primFlatten m = map MkAnyPrim ps where
-      ps = map (\g -> mkPrim g (mat m) Nothing) (tris m)
+      ps = map (\g -> mkPrim g (mat m) (light m)) (tris m)
       
    primWorldBounds m = transBox (toWorld m) $ foldl' extendAABB emptyAABB (map worldBounds (tris m))
    
@@ -86,10 +88,10 @@ instance Prim TriangleMesh where
    
 triangulate :: TriangleMesh -> [Vertex] -> [Triangle]
 triangulate m (v1:v2:v3:xs) = Triangle m v1 v2 v3 : triangulate m ([v1] ++ [v3] ++ xs)
-triangulate m _ = []   
+triangulate _ _ = []
    
-mkMesh :: Material -> Transform -> [[Vertex]] -> TriangleMesh
-mkMesh m t vs = empty { tris = ts } where
-   empty = MkMesh m t []
+mkMesh :: Material -> Maybe Spectrum -> Transform -> [[Vertex]] -> TriangleMesh
+mkMesh m l t vs = empty { tris = ts } where
+   empty = MkMesh m l t []
    ts = concatMap (triangulate empty) (map (map (vToWorld t)) vs)
    

@@ -49,6 +49,7 @@ data PState = PState {
    transform :: Transform,
    material :: Material,
    _spp :: Int,
+   emit :: Maybe Spectrum, -- ^ the emission for the next primitives
    prims :: [AnyPrim]
    }
    
@@ -58,6 +59,7 @@ startState = PState 1024 768 Box
    identity
    (measuredMaterial Primer)
    2
+   Nothing
    []
    
 parseJob :: String -> Job
@@ -70,7 +72,7 @@ jobParser :: JobParser Job
 jobParser = do
    many object
    eof
-   (PState sx sy flt cam _ _ spp ps) <- getState
+   (PState sx sy flt cam _ _ spp _ ps) <- getState
    let scn = (mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)] ps cam)
    return (MkJob scn pathTracer flt spp sx sy)
 
@@ -89,8 +91,21 @@ object =
       <|> try pFilter
       <|> try pSize
       <|> try pSamplesPerPixel
+      <|> try pEmission
       <|> do try (char '\n'); return ()
 
+pEmission :: JobParser ()
+pEmission = do
+   _ <- string "beginEmission\n"
+
+   spec <- do
+      try (string "black\n" >> return Nothing)
+      <|> (pSpectrum >>= (\s -> return (Just s)))
+      
+   _ <- string "endEmission\n"
+   s <- getState
+   setState s { emit = spec }
+   
 pSamplesPerPixel :: JobParser ()
 pSamplesPerPixel = do
    spp <- namedInt "samplesPerPixel"
@@ -148,16 +163,16 @@ pCamera = do
    
 pSpectrum :: JobParser Spectrum
 pSpectrum = do
+   _ <- string "rgb" <|> fail "missing rgb"
    spaces
-   r <- flt
+   r <- flt <|> fail "can't parse red"
    spaces
-   g <- flt
+   g <- flt <|> fail "can't parse green"
    spaces
-   b <- flt
-   spaces
-   _ <- char '\n'
+   b <- flt <|> fail "can't parse blue"
+   _ <- char '\n' <|> fail "expected eol"
    return (fromRGB (r, g, b))
-
+   
 pMaterial :: JobParser Material
 pMaterial = do
    _ <- string "beginMaterial\n"
@@ -176,7 +191,7 @@ pMesh = do
    faces <- count faceCount (face va)
    _ <- string "endMesh\n"
    s <- getState
-   let mesh = mkMesh (material s) (transform s) faces
+   let mesh = mkMesh (material s) (emit s) (transform s) faces
    setState s {prims=[MkAnyPrim mesh] ++ prims s}
 
 namedInt :: String -> JobParser Int

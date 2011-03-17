@@ -128,3 +128,18 @@ f 11 10 9 8
 f 15 14 13 12
 f 19 18 17 16
 endMesh
+
+# light source
+beginEmission
+rgb 0.9 0.9 0.9
+endEmission
+
+beginMesh
+vertexCount 4
+faceCount 1
+v 343.0 548.7 227.0
+v 343.0 548.7 332.0
+v 213.0 548.7 332.0
+v 213.0 548.7 227.0
+f 3 2 1 0
+endMesh
