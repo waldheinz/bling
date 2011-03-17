@@ -39,7 +39,7 @@ nextVertex scene depth specBounce (Ray _ rd _ _) (Just int) throughput l
       ulNum <- rnd
       lHere <- sampleOneLight scene p n wo bsdf ulNum
       let outRay = (Ray p wi epsilon infinity)
-      let throughput' = throughput * sScale f (absDot wi n / pdf)
+      let throughput' = throughput * sScale f ((absDot wi n) / pdf)
       let l' = l + (throughput * (lHere + intl))
       let spec' = Specular `member` smpType
       
