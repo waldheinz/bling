@@ -1,6 +1,6 @@
 
 module RenderJob (
-   Job, parseJob, ppJob, jobScene, imageSizeX, imageSizeY
+   Job, parseJob, ppJob, jobScene, jobIntegrator, imageSizeX, imageSizeY
    ) where
 
 import Camera
@@ -9,6 +9,7 @@ import Lafortune
 import Light
 import Material
 import Math
+import Pathtracer
 import Primitive
 import Scene
 import Spectrum
@@ -23,20 +24,23 @@ import qualified Text.PrettyPrint as PP
 
 data Job = MkJob {
    jobScene :: Scene,
+   jobIntegrator :: Integrator,
+   jobPixelFilter :: Filter,
    imageSizeX :: Int,
    imageSizeY :: Int
    }
    
 ppJob :: Job -> PP.Doc
-ppJob (MkJob sc sx sy) = PP.vcat [
-   PP.text "Image Size" PP.<+> PP.text ((show sx) ++ "x" ++ (show sy)),
-   PP.text "Scene" PP.$$ PP.nest 3 (ppScene sc)
+ppJob (MkJob sc _ flt sx sy) = PP.vcat [
+   PP.text "Image size is" PP.<+> PP.text ((show sx) ++ "x" ++ (show sy)),
+   PP.text "Pixel filter is" PP.<+> PP.text (show flt),
+   PP.text "Scene stats" PP.$$ PP.nest 3 (ppScene sc)
    ]
    
 data PState = PState {
    _resX :: Int,
    _resY :: Int,
-   filter :: Filter,
+   pxFilter :: Filter, -- ^ the pixel filtering function
    camera :: Camera,
    prims :: [AnyPrim]
    }
@@ -58,7 +62,7 @@ jobParser = do
    eof
    (PState sx sy flt cam ps) <- getState
    let scn = (mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)] ps cam)
-   return (MkJob scn sx sy)
+   return (MkJob scn pathTracer flt sx sy)
 
 sceneParser :: JobParser Scene
 sceneParser = do
@@ -68,8 +72,38 @@ sceneParser = do
    return (mkScene [SoftBox $ fromRGB (0.95, 0.95, 0.95)] (prims s) (camera s))
    
 object :: JobParser ()
-object = do try comment <|> try mesh <|> try cam <|> do try (char '\n'); return ()
+object =
+       do try comment
+      <|> try mesh
+      <|> try cam
+      <|> try pFilter
+      <|> try pSize
+      <|> do try (char '\n'); return ()
 
+--  | parses the image size
+pSize :: JobParser ()
+pSize = do
+   _ <- string "imageSize"
+   _ <- spaces
+   sx <- integ
+   _ <- spaces
+   sy <- integ
+   s <- getState
+   setState s { _resX = sx, _resY = sy }
+
+-- | parses the pixel filtering function
+pFilter :: JobParser ()
+pFilter = do
+   _ <- string "filter"
+   _ <- spaces
+   
+   flt <- do
+         try (string "box" >> return Box)
+         <|> (string "sinc" >> return (Sinc 1 1 1))
+         
+   s <- getState
+   setState s { pxFilter = flt }
+   
 cam :: JobParser ()
 cam = do
    string "beginCamera\n"
@@ -88,7 +122,7 @@ cam = do
    string "fov "
    fov <- flt
    char '\n'
-      
+   
    string "endCamera\n"
    let v = View pos la up fov 1
    
@@ -185,4 +219,3 @@ comment = do
    many (noneOf "\n")
    char '\n'
    return ()
-   

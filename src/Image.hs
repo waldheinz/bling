@@ -24,6 +24,10 @@ data ImageSample = ImageSample {
 
 data Filter = Box | Sinc Flt Flt Flt
 
+instance Show Filter where
+   show Box = "Box Filter"
+   show (Sinc _ _ _) = "Sinc Filter"
+
 -- | an image has a width, a height and some pixels 
 data Image s = Image {
    imageWidth :: Int,

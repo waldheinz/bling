@@ -1,8 +1,4 @@
 
-beginImage
-useFilter box
-size 1024 768
-endImage
-
-
+filter box
+imageSize 1024 768
 

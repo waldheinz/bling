@@ -9,7 +9,6 @@ import qualified Text.PrettyPrint as PP
 import Time
 
 import Image
-import Pathtracer
 import Random
 import RenderJob
 import Scene
@@ -25,7 +24,7 @@ main = do
    let job = parseJob ss
    img <- stToIO $ mkImage Box (imageSizeX job) (imageSizeY job)
    putStrLn (PP.render (PP.text "Scene stats" PP.$$ PP.nest 3 (ppJob job)))
-   render 1 img (jobScene job) pathTracer
+   render 1 img (jobScene job) (jobIntegrator job)
    
 onePass :: Gen s -> Image s -> Int -> Scene -> Integrator -> ST s ()
 onePass gen img ns scene int = do
