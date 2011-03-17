@@ -15,4 +15,3 @@ plasticMaterial kd ks rough dg = mkBsdf [diff, spec] sc where
    rd = kd dg
    rs = ks dg
    sc = shadingCs dg
-

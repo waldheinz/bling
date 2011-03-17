@@ -31,8 +31,14 @@ instance Bxdf Lafortune where
             vy = sScale lY (woy * wiy)
             vz = sScale lZ (woz * wiz)
             
-data Measured = BrushedMetal | BluePaint | Felt | Clay | Primer
-
+data Measured
+   = BrushedMetal
+   | BluePaint
+   | Felt
+   | Clay
+   | Primer
+   deriving (Show, Read)
+   
 measuredMaterial :: Measured -> Material
 measuredMaterial Primer int = mkBsdf [bxdf] sc where
       sc = shadingCs int

@@ -19,6 +19,7 @@ import Transform
 import Transport
 import TriangleMesh
 
+import Control.Monad (liftM)
 import Data.Array
 import Debug.Trace
 import Text.ParserCombinators.Parsec
@@ -58,7 +59,7 @@ startState :: PState
 startState = PState 1024 768 Box
    (pinHoleCamera (View (mkV(3, 7, -6)) (mkV(0,0,0)) (mkV(0, 1, 0)) 1.8 (4.0/3.0)))
    identity
-   (measuredMaterial Primer)
+   (measuredMaterial BluePaint)
    2
    Nothing
    []
@@ -95,6 +96,7 @@ object =
       <|> try pSamplesPerPixel
       <|> try pEmission
       <|> try pLight
+      <|> try pMaterial
       <|> do try (char '\n'); return ()
 
 pLight :: JobParser ()
@@ -192,13 +194,31 @@ pSpectrum = do
    _ <- char '\n' <|> fail "expected eol"
    return (fromRGB (r, g, b))
    
-pMaterial :: JobParser Material
+pMaterial :: JobParser ()
 pMaterial = do
    _ <- string "beginMaterial\n"
-   _ <- string "diffuse"
-   ds <- pSpectrum
+   _ <- string "type"
+   spaces
+   t <- many (noneOf "\n")
+   char '\n'
+   m <- case t of
+      "measured" -> do
+         m <- pMeasuredMaterial
+         return (measuredMaterial m)
+         
+      _ -> fail ("unknown material type " ++ t)
+      
    _ <- string "endMaterial\n"
-   return  (measuredMaterial Primer) --  (matteMaterial (constantSpectrum ds))
+   s <- getState
+   setState s { material = m }
+
+pMeasuredMaterial :: JobParser Measured
+pMeasuredMaterial = do
+   _ <- string "name"
+   spaces
+   n <- many (noneOf "\n")
+   char '\n'
+   return (read n)
    
 pMesh :: JobParser ()
 pMesh = do
