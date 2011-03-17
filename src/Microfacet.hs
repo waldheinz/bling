@@ -8,18 +8,18 @@ import Spectrum
 import Transport
 
 data Microfacet = Microfacet {
-   microfacetDistribution :: Distribution,
-   microfacetFresnel :: Fresnel,
-   microfacetReflectance :: Spectrum
+   distribution :: Distribution,
+   fresnel :: Fresnel,
+   reflectance :: Spectrum
    }
 
 instance Bxdf Microfacet where
    bxdfType _ = mkBxdfType [Reflection, Glossy]
-   bxdfEval (Microfacet d fresnel r) wo wi = sScale (r * f) (mfDistD d wh * mfG wo wi wh / (4 * costi * costo)) where
+   bxdfEval (Microfacet d fr r) wo wi = sScale (r * fr costh) x where
+      x = mfDistD d wh * mfG wo wi wh / (4 * costi * costo)
       costo = abs $ cosTheta wo
       costi = abs $ cosTheta wi
       wh = normalize $ add wi wo
-      f = fresnel costh
       costh = dot wi wh
       
    bxdfSample mf wo dirU = bxdfSample' dirU mf wo
