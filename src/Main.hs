@@ -13,9 +13,6 @@ import Random
 import RenderJob
 import Scene
 
-passSamples :: Int
-passSamples = 4
-
 main :: IO ()
 main = do
    args <- getArgs
@@ -24,7 +21,7 @@ main = do
    let job = parseJob ss
    img <- stToIO $ mkImage Box (imageSizeX job) (imageSizeY job)
    putStrLn (PP.render (PP.text "Scene stats" PP.$$ PP.nest 3 (ppJob job)))
-   render 1 img (jobScene job) (jobIntegrator job)
+   render 1 img job
    
 onePass :: Gen s -> Image s -> Int -> Scene -> Integrator -> ST s ()
 onePass gen img ns scene int = do
@@ -64,13 +61,16 @@ pretty td = join . filter (not . null) . map f $
     f (i,s) | i == 0    = []
             | otherwise = show i ++ s
    
-render :: Int -> Image RealWorld -> Scene -> Integrator -> IO ()
-render pass img sc int = do
+render :: Int -> Image RealWorld -> Job -> IO ()
+render pass img job = do
    putStrLn "Rendering..."
+   let sc = jobScene job
+   let int = jobIntegrator job
+   let spp = samplesPerPixel job
    start <- getClockTime
  --  seed <- randomIO :: IO Int
    gen <- stToIO $ mkRndGen pass
-   stToIO $ onePass gen img passSamples sc int
+   stToIO $ onePass gen img spp sc int
    stop <- getClockTime
    putStrLn (pretty $ diffClockTimes stop start)
    
@@ -83,7 +83,7 @@ render pass img sc int = do
    writeRgbe img h2
    hClose h2
    
-   render (pass + 1) img sc int
+   render (pass + 1) img job
    where
          fname = "pass-" ++ printf "%05d" pass
          
