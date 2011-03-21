@@ -108,10 +108,9 @@ object =
 
 pTransform :: JobParser ()
 pTransform = do
-   pts <- between start end (ts `sepBy` ws)
-   mapM ap pts
+   pts <- between start end (many ts)
    return () where
-      ts = choice [tIdentity, tRotZ]
+      ts = choice [tIdentity, tRotZ, ws]
       start = string "beginTransform" >> ws
       end = string "endTransform"
    
@@ -366,15 +365,8 @@ flt = do
 
 -- | skips over whitespace and comments
 ws :: JobParser ()
-ws = do try comment
-    <|> ((many1 space) >> return ())
-    <?> "white space"
-   
+ws = many1 (choice [space >> return (), comment]) >> return ()
+
 comment :: JobParser ()
 comment = do
-   _ <- char '#'
-   _ <- many (noneOf "\n")
-   _ <- char '\n'
-   return ()
-   <?> "comment"
-   
+   char '#' >> many (noneOf "\n") >> char '\n' >> return () <?> "comment"
