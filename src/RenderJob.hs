@@ -134,11 +134,21 @@ tRotY = do
    
 tRotZ :: JobParser ()
 tRotZ = do
-   string "rotateZ"
-   ws
-   deg <- flt
+   deg <- string "rotateZ" >> ws >> flt
    s <- getState
    setState s { transform = concatTrans (transform s) (rotateZ deg) }
+   
+tScale :: JobParser ()
+tScale = do
+   d <- string "scale" >> ws >> pVec
+   s <- getState
+   setState s { transform = concatTrans (transform s) (scale d) }
+   
+tTrans :: JobParser ()
+tTrans = do
+   d <- string "translate" >> ws >> pVec
+   s <- getState
+   setState s { transform = concatTrans (transform s) (translate d) }
    
 --
 -- parsing light sources
