@@ -107,20 +107,16 @@ object =
 --
 
 pTransform :: JobParser ()
-pTransform = do
-   pts <- between start end (many ts)
-   return () where
-      ts = choice [
-         tIdentity,
-         try tRotX,
-         try tRotY,
-         tRotZ,
-         tScale,
-         tTrans,
-         ws
-         ]
-      start = string "beginTransform" >> ws
-      end = string "endTransform"
+pTransform = between start end (many ts) >> return () where
+   ts = choice [
+      tIdentity, try tRotX,
+      try tRotY,
+      tRotZ,
+      tScale,
+      tTrans,
+      ws]
+   start = string "beginTransform" >> ws
+   end = string "endTransform"
    
 tIdentity :: JobParser ()
 tIdentity = do
