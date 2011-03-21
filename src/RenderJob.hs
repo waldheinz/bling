@@ -110,7 +110,15 @@ pTransform :: JobParser ()
 pTransform = do
    pts <- between start end (many ts)
    return () where
-      ts = choice [tIdentity, tRotZ, ws]
+      ts = choice [
+         tIdentity,
+         try tRotX,
+         try tRotY,
+         tRotZ,
+         tScale,
+         tTrans,
+         ws
+         ]
       start = string "beginTransform" >> ws
       end = string "endTransform"
    

@@ -32,6 +32,7 @@ endEmission
 beginTransform
    identity
    rotateZ 45.0
+   scale 2.0 2.0 2.0
 endTransform
 
 beginMesh
