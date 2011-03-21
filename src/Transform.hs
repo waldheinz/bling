@@ -1,6 +1,7 @@
 
 module Transform (
-      Transform, identity, translate, scale, inverse, fromMatrix, rotateZ,
+      Transform, identity, translate, scale, inverse, fromMatrix, rotateX,
+      rotateY, rotateZ,
       transPoint, transVector, transBox, transRay, transNormal, concatTrans
    ) where
 
@@ -99,6 +100,26 @@ scale (MkVector sx sy sz) = MkTransform m i where
       0 0 (1/sz) 0
       0 0 0 1
 
+rotateX :: Flt -> Transform
+rotateX deg = MkTransform m (transMatrix m) where
+   m = MkMatrix
+      1    0       0 0
+      0 cost (-sint) 0
+      0 sint    cost 0
+      0    0       0 1
+   sint = sin (radians deg)
+   cost = cos (radians deg)
+      
+rotateY :: Flt -> Transform
+rotateY deg = MkTransform m (transMatrix m) where
+   m = MkMatrix
+        cost  0 sint 0
+         0    1    0 0
+      (-sint) 0 cost 0
+         0    0    0 1
+   cost = cos (radians deg)
+   sint = sin (radians deg)
+      
 rotateZ :: Flt -> Transform
 rotateZ deg = MkTransform m (transMatrix m) where
    m = MkMatrix
