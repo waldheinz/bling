@@ -120,6 +120,18 @@ tIdentity = do
    s <- getState
    setState s { transform = identity }
    
+tRotX :: JobParser ()
+tRotX = do
+   deg <- string "rotateX" >> ws >> flt
+   s <- getState
+   setState s { transform = concatTrans (transform s) (rotateX deg) }
+   
+tRotY :: JobParser ()
+tRotY = do
+   deg <- string "rotateY" >> ws >> flt
+   s <- getState
+   setState s { transform = concatTrans (transform s) (rotateY deg) }
+   
 tRotZ :: JobParser ()
 tRotZ = do
    string "rotateZ"
