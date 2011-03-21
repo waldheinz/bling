@@ -42,7 +42,7 @@ mkImage flt w h = do
    return $ Image w h flt pixels
    
 addPixel :: Image s -> (Int, Int, WeightedSpectrum) -> ST s ()
-addPixel (Image w h f p) (x, y, (sw, s))
+addPixel (Image w h _ p) (x, y, (sw, s))
    | x < 0 || y < 0 = return ()
    | x >= w || y >= h = return ()
    | otherwise = do

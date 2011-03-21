@@ -99,8 +99,8 @@ object =
       <|> try pEmission
       <|> try pLight
       <|> try pMaterial
-      <|> try pTransform
-      <|> do try (char '\n'); return ()
+      <|> pTransform
+      <|> ws
 
 --
 -- parsing transformations
@@ -108,14 +108,12 @@ object =
 
 pTransform :: JobParser ()
 pTransform = do
-   string "beginTransform"
-   ws
-   (try tIdentity
-    <|> tRotZ
-   )
-   ws
-   string "endTransform"
-   return ()
+   pts <- between start end (ts `sepBy` ws)
+   mapM ap pts
+   return () where
+      ts = choice [tIdentity, tRotZ]
+      start = string "beginTransform" >> ws
+      end = string "endTransform"
    
 tIdentity :: JobParser ()
 tIdentity = do
@@ -368,13 +366,15 @@ flt = do
 
 -- | skips over whitespace and comments
 ws :: JobParser ()
-ws = do
-   try comment
-   <|> spaces
-
+ws = do try comment
+    <|> ((many1 space) >> return ())
+    <?> "white space"
+   
 comment :: JobParser ()
 comment = do
    _ <- char '#'
    _ <- many (noneOf "\n")
    _ <- char '\n'
    return ()
+   <?> "comment"
+   

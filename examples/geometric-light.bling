@@ -31,7 +31,7 @@ endEmission
 
 beginTransform
    identity
-   rotateZ 45
+   rotateZ 0.0
 endTransform
 
 beginMesh
