@@ -26,6 +26,9 @@ invTwoPi = 1 / (2 * pi)
 twoPi :: Flt
 twoPi = 2.0 * pi
 
+radians :: Flt -> Flt
+radians x = (x / 180 * pi)
+
 -- | Defines names for the three axii
 type Dimension = Int
 dimX :: Dimension

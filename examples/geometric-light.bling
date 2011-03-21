@@ -1,0 +1,45 @@
+
+# test scene for geometric light sources
+
+
+filter box
+imageSize 640 480
+samplesPerPixel 1
+
+beginCamera
+pos 0.0 50.0 -50.0
+lookAt 0.0 0.0 0.0
+up 0.0 1.0 0.0
+fov 1.3
+endCamera
+
+# ground plane
+beginMesh
+vertexCount 4
+faceCount 1
+v  50.0 0.0 -50.0
+v -50.0 0.0 -50.0
+v -50.0 0.0  50.0
+v  50.0 0.0  50.0
+f 3 2 1 0
+endMesh
+
+# light source
+beginEmission
+rgb 0.9 0.9 0.9
+endEmission
+
+beginTransform
+   identity
+   rotateZ 45
+endTransform
+
+beginMesh
+vertexCount 4
+faceCount 1
+v 2.0 5.7 0.0
+v 2.0 5.7 2.0
+v 0.0 5.7 2.0
+v 0.0 5.7 0.0
+f 3 2 1 0
+endMesh

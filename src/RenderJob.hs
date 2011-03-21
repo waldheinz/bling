@@ -99,7 +99,41 @@ object =
       <|> try pEmission
       <|> try pLight
       <|> try pMaterial
+      <|> try pTransform
       <|> do try (char '\n'); return ()
+
+--
+-- parsing transformations
+--
+
+pTransform :: JobParser ()
+pTransform = do
+   string "beginTransform"
+   ws
+   (try tIdentity
+    <|> tRotZ
+   )
+   ws
+   string "endTransform"
+   return ()
+   
+tIdentity :: JobParser ()
+tIdentity = do
+   string "identity"
+   s <- getState
+   setState s { transform = identity }
+   
+tRotZ :: JobParser ()
+tRotZ = do
+   string "rotateZ"
+   ws
+   deg <- flt
+   s <- getState
+   setState s { transform = concatTrans (transform s) (rotateZ deg) }
+   
+--
+-- parsing light sources
+--
 
 pLight :: JobParser ()
 pLight = do
@@ -331,6 +365,12 @@ flt = do
   i <- many digit
   d <- try (char '.' >> try (many digit))
   return $ sign * read (i++"."++d)
+
+-- | skips over whitespace and comments
+ws :: JobParser ()
+ws = do
+   try comment
+   <|> spaces
 
 comment :: JobParser ()
 comment = do

@@ -1,7 +1,7 @@
 
 module Transform (
-      Transform, identity, translate, scale, inverse, fromMatrix,
-      transPoint, transVector, transBox, concatTrans
+      Transform, identity, translate, scale, inverse, fromMatrix, rotateZ,
+      transPoint, transVector, transBox, transRay, transNormal, concatTrans
    ) where
 
 import AABB
@@ -32,20 +32,26 @@ fromList (
    m10 m11 m12 m13
    m20 m21 m22 m23
    m30 m31 m32 m33
+fromList _ = error "malformed matrix"
 
+-- | @Matrix@ multiply
 mul :: Matrix -> Matrix -> Matrix
 mul m1 m2 = fromList l where
    l = [[sum $ zipWith (*) row col | col <- transpose a] | row <- b]
    a = toList m1
    b = toList m2
-   
+
+-- | transposes a @Matrix@
+transMatrix :: Matrix -> Matrix
+transMatrix = fromList.transpose.toList
+
 instance Show Matrix where
    show = show . toList
 
 -- | An affine transformation
 data Transform = MkTransform {
-   matrix :: Matrix,
-   inverted :: Matrix
+   _matrix :: Matrix,
+   _inverted :: Matrix
    }
 
 instance Show Transform where
@@ -92,6 +98,16 @@ scale (MkVector sx sy sz) = MkTransform m i where
       0 (1/sy) 0 0
       0 0 (1/sz) 0
       0 0 0 1
+
+rotateZ :: Flt -> Transform
+rotateZ deg = MkTransform m (transMatrix m) where
+   m = MkMatrix
+      cost (-sint) 0 0
+      sint   cost  0 0
+      0      0     1 0
+      0      0     0 1
+   sint = sin (radians deg)
+   cost = cos (radians deg)
 
 -- | Creates the inverse of a given @Transform@.
 inverse :: Transform -> Transform
