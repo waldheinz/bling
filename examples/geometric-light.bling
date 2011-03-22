@@ -55,7 +55,7 @@ endTransform
 
 beginTransform
    identity
-   rotateZ 85.0
+   rotateZ 45.0
 endTransform
 
 beginMesh

@@ -17,9 +17,6 @@ data Vertex = Vertex {
    vertexPos :: !Point
    } deriving (Show)
 
-vToWorld :: Transform -> Vertex -> Vertex
-vToWorld t v = v { vertexPos = (transPoint t (vertexPos v)) }
-
 data Triangle = Triangle {
    _mesh :: TriangleMesh,
    _vertex0 :: Vertex,
@@ -93,5 +90,6 @@ triangulate _ _ = []
 mkMesh :: Material -> Maybe Spectrum -> Transform -> [[Vertex]] -> TriangleMesh
 mkMesh m l t vs = empty { tris = ts } where
    empty = MkMesh m l t []
-   ts = concatMap (triangulate empty) (map (map (vToWorld t)) vs)
+   ts = concatMap (triangulate empty) (map (map (vToWorld)) vs)
+   vToWorld v = v { vertexPos = (transPoint t (vertexPos v)) }
    
