@@ -21,9 +21,7 @@ import Transport
 import TriangleMesh
 import Whitted
 
-import Control.Monad (liftM)
 import Data.Array
-import Debug.Trace
 import Text.ParserCombinators.Parsec
 import qualified Text.PrettyPrint as PP
 
@@ -114,6 +112,7 @@ pTransform = between start end (many ts) >> return () where
       tRotZ,
       tScale,
       tTrans,
+      tMatrix,
       ws]
    start = string "beginTransform" >> ws
    end = string "endTransform"
@@ -153,6 +152,23 @@ tTrans = do
    d <- string "translate" >> ws >> pVec
    s <- getState
    setState s { transform = concatTrans (transform s) (translate d) }
+
+tMatrix :: JobParser ()
+tMatrix = do
+   try (string "beginMatrix")
+   m <- mtr 'm'
+   i <- mtr 'i'
+   ws >> string "endMatrix"
+   let t = fromMatrix (m, i)
+   s <- getState
+   setState s { transform = concatTrans (transform s) t }
+
+mtr :: Char -> JobParser [[Flt]]
+mtr p = count 4 row where
+   row = do
+      ws >> char p
+      r <- count 4 (try (do ws; flt))
+      return r
    
 --
 -- parsing light sources
@@ -364,16 +380,6 @@ vertex = do
    _ <- char '\n'
    return (Vertex v)
 
-matrix :: Char -> JobParser [[Flt]]
-matrix p = do
-   m <- count 4 row
-   return m where
-      row = do
-         _ <- char p
-         r <- count 4 (try (do spaces; flt))
-         _ <- char '\n'
-         return r
-   
 -- | parse an integer
 integ :: JobParser Int
 integ = do
