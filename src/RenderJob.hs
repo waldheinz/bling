@@ -87,16 +87,15 @@ sceneParser = do
    return (mkScene [] (prims s) (camera s))
    
 object :: JobParser ()
-object =
-       do try comment
-      <|> try pMesh
+object = 
+       do try pMesh
       <|> try pCamera
       <|> try pFilter
       <|> try pSize
       <|> try pSamplesPerPixel
       <|> try pEmission
       <|> try pLight
-      <|> try pMaterial
+      <|> pMaterial
       <|> pTransform
       <|> ws
 
@@ -114,7 +113,7 @@ pTransform = between start end (many ts) >> return () where
       tTrans,
       tMatrix,
       ws]
-   start = string "beginTransform" >> ws
+   start = try (string "beginTransform")
    end = string "endTransform"
    
 tIdentity :: JobParser ()
@@ -192,13 +191,12 @@ pDirectionalLight = do
    
 pEmission :: JobParser ()
 pEmission = do
-   _ <- string "beginEmission\n"
-
+   try (string "beginEmission") >> ws
    spec <- do
-      try (string "black\n" >> return Nothing)
+      try (string "black" >> return Nothing)
       <|> (pSpectrum >>= (\s -> return (Just s)))
       
-   _ <- string "endEmission\n"
+   ws >> string "endEmission" >> ws
    s <- getState
    setState s { emit = spec }
    
@@ -259,23 +257,21 @@ pCamera = do
    
 pSpectrum :: JobParser Spectrum
 pSpectrum = do
-   _ <- string "rgb" <|> fail "missing rgb"
-   spaces
-   r <- flt <|> fail "can't parse red"
-   spaces
-   g <- flt <|> fail "can't parse green"
-   spaces
-   b <- flt <|> fail "can't parse blue"
-   _ <- char '\n' <|> fail "expected eol"
+   try (string "rgb")
+   r <- ws >> flt
+   g <- ws >> flt
+   b <- ws >> flt
    return (fromRGB (r, g, b))
-   
+
+--
+-- parsing materials
+--
+
 pMaterial :: JobParser ()
 pMaterial = do
-   _ <- string "beginMaterial\n"
-   _ <- string "type"
-   spaces
-   t <- many (noneOf "\n")
-   char '\n'
+   try (string "beginMaterial")
+   ws >> string "type" >> ws
+   t <- many alphaNum
    m <- case t of
       "measured" -> do
          m <- pMeasuredMaterial
@@ -303,20 +299,15 @@ pPlasticMaterial = do
    
 pTexture :: String -> JobParser SpectrumTexture
 pTexture n = do
-   _ <- string "beginTexture"
-   spaces
-   _ <- string n
-   _ <- char '\n'
-   _ <- string "type"
-   spaces
-   tp <- many (noneOf "\n")
-   char '\n'
+   ws >> string "beginTexture" >> ws >> string n >> ws >> string "type" >> ws
+   tp <- many alphaNum
+   ws
    tx <- case tp of
       "constant" -> do
          s <- pSpectrum
          return (constantSpectrum s)
       _ -> fail ("unknown texture type " ++ tp)
-   _ <- string "endTexture\n"
+   ws >> string "endTexture" >> ws
    return tx
    
 pMeasuredMaterial :: JobParser Measured
