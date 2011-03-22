@@ -7,6 +7,7 @@ import Geometry
 import Light
 import Material
 import Math
+import Shape()
 import Spectrum
 import Transform
 import Transport

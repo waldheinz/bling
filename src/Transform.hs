@@ -14,7 +14,7 @@ data Matrix = MkMatrix {
    m10 :: Flt, m11 :: Flt, m12 :: Flt, m13 :: Flt,
    m20 :: Flt, m21 :: Flt, m22 :: Flt, m23 :: Flt,
    m30 :: Flt, m31 :: Flt, m32 :: Flt, m33 :: Flt
-   }
+   } deriving (Eq)
 
 toList :: Matrix -> [[Flt]]
 toList m = [
@@ -53,7 +53,7 @@ instance Show Matrix where
 data Transform = MkTransform {
    _matrix :: Matrix,
    _inverted :: Matrix
-   }
+   } deriving (Eq)
 
 instance Show Transform where
    show (MkTransform m _) = show m

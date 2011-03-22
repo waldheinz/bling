@@ -1,6 +1,6 @@
 
 module AABB (
-   AABB(..),
+   AABB(..), mkAABB,
    emptyAABB, extendAABB, extendAABBP, maximumExtent, centroid, intersectAABB
 ) where
 
@@ -47,6 +47,9 @@ emptyAABB :: AABB
 emptyAABB = AABB
    (MkVector infinity infinity infinity)
    (MkVector (-infinity) (-infinity) (-infinity))
+
+mkAABB :: Point -> Point -> AABB
+mkAABB pMin pMax = AABB pMin pMax
 
 extendAABB :: AABB -> AABB -> AABB
 extendAABB
