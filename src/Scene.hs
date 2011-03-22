@@ -25,20 +25,20 @@ data Scene = Scene {
    
 ppScene :: Scene -> Doc
 ppScene (Scene p ls c) = vcat [
-   text "bounds" <+> text (show (primWorldBounds p)),
+   text "bounds" <+> text (show (worldBounds p)),
    text "number of lights" <+> (int (rangeSize (bounds ls))),
    text "BVH stats" $$ nest 3 (ppBvh p)
    ]
    
-mkScene :: (Prim a) => [Light] -> [a] -> Camera -> Scene
+mkScene :: (Primitive a) => [Light] -> [a] -> Camera -> Scene
 mkScene l prims cam = Scene (mkBvh ps) la cam where
    la = listArray (0, length lights - 1) lights
    lights = l ++ gl
-   gl = catMaybes $ map primLight ps -- collect the geometric lights
-   ps = concatMap primFlatten prims
+   gl = catMaybes $ map light ps -- collect the geometric lights
+   ps = concatMap flatten prims
    
 occluded :: Scene -> Ray -> Bool
-occluded (Scene p _ _) = primIntersects p
+occluded (Scene p _ _) = intersects p
 
 type Integrator = Scene -> Ray -> Rand WeightedSpectrum
 
@@ -67,16 +67,16 @@ sampleLightMis scene (LightSample li wi ray pdf deltaLight) bsdf wo n
          weight = powerHeuristic (1, pdf) (1, bsdfPdf bsdf wo wi)
 
 sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Spectrum
-sampleBsdfMis (Scene sp _ _) light (BsdfSample _ bPdf f wi) n p
+sampleBsdfMis (Scene sp _ _) l (BsdfSample _ bPdf f wi) n p
    | (isBlack f) || (bPdf == 0) = black
    | isJust lint = scale $ intLe (fromJust lint) (neg wi) -- TODO: need to check if the "right" light was hit
-   | otherwise = scale (lightEmittance light ray)
+   | otherwise = scale (lightEmittance l ray)
    where
-         lPdf = lightPdf light p n wi
+         lPdf = lightPdf l p n wi
          weight = powerHeuristic (1, bPdf) (1, lPdf)
          scale = (\li -> sScale (f * li) ((absDot wi n) * weight / bPdf))
          ray = Ray p wi epsilon infinity
-         lint = primIntersect sp ray
+         lint = intersect sp ray
          
 -- | samples all lights by sampling individual lights and summing up the results
 sampleAllLights :: Scene -> Point -> Normal -> Vector -> Bsdf -> Rand Spectrum

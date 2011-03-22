@@ -75,6 +75,14 @@ data Ray = Ray {
    rayMax :: Flt
    } deriving Show
 
+data DifferentialGeometry = DifferentialGeometry {
+   dgP :: Point,
+   dgN :: Normal
+   } deriving (Show)
+
+shadingCs :: DifferentialGeometry -> LocalCoordinates
+shadingCs dg = coordinateSystem $ dgN dg
+
 dominant :: Vector -> Dimension
 dominant (MkVector x y z)
    | (ax > ay) && (ax > az) = dimX

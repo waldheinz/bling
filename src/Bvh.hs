@@ -3,12 +3,7 @@ module Bvh
    ( Bvh, mkBvh, ppBvh ) 
    where
 
-import Control.Monad.ST
-import Data.Array
 import Data.Maybe (isJust, isNothing, fromJust)
-import Debug.Trace
-import Foreign.Storable
-import Foreign
 import Text.PrettyPrint
 
 import AABB
@@ -16,35 +11,6 @@ import Math
 import Primitive
 
 type Bvh = TreeBvh
-
---
--- The BVH using the tree flattened out to an array
---
-
-data LinearNode
-   = LinearNode Dimension Int AABB
-   | LinearLeaf Int AABB
-
-data LinearBvh
-   = MkLinearBvh (Array Int LinearNode)
-
-instance Show LinearNode where
-   show (LinearNode _ n _) = "node rc=" ++ show n
-   show (LinearLeaf _ _) = "leaf"
-   
-instance Storable LinearNode where
-   sizeOf _ = 5
-   alignment _ = 4
-   
---    peek p = do
-
-flatten :: TreeBvh -> Int -> Int -> ST m (Int, [LinearNode])
-flatten (Leaf p b) n poff = 
-   return (n + 1, [LinearLeaf undefined b])
-flatten (Node d l r b) n poff = do
-   (nl, ll) <- flatten l (n + 1) undefined
-   (nr, lr) <- flatten r nl undefined
-   return (nr, [LinearNode d nl b] ++ ll ++ lr)
    
 --
 -- The simple "tree" BVH implementation
@@ -97,25 +63,23 @@ leafCount t = leafCount' t where
    leafCount' (Leaf _ _) = 1
    leafCount' (Node _ l r _) = (leafCount' l) + (leafCount' r)
 
-instance Show TreeBvh where
-   show (Leaf ps b) = "Leaf (" ++ (show (length ps)) ++ " nodes)"
-
-instance Prim TreeBvh where
-   primIntersects = bvhIntersects
-   primIntersect = bvhIntersect
-   primWorldBounds (Node _ _ _ b) = b
-   primWorldBounds (Leaf _ b) = b
-
+instance Primitive TreeBvh where
+   intersects = bvhIntersects
+   intersect = bvhIntersect
+   worldBounds (Node _ _ _ b) = b
+   worldBounds (Leaf _ b) = b
+   flatten _ = error "Unimplemented BVH.flatten"
+   
 mkBvh :: [AnyPrim] -> TreeBvh
 mkBvh [] = Leaf [] emptyAABB
-mkBvh [p] = Leaf [p] $ primWorldBounds p
+mkBvh [p] = Leaf [p] $ worldBounds p
 mkBvh ps
    | null left = Leaf right allBounds
    | null right = Leaf left allBounds
    | otherwise = Node dim (mkBvh left) (mkBvh right) allBounds where
    (left, right) = splitMidpoint ps dim
    dim = splitAxis ps
-   allBounds = foldl extendAABB emptyAABB $ map primWorldBounds ps
+   allBounds = foldl extendAABB emptyAABB $ map worldBounds ps
 
 bvhIntersect :: TreeBvh -> Ray -> Maybe Intersection
 bvhIntersect (Leaf p b) ray
@@ -140,7 +104,7 @@ near mi1 mi2 = Just $ near' (fromJust mi1) (fromJust mi2) where
       | otherwise = i2
 
 bvhIntersects :: TreeBvh -> Ray -> Bool
-bvhIntersects (Leaf p b) r = isJust (intersectAABB b r) && any (flip primIntersects r) p
+bvhIntersects (Leaf p b) r = isJust (intersectAABB b r) && any (flip intersects r) p
 bvhIntersects (Node _ l r b) ray = isJust (intersectAABB b ray) &&
    (bvhIntersects l ray || bvhIntersects r ray)
 
@@ -148,7 +112,7 @@ bvhIntersects (Node _ l r b) ray = isJust (intersectAABB b ray) &&
 --   in two lists
 splitMidpoint :: [AnyPrim] -> Dimension -> ([AnyPrim], [AnyPrim])
 splitMidpoint ps dim = ([l | l <- ps, toLeft l], [r | r <- ps, not $ toLeft r]) where
-   toLeft p = component (centroid $ primWorldBounds p) dim < pMid
+   toLeft p = component (centroid $ worldBounds p) dim < pMid
    pMid = 0.5 * (component (aabbMin cb) dim + component (aabbMax cb) dim)
    cb = centroidBounds ps
 
@@ -163,4 +127,4 @@ centroidBounds ps = foldl extendAABBP emptyAABB $ centroids ps
 
 -- | Finds the centroids of a list of primitives
 centroids :: [AnyPrim] -> [Point]
-centroids = map (centroid . primWorldBounds)
+centroids = map (centroid . worldBounds)

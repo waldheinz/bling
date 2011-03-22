@@ -4,9 +4,9 @@ module Light (
    mkAreaLight, mkProbeLight, TestProbe(..),
    Light(..), LightSample(..), lightSample, lightEmittance, lightLe, lightPdf) where
 
-import Geometry
 import Math
 import Random
+import Shape
 import Spectrum
 
 data LightSample = LightSample {
@@ -20,14 +20,13 @@ data LightSample = LightSample {
 data Light =
    SoftBox Spectrum | -- ^ an infinite area light surrounding the whole scene, emitting a constant amount of light from all directions.
    Directional Spectrum Normal | -- ^ 
-   AreaLight Spectrum Float (Point -> Rand2D -> (Point, Normal)) (Point -> Float) |
-   ProbeLight ((Float, Float) -> Spectrum) (Normal -> Rand2D -> (Float, (Float, Float))) (Normal -> Vector -> Float)
+   AreaLight Spectrum Float (Point -> Rand2D -> (Point, Normal)) (Point -> Float)
    
 mkProbeLight :: (LightProbe p) => p -> Light
 mkProbeLight p = ProbeLight (lightProbeEval p) (lightProbeSample p) (lightProbePdf p)
    
-mkAreaLight :: (Geometry g) => Spectrum -> g -> Light
-mkAreaLight r g = AreaLight r (boundArea g) (boundSample g) (boundPdf g)
+mkAreaLight :: Spectrum -> Shape -> Light
+mkAreaLight r g = AreaLight r (area g) (sample g) (pdf g)
 
 lightLe :: Light -> Point -> Normal -> Normal -> Spectrum
 lightLe (AreaLight r _ _ _) _ n wo
@@ -75,15 +74,3 @@ lightSampleD r d pos n = LightSample y d ray 1.0 True where
    y = sScale r (absDot n d)
    ray = Ray pos d epsilon infinity
 
-class LightProbe a where
-   lightProbeEval :: a -> (Float, Float) -> Spectrum
-   lightProbeSample :: a -> Normal -> Rand2D -> (Float, (Float, Float))
-   lightProbePdf :: a -> Normal -> Vector -> Float
-
-data TestProbe = TestProbe
-
-instance LightProbe TestProbe where
-   lightProbeEval _ (u1, u2) = fromXyz (u1, u2, u1+u2)
-   lightProbeSample _ _ (u1, u2) = (invTwoPi, (u1, u2))
-   lightProbePdf _ _ _ = invTwoPi
-   

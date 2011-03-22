@@ -4,7 +4,6 @@ module TriangleMesh (
    ) where
 
 import AABB
-import Geometry
 import Material
 import Math
 import Primitive
@@ -12,24 +11,15 @@ import Spectrum
 import Transform
 
 import Data.List (foldl')
-
-data Vertex = Vertex {
-   vertexPos :: !Point
-   } deriving (Show)
-
 data Triangle = Triangle {
    _mesh :: TriangleMesh,
    _vertex0 :: Vertex,
    _vertex1 :: Vertex,
    _vertex2 :: Vertex
    }
-
-instance Geometry Triangle where
-   boundArea (Triangle _ v1 v2 v3) = 0.5 * len (cross (sub p2 p1) (sub p3 p1)) where
-      p1 = vertexPos v1
-      p2 = vertexPos v2
-      p3 = vertexPos v3
-      
+   
+instance Primitive Triangle where
+   
    boundSample (Triangle _ v1 v2 v3) _ (u1, u2) = (p, n) where
       p = scalMul p1 b1 `add` scalMul p2 b2 `add` scalMul p3 (1 - b1 - b2)
       (p1, p2, p3) = (vertexPos v1, vertexPos v2, vertexPos v3)
@@ -69,19 +59,19 @@ instance Geometry Triangle where
 
 data TriangleMesh = MkMesh {
    mat :: Material,
-   light :: Maybe Spectrum,
+   emission :: Maybe Spectrum,
    toWorld :: Transform,
    tris :: [Triangle]
    }
 
-instance Prim TriangleMesh where
-   primFlatten m = map MkAnyPrim ps where
-      ps = map (\g -> mkPrim g (mat m) (light m)) (tris m)
+instance Primitive TriangleMesh where
+   flatten m = map MkAnyPrim ps where
+      ps = map (\g -> mkPrim g (mat m) (emission m)) (tris m)
       
-   primWorldBounds m = transBox (toWorld m) $ foldl' extendAABB emptyAABB (map worldBounds (tris m))
+   worldBounds m = transBox (toWorld m) $ foldl' extendAABB emptyAABB (map worldBounds (tris m))
    
-   primIntersect = error "primIntersect TriangleMesh called"
-   primIntersects = error "primIntersects TriangleMesh called"
+   intersect = error "primIntersect TriangleMesh called"
+   intersects = error "primIntersects TriangleMesh called"
    
 triangulate :: TriangleMesh -> [Vertex] -> [Triangle]
 triangulate m (v1:v2:v3:xs) = Triangle m v1 v2 v3 : triangulate m ([v1] ++ [v3] ++ xs)

@@ -7,14 +7,6 @@ import Random
 
 import Data.Maybe
 
-data DifferentialGeometry = DifferentialGeometry {
-   dgP :: Point,
-   dgN :: Normal
-   } deriving (Show)
-
-shadingCs :: DifferentialGeometry -> LocalCoordinates
-shadingCs dg = coordinateSystem $ dgN dg
-
 class Geometry a where
    -- | intersects a ray with an object, possibly returning the distance
    --   along the ray where an intersection occured together with the
@@ -31,10 +23,6 @@ class Geometry a where
    -- | returns the surface area of the object
    boundArea :: a -> Float
    
-   -- | returns a random point (along with its normal) on the object, 
-   --   which is preferably visible from the specified point
-   boundSample :: a -> Point -> Rand2D -> (Point, Normal)
-
    -- | returns the pdf for the sample chosen by @boundSample@
    boundPdf :: a -> Point -> Float
    
@@ -50,8 +38,6 @@ class Geometry a where
 -- | a sphere has a radius and a position
 data Sphere = Sphere Float Point deriving Eq
 
-insideSphere :: Sphere -> Point -> Bool
-insideSphere (Sphere r pos) pt = sqLen (sub pos pt) - r * r < epsilon
 
 sampleSphere :: Point -> Point -> Point
 sampleSphere co pt
@@ -74,30 +60,6 @@ instance Geometry Sphere where
    worldBounds (Sphere r p) = emptyAABB `extendAABBP`
       (p `add` (MkVector r r r)) `extendAABBP`
       (p `add` (MkVector (-r) (-r) (-r)))
-   
-   boundSample sp@(Sphere r center) p us
-      | insideSphere sp p = 
-         let rndPt = randomOnSphere us 
-             in (add center $ scalMul rndPt r, rndPt) -- sample full sphere if inside
-      
-      | otherwise = (ps, normalize $ sub ps center) where -- sample only the visible part if outside
-         d = uniformSampleCone cs cosThetaMax us
-         cs = coordinateSystem dn
-         dn = normalize $ sub center p
-         cosThetaMax = sqrt $ max 0 (1 - (r * r) / sqLen (sub p center))
-         ps
-            | isJust int = positionAt ray t
-            | otherwise = sub center $ scalMul dn r
-            where
-                  ray = Ray p d 0 infinity
-                  int = intersect sp ray
-                  t = fst $ fromJust int
-         
-   boundPdf sp@(Sphere r center) pos
-      | insideSphere sp pos = 1.0 / boundArea sp
-      | otherwise = uniformConePdf cosThetaMax
-      where
-         cosThetaMax = sqrt $ max 0 (1 - r * r / sqLen (sub pos center))
    
    intersect (Sphere r center) ray@(Ray origin rd tmin tmax)
       | isNothing times = Nothing

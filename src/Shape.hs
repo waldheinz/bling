@@ -1,70 +1,52 @@
 
 module Shape (
    Shape,
-   DifferentialGeometry, dgP, dgN,
    mkSphere,
-   area, intersect, intersects, objectBounds
+   area, sample, pdf
    ) where
 
 import Data.Maybe
 
 import AABB
+import Material
 import Math
+import Random
 import Transform
 
-data DifferentialGeometry = DifferentialGeometry {
-   dgP :: Point,
-   dgN :: Normal
-   } deriving (Show)
-   
--- | transforms a @DifferentialGeometry@ to world space
-transDg :: ShapeBase -> DifferentialGeometry -> DifferentialGeometry
-transDg (MkSB t _ _) (DifferentialGeometry p n) =
-   DifferentialGeometry (transPoint t p) (transNormal t n)
-
-data ShapeBase = MkSB {
-   o2w :: Transform, -- ^ the object-to-world transformation
-   w2o :: Transform, -- ^ the world-to-object transformation
-   reverseOrientation :: Bool -- ^ reverse the normal orientation?
-   } deriving (Eq, Show)
-
-mkSb :: Transform -> Bool -> ShapeBase
-mkSb t ro = MkSB t (inverse t) ro
+data Vertex = Vertex {
+   vertexPos :: !Point
+   } deriving (Eq, Show)   
 
 data Shape
    = Sphere
-      ShapeBase -- ^ position
       Flt -- ^ radius
-      
+   | Triangle Vertex Vertex Vertex
    deriving (Eq, Show)
 
-mkSphere :: Transform -> Bool -> Flt -> Shape
-mkSphere t o rad = Sphere (mkSb t o) rad
+mkSphere :: Flt -> Shape
+mkSphere rad = Sphere rad
 
 intersect :: Shape -> Ray -> Maybe (Flt, DifferentialGeometry)
-intersect (Sphere sb r) ray
+intersect (Sphere r) ray@(Ray ro rd tmin tmax)
    | isNothing times = Nothing
    | t1 > tmax = Nothing
    | t2 < tmin = Nothing
-   | otherwise = Just (t, transDg sb dg)
+   | otherwise = Just (t, DifferentialGeometry hitPoint normalAt)
    where
-         (Ray ro rd tmin tmax) = transRay (w2o sb) ray
          a = sqLen rd
          b = 2 * (ro `dot` rd)
          c = sqLen ro - (r * r)
          t = if t1 > tmin then t1 else t2
          (t1, t2) = fromJust times
          times = solveQuadric a b c
-         dg = DifferentialGeometry hitPoint normalAt
          hitPoint = positionAt ray t
          normalAt = normalize hitPoint
          
 intersects :: Shape -> Ray -> Bool
-intersects (Sphere sb rad) ray
+intersects (Sphere rad) (Ray ro rd tmin tmax)
    | isNothing roots = False
    | otherwise = t0 < tmax && t1 > tmin 
    where
-         (Ray ro rd tmin tmax) = transRay (w2o sb) ray
          a = sqLen rd
          b = 2 * dot ro rd
          c = sqLen ro - (rad * rad)
@@ -72,8 +54,48 @@ intersects (Sphere sb rad) ray
          roots = solveQuadric a b c
 
 objectBounds :: Shape -> AABB
-objectBounds (Sphere _ r) = mkAABB (mkPoint nr nr nr) (mkPoint r r r) where
+objectBounds (Sphere r) = mkAABB (mkPoint nr nr nr) (mkPoint r r r) where
    nr = (-r)
-
+   
 area :: Shape -> Flt
-area (Sphere _ r) = r * r * 4 * pi
+area (Sphere r) = r * r * 4 * pi
+area (Triangle v1 v2 v3) = 0.5 * len (cross (sub p2 p1) (sub p3 p1)) where
+      p1 = vertexPos v1
+      p2 = vertexPos v2
+      p3 = vertexPos v3
+      
+insideSphere :: Flt -> Point -> Bool
+insideSphere r pt = sqLen pt - r * r < 1e-4
+
+pdf :: Shape -- ^ the @Shape@ to compute the pdf for
+    -> Point -- ^ the point which is to be illuminated
+    -> Vector -- ^ the wi vector
+    -> Flt -- ^ the computed pdf value
+    
+pdf sp@(Sphere r) pos wi
+   | insideSphere sp pos = 1.0 / area sp
+   | otherwise = uniformConePdf cosThetaMax
+   where
+      cosThetaMax = sqrt $ max 0 (1 - r * r / sqLen pos)
+      
+-- | returns a random point (along with its normal) on the object, 
+--   which is preferably visible from the specified point
+sample :: Shape -> Point -> Rand2D -> (Point, Normal)
+sample sp@(Sphere r) p us
+   | insideSphere sp p = 
+      let rndPt = randomOnSphere us 
+      in (scalMul rndPt r, rndPt) -- sample full sphere if inside
+      
+   | otherwise = (ps, normalize $ sub ps center) where -- sample only the visible part if outside
+      d = uniformSampleCone cs cosThetaMax us
+      cs = coordinateSystem dn
+      dn = normalize $ sub center p
+      cosThetaMax = sqrt $ max 0 (1 - (r * r) / sqLen (sub p center))
+      ps
+         | isJust int = positionAt ray t
+         | otherwise = sub center $ scalMul dn r
+         where
+               ray = Ray p d 0 infinity
+               int = intersect sp ray
+               t = fst $ fromJust int
+
