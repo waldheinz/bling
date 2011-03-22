@@ -1,17 +1,15 @@
-Name:                rt
+Name:                bling
 Version:             0.1
-Description:         A raytracer
+Description:         A Raytracer
 Author:              Matthias Treydte
 Maintainer:          waldheinz@gmail.com
 Build-Type:          Simple
 Cabal-Version:       >=1.2
 
-
-Executable rt
+Executable bling
    hs-source-dirs:    src
    Main-is:           Main.hs
    Build-Depends:     base >= 3 && < 5, haskell98, array, mwc-random, vector, 
       random, bitset, bytestring, parsec, pretty
    ghc-options:       -Wall -O2 -fexcess-precision
    ghc-prof-options:  -prof -auto-all 
-   
