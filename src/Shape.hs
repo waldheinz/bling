@@ -8,7 +8,6 @@ module Shape (
 import Data.Maybe
 
 import AABB
-import Material
 import Math
 import Random
 import Transform
@@ -73,7 +72,7 @@ pdf :: Shape -- ^ the @Shape@ to compute the pdf for
     -> Flt -- ^ the computed pdf value
     
 pdf sp@(Sphere r) pos wi
-   | insideSphere sp pos = 1.0 / area sp
+   | insideSphere r pos = 1.0 / area sp
    | otherwise = uniformConePdf cosThetaMax
    where
       cosThetaMax = sqrt $ max 0 (1 - r * r / sqLen pos)
@@ -82,18 +81,18 @@ pdf sp@(Sphere r) pos wi
 --   which is preferably visible from the specified point
 sample :: Shape -> Point -> Rand2D -> (Point, Normal)
 sample sp@(Sphere r) p us
-   | insideSphere sp p = 
+   | insideSphere r p = 
       let rndPt = randomOnSphere us 
       in (scalMul rndPt r, rndPt) -- sample full sphere if inside
       
-   | otherwise = (ps, normalize $ sub ps center) where -- sample only the visible part if outside
+   | otherwise = (ps, normalize ps) where -- sample only the visible part if outside
       d = uniformSampleCone cs cosThetaMax us
       cs = coordinateSystem dn
-      dn = normalize $ sub center p
-      cosThetaMax = sqrt $ max 0 (1 - (r * r) / sqLen (sub p center))
+      dn = normalize p
+      cosThetaMax = sqrt $ max 0 (1 - (r * r) / sqLen p)
       ps
          | isJust int = positionAt ray t
-         | otherwise = sub center $ scalMul dn r
+         | otherwise = scalMul dn r
          where
                ray = Ray p d 0 infinity
                int = intersect sp ray
