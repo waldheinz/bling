@@ -35,10 +35,13 @@ count (MkDist1D f _ _) = V.length f
 
 upperBound :: (Ord a, Unbox a) => Vector a -> a -> Int
 upperBound v u = if isJust i then fromJust i - 1 else V.length v - 1 where
-   i = findIndex (> u) v
+   i = findIndex (>= u) v
 
 sampleDiscrete :: (Fractional a, Unbox a, Ord a) => Dist1D a -> a -> (Int, a)
-sampleDiscrete d@(MkDist1D f c fi) u = (offset, pdf) where
-   offset = upperBound c u
-   pdf = unsafeIndex f offset / (fi * fromIntegral (count d))
+sampleDiscrete d@(MkDist1D f c fi) u
+   | u < 0 = error "u < 0"
+   | u >= 1 = error "u >= 1"
+   | otherwise = (offset, pdf) where
+      offset = upperBound c u
+      pdf = unsafeIndex f offset / (fi * fromIntegral (count d))
 
