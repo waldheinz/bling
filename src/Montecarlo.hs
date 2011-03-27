@@ -1,10 +1,19 @@
 
 module Montecarlo (
-   Dist1D, mkDist1D, sampleDiscrete
+   -- * 1D Distributions
+   Dist1D, mkDist1D, sampleDiscrete,
+   
+   -- * MIS combination strategies
+   
+   MisHeuristic, powerHeuristic, balanceHeuristic
    ) where
 
 import Data.Maybe (fromJust, isJust)
 import Data.Vector.Unboxed as V
+
+--
+-- 1D - distribution
+--
 
 data (Unbox a) => Dist1D a = MkDist1D {
    func :: Vector a,
@@ -44,4 +53,22 @@ sampleDiscrete d@(MkDist1D f c fi) u
    | otherwise = (offset, pdf) where
       offset = upperBound c u
       pdf = unsafeIndex f offset / (fi * fromIntegral (count d))
+
+--
+-- MIS combination strategies
+--
+
+-- | a combination strategy for multiple importance sampling
+type MisHeuristic = (Int, Flt) -> (Int, Flt) -> Flt
+
+powerHeuristic :: MisHeuristic
+powerHeuristic (nf, fPdf) (ng, gPdf) = (f * f) / (f * f + g * g) where
+   f = fromIntegral nf * fPdf
+   g = fromIntegral ng * gPdf
+
+balanceHeuristic :: MisHeuristic
+balanceHeuristic (nf, fPdf) (ng, gPdf) = (fnf * fPdf) / (fnf * fPdf + fng * gPdf) where
+   fnf = fromIntegral nf
+   fng = fromIntegral ng
+
 

@@ -166,18 +166,6 @@ solveQuadric a b c
          rootDiscrim = sqrt discrim
          discrim = b * b - 4.0 * a * c
                   
--- | a combination strategy for multiple importance sampling
-type MisHeuristic = (Int, Flt) -> (Int, Flt) -> Flt
-
-powerHeuristic :: MisHeuristic
-powerHeuristic (nf, fPdf) (ng, gPdf) = (f * f) / (f * f + g * g) where
-   f = fromIntegral nf * fPdf
-   g = fromIntegral ng * gPdf
-
-balanceHeuristic :: MisHeuristic
-balanceHeuristic (nf, fPdf) (ng, gPdf) = (fnf * fPdf) / (fnf * fPdf + fng * gPdf) where
-   fnf = fromIntegral nf
-   fng = fromIntegral ng
 
 uniformConePdf :: Flt -> Flt
 uniformConePdf cosThetaMax = 1.0 / (twoPi * (1.0 - cosThetaMax))
