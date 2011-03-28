@@ -61,8 +61,9 @@ lightSampleD r d pos n = LightSample y d ray 1.0 True where
 --
 
 data ShapeSet = MkShapeSet {
-   
+   sumArea :: Flt,
+   shapes :: [Shape]
    }
 
 ssPdf :: ShapeSet -> Point -> Vector -> Flt
-ssPdf = undefined
+ssPdf (MkShapeSet a ls) p wi = sum (map (\s -> S.pdf s p wi) ls) / a
