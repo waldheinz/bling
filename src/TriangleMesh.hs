@@ -7,10 +7,12 @@ import AABB
 import Material
 import Math
 import Primitive
+import Shape
 import Spectrum
 import Transform
 
 import Data.List (foldl')
+
 data Triangle = Triangle {
    _mesh :: TriangleMesh,
    _vertex0 :: Vertex,

@@ -1,6 +1,19 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
-module Primitive where
+module Primitive (
+
+   -- * Ray - Primitive intersections
+
+   Intersection(..), intLe,
+
+   Primitive(..),
+
+   Geometry, mkGeometry, nearest,
+   
+   -- * Existentials
+   
+   AnyPrim(..)
+   ) where
 
 import AABB
 import Light as L
@@ -72,11 +85,18 @@ instance Primitive AnyPrim where
 data Geometry = MkGeometry {
    o2w :: Transform, -- ^ the object-to-world transformation
    w2o :: Transform, -- ^ the world-to-object transformation
-   reverseOrientation :: Bool, -- ^ reverse the normal orientation?
+   _reverseOrientation :: Bool, -- ^ reverse the normal orientation?
    shape :: Shape,
    material :: Material
    } 
 
+mkGeometry :: Transform
+           -> Bool
+           -> Shape
+           -> Material
+           -> Geometry
+mkGeometry t ro s m = MkGeometry t (inverse t) ro s m
+   
 instance Eq Geometry where
    
 instance Primitive Geometry where
