@@ -1,12 +1,11 @@
 
 -- | The functions dealing with colours, radiance and light sources
 module Light (
-   mkAreaLight, mkProbeLight, TestProbe(..),
-   Light(..), LightSample(..), lightSample, lightEmittance, lightLe, lightPdf) where
+   Light, LightSample(..), Light.sample, le, Light.pdf) where
 
 import Math
 import Random
-import Shape
+import Shape as S
 import Spectrum
 
 data LightSample = LightSample {
@@ -17,36 +16,32 @@ data LightSample = LightSample {
    lightSampleDelta :: Bool -- ^ does that light employ a delta-distributuion?
    }
 
-data Light =
-   SoftBox Spectrum | -- ^ an infinite area light surrounding the whole scene, emitting a constant amount of light from all directions.
-   Directional Spectrum Normal | -- ^ 
-   AreaLight Spectrum Float (Point -> Rand2D -> (Point, Normal)) (Point -> Vector -> Float)
-   
-mkAreaLight :: Spectrum -> Shape -> Light
-mkAreaLight r g = AreaLight r (area g) (sample g) (pdf g)
+data Light
+   = SoftBox Spectrum -- ^ an infinite area light surrounding the whole scene, emitting a constant amount of light from all directions.
+   | Directional Spectrum Normal
+   | AreaLight {
+      shapeSet :: ShapeSet
+      }
 
-lightLe :: Light -> Point -> Normal -> Normal -> Spectrum
-lightLe (AreaLight r _ _ _) _ n wo
-   | dot n wo > 0 = r
-   | otherwise = black
-lightLe _ _ _ _ = black
+le :: Light -> Ray -> Spectrum
+le (SoftBox r) _ = r
+le (Directional _ _) _ = black
+-- area lights must be sampled by intersecting the shape directly and asking
+-- that intersection for le
+le (AreaLight _ ) r = black
 
-lightSample :: Light -> Point -> Normal -> Rand2D -> LightSample
-lightSample (SoftBox r) p n us = lightSampleSB r p n us
-lightSample (Directional r d) p n _ = lightSampleD r d p n
-lightSample (AreaLight r _ sample pdf) p n us = LightSample (sScale r (absDot ns n)) wi (segmentRay p ps) (pdf p) False where
-   (ps, ns) = sample p us
-   wi = normalize $ ps `sub` p
+sample :: Light -> Point -> Normal -> Rand2D -> LightSample
+sample (SoftBox r) p n us = lightSampleSB r p n us
+sample (Directional r d) p n _ = lightSampleD r d p n
+sample (AreaLight _) p n us = undefined
 
-lightEmittance :: Light -> Ray -> Spectrum
-lightEmittance (SoftBox r) _ = r
-lightEmittance (Directional _ _) _ = black
-lightEmittance (AreaLight _ _ _ _) _ = black -- ^ must be sampled by intersecting the shape directly and asking that intersection for le
-
-lightPdf :: Light -> Point -> Normal -> Vector -> Float
-lightPdf (SoftBox _) _ n wi = absDot n wi
-lightPdf (Directional _ _) _ _ _ = infinity -- zero chance to find the direction by sampling
-lightPdf (AreaLight _ _ _ pdf) p _ _ = pdf p
+pdf :: Light -- ^ the light to compute the pdf for
+    -> Point -- ^ the point from which the light is viewed
+    -> Vector -- ^ the wi vector
+    -> Float -- ^ the computed pdf value
+pdf (SoftBox _) _ wi = undefined
+pdf (Directional _ _) _ _ = infinity -- zero chance to find the direction by sampling
+pdf (AreaLight ss) p wi = ssPdf ss p wi
 
 lightSampleSB :: Spectrum -> Point -> Normal -> Rand2D -> LightSample
 lightSampleSB r pos n us = LightSample r (toWorld lDir) (ray $ toWorld lDir) (pdf lDir) False
@@ -65,5 +60,9 @@ lightSampleD r d pos n = LightSample y d ray 1.0 True where
 -- shape set for geometric lights
 --
 
+data ShapeSet = MkShapeSet {
+   
+   }
 
-
+ssPdf :: ShapeSet -> Point -> Vector -> Flt
+ssPdf = undefined
