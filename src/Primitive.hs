@@ -3,10 +3,10 @@
 module Primitive where
 
 import AABB
-import Light
+import Light as L
 import Material
 import Math
-import Shape
+import Shape as S
 import Spectrum
 import Transform
 
@@ -30,7 +30,7 @@ data Intersection = Intersection {
 -- | the light emitted at this intersection point
 intLe :: Intersection -> Normal -> Spectrum
 intLe (Intersection _ (DifferentialGeometry p n) prim _) wo 
-   | isJust l = lightLe (fromJust l) p n wo
+   | isJust l = L.lEmit (fromJust l) p n wo
    | otherwise = black
    where
          l = light prim
@@ -59,8 +59,8 @@ class Primitive a where
 data AnyPrim = forall a . Primitive a => MkAnyPrim a
 
 instance Primitive AnyPrim where
-   intersect (MkAnyPrim p) = intersect p
-   intersects (MkAnyPrim p) = intersects p
+   intersect (MkAnyPrim p) = Primitive.intersect p
+   intersects (MkAnyPrim p) = Primitive.intersects p
    worldBounds (MkAnyPrim p) = worldBounds p
    flatten (MkAnyPrim p) = flatten p
    light (MkAnyPrim p) = light p
@@ -80,17 +80,17 @@ data Geometry = MkGeometry {
 instance Eq Geometry where
    
 instance Primitive Geometry where
-   flatten g = [Prim.MkAnyPrim g]
+   flatten g = [MkAnyPrim g]
    worldBounds g = transBox (o2w g) (objectBounds (shape g))
-   intersects g rw = intersects (shape g) (transRay (w2o g) rw)
+   intersects g rw = S.intersects (shape g) (transRay (w2o g) rw)
    intersect g rw
       | isNothing mi = Nothing
-      | otherwise = Just (Prim.Intersection t (Prim.transDg (o2w g) dg) p m)
+      | otherwise = Just (Intersection t (transDg (o2w g) dg) p m)
       where
          m = material g
-         p = Prim.MkAnyPrim g
+         p = MkAnyPrim g
          ro = transRay (w2o g) rw -- ray in object space
-         mi = intersect (shape g) ro
+         mi = S.intersect (shape g) ro
          (t, dg) = fromJust mi
    
 nearest :: (Primitive a) => Ray -> [a] -> Maybe Intersection
@@ -99,7 +99,7 @@ nearest (Ray ro rd tmin tmax) i = nearest' i tmax Nothing where
    nearest' (x:xs) tmax' mi = nearest' xs newMax newNear where
       clamped = Ray ro rd tmin tmax'
       newNear = if isJust newNear' then newNear' else mi
-      newNear' = intersect x clamped
+      newNear' = Primitive.intersect x clamped
       newMax = if isNothing newNear
                   then tmax'
                   else intDist $ fromJust newNear

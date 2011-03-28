@@ -1,7 +1,7 @@
 
 -- | The functions dealing with colours, radiance and light sources
 module Light (
-   Light, LightSample(..), Light.sample, le, Light.pdf) where
+   Light, LightSample(..), Light.sample, le, lEmit, Light.pdf) where
 
 import Math
 import Random
@@ -20,20 +20,28 @@ data Light
    = SoftBox Spectrum -- ^ an infinite area light surrounding the whole scene, emitting a constant amount of light from all directions.
    | Directional Spectrum Normal
    | AreaLight {
+      areaRadiance :: Spectrum,
       shapeSet :: ShapeSet
       }
 
+-- | the emission from the surface of an area light source
+lEmit :: Light -> Point -> Normal -> Vector -> Spectrum
+lEmit (AreaLight r _) _ n wo
+   | dot n wo > 0 = r
+   | otherwise = black
+lEmit _ _ _ _ = black
+      
 le :: Light -> Ray -> Spectrum
 le (SoftBox r) _ = r
 le (Directional _ _) _ = black
 -- area lights must be sampled by intersecting the shape directly and asking
 -- that intersection for le
-le (AreaLight _ ) r = black
+le (AreaLight _ _) r = black
 
 sample :: Light -> Point -> Normal -> Rand2D -> LightSample
 sample (SoftBox r) p n us = lightSampleSB r p n us
 sample (Directional r d) p n _ = lightSampleD r d p n
-sample (AreaLight _) p n us = undefined
+sample (AreaLight _ _) p n us = undefined
 
 pdf :: Light -- ^ the light to compute the pdf for
     -> Point -- ^ the point from which the light is viewed
@@ -41,7 +49,7 @@ pdf :: Light -- ^ the light to compute the pdf for
     -> Float -- ^ the computed pdf value
 pdf (SoftBox _) _ wi = undefined
 pdf (Directional _ _) _ _ = infinity -- zero chance to find the direction by sampling
-pdf (AreaLight ss) p wi = ssPdf ss p wi
+pdf (AreaLight _ ss) p wi = ssPdf ss p wi
 
 lightSampleSB :: Spectrum -> Point -> Normal -> Rand2D -> LightSample
 lightSampleSB r pos n us = LightSample r (toWorld lDir) (ray $ toWorld lDir) (pdf lDir) False

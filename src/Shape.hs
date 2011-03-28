@@ -2,7 +2,7 @@
 module Shape (
    Shape,
    mkSphere,
-   area, sample, pdf
+   area, sample, pdf, objectBounds, intersect, intersects
    ) where
 
 import Data.Maybe
