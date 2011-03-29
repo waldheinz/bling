@@ -34,7 +34,7 @@ data Shape
 
 -- | creates a sphere
 mkSphere :: Flt -> Shape
-mkSphere rad = Sphere rad
+mkSphere = Sphere
 
 triangulate :: [[Vertex]] -> [Shape]
 triangulate vs = concatMap tr' vs where
@@ -91,7 +91,7 @@ intersects (Sphere rad) (Ray ro rd tmin tmax)
          roots = solveQuadric a b c
 
 -- as a general way we can just check if @intersect@ returns something
-intersects s r = isJust (intersect s r)
+intersects s r = isJust (s `intersect` r)
 
 worldBounds :: Shape -- ^ the shape to get the world bounds for
             -> Transform
@@ -108,7 +108,7 @@ worldBounds s t = transBox t (objectBounds s)
 
 objectBounds :: Shape -> AABB
 objectBounds (Sphere r) = mkAABB (mkPoint nr nr nr) (mkPoint r r r) where
-   nr = (-r)
+   nr = -r
 
 objectBounds (Triangle v1 v2 v3) = foldl' extendAABBP emptyAABB pl where
    pl = [vertexPos v1, vertexPos v2, vertexPos v3]
@@ -155,7 +155,7 @@ sample sp@(Sphere r) p us
          | otherwise = scalMul dn r
          where
                ray = Ray p d 0 infinity
-               int = intersect sp ray
+               int = sp `intersect` ray
                t = fst $ fromJust int
 
 
