@@ -55,8 +55,13 @@ le (AreaLight _ _) r = black
 sample :: Light -> Point -> Normal -> Rand2D -> LightSample
 sample (SoftBox r) p n us = lightSampleSB r p n us
 sample (Directional r d) p n _ = lightSampleD r d p n
-sample (AreaLight _ _) p n us = undefined
-
+sample al@(AreaLight s r) p n us = LightSample ls wi ray pd False where
+   (ps, ns) = S.sample s p us
+   wi = normalize (ps `sub` p)
+   ls = lEmit al ps ns (neg wi)
+   pd = Light.pdf al p wi
+   ray = segmentRay p ps
+   
 pdf :: Light -- ^ the light to compute the pdf for
     -> Point -- ^ the point from which the light is viewed
     -> Vector -- ^ the wi vector

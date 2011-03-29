@@ -127,6 +127,9 @@ pdf sp@(Sphere r) pos _
    | otherwise = uniformConePdf cosThetaMax
    where
       cosThetaMax = sqrt $ max 0 (1 - r * r / sqLen pos)
+
+-- for general shapes just return the inverse of the area
+pdf s _ _ = 1 / area s
       
 -- | returns a random point (along with its normal) on the object, 
 --   which is preferably visible from the specified point
