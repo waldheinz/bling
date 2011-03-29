@@ -1,10 +1,17 @@
 
 module Shape (
    Shape,
-   mkSphere,
-   area, sample, pdf, objectBounds, intersect, intersects
+   
+   -- * Creating shapes
+   
+   mkSphere, triangulate,
+
+   -- * Working with shapes
+   
+   area, sample, pdf, objectBounds, worldBounds, intersect, intersects
    ) where
 
+import Data.List (foldl')
 import Data.Maybe
 
 import AABB
@@ -22,9 +29,16 @@ data Shape
    | Triangle Vertex Vertex Vertex
    deriving (Eq, Show)
 
+-- | creates a sphere
 mkSphere :: Flt -> Shape
 mkSphere rad = Sphere rad
 
+-- | creates a triangle mesh
+triangulate :: [[Vertex]] -> [Shape]
+triangulate vs = concatMap tr' vs where
+   tr' (v1:v2:v3:xs) = Triangle v1 v2 v3 : tr' (v1:v3:xs)
+   tr' _ = []
+   
 intersect :: Shape -> Ray -> Maybe (Flt, DifferentialGeometry)
 intersect (Sphere r) ray@(Ray ro rd tmin tmax)
    | isNothing times = Nothing
@@ -40,7 +54,29 @@ intersect (Sphere r) ray@(Ray ro rd tmin tmax)
          times = solveQuadric a b c
          hitPoint = positionAt ray t
          normalAt = normalize hitPoint
-         
+
+intersect (Triangle v1 v2 v3) r@(Ray ro rd tmin tmax)
+   | divisor == 0 = Nothing
+   | b1 < 0 || b1 > 1 = Nothing
+   | b2 < 0 || b1 + b2 > 1 = Nothing
+   | t < tmin || t > tmax = Nothing
+   | otherwise = Just (t, DifferentialGeometry (positionAt r t) n)
+   where
+      n = normalize $ cross e2 e1
+      t = dot e2 s2 * invDiv
+      b2 = dot rd s2 * invDiv -- second barycentric
+      s2 = cross d e1
+      b1 = dot d s1 * invDiv -- first barycentric
+      d = sub ro p1
+      invDiv = 1 / divisor
+      divisor = dot s1 e1
+      s1 = cross rd e2
+      e1 = sub p2 p1
+      e2 = sub p3 p1
+      p1 = vertexPos v1
+      p2 = vertexPos v2
+      p3 = vertexPos v3
+
 intersects :: Shape -> Ray -> Bool
 intersects (Sphere rad) (Ray ro rd tmin tmax)
    | isNothing roots = False
@@ -52,9 +88,22 @@ intersects (Sphere rad) (Ray ro rd tmin tmax)
          (t0, t1) = fromJust roots
          roots = solveQuadric a b c
 
+worldBounds :: Shape -- ^ the shape to get the world bounds for
+            -> Transform
+            -> AABB
+            
+worldBounds (Triangle v1 v2 v3) t = foldl' extendAABBP emptyAABB pl where
+      pl = map (transPoint t) pl'
+      pl' = [vertexPos v1, vertexPos v2, vertexPos v3]
+
+worldBounds s t = transBox t (objectBounds s)
+
 objectBounds :: Shape -> AABB
 objectBounds (Sphere r) = mkAABB (mkPoint nr nr nr) (mkPoint r r r) where
    nr = (-r)
+
+objectBounds (Triangle v1 v2 v3) = foldl' extendAABBP emptyAABB pl where
+   pl = [vertexPos v1, vertexPos v2, vertexPos v3]
    
 area :: Shape -> Flt
 area (Sphere r) = r * r * 4 * pi
@@ -71,7 +120,7 @@ pdf :: Shape -- ^ the @Shape@ to compute the pdf for
     -> Vector -- ^ the wi vector
     -> Flt -- ^ the computed pdf value
     
-pdf sp@(Sphere r) pos wi
+pdf sp@(Sphere r) pos _
    | insideSphere r pos = 1.0 / area sp
    | otherwise = uniformConePdf cosThetaMax
    where
@@ -98,3 +147,12 @@ sample sp@(Sphere r) p us
                int = intersect sp ray
                t = fst $ fromJust int
 
+
+sample (Triangle v1 v2 v3) _ (u1, u2) = (p, n) where
+   p = scalMul p1 b1 `add` scalMul p2 b2 `add` scalMul p3 (1 - b1 - b2)
+   (p1, p2, p3) = (vertexPos v1, vertexPos v2, vertexPos v3)
+   b1 = 1 - u1' -- first barycentric
+   b2 = u2 * u1' -- second barycentric
+   u1' = sqrt u1
+   n = normalize $ cross (sub p2 p1) (sub p3 p1)
+      

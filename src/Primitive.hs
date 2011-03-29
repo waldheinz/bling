@@ -74,7 +74,7 @@ data AnyPrim = forall a . Primitive a => MkAnyPrim a
 instance Primitive AnyPrim where
    intersect (MkAnyPrim p) = Primitive.intersect p
    intersects (MkAnyPrim p) = Primitive.intersects p
-   worldBounds (MkAnyPrim p) = worldBounds p
+   worldBounds (MkAnyPrim p) = Primitive.worldBounds p
    flatten (MkAnyPrim p) = flatten p
    light (MkAnyPrim p) = light p
 
@@ -101,7 +101,7 @@ instance Eq Geometry where
    
 instance Primitive Geometry where
    flatten g = [MkAnyPrim g]
-   worldBounds g = transBox (o2w g) (objectBounds (shape g))
+   worldBounds g = S.worldBounds (shape g) (o2w g)
    intersects g rw = S.intersects (shape g) (transRay (w2o g) rw)
    intersect g rw
       | isNothing mi = Nothing

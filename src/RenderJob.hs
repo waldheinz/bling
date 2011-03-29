@@ -18,7 +18,6 @@ import Spectrum
 import Texture
 import Transform
 import Transport
-import TriangleMesh
 import Whitted
 
 import Data.Array
