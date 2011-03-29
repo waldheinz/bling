@@ -89,7 +89,7 @@ sceneParser = do
 object :: JobParser ()
 object = 
        do pShape
-      <|> try pCamera
+      <|> pCamera
       <|> try pFilter
       <|> try pSize
       <|> try pSamplesPerPixel
@@ -141,7 +141,7 @@ face vs = do
 vertex :: JobParser Vertex
 vertex = do
    _ <- ws >> char 'v'
-   v <- pVec
+   v <- ws >> pVec
    return (Vertex v)
 
 --
@@ -276,28 +276,18 @@ pFilter = do
    
 pCamera :: JobParser ()
 pCamera = do
-   string "beginCamera\n"
-   string "pos"
-   pos <- pVec
-   char '\n'
-   
-   string "lookAt"
-   la <- pVec
-   char '\n'
-   
-   string "up"
-   up <- pVec
-   char '\n'
-   
-   string "fov "
-   fov <- flt
-   char '\n'
-   
-   string "endCamera\n"
-   let v = View pos la up fov 1
-   
+   try (string "beginCamera")
+   _ <- ws >> string "pos"
+   pos <- ws >> pVec
+   _ <- ws >> string "lookAt"
+   la <- ws >> pVec
+   _ <- ws >> string "up"
+   up <- ws >> pVec
+   _ <- ws >> string "fov"
+   fov <- ws >> flt
+   _ <- ws >> string "endCamera"
    oldState <- getState
-   setState oldState {camera = pinHoleCamera v}
+   setState oldState {camera = pinHoleCamera (View pos la up fov 1)}
    
 pSpectrum :: JobParser Spectrum
 pSpectrum = do
@@ -378,14 +368,11 @@ namedInt n = do
 
 pVec :: JobParser Vector
 pVec = do
-   spaces
    x <- flt
-   spaces
-   y <- flt
-   spaces
-   z <- flt
+   y <- ws >> flt
+   z <- ws >> flt
    return (MkVector x y z)
-
+   
 -- | parse an integer
 integ :: JobParser Int
 integ = do
