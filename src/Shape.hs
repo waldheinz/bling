@@ -90,6 +90,9 @@ intersects (Sphere rad) (Ray ro rd tmin tmax)
          (t0, t1) = fromJust roots
          roots = solveQuadric a b c
 
+-- as a general way we can just check if @intersect@ returns something
+intersects s r = isJust (intersect s r)
+
 worldBounds :: Shape -- ^ the shape to get the world bounds for
             -> Transform
             -> AABB
