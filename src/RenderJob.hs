@@ -88,8 +88,7 @@ sceneParser = do
    
 object :: JobParser ()
 object = 
-       do try pMesh
-      <|> pShape
+       do pShape
       <|> try pCamera
       <|> try pFilter
       <|> try pSize
@@ -113,14 +112,37 @@ pShape = do
    sh <- case t of
       "sphere" -> do
          r <- namedFloat "radius"
-         return (mkSphere r)
-         
+         return [mkSphere r]
+      "mesh" -> pMesh
+      
       _ -> fail ("unknown shape type \"" ++ t ++ "\"")
    _ <- ws >> string "endShape"
    
    s <- getState
-   let p = mkGeom (transform s) False (material s) (emit s) sh
-   setState s {prims = (MkAnyPrim p) : (prims s)}
+   let p = map (mkGeom (transform s) False (material s) (emit s)) sh
+   setState s {prims = map MkAnyPrim p ++ (prims s)}
+
+pMesh :: JobParser [Shape]
+pMesh = do
+   vc <- namedInt "vertexCount" <|> fail "vertexCount missing"
+   ws
+   fc <- namedInt "faceCount"  <|> fail "faceCount missing"
+   vertices <- count vc vertex
+   let va = listArray (0, vc-1) vertices
+   faces <- count fc (face va)
+   return (triangulate faces)
+   
+face :: (Array Int Vertex) -> JobParser [Vertex]
+face vs = do
+   _ <- ws >> char 'f'
+   is <- many1 (try (do ws; integ))
+   return (map (vs !) is)
+
+vertex :: JobParser Vertex
+vertex = do
+   _ <- ws >> char 'v'
+   v <- pVec
+   return (Vertex v)
 
 --
 -- parsing transformations
@@ -339,19 +361,6 @@ pMeasuredMaterial = do
    n <- many (noneOf "\n")
    char '\n'
    return (read n)
-   
-pMesh :: JobParser ()
-pMesh = do
-   _ <- string "beginMesh\n"
-   vertexCount <- namedInt "vertexCount" <|> fail "vertexCount missing"
-   faceCount <- namedInt "faceCount"  <|> fail "faceCount missing"
-   vertices <- count vertexCount vertex
-   let va = listArray (0, vertexCount-1) vertices
-   faces <- count faceCount (face va)
-   _ <- string "endMesh\n"
-   s <- getState
-   let mesh = mkMesh (material s) (emit s) (transform s) faces
-   setState s {prims = (map MkAnyPrim mesh) ++ prims s}
 
 namedFloat :: String -> JobParser Flt
 namedFloat n = do
@@ -366,14 +375,7 @@ namedInt n = do
    res <- integ <|> fail ("cannot parse " ++ n ++ " value")
    _ <- char '\n'
    return res
-   
-face :: (Array Int Vertex) -> JobParser [Vertex]
-face vs = do
-   _ <- char 'f'
-   is <- many1 (try (do _ <- (many (char ' ')); integ))
-   _ <- char '\n'
-   return (map (vs !) is)
-   
+
 pVec :: JobParser Vector
 pVec = do
    spaces
@@ -383,13 +385,6 @@ pVec = do
    spaces
    z <- flt
    return (MkVector x y z)
-   
-vertex :: JobParser Vertex
-vertex = do
-   _ <- char 'v'
-   v <- pVec
-   _ <- char '\n'
-   return (Vertex v)
 
 -- | parse an integer
 integ :: JobParser Int
