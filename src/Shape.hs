@@ -93,11 +93,14 @@ intersects (Sphere rad) (Ray ro rd tmin tmax)
 worldBounds :: Shape -- ^ the shape to get the world bounds for
             -> Transform
             -> AABB
-            
+
+-- for triangles, transform the vertices to world space and
+-- compute the bounds of them
 worldBounds (Triangle v1 v2 v3) t = foldl' extendAABBP emptyAABB pl where
       pl = map (transPoint t) pl'
       pl' = [vertexPos v1, vertexPos v2, vertexPos v3]
-
+      
+-- otherwise just transform the object bounds to world space
 worldBounds s t = transBox t (objectBounds s)
 
 objectBounds :: Shape -> AABB
@@ -130,7 +133,7 @@ pdf sp@(Sphere r) pos _
 
 -- for general shapes just return the inverse of the area
 pdf s _ _ = 1 / area s
-      
+
 -- | returns a random point (along with its normal) on the object, 
 --   which is preferably visible from the specified point
 sample :: Shape -> Point -> Rand2D -> (Point, Normal)
