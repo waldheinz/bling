@@ -1,10 +1,13 @@
 
 module Shape (
    Shape,
+
+   -- * Triangles and Meshes
+   Vertex(..), triangulate,
    
    -- * Creating shapes
    
-   mkSphere, triangulate,
+   mkSphere,
 
    -- * Working with shapes
    
@@ -33,7 +36,6 @@ data Shape
 mkSphere :: Flt -> Shape
 mkSphere rad = Sphere rad
 
--- | creates a triangle mesh
 triangulate :: [[Vertex]] -> [Shape]
 triangulate vs = concatMap tr' vs where
    tr' (v1:v2:v3:xs) = Triangle v1 v2 v3 : tr' (v1:v3:xs)

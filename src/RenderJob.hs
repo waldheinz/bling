@@ -14,6 +14,7 @@ import Pathtracer
 import Plastic
 import Primitive
 import Scene
+import Shape
 import Spectrum
 import Texture
 import Transform
@@ -186,7 +187,7 @@ pDirectionalLight = do
    n <- pVec <|> fail "could not parse normal"
    _ <- char '\n'
    _ <- string "endDirectionalLight\n"
-   return (Directional s (normalize n))
+   return (mkDirectional s n)
    
 pEmission :: JobParser ()
 pEmission = do
@@ -328,7 +329,7 @@ pMesh = do
    _ <- string "endMesh\n"
    s <- getState
    let mesh = mkMesh (material s) (emit s) (transform s) faces
-   setState s {prims=[MkAnyPrim mesh] ++ prims s}
+   setState s {prims = (map MkAnyPrim mesh) ++ prims s}
 
 namedFloat :: String -> JobParser Flt
 namedFloat n = do

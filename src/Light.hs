@@ -1,8 +1,14 @@
 
 -- | The functions dealing with colours, radiance and light sources
 module Light (
-   Light, LightSample(..), Light.sample, le, lEmit, Light.pdf) where
+   
+   -- * Creating Light sources
+   Light, mkDirectional,
 
+   -- * Working with light sources
+   LightSample(..), Light.sample, le, lEmit, Light.pdf
+   ) where
+   
 import Math
 import Random
 import Shape as S
@@ -18,11 +24,14 @@ data LightSample = LightSample {
 
 data Light
    = SoftBox Spectrum -- ^ an infinite area light surrounding the whole scene, emitting a constant amount of light from all directions.
-   | Directional Spectrum Normal
+   | Directional !Spectrum !Normal
    | AreaLight {
       areaRadiance :: Spectrum,
       shapeSet :: ShapeSet
       }
+
+mkDirectional :: Spectrum -> Normal -> Light
+mkDirectional s n = Directional s (normalize n)
 
 -- | the emission from the surface of an area light source
 lEmit :: Light -> Point -> Normal -> Vector -> Spectrum

@@ -8,7 +8,7 @@ module Primitive (
 
    -- * Primitives
 
-   Primitive(..), Geometry, mkGeometry, nearest, AnyPrim(..)
+   Primitive(..), Geometry, mkGeom, mkMesh, nearest, AnyPrim(..)
    
    ) where
 
@@ -65,15 +65,23 @@ data Geometry = MkGeometry {
    material :: Material
    } 
 
-mkGeometry :: Transform
-           -> Bool
-           -> Shape
-           -> Material
-           -> Geometry
-mkGeometry t ro s m = MkGeometry t (inverse t) ro s m
-   
-instance Eq Geometry where
+mkGeom
+   :: Transform
+   -> Bool
+   -> Shape
+   -> Material
+   -> Geometry
+mkGeom t ro s m = MkGeometry t (inverse t) ro s m
 
+mkMesh
+   :: Material
+   -> Maybe Spectrum
+   -> Transform
+   -> [[Vertex]]
+   -> [Geometry]
+mkMesh = undefined
+
+instance Eq Geometry where
 
 -- | transforms a @DifferentialGeometry@ to world space
 transDg :: Transform -> DifferentialGeometry -> DifferentialGeometry
