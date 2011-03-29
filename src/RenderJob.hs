@@ -18,7 +18,6 @@ import Shape
 import Spectrum
 import Texture
 import Transform
-import Transport
 
 import Data.Array
 import Text.ParserCombinators.Parsec
@@ -27,16 +26,16 @@ import qualified Text.PrettyPrint as PP
 data Job = MkJob {
    jobScene :: Scene,
    jobIntegrator :: Integrator,
-   jobPixelFilter :: Filter,
+   _jobPixelFilter :: Filter,
    samplesPerPixel :: Int,
    imageSizeX :: Int,
    imageSizeY :: Int
    }
    
 ppJob :: Job -> PP.Doc
-ppJob (MkJob sc _ flt spp sx sy) = PP.vcat [
+ppJob (MkJob sc _ f spp sx sy) = PP.vcat [
    PP.text "Image size is" PP.<+> PP.text ((show sx) ++ "x" ++ (show sy)),
-   PP.text "Pixel filter is" PP.<+> PP.text (show flt),
+   PP.text "Pixel filter is" PP.<+> PP.text (show f),
    PP.text "Samples per pixel is" PP.<+> PP.text (show spp),
    PP.text "Scene stats" PP.$$ PP.nest 3 (ppScene sc)
    ]
@@ -72,19 +71,12 @@ type JobParser a = GenParser Char PState a
 
 jobParser :: JobParser Job
 jobParser = do
-   many object
+   _ <- many object
    eof
-   (PState sx sy flt cam _ _ spp _ ls ps) <- getState
+   (PState sx sy f cam _ _ spp _ ls ps) <- getState
    let scn = mkScene ls ps cam
-   return (MkJob scn pathTracer flt spp sx sy)
+   return (MkJob scn pathTracer f spp sx sy)
 
-sceneParser :: JobParser Scene
-sceneParser = do
-   many object
-   eof
-   s <- getState
-   return (mkScene [] (prims s) (camera s))
-   
 object :: JobParser ()
 object = 
        do pShape
@@ -162,7 +154,7 @@ pTransform = between start end (many ts) >> return () where
    
 tIdentity :: JobParser ()
 tIdentity = do
-   string "identity"
+   _ <- string "identity"
    s <- getState
    setState s { transform = identity }
    
@@ -198,10 +190,10 @@ tTrans = do
 
 tMatrix :: JobParser ()
 tMatrix = do
-   try (string "beginMatrix")
+   _ <- try (string "beginMatrix")
    m <- mtr 'm'
    i <- mtr 'i'
-   ws >> string "endMatrix"
+   _ <- ws >> string "endMatrix"
    let t = fromMatrix (m, i)
    s <- getState
    setState s { transform = concatTrans (transform s) t }
@@ -209,7 +201,7 @@ tMatrix = do
 mtr :: Char -> JobParser [[Flt]]
 mtr p = count 4 row where
    row = do
-      ws >> char p
+      _ <- ws >> char p
       r <- count 4 (try (do ws; flt))
       return r
    
@@ -266,16 +258,16 @@ pFilter = do
    _ <- string "filter"
    _ <- spaces
    
-   flt <- do
+   f <- do
          try (string "box" >> return Box)
          <|> (string "sinc" >> return (Sinc 1 1 1))
          
    s <- getState
-   setState s { pxFilter = flt }
+   setState s { pxFilter = f }
    
 pCamera :: JobParser ()
 pCamera = do
-   try (string "beginCamera")
+   _ <- try (string "beginCamera")
    _ <- ws >> string "pos"
    pos <- ws >> pVec
    _ <- ws >> string "lookAt"
@@ -290,7 +282,7 @@ pCamera = do
    
 pSpectrum :: JobParser Spectrum
 pSpectrum = do
-   try (string "rgb")
+   _ <- try (string "rgb")
    r <- ws >> flt
    g <- ws >> flt
    b <- ws >> flt
@@ -302,7 +294,7 @@ pSpectrum = do
 
 pMaterial :: JobParser ()
 pMaterial = do
-   try (string "beginMaterial")
+   _ <- try (string "beginMaterial")
    ws >> string "type" >> ws
    t <- many alphaNum
    m <- case t of
@@ -345,12 +337,10 @@ pTexture n = do
    
 pMeasuredMaterial :: JobParser Measured
 pMeasuredMaterial = do
-   _ <- string "name"
-   spaces
-   n <- many (noneOf "\n")
-   char '\n'
+   _ <- string "name" >> ws
+   n <- many alphaNum
    return (read n)
-
+   
 namedFloat :: String -> JobParser Flt
 namedFloat n = do
    _ <- string n >> ws
