@@ -41,10 +41,12 @@ mkAreaLight = AreaLight
 -- | the emission from the surface of an area light source
 lEmit :: Light -> Point -> Normal -> Vector -> Spectrum
 lEmit (AreaLight _ r) _ n wo
-   | dot n wo > 0 = r
+   | n `dot` wo > 0 = r
    | otherwise = black
+
+-- all others return black because they are no area light sources
 lEmit _ _ _ _ = black
-      
+
 le :: Light -> Ray -> Spectrum
 le (SoftBox r) _ = r
 le (Directional _ _) _ = black

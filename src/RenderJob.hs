@@ -89,6 +89,7 @@ sceneParser = do
 object :: JobParser ()
 object = 
        do try pMesh
+      <|> pShape
       <|> try pCamera
       <|> try pFilter
       <|> try pSize
@@ -98,6 +99,28 @@ object =
       <|> pMaterial
       <|> pTransform
       <|> ws
+
+--
+-- parsing shapes
+--
+
+pShape :: JobParser ()
+pShape = do
+   try (string "beginShape") >> ws
+   _ <- string "type" >> ws
+   t <- many alphaNum
+   ws
+   sh <- case t of
+      "sphere" -> do
+         r <- namedFloat "radius"
+         return (mkSphere r)
+         
+      _ -> fail ("unknown shape type \"" ++ t ++ "\"")
+   _ <- ws >> string "endShape"
+   
+   s <- getState
+   let p = mkGeom (transform s) False (material s) (emit s) sh
+   setState s {prims = (MkAnyPrim p) : (prims s)}
 
 --
 -- parsing transformations
@@ -185,7 +208,7 @@ pDirectionalLight = do
    s <- pSpectrum  <|> fail "missing spectrum"
    _ <- ws >> (string "normal" <|> fail "missing normal")
    n <- ws >> (pVec <|> fail "could not parse normal")
-   ws >> string "endDirectionalLight"
+   _ <- ws >> string "endDirectionalLight"
    return (mkDirectional s n)
    
 pEmission :: JobParser ()
@@ -332,10 +355,8 @@ pMesh = do
 
 namedFloat :: String -> JobParser Flt
 namedFloat n = do
-   _ <- string n
-   _ <- spaces
+   _ <- string n >> ws
    res <- flt <|> fail ("cannot parse " ++ n ++ " value")
-   _ <- char '\n'
    return res
    
 namedInt :: String -> JobParser Int
