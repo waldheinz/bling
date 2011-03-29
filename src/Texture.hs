@@ -1,7 +1,6 @@
 
 module Texture where
 
-import Geometry
 import Math
 import Spectrum
 

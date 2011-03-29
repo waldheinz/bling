@@ -3,7 +3,6 @@ module Lafortune (
    measuredMaterial, Measured(..)
    ) where
 
-import Geometry
 import Material
 import Math
 import Spectrum

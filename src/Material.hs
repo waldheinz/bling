@@ -2,7 +2,6 @@
 module Material(Material, Lambertian(..),
    matteMaterial, blackBodyMaterial) where
 
-import Geometry
 import Math
 import Spectrum
 import Texture

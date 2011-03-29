@@ -1,7 +1,6 @@
 
 module Specular where
 
-import Geometry
 import Material
 import Math
 import Spectrum
