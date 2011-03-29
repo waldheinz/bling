@@ -42,15 +42,15 @@ occluded :: Scene -> Ray -> Bool
 occluded (Scene p _ _) = intersects p
 
 type Integrator = Scene -> Ray -> Rand WeightedSpectrum
-   
+
 sampleLightMis :: Scene -> LightSample -> Bsdf -> Vector -> Normal -> Spectrum
-sampleLightMis scene (LightSample li wi ray p deltaLight) bsdf wo n
-   | p == infinity || isBlack li || isBlack f || occluded scene ray = black
-   | deltaLight = sScale (f * li) (absDot wi n / p)
-   | otherwise = sScale (f * li) (absDot wi n * weight / p)
+sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n
+   | lpdf == 0 || isBlack li || isBlack f || occluded scene ray = black
+   | delta = sScale (f * li) (absDot wi n / lpdf)
+   | otherwise = sScale (f * li) (absDot wi n * weight / lpdf)
    where
          f = evalBsdf bsdf wo wi
-         weight = powerHeuristic (1, p) (1, bsdfPdf bsdf wo wi)
+         weight = powerHeuristic (1, lpdf) (1, bsdfPdf bsdf wo wi)
 
 sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Spectrum
 sampleBsdfMis (Scene sp _ _) l (BsdfSample _ bPdf f wi) n p
@@ -64,18 +64,31 @@ sampleBsdfMis (Scene sp _ _) l (BsdfSample _ bPdf f wi) n p
          ray = Ray p wi epsilon infinity
          lint = sp `intersect` ray
 
-estimateDirect :: Scene -> Light -> Point -> Normal -> Vector -> Bsdf -> Rand Spectrum
-estimateDirect s l p n wo bsdf = 
-   let lSmp = sample l p n
-       bSmp = sampleBsdf bsdf wo
-   in do
-      uL <- rnd2D
-      uBC <- rnd
-      uBD <- rnd2D
-      let ls = sampleLightMis s (lSmp uL) bsdf wo n
-      let bs = sampleBsdfMis s l (bSmp uBC uBD) n p
-      return (ls + bs)
+estimateDirect
+   :: Scene
+   -> Light
+   -> Point
+   -> Normal
+   -> Vector
+   -> Bsdf
+   -> Rand Spectrum
+
+estimateDirect s l p n wo bsdf = do
+   ul <- rnd2D
+   let (LightSample li wi ray lpdf delta) = sample l p n ul
+   if lpdf == 0 || occluded s ray
+      then return black
+      else return $ sScale ((evalBsdf bsdf wo wi) * li) (absDot wi n * lpdf)
    
+{-
+estimateDirect s l p n wo bsdf = do
+   uL <- rnd2D
+   uBC <- rnd
+   uBD <- rnd2D
+   let ls = sampleLightMis s (sample l p n uL) bsdf wo n
+   let bs = black -- sampleBsdfMis s l (sampleBsdf bsdf wo uBC uBD) n p
+   return (ls + bs)
+   -}
 -- | samples one randomly chosen light source
 sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> Float -> Rand Spectrum
 sampleOneLight scene@(Scene _ lights _) p n wo bsdf ulNum

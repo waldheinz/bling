@@ -51,12 +51,12 @@ mkBxdfType = foldl' (flip insert) empty
 
 class Bxdf a where
    bxdfEval :: a -> Normal -> Normal -> Spectrum
-   bxdfSample :: a -> Normal -> Rand2D -> (Spectrum, Normal, Float)
-   bxdfPdf :: a -> Normal -> Normal -> Float
+   bxdfSample :: a -> Normal -> Rand2D -> (Spectrum, Normal, Flt)
+   bxdfPdf :: a -> Normal -> Normal -> Flt
    bxdfType :: a -> BxdfType
    
    bxdfSample a wo u = (f, wi, pdf) where
-      wi = cosineSampleHemisphere u
+      wi = toSameHemisphere wo (cosineSampleHemisphere u)
       f = bxdfEval a wo wi
       pdf = bxdfPdf a wo wi
       
@@ -94,13 +94,12 @@ filterBsdf ap (Bsdf bs cs) = Bsdf bs' cs where
    bs' = V.filter (member ap . bxdfType) bs
 
 bsdfPdf :: Bsdf -> Vector -> Vector -> Float
-bsdfPdf (Bsdf bs cs) woW wiW =
-   if V.null bs
-      then 0.0
-      else V.foldl' (+) 0.0 $ V.map (\b -> bxdfPdf b wo wi) bs where
-         wo = worldToLocal cs woW
-         wi = worldToLocal cs wiW
-
+bsdfPdf (Bsdf bs cs) woW wiW
+   | V.null bs = 0
+   | otherwise = V.foldl' (+) 0 $ V.map (\b -> bxdfPdf b wo wi) bs where
+      wo = worldToLocal cs woW
+      wi = worldToLocal cs wiW
+   
 sampleBsdf :: Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
 sampleBsdf (Bsdf bs cs) woW uComp uDir =
    if V.null bs
