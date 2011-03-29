@@ -41,8 +41,8 @@ ppJob (MkJob sc _ f spp sx sy) = PP.vcat [
    ]
    
 data PState = PState {
-   _resX :: Int,
-   _resY :: Int,
+   resX :: Int,
+   resY :: Int,
    pxFilter :: Filter, -- ^ the pixel filtering function
    camera :: Camera,
    transform :: Transform,
@@ -52,6 +52,9 @@ data PState = PState {
    lights :: [Light],
    prims :: [AnyPrim]
    }
+   
+aspect :: PState -> Flt
+aspect s = (fromIntegral (resX s)) / (fromIntegral (resY s))
    
 startState :: PState
 startState = PState 1024 768 Box
@@ -250,7 +253,7 @@ pSize = do
    _ <- spaces
    sy <- integ
    s <- getState
-   setState s { _resX = sx, _resY = sy }
+   setState s { resX = sx, resY = sy }
 
 -- | parses the pixel filtering function
 pFilter :: JobParser ()
@@ -277,8 +280,8 @@ pCamera = do
    _ <- ws >> string "fov"
    fov <- ws >> flt
    _ <- ws >> string "endCamera"
-   oldState <- getState
-   setState oldState {camera = pinHoleCamera (View pos la up fov 1)}
+   s <- getState
+   setState s {camera = pinHoleCamera (View pos la up fov (aspect s))}
    
 pSpectrum :: JobParser Spectrum
 pSpectrum = do
