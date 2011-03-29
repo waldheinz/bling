@@ -60,17 +60,23 @@ le (Directional _ _) _ = black
 -- that intersection for le
 le (AreaLight _ _ _ _) r = black
 
-sample :: Light -> Point -> Normal -> Rand2D -> LightSample
+-- | samples one light source
+sample
+   :: Light -- ^ the light to sample
+   -> Point -- ^ the point in world space from where the light is viewed
+   -> Normal -- ^ the surface normal in world space from where the light is viewed
+   -> Rand2D -- ^ the random value for sampling the light
+   -> LightSample -- ^ the computed @LightSample@
 sample (SoftBox r) p n us = lightSampleSB r p n us
 sample (Directional r d) p n _ = lightSampleD r d p n
 sample al@(AreaLight s r t t') p n us = LightSample ls wi' ray pd False where
    p' = transPoint t' p -- point in local space
-   (ps, ns) = S.sample s p' us
-   wi' = transVector t wi
-   wi = normalize (ps `sub` p')
-   ls = lEmit al ps ns (neg wi)
-   pd = Light.pdf al p' wi
-   ray = transRay t (segmentRay p' ps)
+   (ps, ns) = S.sample s p' us -- point and normal in local space
+   wi' = transVector t wi -- incident vector in world space
+   wi = normalize (ps `sub` p') -- incident vector in local space
+   ls = lEmit al ps ns (neg wi) -- emitted light (computed in local space)
+   pd = Light.pdf al p' wi -- pdf (computed in local space)
+   ray = transRay t (segmentRay p' ps) -- vis. test ray (in world space)
    
 pdf :: Light -- ^ the light to compute the pdf for
     -> Point -- ^ the point from which the light is viewed
