@@ -62,7 +62,8 @@ data Geometry = MkGeometry {
    w2o :: Transform, -- ^ the world-to-object transformation
    _reverseOrientation :: Bool, -- ^ reverse the normal orientation?
    shape :: Shape,
-   material :: Material
+   material :: Material,
+   emission :: Maybe Spectrum
    } 
 
 mkGeom
@@ -72,7 +73,7 @@ mkGeom
    -> Maybe Spectrum
    -> Shape
    -> Geometry
-mkGeom t ro m e s = MkGeometry t (inverse t) ro s m
+mkGeom t ro m e s = MkGeometry t (inverse t) ro s m e
 
 mkMesh
    :: Material
@@ -93,6 +94,7 @@ instance Primitive Geometry where
    flatten g = [MkAnyPrim g]
    worldBounds g = S.worldBounds (shape g) (o2w g)
    intersects g rw = S.intersects (shape g) (transRay (w2o g) rw)
+   light g = maybe Nothing (\e -> Just (mkAreaLight (shape g) e)) (emission g)
    intersect g rw
       | isNothing mi = Nothing
       | otherwise = Just (Intersection t (transDg (o2w g) dg) p m)

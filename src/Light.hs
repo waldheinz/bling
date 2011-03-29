@@ -3,7 +3,7 @@
 module Light (
    
    -- * Creating Light sources
-   Light, mkDirectional,
+   Light, mkDirectional, mkAreaLight,
 
    -- * Working with light sources
    LightSample(..), Light.sample, le, lEmit, Light.pdf
@@ -26,16 +26,21 @@ data Light
    = SoftBox Spectrum -- ^ an infinite area light surrounding the whole scene, emitting a constant amount of light from all directions.
    | Directional !Spectrum !Normal
    | AreaLight {
-      areaRadiance :: Spectrum,
-      shapeSet :: ShapeSet
+      alShape :: Shape,
+      areaRadiance :: Spectrum
       }
 
+-- | creates a new directional light source
 mkDirectional :: Spectrum -> Normal -> Light
 mkDirectional s n = Directional s (normalize n)
 
+-- | creates a new area light sources
+mkAreaLight :: Shape -> Spectrum -> Light
+mkAreaLight = AreaLight
+
 -- | the emission from the surface of an area light source
 lEmit :: Light -> Point -> Normal -> Vector -> Spectrum
-lEmit (AreaLight r _) _ n wo
+lEmit (AreaLight _ r) _ n wo
    | dot n wo > 0 = r
    | otherwise = black
 lEmit _ _ _ _ = black
@@ -58,29 +63,17 @@ pdf :: Light -- ^ the light to compute the pdf for
     -> Float -- ^ the computed pdf value
 pdf (SoftBox _) _ wi = undefined
 pdf (Directional _ _) _ _ = infinity -- zero chance to find the direction by sampling
-pdf (AreaLight _ ss) p wi = ssPdf ss p wi
+pdf (AreaLight ss _) p wi = S.pdf ss p wi
 
 lightSampleSB :: Spectrum -> Point -> Normal -> Rand2D -> LightSample
-lightSampleSB r pos n us = LightSample r (toWorld lDir) (ray $ toWorld lDir) (pdf lDir) False
+lightSampleSB r pos n us = LightSample r (toWorld lDir) (ray $ toWorld lDir) (p lDir) False
    where
       lDir = cosineSampleHemisphere us
       ray dir = Ray pos dir epsilon infinity
-      pdf (MkVector _ _ z) = invPi * z
+      p (MkVector _ _ z) = invPi * z
       toWorld = localToWorld (coordinateSystem n)
 
 lightSampleD :: Spectrum -> Normal -> Point -> Normal -> LightSample
 lightSampleD r d pos n = LightSample y d ray 1.0 True where
    y = sScale r (absDot n d)
    ray = Ray pos d epsilon infinity
-
---
--- shape set for geometric lights
---
-
-data ShapeSet = MkShapeSet {
-   sumArea :: Flt,
-   shapes :: [Shape]
-   }
-
-ssPdf :: ShapeSet -> Point -> Vector -> Flt
-ssPdf (MkShapeSet a ls) p wi = sum (map (\s -> S.pdf s p wi) ls) / a
