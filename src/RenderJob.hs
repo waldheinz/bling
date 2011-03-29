@@ -181,12 +181,11 @@ pLight = do
 
 pDirectionalLight :: JobParser Light
 pDirectionalLight = do
-   _ <- string "beginDirectionalLight\n"
-   s <- pSpectrum <|> fail "missing spectrum"
-   _ <- string "normal" <|> fail "missing normal"
-   n <- pVec <|> fail "could not parse normal"
-   _ <- char '\n'
-   _ <- string "endDirectionalLight\n"
+   try (string "beginDirectionalLight") >> ws
+   s <- pSpectrum  <|> fail "missing spectrum"
+   _ <- ws >> (string "normal" <|> fail "missing normal")
+   n <- ws >> (pVec <|> fail "could not parse normal")
+   ws >> string "endDirectionalLight"
    return (mkDirectional s n)
    
 pEmission :: JobParser ()
