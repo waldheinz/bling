@@ -22,5 +22,5 @@ whitted sc ray@(Ray _ rd _ _)
          
       evalInt :: Intersection -> Rand (Flt, Spectrum)
       evalInt int@(Intersection _ (DifferentialGeometry p n) _ _) = do
-         l <- sampleAllLights sc p n wo (intBsdf int)
+         l <- return black -- sampleAllLights sc p n wo (intBsdf int)
          return $! (1, l + intLe int wo)

@@ -1,11 +1,11 @@
 module Scene (
    Scene, mkScene, scenePrim, sceneLights, sceneCam,
-   Integrator, sampleOneLight, sampleAllLights, ppScene
+   Integrator, sampleOneLight, ppScene
    ) where
 
 import Control.Monad
 import Data.Array.Unboxed
-import Data.Maybe (isJust, fromJust, catMaybes, mapMaybe)
+import Data.Maybe (isJust, fromJust, mapMaybe)
 import Text.PrettyPrint
 
 import Bvh
@@ -42,21 +42,6 @@ occluded :: Scene -> Ray -> Bool
 occluded (Scene p _ _) = intersects p
 
 type Integrator = Scene -> Ray -> Rand WeightedSpectrum
-
-evalLight :: Scene -> Point -> Normal -> Light -> Vector -> Bsdf -> Rand2D -> Spectrum
-evalLight scene p n l wo bsdf us = evalSample scene s wo bsdf p n where
-   s = L.sample l p n us
-   
-evalSample :: Scene -> LightSample -> Vector -> Bsdf -> Point -> Normal -> Spectrum
-evalSample scene s wo bsdf _ n
-   | isBlack li || isBlack f = black
-   | occluded scene (testRay s) = black
-   | otherwise = sScale (f * li) $ absDot wi n / lPdf
-   where
-         lPdf = lightSamplePdf s
-         li = de s
-         wi = lightSampleWi s
-         f = evalBsdf bsdf wo wi
    
 sampleLightMis :: Scene -> LightSample -> Bsdf -> Vector -> Normal -> Spectrum
 sampleLightMis scene (LightSample li wi ray p deltaLight) bsdf wo n
@@ -78,10 +63,6 @@ sampleBsdfMis (Scene sp _ _) l (BsdfSample _ bPdf f wi) n p
          scale li = sScale (f * li) (absDot wi n * weight / bPdf)
          ray = Ray p wi epsilon infinity
          lint = sp `intersect` ray
-         
--- | samples all lights by sampling individual lights and summing up the results
-sampleAllLights :: Scene -> Point -> Normal -> Vector -> Bsdf -> Rand Spectrum
-sampleAllLights scene p n wo bsdf = undefined
 
 estimateDirect :: Scene -> Light -> Point -> Normal -> Vector -> Bsdf -> Rand Spectrum
 estimateDirect s l p n wo bsdf = 
