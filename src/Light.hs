@@ -27,10 +27,10 @@ data Light
    = SoftBox Spectrum -- ^ an infinite area light surrounding the whole scene, emitting a constant amount of light from all directions.
    | Directional !Spectrum !Normal
    | AreaLight {
-      alShape :: Shape,
-      areaRadiance :: Spectrum,
-      l2w :: Transform, -- ^ the light-to-world transformation
-      w2l :: Transform -- ^ the world-to-light transformation
+      _alShape :: Shape,
+      _areaRadiance :: Spectrum,
+      _l2w :: Transform, -- ^ the light-to-world transformation
+      _w2l :: Transform -- ^ the world-to-light transformation
       }
 
 -- | creates a new directional light source
@@ -58,7 +58,7 @@ le (SoftBox r) _ = r
 le (Directional _ _) _ = black
 -- area lights must be sampled by intersecting the shape directly and asking
 -- that intersection for le
-le (AreaLight _ _ _ _) r = black
+le (AreaLight _ _ _ _) _ = black
 
 -- | samples one light source
 sample
@@ -69,7 +69,7 @@ sample
    -> LightSample -- ^ the computed @LightSample@
 sample (SoftBox r) p n us = lightSampleSB r p n us
 sample (Directional r d) p n _ = lightSampleD r d p n
-sample al@(AreaLight s r t t') p n us = LightSample ls wi' ray pd False where
+sample al@(AreaLight s _ t t') p _ us = LightSample ls wi' ray pd False where
    p' = transPoint t' p -- point in local space
    (ps, ns) = S.sample s p' us -- point and normal in local space
    wi' = transVector t wi -- incident vector in world space
@@ -82,7 +82,7 @@ pdf :: Light -- ^ the light to compute the pdf for
     -> Point -- ^ the point from which the light is viewed
     -> Vector -- ^ the wi vector
     -> Float -- ^ the computed pdf value
-pdf (SoftBox _) _ wi = undefined
+pdf (SoftBox _) _ _ = undefined
 pdf (Directional _ _) _ _ = infinity -- zero chance to find the direction by sampling
 pdf (AreaLight ss _ _ t) p wi = S.pdf ss (transPoint t p) (transVector t wi)
 
