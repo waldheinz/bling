@@ -19,7 +19,6 @@ import Spectrum
 import Texture
 import Transform
 import Transport
-import Whitted
 
 import Data.Array
 import Text.ParserCombinators.Parsec
