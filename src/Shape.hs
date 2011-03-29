@@ -80,16 +80,13 @@ intersect (Triangle v1 v2 v3) r@(Ray ro rd tmin tmax)
       p3 = vertexPos v3
 
 intersects :: Shape -> Ray -> Bool
-intersects (Sphere rad) (Ray ro rd tmin tmax)
-   | isNothing roots = False
-   | otherwise = t0 < tmax && t1 > tmin 
-   where
-         a = sqLen rd
-         b = 2 * dot ro rd
-         c = sqLen ro - (rad * rad)
-         (t0, t1) = fromJust roots
-         roots = solveQuadric a b c
-
+intersects (Sphere rad) (Ray ro rd tmin tmax) = si where
+   si = maybe False (\(t0, t1) -> t0 < tmax && t1 > tmin ) roots
+   a = sqLen rd
+   b = 2 * dot ro rd
+   c = sqLen ro - (rad * rad)
+   roots = solveQuadric a b c
+   
 -- as a general way we can just check if @intersect@ returns something
 intersects s r = isJust (s `intersect` r)
 

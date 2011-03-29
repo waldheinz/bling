@@ -67,7 +67,8 @@ beginShape
    v 2.0 5.7 2.0
    v 0.0 5.7 2.0
    v 0.0 5.7 0.0
-   f 3 2 1 0
+   f 0 1 2 3
+ #  f 3 2 1 0
 endShape
 
 #
@@ -76,10 +77,10 @@ endShape
 
 beginTransform
    identity
-   translate -2.0 4.0 0.0
+   translate -4.0 4.0 0.0
 endTransform
 
-beginShape
-   type sphere
-   radius 3.0
-endShape
+#beginShape
+#   type sphere
+#   radius 3.0
+#endShape
