@@ -10,8 +10,9 @@ import Text.PrettyPrint
 
 import Bvh
 import Camera
-import Light
+import Light as L
 import Math
+import Montecarlo
 import Primitive
 import Random
 import Spectrum
@@ -24,7 +25,7 @@ data Scene = Scene {
    }
    
 ppScene :: Scene -> Doc
-ppScene (Scene p ls c) = vcat [
+ppScene (Scene p ls _) = vcat [
    text "bounds" <+> text (show (worldBounds p)),
    text "number of lights" <+> (int (rangeSize (bounds ls))),
    text "BVH stats" $$ nest 3 (ppBvh p)
@@ -43,36 +44,36 @@ occluded (Scene p _ _) = intersects p
 type Integrator = Scene -> Ray -> Rand WeightedSpectrum
 
 evalLight :: Scene -> Point -> Normal -> Light -> Vector -> Bsdf -> Rand2D -> Spectrum
-evalLight scene p n light wo bsdf us = (evalSample scene sample wo bsdf p n) where
-   sample = lightSample light p n us
+evalLight scene p n l wo bsdf us = evalSample scene s wo bsdf p n where
+   s = L.sample l p n us
    
 evalSample :: Scene -> LightSample -> Vector -> Bsdf -> Point -> Normal -> Spectrum
-evalSample scene sample wo bsdf _ n
+evalSample scene s wo bsdf _ n
    | isBlack li || isBlack f = black
-   | occluded scene (testRay sample) = black
+   | occluded scene (testRay s) = black
    | otherwise = sScale (f * li) $ (absDot wi n) / lPdf
    where
-         lPdf = lightSamplePdf sample
-         li = de sample
-         wi = lightSampleWi sample
+         lPdf = lightSamplePdf s
+         li = de s
+         wi = lightSampleWi s
          f = evalBsdf bsdf wo wi
    
 sampleLightMis :: Scene -> LightSample -> Bsdf -> Vector -> Normal -> Spectrum
-sampleLightMis scene (LightSample li wi ray pdf deltaLight) bsdf wo n
-   | (pdf == infinity) || (isBlack li) || (isBlack f) || (occluded scene ray) = black
-   | deltaLight = sScale (f * li) ((absDot wi n) / pdf)
-   | otherwise = sScale (f * li) ((absDot wi n) * weight / pdf)
+sampleLightMis scene (LightSample li wi ray p deltaLight) bsdf wo n
+   | (p == infinity) || (isBlack li) || (isBlack f) || (occluded scene ray) = black
+   | deltaLight = sScale (f * li) ((absDot wi n) / p)
+   | otherwise = sScale (f * li) ((absDot wi n) * weight / p)
    where
          f = evalBsdf bsdf wo wi
-         weight = powerHeuristic (1, pdf) (1, bsdfPdf bsdf wo wi)
+         weight = powerHeuristic (1, p) (1, bsdfPdf bsdf wo wi)
 
 sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Spectrum
 sampleBsdfMis (Scene sp _ _) l (BsdfSample _ bPdf f wi) n p
    | (isBlack f) || (bPdf == 0) = black
    | isJust lint = scale $ intLe (fromJust lint) (neg wi) -- TODO: need to check if the "right" light was hit
-   | otherwise = scale (lightEmittance l ray)
+   | otherwise = scale (le l ray)
    where
-         lPdf = lightPdf l p n wi
+         lPdf = pdf l p wi
          weight = powerHeuristic (1, bPdf) (1, lPdf)
          scale = (\li -> sScale (f * li) ((absDot wi n) * weight / bPdf))
          ray = Ray p wi epsilon infinity
@@ -84,7 +85,7 @@ sampleAllLights scene p n wo bsdf = undefined
 
 estimateDirect :: Scene -> Light -> Point -> Normal -> Vector -> Bsdf -> Rand Spectrum
 estimateDirect s l p n wo bsdf = 
-   let lSmp = lightSample l p n
+   let lSmp = sample l p n
        bSmp = sampleBsdf bsdf wo
    in do
    uL <- rnd2D

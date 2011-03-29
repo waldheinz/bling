@@ -11,22 +11,24 @@ module Montecarlo (
 import Data.Maybe (fromJust, isJust)
 import Data.Vector.Unboxed as V
 
+import Math (Flt)
+
 --
 -- 1D - distribution
 --
 
 data (Unbox a) => Dist1D a = MkDist1D {
-   func :: Vector a,
-   cdf :: Vector a,
-   funcInt :: a
+   _func :: Vector a,
+   _cdf :: Vector a,
+   _funcInt :: a
    }
 
 instance (Show a, Unbox a) => Show (Dist1D a) where
    show (MkDist1D f _ _) = "mkDist1D " Prelude.++ show (toList f)
 
 integ :: (Fractional a) => [a] -> (a, [a])
-integ fs = (sum, Prelude.tail int) where
-   (sum, int, _) = integ' (0, [], fs)
+integ vs = (sm, Prelude.tail int) where
+   (sm, int, _) = integ' (0, [], vs)
    integ' (s, is, []) = (s, is Prelude.++ [s], [])
    integ' (s, is, (f:fs)) = integ' (s + f, is Prelude.++ [s], fs)
 
