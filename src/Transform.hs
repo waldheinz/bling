@@ -25,14 +25,14 @@ toList m = [
 
 fromList :: [[Flt]] -> Matrix
 fromList (
-   (m00:m01:m02:m03:[]):
-   (m10:m11:m12:m13:[]):
-   (m20:m21:m22:m23:[]):
-   (m30:m31:m32:m33:[]):[]) = MkMatrix
-   m00 m01 m02 m03
-   m10 m11 m12 m13
-   m20 m21 m22 m23
-   m30 m31 m32 m33
+   (l00:l01:l02:l03:[]):
+   (l10:l11:l12:l13:[]):
+   (l20:l21:l22:l23:[]):
+   (l30:l31:l32:l33:[]):[]) = MkMatrix
+   l00 l01 l02 l03
+   l10 l11 l12 l13
+   l20 l21 l22 l23
+   l30 l31 l32 l33
 fromList _ = error "malformed matrix"
 
 -- | @Matrix@ multiply
