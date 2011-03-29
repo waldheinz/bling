@@ -5,7 +5,6 @@ import Data.BitSet
 import Data.Array.Unboxed
 import Debug.Trace
 
-import Geometry
 import Light
 import Math
 import Primitive
@@ -15,10 +14,10 @@ import Spectrum
 import Transport
 
 pathTracer :: Integrator
-pathTracer scene r = nextVertex scene 0 True r (primIntersect (scenePrim scene) r) white black
+pathTracer scene r = nextVertex scene 0 True r (intersect (scenePrim scene) r) white black
 
 directLight :: Scene -> Ray -> Spectrum
-directLight s ray = foldl (+) black (map (`lightEmittance` ray) (elems $ sceneLights s))
+directLight s ray = foldl (+) black (map (`le` ray) (elems $ sceneLights s))
 
 nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Rand WeightedSpectrum
 -- nextVertex _ 10 _ _ _ _ l = return $! (1.0, seq l l) -- hard bound
@@ -45,7 +44,7 @@ nextVertex scene depth specBounce (Ray _ rd _ _) (Just int) throughput l
       x <- rnd
       if x > pCont || (pdf == 0.0)
          then return $! (1.0, l')
-         else nextVertex scene (depth + 1) spec' outRay (primIntersect (scenePrim scene) outRay) throughput' l'
+         else nextVertex scene (depth + 1) spec' outRay (intersect (scenePrim scene) outRay) throughput' l'
          
       where
          dg = intGeometry int
@@ -55,4 +54,3 @@ nextVertex scene depth specBounce (Ray _ rd _ _) (Just int) throughput l
          bsdf = intBsdf int
          n = dgN dg
          p = dgP dg
-         

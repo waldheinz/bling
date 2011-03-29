@@ -2,7 +2,6 @@ module Whitted (whitted) where
 
 import Data.Maybe(isJust, fromJust)
 
-import Geometry
 import Math
 import Primitive
 import Random
@@ -15,7 +14,7 @@ whitted sc ray@(Ray _ rd _ _)
    | otherwise = return (1, black) -- $! direct ray
    where
       wo = neg rd
-      mint = primIntersect (scenePrim sc) ray
+      mint = intersect (scenePrim sc) ray
 
 --      direct :: Ray -> Spectrum
 --      direct _ [] = black

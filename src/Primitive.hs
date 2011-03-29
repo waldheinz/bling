@@ -4,15 +4,12 @@ module Primitive (
 
    -- * Ray - Primitive intersections
 
-   Intersection(..), intLe,
+   Intersection(..), intLe, intBsdf,
 
-   Primitive(..),
+   -- * Primitives
 
-   Geometry, mkGeometry, nearest,
+   Primitive(..), Geometry, mkGeometry, nearest, AnyPrim(..)
    
-   -- * Existentials
-   
-   AnyPrim(..)
    ) where
 
 import AABB
@@ -22,32 +19,10 @@ import Math
 import Shape as S
 import Spectrum
 import Transform
+import Transport
 
 import Data.Maybe(fromJust, isJust, isNothing)
 
--- | transforms a @DifferentialGeometry@ to world space
-transDg :: Transform -> DifferentialGeometry -> DifferentialGeometry
-transDg t (DifferentialGeometry p n) =
-   DifferentialGeometry (transPoint t p) (transNormal t n)
-
-data Intersection = Intersection {
-   intDist :: Float,
-   intGeometry :: DifferentialGeometry,
-   intPrimitive :: AnyPrim,
-   intMaterial :: Material
-   }
-
--- intBsdf :: Intersection -> Bsdf
--- intBsdf int = intMaterial int $ intGeometry int
-
--- | the light emitted at this intersection point
-intLe :: Intersection -> Normal -> Spectrum
-intLe (Intersection _ (DifferentialGeometry p n) prim _) wo 
-   | isJust l = L.lEmit (fromJust l) p n wo
-   | otherwise = black
-   where
-         l = light prim
-   
 class Primitive a where
    intersect :: a -> Ray -> Maybe Intersection
    intersects :: a -> Ray -> Bool
@@ -98,7 +73,13 @@ mkGeometry :: Transform
 mkGeometry t ro s m = MkGeometry t (inverse t) ro s m
    
 instance Eq Geometry where
-   
+
+
+-- | transforms a @DifferentialGeometry@ to world space
+transDg :: Transform -> DifferentialGeometry -> DifferentialGeometry
+transDg t (DifferentialGeometry p n) =
+   DifferentialGeometry (transPoint t p) (transNormal t n)
+
 instance Primitive Geometry where
    flatten g = [MkAnyPrim g]
    worldBounds g = S.worldBounds (shape g) (o2w g)
@@ -123,4 +104,26 @@ nearest (Ray ro rd tmin tmax) i = nearest' i tmax Nothing where
       newMax = if isNothing newNear
                   then tmax'
                   else intDist $ fromJust newNear
-                  
+
+--
+-- Intersections
+--
+
+data Intersection = Intersection {
+   intDist :: Float,
+   intGeometry :: DifferentialGeometry,
+   intPrimitive :: AnyPrim,
+   intMaterial :: Material
+   }
+
+intBsdf :: Intersection -> Bsdf
+intBsdf int = intMaterial int $ intGeometry int
+
+-- | the light emitted at this intersection point
+intLe :: Intersection -> Normal -> Spectrum
+intLe (Intersection _ (DifferentialGeometry p n) prim _) wo
+   | isJust l = L.lEmit (fromJust l) p n wo
+   | otherwise = black
+   where
+         l = light prim
+   
