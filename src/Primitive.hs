@@ -68,10 +68,11 @@ data Geometry = MkGeometry {
 mkGeom
    :: Transform
    -> Bool
-   -> Shape
    -> Material
+   -> Maybe Spectrum
+   -> Shape
    -> Geometry
-mkGeom t ro s m = MkGeometry t (inverse t) ro s m
+mkGeom t ro m e s = MkGeometry t (inverse t) ro s m
 
 mkMesh
    :: Material
@@ -79,7 +80,7 @@ mkMesh
    -> Transform
    -> [[Vertex]]
    -> [Geometry]
-mkMesh = undefined
+mkMesh m e t vs = map (mkGeom t False m e) (triangulate vs)
 
 instance Eq Geometry where
 
