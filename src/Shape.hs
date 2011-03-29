@@ -155,12 +155,11 @@ sample sp@(Sphere r) p us
                int = sp `intersect` ray
                t = fst $ fromJust int
 
-
-sample (Triangle v1 v2 v3) _ (u1, u2) = (p, n) where
+sample (Triangle v1 v2 v3) _ (u1, u2) = {-trace (show p ++ " " ++ show n)-} (p, n) where
    p = scalMul p1 b1 `add` scalMul p2 b2 `add` scalMul p3 (1 - b1 - b2)
    (p1, p2, p3) = (vertexPos v1, vertexPos v2, vertexPos v3)
    b1 = 1 - u1' -- first barycentric
    b2 = u2 * u1' -- second barycentric
    u1' = sqrt u1
-   n = normalize $ cross (sub p2 p1) (sub p3 p1)
+   n = normalize $ cross (sub p3 p1) (sub p2 p1)
       

@@ -30,7 +30,7 @@ data Light
       alShape :: Shape,
       areaRadiance :: Spectrum,
       l2w :: Transform, -- ^ the light-to-world transformation
-      w2l :: Transform
+      w2l :: Transform -- ^ the world-to-light transformation
       }
 
 -- | creates a new directional light source
@@ -43,7 +43,7 @@ mkAreaLight s r t = AreaLight s r t (inverse t)
 
 -- | the emission from the surface of an area light source
 lEmit :: Light -> Point -> Normal -> Vector -> Spectrum
-lEmit (AreaLight _ r t _) _ n' wo'
+lEmit (AreaLight _ r _ t) _ n' wo'
    | n `dot` wo > 0 = r
    | otherwise = black
    where
