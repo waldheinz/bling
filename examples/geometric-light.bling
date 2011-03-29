@@ -58,15 +58,15 @@ beginTransform
  #  rotateZ 45.0
 endTransform
 
-beginMesh
-vertexCount 4
-faceCount 1
-v 2.0 5.7 0.0
-v 2.0 5.7 2.0
-v 0.0 5.7 2.0
-v 0.0 5.7 0.0
-f 3 2 1 0
-endMesh
+# beginMesh
+# vertexCount 4
+# faceCount 1
+# v 2.0 5.7 0.0
+# v 2.0 5.7 2.0
+# v 0.0 5.7 2.0
+# v 0.0 5.7 0.0
+# f 3 2 1 0
+# endMesh
 
 #
 # sphere light
@@ -74,9 +74,10 @@ endMesh
 
 beginTransform
    identity
+   translate -2.0 4.0 0.0
 endTransform
 
 beginShape
    type sphere
-   radius 2.0
+   radius 4.0
 endShape

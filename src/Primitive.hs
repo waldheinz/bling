@@ -94,7 +94,7 @@ instance Primitive Geometry where
    flatten g = [MkAnyPrim g]
    worldBounds g = S.worldBounds (shape g) (o2w g)
    intersects g rw = S.intersects (shape g) (transRay (w2o g) rw)
-   light g = maybe Nothing (\e -> Just (mkAreaLight (shape g) e)) (emission g)
+   light g = maybe Nothing (\e -> Just (mkAreaLight (shape g) e (o2w g))) (emission g)
    intersect g rw
       | isNothing mi = Nothing
       | otherwise = Just (Intersection t (transDg (o2w g) dg) p m)
