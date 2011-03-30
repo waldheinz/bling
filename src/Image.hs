@@ -22,11 +22,18 @@ data ImageSample = ImageSample {
    sampleSpectrum :: ! WeightedSpectrum
    } deriving Show
 
-data Filter = Box | Sinc Flt Flt Flt
-
-instance Show Filter where
-   show Box = "Box Filter"
-   show (Sinc _ _ _) = "Sinc Filter"
+data Filter
+   = Box -- ^ a simple box filter
+   | Sinc {
+      _xw :: Flt,
+      _yw :: Flt,
+      _tau :: Flt
+      }
+   deriving (Show)
+   
+--instance Show Filter where
+--   show Box = "Box Filter"
+--   show (Sinc _ _ _) = "Sinc Filter"
 
 -- | an image has a width, a height and some pixels 
 data Image s = Image {

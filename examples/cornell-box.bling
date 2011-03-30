@@ -1,7 +1,8 @@
 
-filter box
-imageSize 600 600
-samplesPerPixel 4
+filter sinc 4.0 4.0 3.0
+#filter box
+imageSize 400 400
+samplesPerPixel 1
 
 #
 # camera

@@ -1,6 +1,7 @@
 
 module RenderJob (
-   Job, parseJob, ppJob, jobScene, jobIntegrator, imageSizeX, imageSizeY,
+   Job, parseJob, ppJob,
+   jobScene, jobIntegrator, imageSizeX, imageSizeY, jobPixelFilter,
    samplesPerPixel
    ) where
 
@@ -27,7 +28,7 @@ import qualified Text.PrettyPrint as PP
 data Job = MkJob {
    jobScene :: Scene,
    jobIntegrator :: Integrator,
-   _jobPixelFilter :: Filter,
+   jobPixelFilter :: Filter,
    samplesPerPixel :: Int,
    imageSizeX :: Int,
    imageSizeY :: Int
@@ -85,7 +86,7 @@ object :: JobParser ()
 object = 
        do pShape
       <|> pCamera
-      <|> try pFilter
+      <|> pFilter
       <|> try pSize
       <|> try pSamplesPerPixel
       <|> try pEmission
@@ -259,13 +260,19 @@ pSize = do
 -- | parses the pixel filtering function
 pFilter :: JobParser ()
 pFilter = do
-   _ <- string "filter"
-   _ <- spaces
+   _ <- try (string "filter") >> ws
    
-   f <- do
-         try (string "box" >> return Box)
-         <|> (string "sinc" >> return (Sinc 1 1 1))
-         
+   t <- many1 alphaNum
+   _ <- ws
+   f <- case t of
+      "box" -> return Box
+      "sinc" -> do
+         xw <- flt
+         yw <- ws >> flt
+         tau <- ws >> flt
+         return (Sinc xw yw tau)
+      _ -> fail ("unknown pixel filter function \"" ++ t ++ "\"")
+   
    s <- getState
    setState s { pxFilter = f }
    

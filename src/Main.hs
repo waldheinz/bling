@@ -19,7 +19,7 @@ main = do
    let fName = head args
    ss <- readFile fName
    let job = parseJob ss
-   img <- stToIO $ mkImage Box (imageSizeX job) (imageSizeY job)
+   img <- stToIO $ mkImage (jobPixelFilter job) (imageSizeX job) (imageSizeY job)
    putStrLn (PP.render (PP.text "Scene stats" PP.$$ PP.nest 3 (ppJob job)))
    render 1 img job
    
