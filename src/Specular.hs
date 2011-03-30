@@ -22,7 +22,7 @@ glassMaterial ior r dg = mkBsdf [refl, trans] cs where
 mirrorMaterial :: Spectrum -> Material
 mirrorMaterial r dg = mkBsdf [bxdf] cs where
    bxdf = MkAnyBxdf $ SpecularReflection r frNoOp
-   cs = coordinateSystem $ dgN dg
+   cs = shadingCs dg
 
 data SpecularTransmission = SpecularTransmission {
    _specTransT :: Spectrum,

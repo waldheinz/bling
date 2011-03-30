@@ -15,6 +15,7 @@ import Plastic
 import Primitive
 import Scene
 import Shape
+import Specular
 import Spectrum
 import Texture
 import Transform
@@ -307,11 +308,18 @@ pMaterial = do
          
       "plastic" -> pPlasticMaterial
       "matte" -> pMatteMaterial
+      "mirror" -> pMirrorMaterial
+      
       _ -> fail ("unknown material type " ++ t)
       
-   _ <- string "endMaterial\n"
+   _ <- ws >> string "endMaterial"
    s <- getState
    setState s { material = m }
+
+pMirrorMaterial :: JobParser Material
+pMirrorMaterial = do
+   r <- ws >> pSpectrum
+   return (mirrorMaterial r)
 
 pMatteMaterial :: JobParser Material
 pMatteMaterial = do
@@ -335,7 +343,7 @@ pTexture n = do
          s <- pSpectrum
          return (constantSpectrum s)
       _ -> fail ("unknown texture type " ++ tp)
-   ws >> string "endTexture" >> ws
+   _ <- ws >> string "endTexture"
    return tx
    
 pMeasuredMaterial :: JobParser Measured
