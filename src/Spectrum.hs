@@ -8,8 +8,6 @@ module Spectrum (
 
 import Data.Array.Unboxed
 
-import Math
-
 -- | A Spectrum of colours.
 data Spectrum = Spectrum Float Float Float deriving (Show, Eq)
 
@@ -36,7 +34,7 @@ toRGB :: Spectrum -> (Float, Float, Float)
 toRGB (Spectrum r g b) = (r, g, b)
 
 -- | the brightness
-sY :: Spectrum -> Flt
+sY :: Spectrum -> Float
 sY (Spectrum r g b) = 0.212671 * r + 0.715160 * g + 0.072169 * b
 
 -- toXyz :: Spectrum -> (Float, Float, Float)
@@ -62,7 +60,7 @@ instance Num Spectrum where
    
 -- | Decides if a @Spectrum@ is black (within an epsilon value).
 isBlack :: Spectrum -> Bool
-isBlack (Spectrum r g b) = r < epsilon && g < epsilon && b < epsilon
+isBlack (Spectrum r g b) = r == 0 && g == 0 && b == 0
 
 sScale :: Spectrum -> Float -> Spectrum
 sScale (Spectrum a b c) f = Spectrum (a*f) (b*f) (c*f)
