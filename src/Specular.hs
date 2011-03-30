@@ -1,5 +1,12 @@
 
-module Specular where
+module Specular (
+   -- * Fresnel implementations
+   Fresnel, frDiel, frCond,
+   
+   -- * Specular materials
+   
+   mirrorMaterial, glassMaterial
+   ) where
 
 import Material
 import Math
@@ -18,9 +25,9 @@ mirrorMaterial r dg = mkBsdf [bxdf] cs where
    cs = coordinateSystem $ dgN dg
 
 data SpecularTransmission = SpecularTransmission {
-   specTransT :: Spectrum,
-   specTransEi :: Float,
-   specTransEt :: Float
+   _specTransT :: Spectrum,
+   _specTransEi :: Float,
+   _specTransEt :: Float
    }
 
 instance Bxdf SpecularTransmission where
@@ -43,8 +50,8 @@ instance Bxdf SpecularTransmission where
                f = sScale (t * (white - f')) (((et*et) / (ei*ei)) / abs (cosTheta wi))
 
 data SpecularReflection = SpecularReflection {
-   specReflR :: Spectrum,
-   specReflFresnel :: Fresnel
+   _specReflR :: Spectrum,
+   _specReflFresnel :: Fresnel
    }
         
 instance Bxdf SpecularReflection where
