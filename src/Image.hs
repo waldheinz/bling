@@ -1,6 +1,6 @@
 
 module Image(
-   Image, ImageSample(..), Filter(..),
+   Image, ImageSample(..), 
    mkImage,
    imageWidth, imageHeight, 
    writePpm, writeRgbe, addSample) where
@@ -12,28 +12,8 @@ import Data.Array.ST
 import qualified Data.ByteString as BS
 import System.IO
 
-import Math
+import Filter
 import Spectrum
-
--- | places a @WeightedSpectrum@ in an @Image@
-data ImageSample = ImageSample {
-   samplePosX :: ! Float,
-   samplePosY :: ! Float,
-   sampleSpectrum :: ! WeightedSpectrum
-   } deriving Show
-
-data Filter
-   = Box -- ^ a simple box filter
-   | Sinc {
-      _xw :: Flt,
-      _yw :: Flt,
-      _tau :: Flt
-      }
-   deriving (Show)
-   
---instance Show Filter where
---   show Box = "Box Filter"
---   show (Sinc _ _ _) = "Sinc Filter"
 
 -- | an image has a width, a height and some pixels 
 data Image s = Image {
@@ -42,7 +22,7 @@ data Image s = Image {
    imageFilter :: Filter,
    _imagePixels :: STUArray s Int Float
    }
-   
+
 mkImage :: Filter -> Int -> Int -> ST s (Image s)
 mkImage flt w h = do
    pixels <- newArray (0, w * h * 4) 0.0 :: ST s (STUArray s Int Float)
@@ -68,30 +48,6 @@ addPixel (Image w h _ p) (x, y, (sw, s))
    where
          (sx, sy, sz) = toRGB s
          o' = (x + y*w) * 4
-
-filterSample :: Filter -> ImageSample -> [(Int, Int, WeightedSpectrum)]
-filterSample Box (ImageSample x y ws) = [(floor x, floor y, ws)]
-filterSample (Sinc xw yw tau) smp = sincFilter xw yw tau smp
-
-sincFilter :: Float -> Float -> Float -> ImageSample -> [(Int, Int, WeightedSpectrum)]
-sincFilter xw yw tau (ImageSample px py (sw, ss)) = [(x, y, (sw * ev x y, sScale ss (ev x y))) | (x, y) <- pixels] where
-   pixels = [(x :: Int, y :: Int) | y <- [y0..y1], x <- [x0..x1]]
-   x0 = ceiling (px - xw)
-   x1 = floor (px + xw)
-   y0 = ceiling (py - yw)
-   y1 = floor (py + yw)
-   ev x y = sinc1D tau x' * sinc1D tau y' where
-      x' = (fromIntegral x - px + 0.5) / xw
-      y' = (fromIntegral y - py + 0.5) / yw
-
-sinc1D :: Float -> Float -> Float
-sinc1D tau x
-   | x > 1 = 0
-   | x == 0 = 1
-   | otherwise = sinc * lanczos where
-      x' = x * pi
-      sinc = sin (x' * tau) / (x' * tau)
-      lanczos = sin x' / x'
 
 -- | adds an sample to the specified image
 addSample :: Image s -> ImageSample -> ST s ()

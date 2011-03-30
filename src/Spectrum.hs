@@ -1,6 +1,6 @@
 
 module Spectrum (
-   Spectrum, WeightedSpectrum, 
+   Spectrum, WeightedSpectrum, ImageSample(..),
    white, black, 
    isBlack, sNaN, sInfinite,
    fromXyz,  toRGB, fromRGB, sConst, sBlackBody, sAdd, sY,
@@ -13,6 +13,14 @@ import Prelude as P
 data Spectrum = Spectrum Float Float Float deriving (Show, Eq)
 
 type WeightedSpectrum = (Float, Spectrum)
+
+
+-- | places a @WeightedSpectrum@ in an @Image@
+data ImageSample = ImageSample {
+   samplePosX :: ! Float,
+   samplePosY :: ! Float,
+   sampleSpectrum :: ! WeightedSpectrum
+   } deriving Show
 
 -- | A "black" @Spectrum@ (no transmittance or emission) at all wavelengths
 black :: Spectrum

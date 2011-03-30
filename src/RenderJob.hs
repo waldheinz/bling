@@ -6,7 +6,7 @@ module RenderJob (
    ) where
 
 import Camera
-import Image
+import Filter
 import Lafortune
 import Light
 import Material
@@ -59,7 +59,7 @@ aspect :: PState -> Flt
 aspect s = (fromIntegral (resX s)) / (fromIntegral (resY s))
    
 startState :: PState
-startState = PState 1024 768 Box
+startState = PState 1024 768 mkBoxFilter
    (pinHoleCamera (View (mkV(3, 7, -6)) (mkV(0,0,0)) (mkV(0, 1, 0)) 1.8 (4.0/3.0)))
    identity
    (measuredMaterial BluePaint)
@@ -265,12 +265,12 @@ pFilter = do
    t <- many1 alphaNum
    _ <- ws
    f <- case t of
-      "box" -> return Box
+      "box" -> return mkBoxFilter
       "sinc" -> do
          xw <- flt
          yw <- ws >> flt
          tau <- ws >> flt
-         return (Sinc xw yw tau)
+         return (mkSincFilter xw yw tau)
       _ -> fail ("unknown pixel filter function \"" ++ t ++ "\"")
    
    s <- getState
