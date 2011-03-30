@@ -1,9 +1,12 @@
 
 filter box
-imageSize 800 800
-samplesPerPixel 2
+imageSize 600 600
+samplesPerPixel 4
 
+#
 # camera
+#
+
 beginCamera
    pos 278.0 273.0 -800.0
    lookAt 278.0 273.0 0.0
@@ -19,7 +22,10 @@ beginMaterial
    endTexture
 endMaterial
 
+#
 # floor
+#
+
 beginShape
    type mesh
    vertexCount 4
@@ -31,7 +37,10 @@ beginShape
    f 3 2 1 0
 endShape
 
+#
 # ceiling
+#
+
 beginShape
    type mesh
    vertexCount 4
@@ -43,7 +52,10 @@ beginShape
    f 3 2 1 0
 endShape
 
+#
 # back wall
+#
+
 beginShape
    type mesh
    vertexCount 4
@@ -55,7 +67,9 @@ beginShape
    f 3 2 1 0
 endShape
 
+#
 # short block
+#
 
 beginShape
    type mesh
@@ -88,7 +102,9 @@ beginShape
    f 19 18 17 16
 endShape
 
+#
 # tall block
+#
 
 beginShape
    type mesh
@@ -121,7 +137,9 @@ beginShape
    f 19 18 17 16
 endShape
 
+#
 # right wall
+#
 
 beginMaterial
    type matte
@@ -142,7 +160,9 @@ beginShape
    f 3 2 1 0
 endShape
 
+#
 # left wall
+#
 
 beginMaterial
    type matte
@@ -163,11 +183,20 @@ beginShape
    f 3 2 1 0
 endShape
 
-# beginDirectionalLight rgb 1.0 1.0 1.0 normal -0.5 1.0 -1.0 endDirectionalLight
-
+#
 # light source
+#
+
+beginMaterial
+   type matte
+   beginTexture kd
+      type constant
+      rgb 0.78 0.78 0.78
+   endTexture
+endMaterial
+
 beginEmission
-   rgb 50.9 50.9 50.9
+   rgb 150.0 150.0 150.0
 endEmission
 
 beginShape
