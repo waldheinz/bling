@@ -6,7 +6,8 @@ module Spectrum (
    fromXyz,  toRGB, fromRGB, sConst, sBlackBody, sAdd, sY,
    sScale, sPow) where
 
-import Data.Array.Unboxed
+import Data.Vector.Unboxed as V
+import Prelude as P
 
 -- | A Spectrum of colours.
 data Spectrum = Spectrum Float Float Float deriving (Show, Eq)
@@ -83,9 +84,9 @@ sPow (Spectrum c1 c2 c3) (Spectrum e1 e2 e3) = Spectrum (p' c1 e1) (p' c2 e2) (p
    
 sBlackBody :: Float -> Spectrum
 sBlackBody t = sScale (fromXyz (x, y, z)) (1 / (fromIntegral (cieEnd - cieStart))) where
-   z = max 0 $ sum $ map (\wl -> (cieZ wl) * (p wl)) [cieStart .. cieEnd]
-   y = max 0 $ sum $ map (\wl -> (cieY wl) * (p wl)) [cieStart .. cieEnd]
-   x = max 0 $ sum $ map (\wl -> (cieX wl) * (p wl)) [cieStart .. cieEnd]
+   z = max 0 $ P.sum $ P.map (\wl -> (cieZ wl) * (p wl)) [cieStart .. cieEnd]
+   y = max 0 $ P.sum $ P.map (\wl -> (cieY wl) * (p wl)) [cieStart .. cieEnd]
+   x = max 0 $ P.sum $ P.map (\wl -> (cieX wl) * (p wl)) [cieStart .. cieEnd]
    p = (\wl -> planck t (fromIntegral wl))
 
 planck :: RealFloat a => a -> a -> a
@@ -101,12 +102,10 @@ cieEnd = 830
 cieX :: Int -> Float
 cieX lambda
    | (lambda < cieStart) || (lambda > cieEnd) = 0
-   | otherwise = xArr ! lambda
-   where
-         xArr = listArray (cieStart, cieEnd) cieXValues :: UArray Int Float
+   | otherwise = cieXValues ! (lambda - cieStart)
     
-cieXValues :: [Float]
-cieXValues = [
+cieXValues :: Vector Float
+cieXValues = fromList [
    0.0001299000, 0.0001458470, 0.0001638021, 0.0001840037,
    0.0002066902,  0.0002321000,  0.0002607280,  0.0002930750,
    0.0003293880,  0.0003699140,  0.0004149000,  0.0004641587,
@@ -229,12 +228,10 @@ cieXValues = [
 cieY :: Int -> Float
 cieY lambda
    | (lambda < cieStart) || (lambda > cieEnd) = 0
-   | otherwise = yArr ! lambda
-   where
-         yArr = listArray (cieStart, cieEnd) cieYValues :: UArray Int Float
-         
-cieYValues :: [Float]
-cieYValues = [
+   | otherwise = cieYValues ! (lambda - cieStart)
+   
+cieYValues :: Vector Float
+cieYValues = fromList [
    0.000003917000,  0.000004393581,  0.000004929604,  0.000005532136,
    0.000006208245,  0.000006965000,  0.000007813219,  0.000008767336,
    0.000009839844,  0.00001104323,  0.00001239000,  0.00001388641,
@@ -357,12 +354,10 @@ cieYValues = [
 cieZ :: Int -> Float
 cieZ lambda
    | (lambda < cieStart) || (lambda > cieEnd) = 0
-   | otherwise = zArr ! lambda
-   where
-         zArr = listArray (cieStart, cieEnd) cieZValues :: UArray Int Float
-         
-cieZValues :: [Float]
-cieZValues = [
+   | otherwise = cieZValues ! (lambda - cieStart)
+   
+cieZValues :: Vector Float
+cieZValues = fromList [
    0.0006061000,  0.0006808792,  0.0007651456,  0.0008600124,
    0.0009665928,  0.001086000,  0.001220586,  0.001372729,
    0.001543579,  0.001734286,  0.001946000,  0.002177777,
