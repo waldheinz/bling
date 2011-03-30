@@ -92,10 +92,11 @@ estimateDirect s l p n wo bsdf = do
 -- | samples one randomly chosen light source
 sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> Float -> Rand Spectrum
 sampleOneLight scene@(Scene _ lights _) p n wo bsdf ulNum
-   | lightCount == 0 = return black
-   | lightCount == 1 = estimateDirect scene (lights ! 0)  p n wo bsdf
-   | otherwise = liftM scale (estimateDirect scene (lights ! lightNum) p n wo bsdf)
+   | lc == 0 = return black
+   | lc == 1 = estimateDirect scene (lights ! 0)  p n wo bsdf
+   | otherwise = liftM scale (estimateDirect scene (lights ! ln) p n wo bsdf)
       where
-            lightCount = snd (bounds lights) + 1
-            lightNum = floor $ ulNum * fromIntegral lightCount
-            scale y = sScale y (fromIntegral lightCount)
+            lc = snd (bounds lights) + 1
+            ln = min (floor $ ulNum * fromIntegral lc) (lc - 1)
+            scale y = sScale y (fromIntegral lc)
+            
