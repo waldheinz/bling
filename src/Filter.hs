@@ -41,7 +41,11 @@ mkBoxFilter = Box
 
 -- | creates a Sinc filter
 mkSincFilter :: Float -> Float -> Float -> Filter
-mkSincFilter = Sinc
+--mkSincFilter = Sinc
+mkSincFilter w h t = mkTableFitler w h f "Sinc" where
+   f (x, y) = (sinc1D t x * iw) * (sinc1D t y * ih)
+   iw = 1 / w
+   ih = 1 / h
 
 -- | creates a triangle filter
 mkTriangleFilter
@@ -70,7 +74,6 @@ mkMitchellFilter w h b c = mkTableFitler w h f "Mitchell" where
                     ((-12)*b - 48*c) * x + (8*b + 24*c)) * (1/6)
              else ((12 - 9*b - 6*c) * x*x*x + ((-18) + 12*b + 6*c) * x*x +
                     (6 - 2*b)) * (1/6)
-                    
 
 mkTableFitler :: Float -> Float -> ((Float, Float) -> Float) -> String -> Filter
 mkTableFitler w h f n = Table w h vs n where
@@ -106,7 +109,7 @@ filterSample (Sinc xw yw tau) smp = sincFilter xw yw tau smp
 filterSample (Table w h t _) s = tableFilter w h t s
 
 tableFilter
-   :: Float -> Float 
+   :: Float -> Float
    -> Vector Float 
    -> ImageSample
    -> [(Int, Int, WeightedSpectrum)]
@@ -124,8 +127,8 @@ tableFilter fw fh tbl (ImageSample ix iy (wt, s)) = go where
    ify = fromList [min (tableSize-1) (floor (abs ((y - dy) * fy)))
       | y <- Prelude.map fromIntegral [y0 .. y1]] :: Vector Int
    o x y = ((unsafeIndex ify (y-y0)) * tableSize) + (unsafeIndex ifx (x - x0))
-   w x y = (wt * (unsafeIndex tbl (o x y)), s) :: WeightedSpectrum
-   go = [(x, y, w x y) | y <- [y0..y1], x <- [x0..x1]]
+   w x y = wt * (unsafeIndex tbl (o x y))
+   go = [(x, y, (wt * w x y, sScale s (w x y))) | y <- [y0..y1], x <- [x0..x1]]
    
 sincFilter :: Float -> Float -> Float -> ImageSample -> [(Int, Int, WeightedSpectrum)]
 sincFilter xw yw tau (ImageSample px py (sw, ss)) = [(x, y, (sw * ev x y, sScale ss (ev x y))) | (x, y) <- pixels] where

@@ -1,8 +1,8 @@
 
 #filter sinc 4.0 4.0 3.0
 #filter box
-#filter triangle 8.0 8.0
-filter mitchell 2.0 2.0 0.333333 0.333333
+filter triangle 4.0 4.0
+#filter mitchell 2.0 2.0 0.333333 0.333333
 imageSize 400 400
 samplesPerPixel 1
 
