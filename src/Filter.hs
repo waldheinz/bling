@@ -83,12 +83,21 @@ tableFilter
    -> ImageSample
    -> [(Int, Int, WeightedSpectrum)]
 
-tableFilter fw fh t (ImageSample ix iy ws) = undefined where
+tableFilter fw fh tbl (ImageSample ix iy (wt, s)) = go where
    (dx, dy) = (ix - 0.5, iy - 0.5)
    x0 = ceiling (dx - fw)
    x1 = floor (dx + fw)
    y0 = ceiling (dy - fh)
    y1 = floor (dy + fh)
+   fx = (1 / fw) * fromIntegral tableSize
+   fy = (1 / fh) * fromIntegral tableSize
+   ifx = fromList [min (tableSize-1) (floor (abs ((x - dx) * fx)))
+      | x <- Prelude.map fromIntegral [x0 .. x1]] :: Vector Int
+   ify = fromList [min (tableSize-1) (floor (abs ((y - dy) * fy)))
+      | y <- Prelude.map fromIntegral [y0 .. y1]] :: Vector Int
+   o x y = ((ify ! (y-y0)) * tableSize) + (ifx ! (x - x0))
+   w x y = (wt * (tbl ! (o x y)), s) :: WeightedSpectrum
+   go = [(x, y, w x y) | y <- [y0..y1], x <- [x0..x1]]
    
 sincFilter :: Float -> Float -> Float -> ImageSample -> [(Int, Int, WeightedSpectrum)]
 sincFilter xw yw tau (ImageSample px py (sw, ss)) = [(x, y, (sw * ev x y, sScale ss (ev x y))) | (x, y) <- pixels] where

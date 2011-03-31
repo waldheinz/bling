@@ -266,11 +266,18 @@ pFilter = do
    _ <- ws
    f <- case t of
       "box" -> return (mkBoxFilter 0.5)
+      
       "sinc" -> do
          xw <- flt
          yw <- ws >> flt
          tau <- ws >> flt
          return (mkSincFilter xw yw tau)
+         
+      "triangle" -> do
+         xw <- flt
+         yw <- ws >> flt
+         return (mkTriangleFilter xw yw)
+         
       _ -> fail ("unknown pixel filter function \"" ++ t ++ "\"")
    
    s <- getState

@@ -1,6 +1,7 @@
 
-filter sinc 4.0 4.0 3.0
+#filter sinc 4.0 4.0 3.0
 #filter box
+filter triangle 4.0 4.0
 imageSize 400 400
 samplesPerPixel 1
 
