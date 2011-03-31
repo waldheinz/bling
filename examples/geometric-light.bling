@@ -2,7 +2,9 @@
 # test scene for geometric light sources
 
 
-filter box
+filter triangle 3.0 3.0
+#filter box
+filter mitchell 8.0 8.0 0.333333 0.333333
 imageSize 640 480
 samplesPerPixel 1
 

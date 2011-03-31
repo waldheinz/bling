@@ -3,7 +3,7 @@ module Filter (
    
    -- * Creating Pixel Filters
    
-   Filter, mkBoxFilter, mkSincFilter, mkTriangleFilter,
+   Filter, mkBoxFilter, mkSincFilter, mkTriangleFilter, mkMitchellFilter,
    
    -- * Evaluating Pixel Filters
    
@@ -47,12 +47,35 @@ mkSincFilter = Sinc
 mkTriangleFilter
    :: Float -- ^ the width of the filter extent
    -> Float -- ^ the height of the filter extent
-   -> Filter -- the filter function
+   -> Filter -- ^ the filter function
 
-mkTriangleFilter w h = Table w h vs "Triangle" where
-   vs = fromList (Prelude.map eval ps)
+mkTriangleFilter w h = mkTableFitler w h f "Triangle" where
+   f (x, y) = max 0 (w - abs x) * max 0 (h - abs y)
+
+-- | creates a mitchell filter
+mkMitchellFilter
+   :: Float -- ^ the width of the filter extent
+   -> Float -- ^ the height of the filter extent
+   -> Float -- ^ the Mitchell "B" parameter
+   -> Float -- ^ the Mitchell "C" parameter
+   -> Filter -- ^ the created filter
+   
+mkMitchellFilter w h b c = mkTableFitler w h f "Mitchell" where
+   (iw, ih) = (1/w, 1/h)
+   f (px, py) = (m1d px * iw) * (m1d py * ih)
+   m1d x' = y where
+      x = abs 2 * x'
+      y = if x > 1
+             then (((-b) - 6*c) * x*x*x + (6*b + 30*c) * x*x +
+                    ((-12)*b - 48*c) * x + (8*b + 24*c)) * (1/6)
+             else ((12 - 9*b - 6*c) * x*x*x + ((-18) + 12*b + 6*c) * x*x +
+                    (6 - 2*b)) * (1/6)
+                    
+
+mkTableFitler :: Float -> Float -> ((Float, Float) -> Float) -> String -> Filter
+mkTableFitler w h f n = Table w h vs n where
+   vs = fromList (Prelude.map f ps)
    ps = tablePositions w h
-   eval (x, y) = max 0 (w - abs x) * max 0 (h- abs y)
 
 -- | finds the positions where the filter function has to be evaluated
 -- to create the filter table
@@ -100,8 +123,8 @@ tableFilter fw fh tbl (ImageSample ix iy (wt, s)) = go where
       | x <- Prelude.map fromIntegral [x0 .. x1]] :: Vector Int
    ify = fromList [min (tableSize-1) (floor (abs ((y - dy) * fy)))
       | y <- Prelude.map fromIntegral [y0 .. y1]] :: Vector Int
-   o x y = ((ify ! (y-y0)) * tableSize) + (ifx ! (x - x0))
-   w x y = (wt * (tbl ! (o x y)), s) :: WeightedSpectrum
+   o x y = ((unsafeIndex ify (y-y0)) * tableSize) + (unsafeIndex ifx (x - x0))
+   w x y = (wt * (unsafeIndex tbl (o x y)), s) :: WeightedSpectrum
    go = [(x, y, w x y) | y <- [y0..y1], x <- [x0..x1]]
    
 sincFilter :: Float -> Float -> Float -> ImageSample -> [(Int, Int, WeightedSpectrum)]

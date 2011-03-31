@@ -277,6 +277,13 @@ pFilter = do
          xw <- flt
          yw <- ws >> flt
          return (mkTriangleFilter xw yw)
+
+      "mitchell" -> do
+         xw <- flt
+         yw <- ws >> flt
+         b <- ws >> flt
+         c <- ws >> flt
+         return (mkMitchellFilter xw yw b c)
          
       _ -> fail ("unknown pixel filter function \"" ++ t ++ "\"")
    
