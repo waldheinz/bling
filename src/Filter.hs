@@ -27,9 +27,14 @@ data Filter
       _yw :: Float,
       _tau :: Float
       }
-   | Table Float Float (Vector Float)
-   deriving (Show)
+   | Table Float Float (Vector Float) String
 
+instance Show Filter where
+   show (Box r) = "Box " Prelude.++ show r
+   show (Sinc _ _ _) = "Sinc"
+   show (Table w h _ n) = n Prelude.++ " {w=" Prelude.++ show w Prelude.++
+         ", h=" Prelude.++ show h Prelude.++ "}"
+   
 -- | creates a box filter
 mkBoxFilter :: Float -> Filter
 mkBoxFilter = Box 
@@ -44,7 +49,7 @@ mkTriangleFilter
    -> Float -- ^ the height of the filter extent
    -> Filter -- the filter function
 
-mkTriangleFilter w h = Table w h vs where
+mkTriangleFilter w h = Table w h vs "Triangle" where
    vs = fromList (Prelude.map eval ps)
    ps = tablePositions w h
    eval (x, y) = max 0 (w - abs x) * max 0 (h- abs y)
@@ -63,19 +68,19 @@ tablePositions w h = Prelude.map f is where
 filterWidth :: Filter -> Float
 filterWidth (Box s) = s
 filterWidth (Sinc w _ _) = w
-filterWidth (Table w _ _) = w
+filterWidth (Table w _ _ _) = w
 
 -- | computes the height in pixels of a given @Filter@
 filterHeight :: Filter -> Float
 filterHeight (Box s) = s
 filterHeight (Sinc _ h _) = h
-filterHeight (Table _ h _) = h
+filterHeight (Table _ h _ _) = h
 
 -- | applies the given pixel @Filter@ to the @ImageSample@
 filterSample :: Filter -> ImageSample -> [(Int, Int, WeightedSpectrum)]
 filterSample (Box _) (ImageSample x y ws) = [(floor x, floor y, ws)]
 filterSample (Sinc xw yw tau) smp = sincFilter xw yw tau smp
-filterSample (Table w h t) s = tableFilter w h t s
+filterSample (Table w h t _) s = tableFilter w h t s
 
 tableFilter
    :: Float -> Float 
