@@ -104,6 +104,7 @@ filterHeight (Table _ h _ _) = h
 
 -- | applies the given pixel @Filter@ to the @ImageSample@
 filterSample :: Filter -> ImageSample -> [(Int, Int, WeightedSpectrum)]
+{-# INLINE filterSample #-}
 filterSample (Box _) (ImageSample x y ws) = [(floor x, floor y, ws)]
 filterSample (Sinc xw yw tau) smp = sincFilter xw yw tau smp
 filterSample (Table w h t _) s = tableFilter w h t s
@@ -113,7 +114,7 @@ tableFilter
    -> Vector Float 
    -> ImageSample
    -> [(Int, Int, WeightedSpectrum)]
-
+{-# INLINE tableFilter #-}
 tableFilter fw fh tbl (ImageSample ix iy (wt, s)) = go where
    (dx, dy) = (ix - 0.5, iy - 0.5)
    x0 = ceiling (dx - fw)
