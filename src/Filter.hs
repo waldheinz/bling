@@ -65,14 +65,15 @@ mkMitchellFilter
    -> Filter -- ^ the created filter
    
 mkMitchellFilter w h b c = mkTableFitler w h f "Mitchell" where
-   (iw, ih) = (1/w, 1/h)
-   f (px, py) = (m1d px * iw) * (m1d py * ih)
+   f (px, py) = (m1d (px * iw)) * (m1d (py * ih))
+   (iw, ih) = (1 / w, 1 / h)
    m1d x' = y where
-      x = abs 2 * x'
+      x = abs (2 * x')
       y = if x > 1
              then (((-b) - 6*c) * x*x*x + (6*b + 30*c) * x*x +
                     ((-12)*b - 48*c) * x + (8*b + 24*c)) * (1/6)
-             else ((12 - 9*b - 6*c) * x*x*x + ((-18) + 12*b + 6*c) * x*x +
+             else ((12 - 9*b - 6*c) * x*x*x +
+                   ((-18) + 12*b + 6*c) * x*x +
                     (6 - 2*b)) * (1/6)
 
 mkTableFitler :: Float -> Float -> ((Float, Float) -> Float) -> String -> Filter
