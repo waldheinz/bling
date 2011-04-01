@@ -25,9 +25,9 @@ mirrorMaterial r dg = mkBsdf [bxdf] cs where
    cs = shadingCs dg
 
 data SpecularTransmission = SpecularTransmission {
-   _specTransT :: Spectrum,
-   _specTransEi :: Float,
-   _specTransEt :: Float
+   _specTransT :: {-# UNPACK #-} !Spectrum,
+   _specTransEi :: {-# UNPACK #-} !Float,
+   _specTransEt :: {-# UNPACK #-} !Float
    }
 
 instance Bxdf SpecularTransmission where
@@ -50,8 +50,8 @@ instance Bxdf SpecularTransmission where
                f = sScale (t * (white - f')) (((et*et) / (ei*ei)) / abs (cosTheta wi))
 
 data SpecularReflection = SpecularReflection {
-   _specReflR :: Spectrum,
-   _specReflFresnel :: Fresnel
+   _specReflR :: {-# UNPACK #-} !Spectrum,
+   _specReflFresnel :: {-# UNPACK #-} !Fresnel
    }
         
 instance Bxdf SpecularReflection where

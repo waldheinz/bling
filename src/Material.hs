@@ -17,7 +17,7 @@ matteMaterial tex dg = mkBsdf [bxdf] sc where
 blackBodyMaterial :: Material
 blackBodyMaterial dg = mkBsdf [] $ shadingCs dg
 
-data Lambertian = Lambertian Spectrum
+data Lambertian = Lambertian {-# UNPACK #-} !Spectrum
 
 instance Bxdf Lambertian where
    bxdfEval (Lambertian r) _ _ = sScale r invPi

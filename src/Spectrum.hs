@@ -117,6 +117,7 @@ cieX lambda
    | otherwise = cieXValues ! (lambda - cieStart)
     
 cieXValues :: Vector Float
+{-# NOINLINE cieXValues #-}
 cieXValues = fromList [
    0.0001299000, 0.0001458470, 0.0001638021, 0.0001840037,
    0.0002066902,  0.0002321000,  0.0002607280,  0.0002930750,
@@ -243,6 +244,7 @@ cieY lambda
    | otherwise = cieYValues ! (lambda - cieStart)
    
 cieYValues :: Vector Float
+{-# NOINLINE cieYValues #-}
 cieYValues = fromList [
    0.000003917000,  0.000004393581,  0.000004929604,  0.000005532136,
    0.000006208245,  0.000006965000,  0.000007813219,  0.000008767336,
@@ -369,6 +371,7 @@ cieZ lambda
    | otherwise = cieZValues ! (lambda - cieStart)
    
 cieZValues :: Vector Float
+{-# NOINLINE cieZValues #-}
 cieZValues = fromList [
    0.0006061000,  0.0006808792,  0.0007651456,  0.0008600124,
    0.0009665928,  0.001086000,  0.001220586,  0.001372729,

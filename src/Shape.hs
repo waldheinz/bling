@@ -23,12 +23,12 @@ import Random
 import Transform
 
 data Vertex = Vertex {
-   vertexPos :: !Point
+   vertexPos :: {-# UNPACK #-} !Point
    } deriving (Eq, Show)   
 
 data Shape
    = Sphere
-      Flt -- ^ radius
+      {-# UNPACK #-} !Flt -- ^ radius
    | Triangle Vertex Vertex Vertex
    deriving (Eq, Show)
 
