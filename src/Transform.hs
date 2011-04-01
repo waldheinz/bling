@@ -10,10 +10,10 @@ import Math
 import Data.List (transpose, foldl')
 
 data Matrix = MkMatrix {
-   m00 :: Flt, m01 :: Flt, m02 :: Flt, m03 :: Flt,
-   m10 :: Flt, m11 :: Flt, m12 :: Flt, m13 :: Flt,
-   m20 :: Flt, m21 :: Flt, m22 :: Flt, m23 :: Flt,
-   m30 :: Flt, m31 :: Flt, m32 :: Flt, m33 :: Flt
+   m00 :: {-# UNPACK #-} !Flt, m01 :: {-# UNPACK #-} !Flt, m02 :: {-# UNPACK #-} !Flt, m03 :: {-# UNPACK #-} !Flt,
+   m10 :: {-# UNPACK #-} !Flt, m11 :: {-# UNPACK #-} !Flt, m12 :: {-# UNPACK #-} !Flt, m13 :: {-# UNPACK #-} !Flt,
+   m20 :: {-# UNPACK #-} !Flt, m21 :: {-# UNPACK #-} !Flt, m22 :: {-# UNPACK #-} !Flt, m23 :: {-# UNPACK #-} !Flt,
+   m30 :: {-# UNPACK #-} !Flt, m31 :: {-# UNPACK #-} !Flt, m32 :: {-# UNPACK #-} !Flt, m33 :: {-# UNPACK #-} !Flt
    } deriving (Eq)
 
 toList :: Matrix -> [[Flt]]
@@ -141,6 +141,7 @@ concatTrans (MkTransform m1 i1) (MkTransform m2 i2) = MkTransform m' i' where
 
 -- | Applies a @Transform@ to a @Point@
 transPoint :: Transform -> Point -> Point
+{-# INLINE transPoint #-}
 transPoint (MkTransform m _) (MkVector x y z)
    | wp == 1 = mkPoint xp yp zp
    | otherwise = mkPoint (xp/wp) (yp/wp) (zp/wp)
@@ -152,6 +153,7 @@ transPoint (MkTransform m _) (MkVector x y z)
 
 -- | Applies a @Transform@ to a @Vector@
 transVector :: Transform -> Vector -> Vector
+{-# INLINE transVector #-}
 transVector (MkTransform m _) (MkVector x y z) = MkVector xp yp zp where
    xp = m00 m * x + m01 m * y + m02 m * z
    yp = m10 m * x + m11 m * y + m12 m * z
@@ -159,6 +161,7 @@ transVector (MkTransform m _) (MkVector x y z) = MkVector xp yp zp where
 
 -- | Applies a @Transform@ to a @Normal@
 transNormal :: Transform -> Normal -> Normal
+{-# INLINE transNormal #-}
 transNormal (MkTransform m _) (MkVector x y z) = mkNormal xp yp zp where
    xp = m00 m * x + m10 m * y + m20 m * z
    yp = m01 m * x + m11 m * y + m21 m * z
@@ -166,11 +169,13 @@ transNormal (MkTransform m _) (MkVector x y z) = mkNormal xp yp zp where
 
 -- | Applies a @Transform@ to a @Ray@
 transRay :: Transform -> Ray -> Ray
+{-# INLINE transRay #-}
 transRay t (Ray ro rd tmin tmax) =
    Ray (transPoint t ro) (transVector t rd) tmin tmax
 
 -- | Applies a @Transform@ to an @AABB@
 transBox :: Transform -> AABB -> AABB
+{-# INLINE transBox #-}
 transBox t (AABB (MkVector mx my mz) (MkVector nx ny nz)) = b' where
    b' = foldl' extendAABBP emptyAABB [p0, p1, p2, p3, p4, p5, p6, p7]
    p0 = transPoint t (mkPoint mx my mz)

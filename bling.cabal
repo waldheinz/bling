@@ -12,4 +12,4 @@ Executable bling
    Build-Depends:     base >= 3 && < 5, haskell98, array, mwc-random, vector, 
       random, bitset, bytestring, parsec, pretty
    ghc-options:       -Wall -O2 -fexcess-precision
-   ghc-prof-options:  -prof -auto-all 
+   ghc-prof-options:  -O2 -fexcess-precision -prof -auto-all

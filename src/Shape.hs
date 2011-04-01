@@ -87,8 +87,29 @@ intersects (Sphere rad) (Ray ro rd tmin tmax) = si where
    c = sqLen ro - (rad * rad)
    roots = solveQuadric a b c
    
+intersects (Triangle v1 v2 v3) (Ray ro rd tmin tmax)
+   | divisor == 0 = False
+   | b1 < 0 || b1 > 1 = False
+   | b2 < 0 || b1 + b2 > 1 = False
+   | t < tmin || t > tmax = False
+   | otherwise = True
+   where
+      t = dot e2 s2 * invDiv
+      b2 = dot rd s2 * invDiv -- second barycentric
+      s2 = cross d e1
+      b1 = dot d s1 * invDiv -- first barycentric
+      d = sub ro p1
+      invDiv = 1 / divisor
+      divisor = dot s1 e1
+      s1 = cross rd e2
+      e1 = sub p2 p1
+      e2 = sub p3 p1
+      p1 = vertexPos v1
+      p2 = vertexPos v2
+      p3 = vertexPos v3
+   
 -- as a general way we can just check if @intersect@ returns something
-intersects s r = isJust (s `intersect` r)
+-- intersects s r = isJust (s `intersect` r)
 
 worldBounds :: Shape -- ^ the shape to get the world bounds for
             -> Transform

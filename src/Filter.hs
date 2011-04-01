@@ -27,7 +27,7 @@ data Filter
       _yw :: Float,
       _tau :: Float
       }
-   | Table Float Float (Vector Float) String
+   | Table {-# UNPACK #-} !Float {-# UNPACK #-} !Float {-# UNPACK #-} !(Vector Float) String
 
 instance Show Filter where
    show (Box r) = "Box " Prelude.++ show r
