@@ -3,23 +3,25 @@ module Spectrum (
    Spectrum, WeightedSpectrum, ImageSample(..),
    white, black, 
    isBlack, sNaN, sInfinite,
-   fromXyz,  toRGB, fromRGB, sConst, sBlackBody, sAdd, sY,
+   fromXyz,  toRGB, fromRGB, sConst, sBlackBody, sY,
    sScale, sPow) where
 
 import Data.Vector.Unboxed as V
 import Prelude as P
 
 -- | A Spectrum of colours.
-data Spectrum = Spectrum Float Float Float deriving (Show, Eq)
+data Spectrum = Spectrum
+   {-# UNPACK #-} ! Float
+   {-# UNPACK #-} ! Float
+   {-# UNPACK #-} ! Float deriving (Show, Eq)
 
 type WeightedSpectrum = (Float, Spectrum)
 
-
 -- | places a @WeightedSpectrum@ in an @Image@
 data ImageSample = ImageSample {
-   samplePosX :: ! Float,
-   samplePosY :: ! Float,
-   sampleSpectrum :: ! WeightedSpectrum
+   samplePosX :: {-# UNPACK #-} ! Float,
+   samplePosY :: {-# UNPACK #-} ! Float,
+   sampleSpectrum :: {-# UNPACK #-} ! WeightedSpectrum
    } deriving Show
 
 -- | A "black" @Spectrum@ (no transmittance or emission) at all wavelengths
@@ -44,6 +46,7 @@ toRGB (Spectrum r g b) = (r, g, b)
 
 -- | the brightness
 sY :: Spectrum -> Float
+{-# INLINE sY #-}
 sY (Spectrum r g b) = 0.212671 * r + 0.715160 * g + 0.072169 * b
 
 -- toXyz :: Spectrum -> (Float, Float, Float)
@@ -72,18 +75,19 @@ isBlack :: Spectrum -> Bool
 isBlack (Spectrum r g b) = r == 0 && g == 0 && b == 0
 
 sScale :: Spectrum -> Float -> Spectrum
+{-# INLINE sScale #-}
 sScale (Spectrum a b c) f = Spectrum (a*f) (b*f) (c*f)
 
-sAdd :: Spectrum -> Spectrum -> Spectrum
-sAdd (Spectrum r1 g1 b1) (Spectrum r2 g2 b2) = Spectrum (r1+r2) (g1+g2) (b1+b2)
-
 sNaN :: Spectrum -> Bool
+{-# INLINE sNaN #-}
 sNaN (Spectrum r g b) = (isNaN r) || (isNaN g) || (isNaN b)
 
 sInfinite :: Spectrum -> Bool
+{-# INLINE sInfinite #-}
 sInfinite (Spectrum r g b) = (isInfinite r) || (isInfinite g) || (isInfinite b)
 
 sPow :: Spectrum -> Spectrum -> Spectrum
+{-# INLINE sPow #-}
 sPow (Spectrum c1 c2 c3) (Spectrum e1 e2 e3) = Spectrum (p' c1 e1) (p' c2 e2) (p' c3 e3) where
    p' :: Float -> Float -> Float
    p' c e
