@@ -65,7 +65,7 @@ mkMitchellFilter
    -> Filter -- ^ the created filter
    
 mkMitchellFilter w h b c = mkTableFitler w h f "Mitchell" where
-   f (px, py) = (m1d (px * iw)) * (m1d (py * ih))
+   f (px, py) = m1d (px * iw) * m1d (py * ih)
    (iw, ih) = (1 / w, 1 / h)
    m1d x' = y where
       x = abs (2 * x')
@@ -128,8 +128,8 @@ tableFilter fw fh tbl (ImageSample ix iy (wt, s)) = go where
       | x <- Prelude.map fromIntegral [x0 .. x1]] :: Vector Int
    ify = fromList [min (tableSize-1) (floor (abs ((y - dy) * fy)))
       | y <- Prelude.map fromIntegral [y0 .. y1]] :: Vector Int
-   o x y = ((unsafeIndex ify (y-y0)) * tableSize) + (unsafeIndex ifx (x - x0))
-   w x y = wt * (unsafeIndex tbl (o x y))
+   o x y = (unsafeIndex ify (y-y0) * tableSize) + unsafeIndex ifx (x - x0)
+   w x y = wt * unsafeIndex tbl (o x y)
    go = [(x, y, (wt * w x y, sScale s (w x y))) | y <- [y0..y1], x <- [x0..x1]]
    
 sincFilter :: Float -> Float -> Float -> ImageSample -> [(Int, Int, WeightedSpectrum)]
