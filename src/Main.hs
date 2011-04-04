@@ -4,6 +4,7 @@ import Control.Monad.ST
 import System (getArgs)
 import System.IO
 import System.Random.MWC
+import System.Random
 import Text.Printf
 import qualified Text.PrettyPrint as PP
 import Time
@@ -68,8 +69,8 @@ render pass img job = do
    let int = jobIntegrator job
    let spp = samplesPerPixel job
    start <- getClockTime
- --  seed <- randomIO :: IO Int
-   gen <- stToIO $ mkRndGen pass
+   seed <- randomIO :: IO Int
+   gen <- stToIO $ mkRndGen seed
    stToIO $ onePass gen img spp sc int
    stop <- getClockTime
    putStrLn (pretty $ diffClockTimes stop start)
