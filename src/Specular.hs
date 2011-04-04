@@ -51,7 +51,7 @@ instance Bxdf SpecularTransmission where
 
 data SpecularReflection = SpecularReflection {
    _specReflR :: {-# UNPACK #-} !Spectrum,
-   _specReflFresnel :: {-# UNPACK #-} !Fresnel
+   _specReflFresnel :: !Fresnel
    }
         
 instance Bxdf SpecularReflection where
