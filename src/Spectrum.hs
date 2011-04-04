@@ -7,6 +7,7 @@ module Spectrum (
    sScale, sPow) where
 
 import Data.Vector.Unboxed as V
+import Control.DeepSeq as DS
 import Prelude as P
 
 -- | A Spectrum of colours.
@@ -14,6 +15,9 @@ data Spectrum = Spectrum
    {-# UNPACK #-} ! Float
    {-# UNPACK #-} ! Float
    {-# UNPACK #-} ! Float deriving (Show, Eq)
+
+instance DS.NFData Spectrum where
+   rnf (Spectrum r g b) = rnf (r, g, b)
 
 type WeightedSpectrum = (Float, Spectrum)
 

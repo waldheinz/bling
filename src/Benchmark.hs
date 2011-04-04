@@ -14,7 +14,7 @@ fib n = fib (n-1) + fib (n-2)
 
 
 benchFilter :: Filter -> Benchmark
-benchFilter f = bench (show f) (whnf fn smp) where
+benchFilter f = bench (show f) (nf fn smp) where
    fn = filterSample f
    smp = ImageSample 10 10 (1, fromRGB (0.9, 0.9, 0.9))
 
