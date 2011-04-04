@@ -113,13 +113,13 @@ filterSample :: Filter -> ImageSample -> [(Int, Int, WeightedSpectrum)]
 filterSample Box (ImageSample x y ws) = [(floor x, floor y, ws)]
 filterSample (Table w h t _) s = tableFilter w h t s
 filterSample f (ImageSample ix iy (sw, s)) = go where
-   go = [(x, y, (sw * w, sScale s w)) | y <- [y0..y1], x <- [x0..x1]]
+   go = [(x, y, (sw * w x y, sScale s (w x y))) | y <- [y0..y1], x <- [x0..x1]]
    (dx, dy) = (ix - 0.5, iy - 0.5)
    x0 = ceiling (dx - fw)
    x1 = floor (dx + fw)
    y0 = ceiling (dy - fh)
    y1 = floor (dy + fh)
-   w = evalFilter f ix iy
+   w x y = evalFilter f (fromIntegral x - ix) (fromIntegral y - iy)
    fw = filterWidth f
    fh = filterHeight f
 
