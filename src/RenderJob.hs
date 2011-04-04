@@ -351,7 +351,7 @@ pPlasticMaterial :: JobParser Material
 pPlasticMaterial = do
    kd <- pTexture "kd"
    ks <- pTexture "ks"
-   rough <- namedFloat "rough"
+   rough <- ws >> namedFloat "rough"
    return (plasticMaterial kd ks rough)
    
 pTexture :: String -> JobParser SpectrumTexture

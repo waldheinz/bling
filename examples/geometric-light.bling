@@ -4,7 +4,7 @@
 
 filter triangle 3.0 3.0
 #filter box
-filter mitchell 8.0 8.0 0.333333 0.333333
+filter mitchell 3.0 3.0 0.333333 0.333333
 imageSize 640 480
 samplesPerPixel 1
 
@@ -78,7 +78,7 @@ endShape
 #
 
 beginEmission
-   rgb 0.9 0.3 0.3
+   black
 endEmission
 
 beginTransform
@@ -86,4 +86,5 @@ beginTransform
    translate -4.0 3.0 0.0
 endTransform
 
-# beginShape type sphere radius 2.0 endShape
+beginShape type sphere radius 2.0 endShape
+
