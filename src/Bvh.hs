@@ -19,11 +19,11 @@ type Bvh = TreeBvh
 data TreeBvh
    = Node
       {-# UNPACK #-} !Dimension
-      {-# UNPACK #-} !TreeBvh
-      {-# UNPACK #-} !TreeBvh
+      !TreeBvh
+      !TreeBvh
       {-# UNPACK #-} !AABB
    | Leaf 
-      {-# UNPACK #-} ![AnyPrim]
+      ![AnyPrim]
       {-# UNPACK #-} !AABB
 
 --
