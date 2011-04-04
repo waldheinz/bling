@@ -4,6 +4,7 @@ module Filter (
    -- * Creating Pixel Filters
    
    Filter, mkBoxFilter, mkSincFilter, mkTriangleFilter, mkMitchellFilter,
+   mkTableFilter,
    
    -- * Evaluating Pixel Filters
    
@@ -21,31 +22,37 @@ tableSize = 16
 
 -- | a pixel filtering function
 data Filter
-   = Box Float 
+   = Box 
    | Sinc {
       _xw :: Float,
       _yw :: Float,
       _tau :: Float
       }
-   | Table {-# UNPACK #-} !Float {-# UNPACK #-} !Float {-# UNPACK #-} !(Vector Float) String
+   | Mitchell Float Float Float Float
+   | Triangle Float Float
+   | Table {-# UNPACK #-} !Float {-# UNPACK #-} !Float !(Vector Float) String
 
 instance Show Filter where
-   show (Box r) = "Box " Prelude.++ show r
+   show Box = "Box"
+   show (Mitchell w h b c) = "Mitchell" Prelude.++
+      " {w=" Prelude.++ show w Prelude.++
+      ", h=" Prelude.++ show h Prelude.++
+      ", b=" Prelude.++ show b Prelude.++
+      ", c=" Prelude.++ show c Prelude.++ "}"
    show (Sinc _ _ _) = "Sinc"
-   show (Table w h _ n) = n Prelude.++ " {w=" Prelude.++ show w Prelude.++
+   show (Table _ _ _ n) = "Table" Prelude.++
+      " {orig=" Prelude.++ show n Prelude.++ "}"
+   show (Triangle w h) = "Triangle" Prelude.++
+         " {w=" Prelude.++ show w Prelude.++
          ", h=" Prelude.++ show h Prelude.++ "}"
-   
+         
 -- | creates a box filter
-mkBoxFilter :: Float -> Filter
+mkBoxFilter :: Filter
 mkBoxFilter = Box 
 
 -- | creates a Sinc filter
 mkSincFilter :: Float -> Float -> Float -> Filter
---mkSincFilter = Sinc
-mkSincFilter w h t = mkTableFitler w h f "Sinc" where
-   f (x, y) = (sinc1D t x * iw) * (sinc1D t y * ih)
-   iw = 1 / w
-   ih = 1 / h
+mkSincFilter = Sinc
 
 -- | creates a triangle filter
 mkTriangleFilter
@@ -53,8 +60,8 @@ mkTriangleFilter
    -> Float -- ^ the height of the filter extent
    -> Filter -- ^ the filter function
 
-mkTriangleFilter w h = mkTableFitler w h f "Triangle" where
-   f (x, y) = max 0 (w - abs x) * max 0 (h - abs y)
+mkTriangleFilter = Triangle
+
 
 -- | creates a mitchell filter
 mkMitchellFilter
@@ -64,23 +71,16 @@ mkMitchellFilter
    -> Float -- ^ the Mitchell "C" parameter
    -> Filter -- ^ the created filter
    
-mkMitchellFilter w h b c = mkTableFitler w h f "Mitchell" where
-   f (px, py) = m1d (px * iw) * m1d (py * ih)
-   (iw, ih) = (1 / w, 1 / h)
-   m1d x' = y where
-      x = abs (2 * x')
-      y = if x > 1
-             then (((-b) - 6*c) * x*x*x + (6*b + 30*c) * x*x +
-                    ((-12)*b - 48*c) * x + (8*b + 24*c)) * (1/6)
-             else ((12 - 9*b - 6*c) * x*x*x +
-                   ((-18) + 12*b + 6*c) * x*x +
-                    (6 - 2*b)) * (1/6)
+mkMitchellFilter = Mitchell
 
-mkTableFitler :: Float -> Float -> ((Float, Float) -> Float) -> String -> Filter
-mkTableFitler w h f n = Table w h vs n where
-   vs = fromList (Prelude.map f ps)
+mkTableFilter :: Filter -> Filter
+mkTableFilter f = Table w h vs n where
+   w = filterWidth f
+   h = filterHeight f
+   n = show f
+   vs = fromList (Prelude.map (\(x, y) -> evalFilter f x y) ps)
    ps = tablePositions w h
-
+   
 -- | finds the positions where the filter function has to be evaluated
 -- to create the filter table
 tablePositions :: (Fractional b) => b -> b -> [(b, b)]
@@ -91,24 +91,64 @@ tablePositions w h = Prelude.map f is where
    w1 = w / fromIntegral tableSize
    h1 = h / fromIntegral tableSize
 
--- | computes the with in pixels of a given @Filter@
+-- | computes the width in pixels of a given @Filter@
 filterWidth :: Filter -> Float
-filterWidth (Box s) = s
+filterWidth Box = 0.5
+filterWidth (Mitchell w _ _ _) = w
 filterWidth (Sinc w _ _) = w
 filterWidth (Table w _ _ _) = w
+filterWidth (Triangle w _) = w
 
 -- | computes the height in pixels of a given @Filter@
 filterHeight :: Filter -> Float
-filterHeight (Box s) = s
+filterHeight Box = 0.5
+filterHeight (Mitchell _ h _ _) = h
 filterHeight (Sinc _ h _) = h
 filterHeight (Table _ h _ _) = h
+filterHeight (Triangle _ h) = h
 
 -- | applies the given pixel @Filter@ to the @ImageSample@
 filterSample :: Filter -> ImageSample -> [(Int, Int, WeightedSpectrum)]
 {-# INLINE filterSample #-}
-filterSample (Box _) (ImageSample x y ws) = [(floor x, floor y, ws)]
-filterSample (Sinc xw yw tau) smp = sincFilter xw yw tau smp
+filterSample Box (ImageSample x y ws) = [(floor x, floor y, ws)]
 filterSample (Table w h t _) s = tableFilter w h t s
+filterSample f (ImageSample ix iy (sw, s)) = go where
+   go = [(x, y, (sw * w, sScale s w)) | y <- [y0..y1], x <- [x0..x1]]
+   (dx, dy) = (ix - 0.5, iy - 0.5)
+   x0 = ceiling (dx - fw)
+   x1 = floor (dx + fw)
+   y0 = ceiling (dy - fh)
+   y1 = floor (dy + fh)
+   w = evalFilter f ix iy
+   fw = filterWidth f
+   fh = filterHeight f
+
+evalFilter :: Filter -> Float -> Float -> Float
+evalFilter (Mitchell w h b c) px py = m1d (px * iw) * m1d (py * ih) where
+   (iw, ih) = (1 / w, 1 / h)
+   m1d x' = y where
+      x = abs (2 * x')
+      y = if x > 1
+             then (((-b) - 6*c) * x*x*x + (6*b + 30*c) * x*x +
+                    ((-12)*b - 48*c) * x + (8*b + 24*c)) * (1/6)
+             else ((12 - 9*b - 6*c) * x*x*x +
+                   ((-18) + 12*b + 6*c) * x*x +
+                    (6 - 2*b)) * (1/6)
+                    
+evalFilter (Sinc _ _ tau) px py = sinc1D px * sinc1D py where
+   sinc1D x
+      | x > 1 = 0
+      | x == 0 = 1
+      | otherwise = sinc * lanczos where
+         x' = x * pi
+         sinc = sin (x' * tau) / (x' * tau)
+         lanczos = sin x' / x'
+         
+evalFilter (Triangle w h) x y = f (x, y) where
+   f (px, py) = max 0 (w - abs px) * max 0 (h - abs py)
+
+evalFilter f _ _ =
+   error ("evalFilter for " Prelude.++ (show f) Prelude.++ " called")
 
 tableFilter
    :: Float -> Float
@@ -132,23 +172,3 @@ tableFilter fw fh tbl (ImageSample ix iy (wt, s)) = go where
    w x y = wt * unsafeIndex tbl (o x y)
    go = [(x, y, (wt * w x y, sScale s (w x y))) | y <- [y0..y1], x <- [x0..x1]]
    
-sincFilter :: Float -> Float -> Float -> ImageSample -> [(Int, Int, WeightedSpectrum)]
-sincFilter xw yw tau (ImageSample px py (sw, ss)) = [(x, y, (sw * ev x y, sScale ss (ev x y))) | (x, y) <- pixels] where
-   pixels = [(x :: Int, y :: Int) | y <- [y0..y1], x <- [x0..x1]]
-   x0 = ceiling (px - xw)
-   x1 = floor (px + xw)
-   y0 = ceiling (py - yw)
-   y1 = floor (py + yw)
-   ev x y = sinc1D tau x' * sinc1D tau y' where
-      x' = (fromIntegral x - px + 0.5) / xw
-      y' = (fromIntegral y - py + 0.5) / yw
-
-sinc1D :: Float -> Float -> Float
-sinc1D tau x
-   | x > 1 = 0
-   | x == 0 = 1
-   | otherwise = sinc * lanczos where
-      x' = x * pi
-      sinc = sin (x' * tau) / (x' * tau)
-      lanczos = sin x' / x'
-

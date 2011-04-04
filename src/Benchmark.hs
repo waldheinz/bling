@@ -11,8 +11,6 @@ fib 0 = 0
 fib 1 = 1
 fib n = fib (n-1) + fib (n-2)
 
-
-
 benchFilter :: Filter -> Benchmark
 benchFilter f = bench (show f) (nf fn smp) where
    fn = filterSample f
@@ -20,11 +18,11 @@ benchFilter f = bench (show f) (nf fn smp) where
 
 filters :: [Filter]
 filters = [
-   mkBoxFilter 0.5,
+   mkBoxFilter,
    mkSincFilter 4 4 3,
+   mkTableFilter (mkSincFilter 4 4 3),
    mkTriangleFilter 3 3,
-   mkMitchellFilter 3 3 (1/3) (1/3)
-   ]
+   mkMitchellFilter 3 3 (1/3) (1/3) ]
 
 main :: IO ()
 main = defaultMain [bgroup "filter" (map benchFilter filters) ]
