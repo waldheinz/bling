@@ -1,6 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 
-module Random (Rand, Rand2D, runRand, runRandST, mkRndGen, rndR, rnd2D, rndRI, rnd) where
+module Random (Rand, Rand2D, runRand, runRandST, mkRndGen, rndR, rnd2D, rnd) where
 
 import Control.Monad.ST
 import Data.Vector.Unboxed
@@ -35,11 +35,6 @@ rnd :: Rand Float
 rnd = do
    u <- Rand uniform
    return $ u - 2**(-33)
-
-rndRI :: (Int, Int) -> Rand Int
-rndRI (lo, hi) = do
-   t <- rnd
-   return $ lo + round (t * fromIntegral (hi - lo))
 
 -- | Provides a random @Float@ in the specified range (left inclusive, right exclusive)
 rndR :: (Float, Float) -> Rand Float
