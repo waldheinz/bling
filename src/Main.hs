@@ -26,8 +26,8 @@ main = do
    
 onePass :: Gen s -> Image s -> Int -> Scene -> Integrator -> ST s ()
 onePass gen img ns scene int = do
-   ox <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
-   oy <-  runRandST gen $ rndR (0, 1 / fromIntegral ns)
+   (ox', oy') <- runRandST gen rnd2D
+   let (ox, oy) = (ox' / fromIntegral ns, oy' / fromIntegral ns)
    mapM_ (apply . shift (ox, oy)) $ imageSamples ns (imageWidth img) (imageHeight img)
       where
          sx = fromIntegral $ imageWidth img
