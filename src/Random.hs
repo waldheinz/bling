@@ -10,7 +10,7 @@ type Rand2D = (Float, Float)
 
 -- | Marks a computation that requires random values
 newtype Rand a = Rand {
-   unR :: (forall s. Gen s -> ST s a)
+   unR :: forall s. Gen s -> ST s a
    }
 
 -- | For allowing the Monadic syntax when using @Rand@
@@ -26,9 +26,7 @@ mkRndGen :: Int -> ST s (Gen s)
 mkRndGen seed = initialize $ singleton $ fromIntegral seed
 
 runRandST :: Gen s -> Rand a -> ST s a
-runRandST gen (Rand c) = do
---   gen <- initialize $ singleton $ fromIntegral seed
-   c gen
+runRandST gen (Rand c) = c gen
 
 -- | Provides a random @Float@ in @[0..1)@
 rnd :: Rand Float
