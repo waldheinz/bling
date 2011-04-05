@@ -8,7 +8,7 @@ module Image(
 import Control.Monad
 import Control.Monad.ST
 import Debug.Trace
-import Data.Array.ST
+import Data.Vector.Unboxed.Mutable as V
 import qualified Data.ByteString as BS
 import System.IO
 
@@ -20,12 +20,12 @@ data Image s = Image {
    imageWidth :: Int,
    imageHeight :: Int,
    imageFilter :: Filter,
-   _imagePixels :: STUArray s Int Float
+   _imagePixels :: MVector s Float
    }
 
 mkImage :: Filter -> Int -> Int -> ST s (Image s)
 mkImage flt w h = do
-   pixels <- newArray (0, w * h * 4) 0.0 :: ST s (STUArray s Int Float)
+   pixels <- V.replicate (w * h * 4) 0.0
    return $ Image w h flt pixels
    
 addPixel :: Image s -> (Int, Int, WeightedSpectrum) -> ST s ()
@@ -33,17 +33,17 @@ addPixel (Image w h _ p) (x, y, (sw, s))
    | x < 0 || y < 0 = return ()
    | x >= w || y >= h = return ()
    | otherwise = do
-      osw <- readArray p o'
-      writeArray p o' (osw + sw)
+      osw <- unsafeRead p o'
+      unsafeWrite p o' (osw + sw)
    
-      ox <- readArray p (o' + 1)
-      writeArray p (o' + 1) (ox + sx)
+      ox <- unsafeRead p (o' + 1)
+      unsafeWrite p (o' + 1) (ox + sx)
    
-      oy <- readArray p (o' + 2)
-      writeArray p (o' + 2) (oy + sy)
+      oy <- unsafeRead p (o' + 2)
+      unsafeWrite p (o' + 2) (oy + sy)
    
-      oz <- readArray p (o' + 3)
-      writeArray p (o' + 3) (oz + sz)
+      oz <- unsafeRead p (o' + 3)
+      unsafeWrite p (o' + 3) (oz + sz)
       
    where
          (sx, sy, sz) = toRGB s
@@ -63,10 +63,10 @@ addSample img smp@(ImageSample sx sy (_, ss))
 -- | extracts the pixel at the specified offset from an Image
 getPixel :: Image s -> Int -> ST s WeightedSpectrum
 getPixel (Image _ _ _ p) o = do
-   w <- readArray p o'
-   r <- readArray p (o' + 1)
-   g <- readArray p (o' + 2)
-   b <- readArray p (o' + 3)
+   w <- unsafeRead p o'
+   r <- unsafeRead p (o' + 1)
+   g <- unsafeRead p (o' + 2)
+   b <- unsafeRead p (o' + 3)
    return (w, fromRGB (r, g, b)) where
       o' = o * 4
    
