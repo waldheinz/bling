@@ -46,6 +46,7 @@ fromXyz (x, y, z) = fromRGB (r, g, b) where
    b =  0.055648 * x + (-0.204043) * y +  1.057311 * z;
 
 toRGB :: Spectrum -> (Float, Float, Float)
+{-# INLINE toRGB #-}
 toRGB (Spectrum r g b) = (r, g, b)
 
 -- | the brightness

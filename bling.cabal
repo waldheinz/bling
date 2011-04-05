@@ -3,6 +3,7 @@ Version:             0.1
 Description:         A Raytracer
 Author:              Matthias Treydte
 Maintainer:          waldheinz@gmail.com
+License:             GPL
 Build-Type:          Simple
 Cabal-Version:       >=1.2
 
