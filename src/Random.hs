@@ -30,11 +30,13 @@ runRandST gen (Rand c) = c gen
 
 -- | Provides a random @Float@ in @[0..1)@
 rnd :: Rand Float
+{-# INLINE rnd #-}
 rnd = do
    u <- Rand uniform
    return $ u - 2**(-33)
 
 rnd2D :: Rand Rand2D
+{-# INLINE rnd2D #-}
 rnd2D = do
    u1 <- rnd
    u2 <- rnd
