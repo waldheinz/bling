@@ -3,7 +3,8 @@ module Bvh
    ( Bvh, mkBvh, ppBvh ) 
    where
 
-import Data.Maybe (isJust, fromJust)
+import Data.Maybe (fromJust)
+import Debug.Trace
 import Text.PrettyPrint
 
 import AABB
@@ -82,17 +83,15 @@ mkBvh ps
    allBounds = foldl extendAABB emptyAABB $ map worldBounds ps
 
 bvhIntersect :: TreeBvh -> Ray -> Maybe Intersection
-bvhIntersect bvh ray@(Ray ro rd tmin tmax) = go bvh where
+bvhIntersect bvh ray = trace ("intersect " ++ show ray) go bvh ray where
    i = intf ray
-   go (Leaf p b) = if i b then nearest ray p else Nothing
-   go (Node d l r b) = if i b then near firstInt otherInt else Nothing where
-      (firstChild, otherChild) = if component rd d > 0 then (l, r) else (r, l)
-      firstInt = bvhIntersect firstChild ray
-      tmax'
-         | isJust firstInt = intDist (fromJust firstInt)
-         | otherwise = tmax
-      otherInt = bvhIntersect otherChild (Ray ro rd tmin tmax')
-
+   go (Leaf p b) r = trace ("leaf " ++ show r) $ if i b (rayMax r) then nearest r p else Nothing
+   go (Node d lt rt b) r@(Ray _ rd _ tmax) = if i b tmax then near fi oi else Nothing where
+      (fc, oc) = if component rd d >= 0 then (lt, rt) else (rt, lt)
+      fi = trace ("first " ++ show r) $ go fc r -- first intersection
+      oi = trace ("other " ++ show r')$   go oc r' -- other intersection
+      r' = maybe r (\i' -> r {rayMax = intDist i'}) fi -- ray clipped against fi
+      
 near :: Maybe Intersection -> Maybe Intersection -> Maybe Intersection
 near Nothing i = i
 near i Nothing = i
@@ -103,9 +102,9 @@ near mi1 mi2 = Just $ near' (fromJust mi1) (fromJust mi2) where
 
 -- | creates an itersection function which can be used to check multiple
 --   AABBs for intersection against a single @Ray@
-intf :: Ray -> (AABB -> Bool)
+intf :: Ray -> (AABB -> Float -> Bool)
 {-# INLINE intf #-}
-intf ray@(Ray _ (MkVector dx dy dz) _ _) = (\b -> intAABB b ray invD negD) where
+intf ray@(Ray _ (MkVector dx dy dz) _ _) = (\b m -> intAABB b ray {rayMax = m} invD negD) where
    invD = mkV (1 / dx, 1 / dy, 1 / dz)
    negD = (isNeg dx, isNeg dy, isNeg dz)
    isNeg x = if x < 0 then 1 else 0
@@ -114,7 +113,7 @@ bvhIntersects :: TreeBvh -> Ray -> Bool
 bvhIntersects bvh ray = go bvh where
    go (Leaf p b) = i b && any (flip intersects ray) p
    go (Node _ l r b) = i b && (go l || go r)
-   i = intf ray
+   i b = (intf ray) b (rayMax ray)
    
 -- | Splits the given @Primitive@ list along the specified @Dimension@
 --   in two lists
