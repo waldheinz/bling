@@ -362,7 +362,7 @@ pTexture n = do
    tx <- case tp of
       "constant" -> do
          s <- pSpectrum
-         return (constantSpectrum s)
+         return (constant s)
       _ -> fail ("unknown texture type " ++ tp)
    _ <- ws >> string "endTexture"
    return tx

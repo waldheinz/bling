@@ -1,13 +1,23 @@
 
-module Texture where
+module Texture (
+   -- * Texture Types
+   
+   Texture, SpectrumTexture,
+   
+   -- * Creating Textures
+   constant, graphPaper
+   ) where
 
 import Math
 import Spectrum
 
-type SpectrumTexture = DifferentialGeometry -> Spectrum
+-- | A @Texture@ transforms a @DifferentialGeomerty@ to some value
+type Texture a = DifferentialGeometry -> a
 
-constantSpectrum :: Spectrum -> SpectrumTexture
-constantSpectrum r _ = r
+type SpectrumTexture = Texture Spectrum
+
+constant :: a -> Texture a
+constant r _ = r
 
 graphPaper :: Float -> Spectrum -> Spectrum -> SpectrumTexture
 graphPaper lw p l (DifferentialGeometry (MkVector x _ z) _)
