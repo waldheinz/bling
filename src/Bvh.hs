@@ -4,7 +4,6 @@ module Bvh
    where
 
 import Data.Maybe (fromJust)
-import Debug.Trace
 import Text.PrettyPrint
 
 import AABB
@@ -83,13 +82,13 @@ mkBvh ps
    allBounds = foldl extendAABB emptyAABB $ map worldBounds ps
 
 bvhIntersect :: TreeBvh -> Ray -> Maybe Intersection
-bvhIntersect bvh ray = trace ("intersect " ++ show ray) go bvh ray where
+bvhIntersect bvh ray = go bvh ray where
    i = intf ray
-   go (Leaf p b) r = trace ("leaf " ++ show r) $ if i b (rayMax r) then nearest r p else Nothing
+   go (Leaf p b) r = if i b (rayMax r) then nearest r p else Nothing
    go (Node d lt rt b) r@(Ray _ rd _ tmax) = if i b tmax then near fi oi else Nothing where
       (fc, oc) = if component rd d >= 0 then (lt, rt) else (rt, lt)
-      fi = trace ("first " ++ show r) $ go fc r -- first intersection
-      oi = trace ("other " ++ show r')$   go oc r' -- other intersection
+      fi = go fc r  -- first intersection
+      oi = go oc r' -- other intersection
       r' = maybe r (\i' -> r {rayMax = intDist i'}) fi -- ray clipped against fi
       
 near :: Maybe Intersection -> Maybe Intersection -> Maybe Intersection
