@@ -14,7 +14,7 @@ Executable bling
       bitset, bytestring, parsec, pretty,
       deepseq >= 1.1 && < 1.2,
       random >= 1.0 && < 1.1
-   ghc-options:       -Wall -O2 -fexcess-precision
+   ghc-options:       -Wall -O2 -fexcess-precision -fspec-constr-count=64
    ghc-prof-options:  -O2 -fexcess-precision -prof -auto-all -rtsopts
    
 Executable bling-benchmark
