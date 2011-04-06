@@ -9,11 +9,18 @@ Cabal-Version:       >=1.8
 
 Library
    Hs-Source-Dirs:   src
-   Build-Depends:     base >= 3 && < 5, haskell98, mwc-random, vector,
-      bitset, bytestring, parsec, pretty,
+   Build-Depends:
+      base >= 3 && < 5,
+      haskell98,
+      mwc-random,
+      vector,
+      bitset,
+      bytestring,
+      parsec,
+      pretty,
       deepseq >= 1.1 && < 1.2,
       random >= 1.0 && < 1.1
-   
+      
    Exposed-Modules:
       Graphics.Bling.AABB,
       Graphics.Bling.Bvh,
