@@ -4,8 +4,8 @@ module Scene (
    ) where
 
 import Control.Monad
-import Data.Array.Unboxed
 import Data.Maybe (mapMaybe)
+import qualified Data.Vector as V
 import Text.PrettyPrint
 
 import Bvh
@@ -19,23 +19,22 @@ import Transport
 
 data Scene = Scene {
    scenePrim :: Bvh,
-   sceneLights :: Array Int Light,
+   sceneLights :: V.Vector Light,
    sceneCam :: Camera
    }
    
 ppScene :: Scene -> Doc
 ppScene (Scene p ls _) = vcat [
    text "bounds" <+> text (show (worldBounds p)),
-   text "number of lights" <+> int (rangeSize (bounds ls)),
+   text "number of lights" <+> int (V.length ls),
    text "BVH stats" $$ nest 3 (ppBvh p)
    ]
    
 mkScene :: (Primitive a) => [Light] -> [a] -> Camera -> Scene
-mkScene l prims cam = Scene (mkBvh ps) la cam where
-   la = listArray (0, length lights - 1) lights
+mkScene l prims cam = Scene (mkBvh ps) (V.fromList lights) cam where
    lights = l ++ gl
    gl = mapMaybe light ps -- collect the geometric lights
-   ps = concatMap flatten prims
+   ps = Prelude.concatMap flatten prims
    
 occluded :: Scene -> Ray -> Bool
 occluded (Scene p _ _) = intersects p
@@ -94,10 +93,10 @@ estimateDirect s l p n wo bsdf = do
 sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> Float -> Rand Spectrum
 sampleOneLight scene@(Scene _ lights _) p n wo bsdf ulNum
    | lc == 0 = return black
-   | lc == 1 = estimateDirect scene (lights ! 0)  p n wo bsdf
-   | otherwise = liftM scale (estimateDirect scene (lights ! ln) p n wo bsdf)
+   | lc == 1 = estimateDirect scene (V.head lights)  p n wo bsdf
+   | otherwise = liftM scale (estimateDirect scene (V.unsafeIndex lights ln) p n wo bsdf)
       where
-            lc = snd (bounds lights) + 1
+            lc = V.length lights + 1
             ln = min (floor $ ulNum * fromIntegral lc) (lc - 1)
             scale y = sScale y (fromIntegral lc)
             

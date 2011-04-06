@@ -10,7 +10,7 @@ Cabal-Version:       >=1.2
 Executable bling
    hs-source-dirs:    src
    Main-is:           Main.hs
-   Build-Depends:     base >= 3 && < 5, haskell98, array, mwc-random, vector, 
+   Build-Depends:     base >= 3 && < 5, haskell98, mwc-random, vector,
       bitset, bytestring, parsec, pretty,
       deepseq >= 1.1 && < 1.2,
       random >= 1.0 && < 1.1
@@ -20,7 +20,7 @@ Executable bling
 Executable bling-benchmark
    hs-source-dirs:    src
    Main-is:           Benchmark.hs
-   Build-Depends:     base >= 3 && < 5, haskell98, array, mwc-random, vector, 
+   Build-Depends:     base >= 3 && < 5, haskell98, mwc-random, vector,
       bitset, bytestring, parsec, pretty,
       criterion >= 0.5 && < 0.6,
       random >= 1.0 && < 1.1

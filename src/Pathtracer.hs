@@ -2,7 +2,7 @@
 module Pathtracer (pathTracer) where
 
 import Data.BitSet
-import Data.Array.Unboxed
+import Data.Vector.Generic as V
 
 import Light
 import Math
@@ -16,7 +16,7 @@ pathTracer :: Integrator
 pathTracer scene r = nextVertex scene 0 True r (intersect (scenePrim scene) r) white black
 
 directLight :: Scene -> Ray -> Spectrum
-directLight s ray = foldl (+) black (map (`le` ray) (elems $ sceneLights s))
+directLight s ray = V.foldl (+) black (V.map (`le` ray) (sceneLights s))
 
 nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Rand WeightedSpectrum
 -- nextVertex _ 1 _ _ _ _ l = return $! (1.0, seq l l) -- hard bound

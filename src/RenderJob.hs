@@ -21,7 +21,7 @@ import Spectrum
 import Texture
 import Transform
 
-import Data.Array
+import qualified Data.Vector as V
 import Text.ParserCombinators.Parsec
 import qualified Text.PrettyPrint as PP
 
@@ -124,15 +124,15 @@ pMesh = do
    ws
    fc <- namedInt "faceCount"  <|> fail "faceCount missing"
    vertices <- count vc vertex
-   let va = listArray (0, vc-1) vertices
+   let va = V.fromList vertices
    faces <- count fc (face va)
    return (triangulate faces)
    
-face :: (Array Int Vertex) -> JobParser [Vertex]
+face :: (V.Vector Vertex) -> JobParser [Vertex]
 face vs = do
    _ <- ws >> char 'f'
    is <- many1 (try (do ws; integ))
-   return (map (vs !) is)
+   return (map (vs V.!) is)
 
 vertex :: JobParser Vertex
 vertex = do
