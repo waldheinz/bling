@@ -5,14 +5,13 @@ module Scene (
 
 import Control.Monad
 import Data.Array.Unboxed
-import Data.Maybe (isJust, fromJust, mapMaybe)
+import Data.Maybe (mapMaybe)
 import Text.PrettyPrint
 
 import Bvh
 import Camera
 import Light as L
 import Math
-import Montecarlo
 import Primitive
 import Random
 import Spectrum
@@ -42,7 +41,7 @@ occluded :: Scene -> Ray -> Bool
 occluded (Scene p _ _) = intersects p
 
 type Integrator = Scene -> Ray -> Rand WeightedSpectrum
-
+{-
 sampleLightMis :: Scene -> LightSample -> Bsdf -> Vector -> Normal -> Spectrum
 sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n
    | lpdf == 0 || isBlack li || isBlack f || occluded scene ray = black
@@ -63,6 +62,7 @@ sampleBsdfMis (Scene sp _ _) l (BsdfSample _ bPdf f wi) n p
          scale li = sScale (f * li) (absDot wi n * weight / bPdf)
          ray = Ray p wi epsilon infinity
          lint = sp `intersect` ray
+-}
 
 estimateDirect
    :: Scene
@@ -72,13 +72,14 @@ estimateDirect
    -> Vector
    -> Bsdf
    -> Rand Spectrum
-
+{-# INLINE estimateDirect #-}
 estimateDirect s l p n wo bsdf = do
    ul <- rnd2D
-   let (LightSample li wi ray lpdf delta) = sample l p n ul
-   if lpdf == 0 || occluded s ray
+   let (LightSample li wi ray lpdf _) = sample l p n ul
+   let f = (evalBsdf bsdf wo wi)
+   if lpdf == 0 || isBlack li || isBlack f || occluded s ray
       then return black
-      else return $ sScale ((evalBsdf bsdf wo wi) * li) (absDot wi n * lpdf)
+      else return $ sScale (f * li) (absDot wi n * lpdf)
    
 {-
 estimateDirect s l p n wo bsdf = do
