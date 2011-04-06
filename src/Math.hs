@@ -31,12 +31,16 @@ radians x = (x / 180 * pi)
 
 -- | Defines names for the three axii
 type Dimension = Int
+
 dimX :: Dimension
 dimX = 1
+
 dimY :: Dimension
 dimY = 2
+
 dimZ :: Dimension
 dimZ = 3
+
 allDimensions :: [Dimension]
 allDimensions = [dimX, dimY, dimZ]
 
@@ -120,9 +124,22 @@ component !(MkVector x y z) !d
    | d == dimX = x
    | d == dimY = y
    | otherwise = z
--- component (MkVector _ y _) dimY = y
--- component (MkVector _ _ z) dimZ = z
-  
+
+component' :: Vector -> Int -> Flt
+component' = component
+
+getX :: Vector -> Flt
+{-# INLINE getX #-}
+getX (MkVector x _ _) = x
+
+getY :: Vector -> Flt
+{-# INLINE getY #-}
+getY (MkVector _ y _) = y
+
+getZ :: Vector -> Flt
+{-# INLINE getZ #-}
+getZ (MkVector _ _ z) = z
+
 add :: Vector -> Vector -> Vector
 {-# INLINE add #-}
 add (MkVector x y z) (MkVector a b c) = MkVector (x+a) (y+b) (z+c)

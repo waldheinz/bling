@@ -104,9 +104,13 @@ near mi1 mi2 = Just $ near' (fromJust mi1) (fromJust mi2) where
       | otherwise = i2
 
 bvhIntersects :: TreeBvh -> Ray -> Bool
-bvhIntersects (Leaf p b) r = isJust (intersectAABB b r) && any (flip intersects r) p
-bvhIntersects (Node _ l r b) ray = isJust (intersectAABB b ray) &&
-   (bvhIntersects l ray || bvhIntersects r ray)
+bvhIntersects bvh ray@(Ray _ (MkVector dx dy dz) _ _) = go bvh where
+   go (Leaf p b) = ints b && any (flip intersects ray) p
+   go (Node _ l r b) = ints b && (go l || go r)
+   ints b = intAABB b ray invD negD
+   invD = mkV (1 / dx, 1 / dy, 1 / dz)
+   negD = (isNeg dx, isNeg dy, isNeg dz)
+   isNeg x = if x < 0 then 1 else 0
 
 -- | Splits the given @Primitive@ list along the specified @Dimension@
 --   in two lists
@@ -116,6 +120,25 @@ splitMidpoint ps dim = ([l | l <- ps, toLeft l], [r | r <- ps, not $ toLeft r]) 
    pMid = 0.5 * (component (aabbMin cb) dim + component (aabbMax cb) dim)
    cb = centroidBounds ps
 
+intAABB :: AABB -> Ray -> Vector -> (Int, Int, Int) -> Bool
+intAABB b (Ray (MkVector rox roy roz) _ rmin rmax) (MkVector idx idy idz) (inx, iny, inz)
+   | tmin > tymax || tymin > tmax = False
+   | tmin' > tzmax || tzmin > tmax' = False
+   | otherwise = tmin'' < rmax && tmax'' > rmin
+   where
+         e axis = if axis == 0 then aabbMin b else aabbMax b
+         tmin = ((getX (e      inx)  - rox)) * idx
+         tmax = ((getX (e (1 - inx)) - rox)) * idx
+         tymin = ((getY (e      iny)  - roy)) * idy
+         tymax = ((getY (e (1 - iny)) - roy)) * idy
+         
+         tmin' = if tymin > tmin then tymin else tmin
+         tmax' = if tymax < tmax then tymax else tmax
+         tzmin = ((getZ (e       inz) - roz)) * idz
+         tzmax = ((getZ (e (1 - inz)) - roz)) * idz
+         tmin'' = if tzmin > tmin' then tzmin else tmin'
+         tmax'' = if tzmax < tmax' then tzmax else tmax'
+         
 -- | Finds the preferred split axis for a list of primitives. This
 --   is where the AABBs centroid's bounds have the maximum extent
 splitAxis :: [AnyPrim] -> Dimension
