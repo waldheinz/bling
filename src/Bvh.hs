@@ -3,7 +3,7 @@ module Bvh
    ( Bvh, mkBvh, ppBvh ) 
    where
 
-import Data.Maybe (isJust, isNothing, fromJust)
+import Data.Maybe (isJust, fromJust)
 import Text.PrettyPrint
 
 import AABB
@@ -82,17 +82,15 @@ mkBvh ps
    allBounds = foldl extendAABB emptyAABB $ map worldBounds ps
 
 bvhIntersect :: TreeBvh -> Ray -> Maybe Intersection
-bvhIntersect (Leaf p b) ray
-   | isNothing $ intersectAABB b ray = Nothing
-   | otherwise = nearest ray p
-bvhIntersect (Node d l r b) ray@(Ray ro rd tmin tmax)
-   | isNothing $ intersectAABB b ray = Nothing
-   | otherwise = near firstInt otherInt where
+bvhIntersect bvh ray@(Ray ro rd tmin tmax) = go bvh where
+   i = intf ray
+   go (Leaf p b) = if i b then nearest ray p else Nothing
+   go (Node d l r b) = if i b then near firstInt otherInt else Nothing where
       (firstChild, otherChild) = if component rd d > 0 then (l, r) else (r, l)
       firstInt = bvhIntersect firstChild ray
       tmax'
-	 | isJust firstInt = intDist (fromJust firstInt)
-	 | otherwise = tmax
+         | isJust firstInt = intDist (fromJust firstInt)
+         | otherwise = tmax
       otherInt = bvhIntersect otherChild (Ray ro rd tmin tmax')
 
 near :: Maybe Intersection -> Maybe Intersection -> Maybe Intersection
@@ -103,15 +101,21 @@ near mi1 mi2 = Just $ near' (fromJust mi1) (fromJust mi2) where
       | d1 < d2 = i1
       | otherwise = i2
 
-bvhIntersects :: TreeBvh -> Ray -> Bool
-bvhIntersects bvh ray@(Ray _ (MkVector dx dy dz) _ _) = go bvh where
-   go (Leaf p b) = ints b && any (flip intersects ray) p
-   go (Node _ l r b) = ints b && (go l || go r)
-   ints b = intAABB b ray invD negD
+-- | creates an itersection function which can be used to check multiple
+--   AABBs for intersection against a single @Ray@
+intf :: Ray -> (AABB -> Bool)
+{-# INLINE intf #-}
+intf ray@(Ray _ (MkVector dx dy dz) _ _) = (\b -> intAABB b ray invD negD) where
    invD = mkV (1 / dx, 1 / dy, 1 / dz)
    negD = (isNeg dx, isNeg dy, isNeg dz)
    isNeg x = if x < 0 then 1 else 0
-
+   
+bvhIntersects :: TreeBvh -> Ray -> Bool
+bvhIntersects bvh ray = go bvh where
+   go (Leaf p b) = i b && any (flip intersects ray) p
+   go (Node _ l r b) = i b && (go l || go r)
+   i = intf ray
+   
 -- | Splits the given @Primitive@ list along the specified @Dimension@
 --   in two lists
 splitMidpoint :: [AnyPrim] -> Dimension -> ([AnyPrim], [AnyPrim])
@@ -121,6 +125,7 @@ splitMidpoint ps dim = ([l | l <- ps, toLeft l], [r | r <- ps, not $ toLeft r]) 
    cb = centroidBounds ps
 
 intAABB :: AABB -> Ray -> Vector -> (Int, Int, Int) -> Bool
+{-# INLINE intAABB #-}
 intAABB b (Ray (MkVector rox roy roz) _ rmin rmax) (MkVector idx idy idz) (inx, iny, inz)
    | tmin > tymax || tymin > tmax = False
    | tmin' > tzmax || tzmin > tmax' = False
