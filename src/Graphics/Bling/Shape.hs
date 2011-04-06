@@ -1,5 +1,5 @@
 
-module Shape (
+module Graphics.Bling.Shape (
    Shape,
 
    -- * Triangles and Meshes
@@ -17,10 +17,10 @@ module Shape (
 import Data.List (foldl')
 import Data.Maybe
 
-import AABB
-import Math
-import Random
-import Transform
+import Graphics.Bling.AABB
+import Graphics.Bling.Math
+import Graphics.Bling.Random
+import Graphics.Bling.Transform
 
 data Vertex = Vertex {
    vertexPos :: {-# UNPACK #-} !Point

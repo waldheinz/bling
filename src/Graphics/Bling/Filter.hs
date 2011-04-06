@@ -1,5 +1,5 @@
 
-module Filter (
+module Graphics.Bling.Filter (
    
    -- * Creating Pixel Filters
    
@@ -12,7 +12,7 @@ module Filter (
    
    ) where
    
-import Spectrum
+import Graphics.Bling.Spectrum
 
 import Data.Vector.Unboxed
 

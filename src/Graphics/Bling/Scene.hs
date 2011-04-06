@@ -1,4 +1,4 @@
-module Scene (
+module Graphics.Bling.Scene (
    Scene, mkScene, scenePrim, sceneLights, sceneCam,
    Integrator, sampleOneLight, ppScene
    ) where
@@ -8,14 +8,14 @@ import Data.Maybe (mapMaybe)
 import qualified Data.Vector as V
 import Text.PrettyPrint
 
-import Bvh
-import Camera
-import Light as L
-import Math
-import Primitive
-import Random
-import Spectrum
-import Transport
+import Graphics.Bling.Bvh
+import Graphics.Bling.Camera
+import Graphics.Bling.Light as L
+import Graphics.Bling.Math
+import Graphics.Bling.Primitive
+import Graphics.Bling.Random
+import Graphics.Bling.Spectrum
+import Graphics.Bling.Transport
 
 data Scene = Scene {
    scenePrim :: Bvh,

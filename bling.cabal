@@ -5,22 +5,50 @@ Author:              Matthias Treydte
 Maintainer:          waldheinz@gmail.com
 License:             GPL
 Build-Type:          Simple
-Cabal-Version:       >=1.2
+Cabal-Version:       >=1.8
 
-Executable bling
-   hs-source-dirs:    src
-   Main-is:           Main.hs
+Library
+   Hs-Source-Dirs:   src
    Build-Depends:     base >= 3 && < 5, haskell98, mwc-random, vector,
       bitset, bytestring, parsec, pretty,
       deepseq >= 1.1 && < 1.2,
       random >= 1.0 && < 1.1
+   
+   Exposed-Modules:
+      Graphics.Bling.AABB,
+      Graphics.Bling.Bvh,
+      Graphics.Bling.Camera,
+      Graphics.Bling.Filter,
+      Graphics.Bling.Image,
+      Graphics.Bling.Lafortune,
+      Graphics.Bling.Light,
+      Graphics.Bling.Material,
+      Graphics.Bling.Math,
+      Graphics.Bling.Microfacet,
+      Graphics.Bling.Pathtracer,
+      Graphics.Bling.Plastic,
+      Graphics.Bling.Primitive,
+      Graphics.Bling.Random,
+      Graphics.Bling.RenderJob,
+      Graphics.Bling.Scene,
+      Graphics.Bling.Shape,
+      Graphics.Bling.Spectrum,
+      Graphics.Bling.Specular,
+      Graphics.Bling.Texture,
+      Graphics.Bling.Transform,
+      Graphics.Bling.Transport
+
+Executable bling
+   hs-source-dirs:    src/Graphics/Bling/Main
+   Main-is:           Main.hs
+   Build-Depends:    bling, base, haskell98, pretty, random, mwc-random
    ghc-options:       -Wall -O2 -fexcess-precision -fspec-constr-count=64
    ghc-prof-options:  -O2 -fexcess-precision -prof -auto-all -rtsopts
    
 Executable bling-benchmark
-   hs-source-dirs:    src
+   hs-source-dirs:    src/Graphics/Bling/Benchmark
    Main-is:           Benchmark.hs
-   Build-Depends:     base >= 3 && < 5, haskell98, mwc-random, vector,
+   Build-Depends:     bling, base >= 3 && < 5, haskell98, mwc-random, vector,
       bitset, bytestring, parsec, pretty,
       criterion >= 0.5 && < 0.6,
       random >= 1.0 && < 1.1

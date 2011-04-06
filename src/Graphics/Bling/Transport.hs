@@ -1,14 +1,14 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
-module Transport(
+module Graphics.Bling.Transport (
    Bsdf, mkBsdf, BsdfSample(..), sampleBsdf, evalBsdf, bsdfPdf, filterBsdf,
    Bxdf(..), AnyBxdf(..), BxdfType, BxdfProp(..), mkBxdfType,
    isDiffuse, isReflection, sameHemisphere, toSameHemisphere, cosTheta, sinTheta2
    ) where
 
-import Math
-import Random
-import Spectrum
+import Graphics.Bling.Math
+import Graphics.Bling.Random
+import Graphics.Bling.Spectrum
 
 import Data.BitSet
 import Data.List(foldl')

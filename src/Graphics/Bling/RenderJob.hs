@@ -1,25 +1,25 @@
 
-module RenderJob (
+module Graphics.Bling.RenderJob (
    Job, parseJob, ppJob,
    jobScene, jobIntegrator, imageSizeX, imageSizeY, jobPixelFilter,
    samplesPerPixel
    ) where
 
-import Camera
-import Filter
-import Lafortune
-import Light
-import Material
-import Math
-import Pathtracer
-import Plastic
-import Primitive
-import Scene
-import Shape
-import Specular
-import Spectrum
-import Texture
-import Transform
+import Graphics.Bling.Camera
+import Graphics.Bling.Filter
+import Graphics.Bling.Lafortune
+import Graphics.Bling.Light
+import Graphics.Bling.Material
+import Graphics.Bling.Math
+import Graphics.Bling.Pathtracer
+import Graphics.Bling.Plastic
+import Graphics.Bling.Primitive
+import Graphics.Bling.Scene
+import Graphics.Bling.Shape
+import Graphics.Bling.Specular
+import Graphics.Bling.Spectrum
+import Graphics.Bling.Texture
+import Graphics.Bling.Transform
 
 import qualified Data.Vector as V
 import Text.ParserCombinators.Parsec

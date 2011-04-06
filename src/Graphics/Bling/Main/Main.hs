@@ -9,10 +9,10 @@ import Text.Printf
 import qualified Text.PrettyPrint as PP
 import Time
 
-import Image
-import Random
-import RenderJob
-import Scene
+import Graphics.Bling.Image
+import Graphics.Bling.Random
+import Graphics.Bling.RenderJob
+import Graphics.Bling.Scene
 
 main :: IO ()
 main = do

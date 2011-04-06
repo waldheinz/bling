@@ -1,14 +1,14 @@
 
-module Bvh 
+module Graphics.Bling.Bvh 
    ( Bvh, mkBvh, ppBvh ) 
    where
 
 import Data.Maybe (fromJust)
 import Text.PrettyPrint
 
-import AABB
-import Math
-import Primitive
+import Graphics.Bling.AABB
+import Graphics.Bling.Math
+import Graphics.Bling.Primitive
 
 type Bvh = TreeBvh
    

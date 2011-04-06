@@ -1,8 +1,8 @@
 {-# LANGUAGE BangPatterns #-}
 
-module Math where
+module Graphics.Bling.Math where
 
-import Random
+import Graphics.Bling.Random
 
 
 ---

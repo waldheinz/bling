@@ -1,5 +1,5 @@
 
-module Image(
+module Graphics.Bling.Image (
    Image, ImageSample(..), 
    mkImage,
    imageWidth, imageHeight, 
@@ -12,8 +12,8 @@ import Data.Vector.Unboxed.Mutable as V
 import qualified Data.ByteString as BS
 import System.IO
 
-import Filter
-import Spectrum
+import Graphics.Bling.Filter
+import Graphics.Bling.Spectrum
 
 -- | an image has a width, a height and some pixels 
 data Image s = Image {

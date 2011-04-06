@@ -1,11 +1,15 @@
 
-module Material(Material, Lambertian(..),
-   matteMaterial, blackBodyMaterial) where
+module Graphics.Bling.Material(
+   
+   Material, Lambertian(..),
+   
+   matteMaterial, blackBodyMaterial
+   ) where
 
-import Math
-import Spectrum
-import Texture
-import Transport
+import Graphics.Bling.Math
+import Graphics.Bling.Spectrum
+import Graphics.Bling.Texture
+import Graphics.Bling.Transport
 
 type Material = DifferentialGeometry -> Bsdf
 

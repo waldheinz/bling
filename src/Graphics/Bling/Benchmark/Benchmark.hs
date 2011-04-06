@@ -4,9 +4,9 @@ module Main where
 import Control.Monad.ST (stToIO)
 import Criterion.Main
 
-import Filter
-import Image
-import Spectrum
+import Graphics.Bling.Filter
+import Graphics.Bling.Image
+import Graphics.Bling.Spectrum
 
 fib :: Int -> Int
 fib 0 = 0

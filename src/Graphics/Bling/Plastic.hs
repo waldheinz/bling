@@ -1,12 +1,12 @@
 
-module Plastic where
+module Graphics.Bling.Plastic where
 
-import Material
-import Math
-import Microfacet
-import Specular
-import Texture
-import Transport
+import Graphics.Bling.Material
+import Graphics.Bling.Math
+import Graphics.Bling.Microfacet
+import Graphics.Bling.Specular
+import Graphics.Bling.Texture
+import Graphics.Bling.Transport
 
 plasticMaterial :: SpectrumTexture -> SpectrumTexture -> Float -> Material
 plasticMaterial kd ks rough dg = mkBsdf [diff, spec] sc where

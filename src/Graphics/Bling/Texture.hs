@@ -1,5 +1,5 @@
 
-module Texture (
+module Graphics.Bling.Texture (
    -- * Texture Types
    
    Texture, SpectrumTexture,
@@ -8,8 +8,8 @@ module Texture (
    constant, graphPaper
    ) where
 
-import Math
-import Spectrum
+import Graphics.Bling.Math
+import Graphics.Bling.Spectrum
 
 -- | A @Texture@ transforms a @DifferentialGeomerty@ to some value
 type Texture a = DifferentialGeometry -> a

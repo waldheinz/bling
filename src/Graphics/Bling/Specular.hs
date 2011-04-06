@@ -1,5 +1,5 @@
 
-module Specular (
+module Graphics.Bling.Specular (
    -- * Fresnel implementations
    Fresnel, frDiel, frCond,
    
@@ -8,10 +8,10 @@ module Specular (
    mirrorMaterial, glassMaterial
    ) where
 
-import Material
-import Math
-import Spectrum
-import Transport
+import Graphics.Bling.Material
+import Graphics.Bling.Math
+import Graphics.Bling.Spectrum
+import Graphics.Bling.Transport
 
 glassMaterial :: Float -> Spectrum -> Material
 glassMaterial ior r dg = mkBsdf [refl, trans] cs where

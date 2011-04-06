@@ -1,16 +1,16 @@
 
-module Pathtracer (pathTracer) where
+module Graphics.Bling.Pathtracer (pathTracer) where
 
 import Data.BitSet
 import Data.Vector.Generic as V
 
-import Light
-import Math
-import Primitive
-import Random
-import Scene
-import Spectrum
-import Transport
+import Graphics.Bling.Light
+import Graphics.Bling.Math
+import Graphics.Bling.Primitive
+import Graphics.Bling.Random
+import Graphics.Bling.Scene
+import Graphics.Bling.Spectrum
+import Graphics.Bling.Transport
 
 pathTracer :: Integrator
 pathTracer scene r = nextVertex scene 0 True r (intersect (scenePrim scene) r) white black

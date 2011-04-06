@@ -1,6 +1,8 @@
 {-# LANGUAGE RankNTypes #-}
 
-module Random (Rand, Rand2D, runRand, runRandST, mkRndGen, rnd2D, rnd) where
+module Graphics.Bling.Random (
+   Rand, Rand2D, runRand, runRandST, mkRndGen, rnd2D, rnd
+   ) where
 
 import Control.Monad.ST
 import Data.Vector.Unboxed

@@ -1,11 +1,13 @@
 
-module Microfacet(Microfacet(..), Distribution(..)) where
+module Graphics.Bling.Microfacet(
+   Microfacet(..), Distribution(..)
+   ) where
 
-import Math
-import Random
-import Specular
-import Spectrum
-import Transport
+import Graphics.Bling.Math
+import Graphics.Bling.Random
+import Graphics.Bling.Specular
+import Graphics.Bling.Spectrum
+import Graphics.Bling.Transport
 
 data Microfacet = Microfacet {
    distribution :: Distribution,

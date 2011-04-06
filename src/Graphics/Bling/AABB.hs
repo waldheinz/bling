@@ -1,10 +1,10 @@
 
-module AABB (
+module Graphics.Bling.AABB (
    AABB(..), mkAABB,
    emptyAABB, extendAABB, extendAABBP, maximumExtent, centroid, intersectAABB
 ) where
 
-import Math
+import Graphics.Bling.Math
 
 -- | an axis-aligned bounding box
 data AABB = AABB {

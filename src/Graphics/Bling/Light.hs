@@ -1,19 +1,19 @@
 
 -- | The functions dealing with colours, radiance and light sources
-module Light (
+module Graphics.Bling.Light (
    
    -- * Creating Light sources
    Light, mkDirectional, mkAreaLight,
 
    -- * Working with light sources
-   LightSample(..), Light.sample, le, lEmit, Light.pdf
+   LightSample(..), sample, le, lEmit, pdf
    ) where
    
-import Math
-import Random
-import Shape as S
-import Spectrum
-import Transform
+import Graphics.Bling.Math
+import Graphics.Bling.Random
+import qualified Graphics.Bling.Shape as S
+import Graphics.Bling.Spectrum
+import Graphics.Bling.Transform
 
 data LightSample = LightSample {
    de :: Spectrum, -- ^ differential irradiance
@@ -27,7 +27,7 @@ data Light
    = SoftBox Spectrum -- ^ an infinite area light surrounding the whole scene, emitting a constant amount of light from all directions.
    | Directional !Spectrum !Normal
    | AreaLight {
-      _alShape :: Shape,
+      _alShape :: S.Shape,
       _areaRadiance :: Spectrum,
       _l2w :: Transform, -- ^ the light-to-world transformation
       _w2l :: Transform -- ^ the world-to-light transformation
@@ -38,7 +38,7 @@ mkDirectional :: Spectrum -> Normal -> Light
 mkDirectional s n = Directional s (normalize n)
 
 -- | creates a new area light sources
-mkAreaLight :: Shape -> Spectrum -> Transform -> Light
+mkAreaLight :: S.Shape -> Spectrum -> Transform -> Light
 mkAreaLight s r t = AreaLight s r t (inverse t)
 
 -- | the emission from the surface of an area light source
@@ -75,7 +75,7 @@ sample al@(AreaLight s _ t t') p _ us = LightSample ls wi' ray pd False where
    wi' = transVector t wi -- incident vector in world space
    wi = normalize (ps `sub` p') -- incident vector in local space
    ls = lEmit al ps ns (neg wi) -- emitted light (computed in local space)
-   pd = Light.pdf al p' wi -- pdf (computed in local space)
+   pd = pdf al p' wi -- pdf (computed in local space)
    ray = transRay t (segmentRay p' ps) -- vis. test ray (in world space)
    
 pdf :: Light -- ^ the light to compute the pdf for

@@ -1,6 +1,6 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
-module Primitive (
+module Graphics.Bling.Primitive (
 
    -- * Ray - Primitive intersections
 
@@ -12,14 +12,14 @@ module Primitive (
    
    ) where
 
-import AABB
-import Light as L
-import Material
-import Math
-import Shape as S
-import Spectrum
-import Transform
-import Transport
+import Graphics.Bling.AABB
+import Graphics.Bling.Light as L
+import Graphics.Bling.Material
+import Graphics.Bling.Math
+import qualified Graphics.Bling.Shape as S
+import Graphics.Bling.Spectrum
+import Graphics.Bling.Transform
+import Graphics.Bling.Transport
 
 import Data.Maybe(fromJust, isJust, isNothing)
 
@@ -47,9 +47,9 @@ class Primitive a where
 data AnyPrim = forall a . Primitive a => MkAnyPrim a
 
 instance Primitive AnyPrim where
-   intersect (MkAnyPrim p) = Primitive.intersect p
-   intersects (MkAnyPrim p) = Primitive.intersects p
-   worldBounds (MkAnyPrim p) = Primitive.worldBounds p
+   intersect (MkAnyPrim p) = intersect p
+   intersects (MkAnyPrim p) = intersects p
+   worldBounds (MkAnyPrim p) = worldBounds p
    flatten (MkAnyPrim p) = flatten p
    light (MkAnyPrim p) = light p
 
@@ -61,7 +61,7 @@ data Geometry = MkGeometry {
    o2w :: Transform, -- ^ the object-to-world transformation
    w2o :: Transform, -- ^ the world-to-object transformation
    _reverseOrientation :: Bool, -- ^ reverse the normal orientation?
-   shape :: Shape,
+   shape :: S.Shape,
    material :: Material,
    emission :: Maybe Spectrum
    } 
@@ -71,7 +71,7 @@ mkGeom
    -> Bool
    -> Material
    -> Maybe Spectrum
-   -> Shape
+   -> S.Shape
    -> Geometry
 mkGeom t ro m e s = MkGeometry t (inverse t) ro s m e
 
@@ -79,9 +79,9 @@ mkMesh
    :: Material
    -> Maybe Spectrum
    -> Transform
-   -> [[Vertex]]
+   -> [[S.Vertex]]
    -> [Geometry]
-mkMesh m e t vs = map (mkGeom t False m e) (triangulate vs)
+mkMesh m e t vs = map (mkGeom t False m e) (S.triangulate vs)
 
 instance Eq Geometry where
 
@@ -117,7 +117,7 @@ nearest (Ray ro rd tmin tmax) i = nearest' i tmax Nothing where
    nearest' (x:xs) tmax' mi = nearest' xs newMax newNear where
       clamped = Ray ro rd tmin tmax'
       newNear = if isJust newNear' then newNear' else mi
-      newNear' = Primitive.intersect x clamped
+      newNear' = intersect x clamped
       newMax = if isNothing newNear
                   then tmax'
                   else intDist $ fromJust newNear

@@ -1,12 +1,13 @@
 
-module Transform (
+module Graphics.Bling.Transform (
       Transform, identity, translate, scale, inverse, fromMatrix, rotateX,
       rotateY, rotateZ,
       transPoint, transVector, transBox, transRay, transNormal, concatTrans
    ) where
 
-import AABB
-import Math
+import Graphics.Bling.AABB
+import Graphics.Bling.Math
+
 import Data.List (transpose, foldl')
 
 data Matrix = MkMatrix {

@@ -1,12 +1,12 @@
 
-module Lafortune (
+module Graphics.Bling.Lafortune (
    measuredMaterial, Measured(..)
    ) where
 
-import Material
-import Math
-import Spectrum
-import Transport
+import Graphics.Bling.Material
+import Graphics.Bling.Math
+import Graphics.Bling.Spectrum
+import Graphics.Bling.Transport
 
 import Data.List (foldl')
 

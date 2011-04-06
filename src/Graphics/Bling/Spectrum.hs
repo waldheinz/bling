@@ -1,5 +1,5 @@
 
-module Spectrum (
+module Graphics.Bling.Spectrum (
    Spectrum, WeightedSpectrum, ImageSample(..),
    white, black, 
    isBlack, sNaN, sInfinite,
