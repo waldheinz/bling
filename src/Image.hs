@@ -20,36 +20,30 @@ data Image s = Image {
    imageWidth :: Int,
    imageHeight :: Int,
    imageFilter :: Filter,
-   _imagePixels :: MVector s Float
+   _imagePixels :: MVector s (Float, Float, Float, Float)
    }
 
 mkImage :: Filter -> Int -> Int -> ST s (Image s)
 mkImage flt w h = do
-   pixels <- V.replicate (w * h * 4) 0.0
+   pixels <- V.replicate (w * h) (0, 0, 0, 0)
    return $ Image w h flt pixels
-   
+
 addPixel :: Image s -> (Int, Int, WeightedSpectrum) -> ST s ()
+{-# INLINE addPixel #-}
 addPixel (Image w h _ p) (x, y, (sw, s))
    | x < 0 || y < 0 = return ()
    | x >= w || y >= h = return ()
    | otherwise = do
-      osw <- unsafeRead p o'
-      unsafeWrite p o' (osw + sw)
-   
-      ox <- unsafeRead p (o' + 1)
-      unsafeWrite p (o' + 1) (ox + sx)
-   
-      oy <- unsafeRead p (o' + 2)
-      unsafeWrite p (o' + 2) (oy + sy)
-   
-      oz <- unsafeRead p (o' + 3)
-      unsafeWrite p (o' + 3) (oz + sz)
-      
+      px <- unsafeRead p o
+      unsafeWrite p o (add dpx px)
    where
-         (sx, sy, sz) = toRGB s
-         o' = (x + y*w) * 4
-
--- | adds an sample to the specified image
+         dpx = (sw, r, g, b)
+         (r, g, b) = toRGB s
+         add (w1, r1, g1, b1) (w2, r2, g2, b2) =
+              (w1+w2, r1+r2, g1+g2, b1+b2)
+         o = (x + y*w)
+         
+-- | adds a sample to the specified image
 addSample :: Image s -> ImageSample -> ST s ()
 addSample img smp@(ImageSample sx sy (_, ss))
    | sNaN ss = trace ("skipping NaN sample at ("
@@ -63,12 +57,8 @@ addSample img smp@(ImageSample sx sy (_, ss))
 -- | extracts the pixel at the specified offset from an Image
 getPixel :: Image s -> Int -> ST s WeightedSpectrum
 getPixel (Image _ _ _ p) o = do
-   w <- unsafeRead p o'
-   r <- unsafeRead p (o' + 1)
-   g <- unsafeRead p (o' + 2)
-   b <- unsafeRead p (o' + 3)
-   return (w, fromRGB (r, g, b)) where
-      o' = o * 4
+   (w, r, g, b) <- unsafeRead p o
+   return (w, fromRGB (r, g, b))
    
 writeRgbe :: Image RealWorld -> Handle -> IO ()
 writeRgbe img@(Image w h _ _) hnd =

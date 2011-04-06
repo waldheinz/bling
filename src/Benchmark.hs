@@ -1,15 +1,21 @@
 
 module Main where
 
+import Control.Monad.ST (stToIO)
 import Criterion.Main
 
 import Filter
+import Image
 import Spectrum
 
 fib :: Int -> Int
 fib 0 = 0
 fib 1 = 1
 fib n = fib (n-1) + fib (n-2)
+
+--
+-- filter benchmarks
+--
 
 benchFilter :: Filter -> Benchmark
 benchFilter f = bench (show f) (nf fn smp) where
@@ -24,6 +30,22 @@ filters = [
    mkTriangleFilter 3 3,
    mkMitchellFilter 3 3 (1/3) (1/3) ]
 
+--
+-- image benchmarks
+--
+
+benchAddPixel :: Benchmark
+benchAddPixel = bench "addSample" (nfIO fn) where
+   -- TODO: this mainly benchmarks image creation
+   fn = stToIO $ do
+      img <- (mkImage mkBoxFilter 50 50)
+      addSample img smp where
+      
+   smp = ImageSample 10 10 (1, fromRGB (0.9, 0.9, 0.9))
+   
 main :: IO ()
-main = defaultMain [bgroup "filter" (map benchFilter filters) ]
+main = defaultMain [
+   bgroup "image" [benchAddPixel],
+   bgroup "filter" (map benchFilter filters)
+   ]
 
