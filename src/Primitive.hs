@@ -87,6 +87,7 @@ instance Eq Geometry where
 
 -- | transforms a @DifferentialGeometry@ to world space
 transDg :: Transform -> DifferentialGeometry -> DifferentialGeometry
+{-# INLINE transDg #-}
 transDg t (DifferentialGeometry p n) =
    DifferentialGeometry (transPoint t p) (transNormal t n)
 
