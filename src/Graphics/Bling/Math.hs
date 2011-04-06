@@ -48,21 +48,39 @@ allDimensions = [dimX, dimY, dimZ]
 -- Vectors
 --
 
-data Vector
-   = MkVector
-      {-# UNPACK #-} !Flt
-      {-# UNPACK #-} !Flt
-      {-# UNPACK #-} !Flt
-   deriving (Eq)
+data Vector = Vector { vx, vy, vz :: {-# UNPACK #-} !Flt } deriving ( Eq )
+
+vzip :: (Flt -> Flt -> Flt) -> Vector -> Vector -> Vector
+vzip f (Vector x1 y1 z1) (Vector x2 y2 z2) =
+   Vector (f x1 x2) (f y1 y2) (f z1 z2)
+
+vmap :: (Flt -> Flt) -> Vector -> Vector
+vmap f (Vector x y z) = Vector (f x) (f y) (f z)
+
+vpromote :: Flt -> Vector
+vpromote x = Vector x x x
+
+instance Show Vector where
+   show (Vector x y z) = "(" ++ show x ++ ", " ++ 
+      show y ++ ", " ++ show z ++ ")"
+
+instance Num Vector where
+   (+) = vzip (+)
+   (-) = vzip (-)
+   (*) = vzip (*)
+   abs = vmap abs
+   signum = vmap signum
+   fromInteger = vpromote . fromInteger
+      
+instance Fractional Vector where
+  (/) = vzip (/)
+  recip = vmap recip
+  fromRational = vpromote . fromRational
 
 type Point = Vector
 
-instance Show Vector where
-   show (MkVector x y z) = "(" ++ show x ++ ", " ++ 
-      show y ++ ", " ++ show z ++ ")"
-
 mkPoint :: Flt -> Flt -> Flt -> Point
-mkPoint = MkVector
+mkPoint = Vector
 
 mkPoint' :: (Flt, Flt, Flt) -> Point
 mkPoint' (x, y, z) = mkPoint x y z
@@ -70,7 +88,7 @@ mkPoint' (x, y, z) = mkPoint x y z
 type Normal = Vector
 
 mkNormal :: Flt -> Flt -> Flt -> Normal
-mkNormal = MkVector
+mkNormal = Vector
 
 data Ray = Ray {
    rayOrigin :: {-# UNPACK #-} ! Point,
@@ -90,7 +108,7 @@ shadingCs dg = coordinateSystem $ dgN dg
 
 dominant :: Vector -> Dimension
 {-# INLINE dominant #-}
-dominant (MkVector x y z)
+dominant (Vector x y z)
    | (ax > ay) && (ax > az) = dimX
    | ay > az = dimY
    | otherwise = dimZ
@@ -101,17 +119,17 @@ dominant (MkVector x y z)
 
 mkV :: (Flt, Flt, Flt) -> Vector
 {-# INLINE mkV #-}
-mkV (x, y, z) = MkVector x y z
+mkV (x, y, z) = Vector x y z
 
 -- | Creates a ray that connects the two specified points.
 segmentRay :: Point -> Point -> Ray
 {-# INLINE segmentRay #-}
 segmentRay p1 p2 = Ray p1 p1p2 epsilon (1 - epsilon) where
-   p1p2 = p2 `sub` p1
+   p1p2 = p2 - p1
 
 positionAt :: Ray -> Flt -> Point
 {-# INLINE positionAt #-}
-positionAt (Ray o d _ _) t = o `add` scalMul d t
+positionAt (Ray o d _ _) t = o + (d * vpromote t)
 
 -- | decides if a @t@ value is in the ray's bounds
 onRay :: Ray -> Flt -> Bool
@@ -120,7 +138,7 @@ onRay (Ray _ _ tmin tmax) t = t >= tmin && t <= tmax
 
 component :: Vector -> Dimension -> Flt
 {-# INLINE component #-}
-component !(MkVector x y z) !d
+component !(Vector x y z) !d
    | d == dimX = x
    | d == dimY = y
    | otherwise = z
@@ -128,49 +146,22 @@ component !(MkVector x y z) !d
 component' :: Vector -> Int -> Flt
 component' = component
 
-getX :: Vector -> Flt
-{-# INLINE getX #-}
-getX (MkVector x _ _) = x
-
-getY :: Vector -> Flt
-{-# INLINE getY #-}
-getY (MkVector _ y _) = y
-
-getZ :: Vector -> Flt
-{-# INLINE getZ #-}
-getZ (MkVector _ _ z) = z
-
-add :: Vector -> Vector -> Vector
-{-# INLINE add #-}
-add (MkVector x y z) (MkVector a b c) = MkVector (x+a) (y+b) (z+c)
-
-sub :: Vector -> Vector -> Vector
-{-# INLINE sub #-}
-sub (MkVector x y z) (MkVector a b c) = MkVector (x-a) (y-b) (z-c)
-
-neg :: Vector -> Vector
-{-# INLINE neg #-}
-neg (MkVector x y z) = MkVector (-x) (-y) (-z)
-
 sqLen :: Vector -> Flt
 {-# INLINE sqLen #-}
-sqLen (MkVector x y z) = x*x + y*y + z*z
+sqLen (Vector x y z) = x*x + y*y + z*z
 
 len :: Vector -> Flt
 {-# INLINE len #-}
 len v = sqrt (sqLen v)
 
-scalMul :: Vector -> Flt -> Vector
-{-# INLINE scalMul #-}
-scalMul (MkVector x y z) f = MkVector (x*f) (y*f) (z*f)
-
 cross :: Vector -> Vector -> Vector
 {-# INLINE cross #-}
-cross (MkVector ux uy uz) (MkVector vx vy vz) = MkVector (uy*vz - uz*vy) (-(ux*vz - uz*vx)) (ux*vy - uy*vx)
+cross (Vector ux uy uz) (Vector vx vy vz) =
+   Vector (uy*vz - uz*vy) (-(ux*vz - uz*vx)) (ux*vy - uy*vx)
 
 dot :: Vector -> Vector -> Flt
 {-# INLINE dot #-}
-dot (MkVector x y z) (MkVector a b c) =  x*a + y*b + z*c;
+dot (Vector x y z) (Vector a b c) =  x*a + y*b + z*c;
 
 absDot :: Vector -> Vector -> Flt
 {-# INLINE absDot #-}
@@ -179,8 +170,8 @@ absDot v1 v2 = abs (dot v1 v2)
 normalize :: Vector -> Normal
 {-# INLINE normalize #-}
 normalize v
-  | sqLen v /= 0 = scalMul v (1 / len v)
-  | otherwise = MkVector 0 1 0
+  | sqLen v /= 0 = v * vpromote (1 / len v)
+  | otherwise = Vector 0 1 0
 
 lerp :: Flt -> Flt -> Flt -> Flt
 {-# INLINE lerp #-}
@@ -214,23 +205,23 @@ uniformSampleCone (LocalCoordinates x y z) cosThetaMax (u1, u2) = let
    phi = u2 * twoPi
    in
       (
-      scalMul x (cos phi * sinTheta) `add`
-      scalMul y (sin phi * sinTheta) `add`
-      scalMul z cosTheta
+      x * vpromote (cos phi * sinTheta) +
+      y * vpromote (sin phi * sinTheta) +
+      z * vpromote cosTheta
       )
       
 -- | generates a random point on the unit sphere,
 -- see http://mathworld.wolfram.com/SpherePointPicking.html
 randomOnSphere :: Rand2D -> Vector
 {-# INLINE randomOnSphere #-}
-randomOnSphere (u1, u2) = MkVector (s * cos omega) (s * sin omega) u where
+randomOnSphere (u1, u2) = Vector (s * cos omega) (s * sin omega) u where
    u = u1 * 2 - 1
    s = sqrt (1 - (u * u))
    omega = u2 * 2 * pi
    
 cosineSampleHemisphere :: Rand2D -> Vector
 {-# INLINE cosineSampleHemisphere #-}
-cosineSampleHemisphere u = MkVector x y (sqrt (max 0 (1 - x*x - y*y))) where
+cosineSampleHemisphere u = Vector x y (sqrt (max 0 (1 - x*x - y*y))) where
    (x, y) = concentricSampleDisk u
    
 concentricSampleDisk :: Rand2D -> (Flt, Flt)
@@ -254,15 +245,15 @@ concentricSampleDisk' (sx, sy) = (r * cos theta, r * sin theta) where
 
 sphericalDirection :: Flt -> Flt -> Flt -> Vector
 {-# INLINE sphericalDirection #-}
-sphericalDirection sint cost phi = MkVector (sint * cos phi) (sint * sin phi) cost
+sphericalDirection sint cost phi = Vector (sint * cos phi) (sint * sin phi) cost
 
 sphericalTheta :: Vector -> Float
 {-# INLINE sphericalTheta #-}
-sphericalTheta (MkVector _ _ z) = acos $ max (-1) $ min 1 z
+sphericalTheta (Vector _ _ z) = acos $ max (-1) $ min 1 z
 
 sphericalPhi :: Vector -> Float
 {-# INLINE sphericalPhi #-}
-sphericalPhi (MkVector x y _)
+sphericalPhi (Vector x y _)
    | p' < 0 = p' + 2 * pi
    | otherwise = p'
    where
@@ -275,26 +266,26 @@ data LocalCoordinates = LocalCoordinates
 
 coordinateSystem :: Vector -> LocalCoordinates
 {-# INLINE coordinateSystem #-}
-coordinateSystem v@(MkVector x y z)
+coordinateSystem v@(Vector x y z)
    | abs x > abs y = 
       let 
           invLen = 1.0 / sqrt (x*x + z*z)
-          v2 = MkVector (-z * invLen) 0 (x * invLen)
+          v2 = Vector (-z * invLen) 0 (x * invLen)
       in LocalCoordinates v2 (cross v v2) v
    | otherwise = 
       let
           invLen = 1.0 / sqrt (y*y + z*z)
-          v2 = MkVector 0 (z * invLen) (-y * invLen)
+          v2 = Vector 0 (z * invLen) (-y * invLen)
       in LocalCoordinates v2 (cross v v2) v
 
 worldToLocal :: LocalCoordinates -> Vector -> Vector
 {-# INLINE worldToLocal #-}
-worldToLocal (LocalCoordinates sn tn nn) v = MkVector (dot v sn) (dot v tn) (dot v nn)
+worldToLocal (LocalCoordinates sn tn nn) v = Vector (dot v sn) (dot v tn) (dot v nn)
 
 localToWorld :: LocalCoordinates -> Vector -> Vector
 {-# INLINE localToWorld #-}
-localToWorld (LocalCoordinates (MkVector sx sy sz) (MkVector tx ty tz) (MkVector nx ny nz)) (MkVector x y z) =
-   MkVector
+localToWorld (LocalCoordinates (Vector sx sy sz) (Vector tx ty tz) (Vector nx ny nz)) (Vector x y z) =
+   Vector
       (sx * x + tx * y + nx * z)
       (sy * x + ty * y + ny * z)
       (sz * x + tz * y + nz * z)

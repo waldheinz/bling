@@ -74,7 +74,7 @@ identity = MkTransform m m where
 
 -- | Translates by the specified distance
 translate :: Vector -> Transform
-translate (MkVector dx dy dz) = MkTransform m i where
+translate (Vector dx dy dz) = MkTransform m i where
    m = MkMatrix
       1 0 0 dx
       0 1 0 dy
@@ -89,7 +89,7 @@ translate (MkVector dx dy dz) = MkTransform m i where
 
 -- | Scales by the specified amount
 scale :: Vector -> Transform
-scale (MkVector sx sy sz) = MkTransform m i where
+scale (Vector sx sy sz) = MkTransform m i where
    m = MkMatrix
       sx 0  0  0
       0 sy  0  0
@@ -143,7 +143,7 @@ concatTrans (MkTransform m1 i1) (MkTransform m2 i2) = MkTransform m' i' where
 -- | Applies a @Transform@ to a @Point@
 transPoint :: Transform -> Point -> Point
 {-# INLINE transPoint #-}
-transPoint (MkTransform m _) (MkVector x y z)
+transPoint (MkTransform m _) (Vector x y z)
    | wp == 1 = mkPoint xp yp zp
    | otherwise = mkPoint (xp/wp) (yp/wp) (zp/wp)
    where
@@ -155,7 +155,7 @@ transPoint (MkTransform m _) (MkVector x y z)
 -- | Applies a @Transform@ to a @Vector@
 transVector :: Transform -> Vector -> Vector
 {-# INLINE transVector #-}
-transVector (MkTransform m _) (MkVector x y z) = MkVector xp yp zp where
+transVector (MkTransform m _) (Vector x y z) = Vector xp yp zp where
    xp = m00 m * x + m01 m * y + m02 m * z
    yp = m10 m * x + m11 m * y + m12 m * z
    zp = m20 m * x + m21 m * y + m22 m * z
@@ -163,7 +163,7 @@ transVector (MkTransform m _) (MkVector x y z) = MkVector xp yp zp where
 -- | Applies a @Transform@ to a @Normal@
 transNormal :: Transform -> Normal -> Normal
 {-# INLINE transNormal #-}
-transNormal (MkTransform m _) (MkVector x y z) = mkNormal xp yp zp where
+transNormal (MkTransform m _) (Vector x y z) = mkNormal xp yp zp where
    xp = m00 m * x + m10 m * y + m20 m * z
    yp = m01 m * x + m11 m * y + m21 m * z
    zp = m02 m * x + m12 m * y + m22 m * z
@@ -177,7 +177,7 @@ transRay t (Ray ro rd tmin tmax) =
 -- | Applies a @Transform@ to an @AABB@
 transBox :: Transform -> AABB -> AABB
 {-# INLINE transBox #-}
-transBox t (AABB (MkVector mx my mz) (MkVector nx ny nz)) = b' where
+transBox t (AABB (Vector mx my mz) (Vector nx ny nz)) = b' where
    b' = foldl' extendAABBP emptyAABB [p0, p1, p2, p3, p4, p5, p6, p7]
    p0 = transPoint t (mkPoint mx my mz)
    p1 = transPoint t (mkPoint mx my nz)

@@ -20,7 +20,7 @@ constant :: a -> Texture a
 constant r _ = r
 
 graphPaper :: Float -> Spectrum -> Spectrum -> SpectrumTexture
-graphPaper lw p l (DifferentialGeometry (MkVector x _ z) _)
+graphPaper lw p l (DifferentialGeometry (Vector x _ z) _)
    | x' < lo || z' < lo || x' > hi || z' > hi = l
    | otherwise = p
    where

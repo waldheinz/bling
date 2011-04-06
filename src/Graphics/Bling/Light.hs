@@ -73,8 +73,8 @@ sample al@(AreaLight s _ t t') p _ us = LightSample ls wi' ray pd False where
    p' = transPoint t' p -- point in local space
    (ps, ns) = S.sample s p' us -- point and normal in local space
    wi' = transVector t wi -- incident vector in world space
-   wi = normalize (ps `sub` p') -- incident vector in local space
-   ls = lEmit al ps ns (neg wi) -- emitted light (computed in local space)
+   wi = normalize (ps - p') -- incident vector in local space
+   ls = lEmit al ps ns (-wi) -- emitted light (computed in local space)
    pd = pdf al p' wi -- pdf (computed in local space)
    ray = transRay t (segmentRay p' ps) -- vis. test ray (in world space)
    
@@ -91,7 +91,7 @@ lightSampleSB r pos n us = LightSample r (toWorld lDir) (ray $ toWorld lDir) (p 
    where
       lDir = cosineSampleHemisphere us
       ray dir = Ray pos dir epsilon infinity
-      p (MkVector _ _ z) = invPi * z
+      p (Vector _ _ z) = invPi * z
       toWorld = localToWorld (coordinateSystem n)
 
 lightSampleD :: Spectrum -> Normal -> Point -> Normal -> LightSample

@@ -392,7 +392,7 @@ pVec = do
    x <- flt
    y <- ws >> flt
    z <- ws >> flt
-   return (MkVector x y z)
+   return (Vector x y z)
    
 -- | parse an integer
 integ :: JobParser Int

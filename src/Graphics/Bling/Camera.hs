@@ -21,17 +21,17 @@ data View = View {
 -- | computes a point on the image plane
 viewPoint :: View -> (Float, Float) -> Point
 viewPoint (View pos la up dist aspect) (u, v) = vp where
-   vp = center `add` (scalMul right u') `add` (scalMul up' v')
-   center = pos `add` (scalMul dir dist)
+   vp = center + (right * vpromote u') + (up' * vpromote v')
+   center = pos + (dir * vpromote dist)
    right =  normalize $ up `cross` dir
    up' = cross right dir
-   dir = normalize $ sub la pos
+   dir = normalize $ la - pos
    u' = (u - 0.5) * aspect
    v' = v - 0.5
    
 -- | a simple "pinhole" camera
 pinHoleCamera :: View -> Camera
 pinHoleCamera view uv = Ray pv rd 0 infinity where
-   rd = normalize $ sub pv $ viewPos view
+   rd = normalize $ pv - viewPos view
    pv = viewPoint view uv
    

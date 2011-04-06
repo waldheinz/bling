@@ -69,12 +69,12 @@ intersect (Triangle v1 v2 v3) r@(Ray ro rd tmin tmax)
       b2 = dot rd s2 * invDiv -- second barycentric
       s2 = cross d e1
       b1 = dot d s1 * invDiv -- first barycentric
-      d = sub ro p1
+      d = ro - p1
       invDiv = 1 / divisor
       divisor = dot s1 e1
       s1 = cross rd e2
-      e1 = sub p2 p1
-      e2 = sub p3 p1
+      e1 = p2 - p1
+      e2 = p3 - p1
       p1 = vertexPos v1
       p2 = vertexPos v2
       p3 = vertexPos v3
@@ -98,12 +98,12 @@ intersects (Triangle v1 v2 v3) (Ray ro rd tmin tmax)
       b2 = dot rd s2 * invDiv -- second barycentric
       s2 = cross d e1
       b1 = dot d s1 * invDiv -- first barycentric
-      d = sub ro p1
+      d = ro - p1
       invDiv = 1 / divisor
       divisor = dot s1 e1
       s1 = cross rd e2
-      e1 = sub p2 p1
-      e2 = sub p3 p1
+      e1 = p2 - p1
+      e2 = p3 - p1
       p1 = vertexPos v1
       p2 = vertexPos v2
       p3 = vertexPos v3
@@ -133,7 +133,7 @@ objectBounds (Triangle v1 v2 v3) = foldl' extendAABBP emptyAABB pl where
    
 area :: Shape -> Flt
 area (Sphere r) = r * r * 4 * pi
-area (Triangle v1 v2 v3) = 0.5 * len (cross (sub p2 p1) (sub p3 p1)) where
+area (Triangle v1 v2 v3) = 0.5 * len (cross (p2 - p1) (p3 - p1)) where
       p1 = vertexPos v1
       p2 = vertexPos v2
       p3 = vertexPos v3
@@ -161,7 +161,7 @@ sample :: Shape -> Point -> Rand2D -> (Point, Normal)
 sample sp@(Sphere r) p us
    | insideSphere r p = 
       let rndPt = randomOnSphere us 
-      in (scalMul rndPt r, rndPt) -- sample full sphere if inside
+      in (rndPt * vpromote r, rndPt) -- sample full sphere if inside
       
    | otherwise = (ps, normalize ps) where -- sample only the visible part if outside
       d = uniformSampleCone cs cosThetaMax us
@@ -170,17 +170,17 @@ sample sp@(Sphere r) p us
       cosThetaMax = sqrt $ max 0 (1 - (r * r) / sqLen p)
       ps
          | isJust int = positionAt ray t
-         | otherwise = scalMul dn r
+         | otherwise = dn * vpromote r
          where
                ray = Ray p d 0 infinity
                int = sp `intersect` ray
                t = fst $ fromJust int
 
 sample (Triangle v1 v2 v3) _ (u1, u2) = {-trace (show p ++ " " ++ show n)-} (p, n) where
-   p = scalMul p1 b1 `add` scalMul p2 b2 `add` scalMul p3 (1 - b1 - b2)
+   p = p1 * vpromote b1 + p2 * vpromote b2 + p3 * vpromote (1 - b1 - b2)
    (p1, p2, p3) = (vertexPos v1, vertexPos v2, vertexPos v3)
    b1 = 1 - u1' -- first barycentric
    b2 = u2 * u1' -- second barycentric
    u1' = sqrt u1
-   n = normalize $ cross (sub p3 p1) (sub p2 p1)
+   n = normalize $ cross (p3 - p1) (p2 - p1)
       

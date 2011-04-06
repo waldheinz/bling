@@ -21,7 +21,7 @@ instance Bxdf Microfacet where
       x = mfDistD d wh * mfG wo wi wh / (4 * costi * costo)
       costo = abs $ cosTheta wo
       costi = abs $ cosTheta wi
-      wh = normalize $ add wi wo
+      wh = normalize $ wi + wo
       costh = dot wi wh
       
    bxdfSample mf wo dirU = bxdfSample' dirU mf wo
@@ -50,13 +50,13 @@ data Distribution
 
 mfDistPdf :: Distribution -> Vector -> Vector -> Float
 mfDistPdf (Blinn e) wo wi = (e + 2) * (cost ** e) / (2 * pi * 4 * dot wo h) where
-   h@(MkVector _ _ hz) = normalize $ add wo wi
+   h@(Vector _ _ hz) = normalize $ wo + wi
    cost = abs hz
 
 mfDistSample :: Distribution -> Rand2D -> Vector -> (Float, Vector)
 mfDistSample (Blinn e) (u1, u2) wo = (pdf, wi) where
    pdf = (e + 2) * (cost ** e) / (2 * pi * 4 * dot wo h) -- possible divide by zero?
-   wi = add (neg wo) (scalMul h (2 * dot h wo))
+   wi = (-wo) + (h * vpromote (2 * dot h wo))
    h = toSameHemisphere wo $ sphericalDirection sint cost phi
    cost = u1 ** (1 / (e + 1))
    sint = sqrt $ max 0 (1 - cost * cost)

@@ -49,7 +49,7 @@ nextVertex scene depth specBounce (Ray _ rd _ _) (Just int) throughput l
          dg = intGeometry int
          pCont = if depth <= 3 then 1 else min 0.5 (sY throughput)
          intl = if specBounce then intLe int wo else black
-         wo = neg rd
+         wo = -rd
          bsdf = intBsdf int
          n = dgN dg
          p = dgP dg

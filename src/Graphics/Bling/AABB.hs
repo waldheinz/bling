@@ -19,8 +19,8 @@ instance Show AABB where
 emptyAABB :: AABB
 {-# INLINE emptyAABB #-}
 emptyAABB = AABB
-   (MkVector infinity infinity infinity)
-   (MkVector (-infinity) (-infinity) (-infinity))
+   (Vector infinity infinity infinity)
+   (Vector (-infinity) (-infinity) (-infinity))
 
 mkAABB :: Point -> Point -> AABB
 {-# INLINE mkAABB #-}
@@ -29,25 +29,25 @@ mkAABB pMin pMax = AABB pMin pMax
 extendAABB :: AABB -> AABB -> AABB
 {-# INLINE extendAABB #-}
 extendAABB
-   (AABB (MkVector min1x min1y min1z) (MkVector max1x max1y max1z))
-   (AABB (MkVector min2x min2y min2z) (MkVector max2x max2y max2z)) =
+   (AABB (Vector min1x min1y min1z) (Vector max1x max1y max1z))
+   (AABB (Vector min2x min2y min2z) (Vector max2x max2y max2z)) =
    AABB
-      (MkVector (min min1x min2x) (min min1y min2y) (min min1z min2z))
-      (MkVector (max max1x max2x) (max max1y max2y) (max max1z max2z))
+      (Vector (min min1x min2x) (min min1y min2y) (min min1z min2z))
+      (Vector (max max1x max2x) (max max1y max2y) (max max1z max2z))
 
 extendAABBP :: AABB -> Point -> AABB
 {-# INLINE extendAABBP #-}
 extendAABBP (AABB pMin pMax) p = AABB (f min pMin p) (f max pMax p) where
-   f cmp (MkVector x1 y1 z1) (MkVector x2 y2 z2) = MkVector (cmp x1 x2) (cmp y1 y2) (cmp z1 z2)
+   f cmp (Vector x1 y1 z1) (Vector x2 y2 z2) = Vector (cmp x1 x2) (cmp y1 y2) (cmp z1 z2)
 
 -- | finds the @Dimension@ along which an @AABB@ has it's maximum extent
 maximumExtent :: AABB -> Dimension
 {-# INLINE maximumExtent #-}
-maximumExtent (AABB pmin pmax) = dominant $ sub pmax pmin
+maximumExtent (AABB pmin pmax) = dominant $ pmax - pmin
 
 centroid :: AABB -> Point
 {-# INLINE centroid #-}
-centroid (AABB pmin pmax) = add pmin $ scalMul (sub pmax pmin) 0.5 
+centroid (AABB pmin pmax) = pmin + (pmax - pmin) * 0.5 
 
 intersectAABB :: AABB -> Ray -> Maybe (Flt, Flt)
 {-# INLINE intersectAABB #-}
