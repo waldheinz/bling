@@ -2,7 +2,7 @@
 module Graphics.Bling.Texture (
    -- * Texture Types
    
-   Texture, SpectrumTexture,
+   Texture, SpectrumTexture, ScalarTexture,
    
    -- * Creating Textures
    constant, graphPaper
@@ -15,6 +15,7 @@ import Graphics.Bling.Spectrum
 type Texture a = DifferentialGeometry -> a
 
 type SpectrumTexture = Texture Spectrum
+type ScalarTexture = Texture Flt
 
 constant :: a -> Texture a
 constant r _ = r

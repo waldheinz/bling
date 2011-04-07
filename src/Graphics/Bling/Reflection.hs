@@ -17,7 +17,7 @@ module Graphics.Bling.Reflection (
    -- * BxDF Functions
 
    AnyBxdf(..), Bxdf(..), BxdfProp(..), BxdfType, mkBxdfType,
-   Lambertian(..),
+   Lambertian(..), mkOrenNayar, OrenNayar,
    
    -- * BSDF
    
@@ -31,6 +31,7 @@ module Graphics.Bling.Reflection (
    
    ) where
 
+
 import Data.BitSet
 import Data.List (foldl')
 import qualified Data.Vector as V
@@ -38,7 +39,6 @@ import qualified Data.Vector as V
 import Graphics.Bling.Math
 import Graphics.Bling.Random
 import Graphics.Bling.Spectrum
-
 
 type Material = DifferentialGeometry -> Bsdf
 
@@ -76,16 +76,16 @@ frCond eta k cosi = (rPer2 + rPar2) / 2.0 where
    tmpF = eta * eta + k * k
 
 cosTheta :: Vector -> Flt
-cosTheta (Vector _ _ z) = z
+cosTheta = vz
 
 absCosTheta :: Vector -> Flt
-absCosTheta v = abs (vz v)
+absCosTheta = abs . vz
 
 sinTheta2 :: Vector -> Flt
-sinTheta2 v = 1 - cosTheta v * cosTheta v
+sinTheta2 v = max 0 (1 - cosTheta v * cosTheta v)
 
 sinTheta :: Vector -> Flt
-sinTheta v = sqrt (sinTheta2 v)
+sinTheta = sqrt . sinTheta2
 
 cosPhi :: Vector -> Flt
 cosPhi v
@@ -97,7 +97,7 @@ cosPhi v
 sinPhi :: Vector -> Flt
 sinPhi v
    | sint == 0 = 0
-   | otherwise = clamp (vx v / sint) (-1) 1
+   | otherwise = clamp (vy v / sint) (-1) 1
    where
          sint = sinTheta v
 
@@ -217,6 +217,43 @@ instance Bxdf Lambertian where
    bxdfEval (Lambertian r) _ _ = sScale r invPi
    bxdfType _ = mkBxdfType [Reflection, Diffuse]
 
+--
+-- The Oren Nayar BxDF
+--
+
+data OrenNayar = MkOrenNayar
+   Spectrum -- ^ reflectance
+   Flt -- ^ the A parameter
+   Flt -- ^ the B parameter
+
+mkOrenNayar
+   :: Spectrum -- ^ the relfectance
+   -> Flt -- ^ the sigma parameter
+   -> OrenNayar
+
+mkOrenNayar r sig = MkOrenNayar r a b where
+   a = 1 - (sig2 / (2 * (sig2 + 0.33)))
+   b = 0.45 * sig2 / (sig2 + 0.09)
+   sig2 = sig' * sig'
+   sig' = radians sig
+
+instance Bxdf OrenNayar where
+   bxdfType _ = mkBxdfType [Reflection, Diffuse]
+   
+   bxdfEval (MkOrenNayar r a b) wo wi = r' where
+      r' = sScale r (invPi * (a + b * maxcos * sina * tanb))
+      (sina, tanb)
+         | absCosTheta wi > absCosTheta wo = (sinto, sinti / absCosTheta wi)
+         | otherwise = (sinti, sinto / absCosTheta wo)
+      (sinti, sinto) = (sinTheta wi, sinTheta wo)
+      maxcos
+         | sinti > 1e-4 && sinto > 1e-4 =
+            let
+               (sinpi, cospi) = (sinPhi wi, cosPhi wi)
+               (sinpo, cospo) = (sinPhi wo, cosPhi wo)
+               dcos = cospi * cospo + sinpi * sinpo
+            in max 0 dcos
+         | otherwise = 0
 
 data Microfacet = Microfacet {
    distribution :: Distribution,

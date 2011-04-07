@@ -15,7 +15,7 @@ import Graphics.Bling.Material.Plastic
 import Graphics.Bling.Material.Specular
 
 defaultMaterial :: Material
-defaultMaterial = mkMatte (constant $ fromRGB (0.9, 0.9, 0.9))
+defaultMaterial = mkMatte (constant $ fromRGB (0.9, 0.9, 0.9)) (constant 0)
 
 --
 -- parsing materials
@@ -48,18 +48,35 @@ pMirrorMaterial = do
 
 pMatteMaterial :: JobParser Material
 pMatteMaterial = do
-   kd <- pTexture "kd"
-   return (mkMatte kd)
-
+   kd <- pSpectrumTexture "kd"
+   sig <- pScalarTexture "sigma"
+   return (mkMatte kd sig)
+   
 pPlasticMaterial :: JobParser Material
 pPlasticMaterial = do
-   kd <- pTexture "kd"
-   ks <- pTexture "ks"
+   kd <- pSpectrumTexture "kd"
+   ks <- pSpectrumTexture "ks"
    rough <- ws >> namedFloat "rough"
    return (plasticMaterial kd ks rough)
 
-pTexture :: String -> JobParser SpectrumTexture
-pTexture n = do
+pScalarTexture :: String -> JobParser ScalarTexture
+pScalarTexture n = do
+   _ <- ws >> string "beginScalarTexture" >> ws >> string n
+   ws >> string "type" >> ws
+   tp <- many alphaNum
+   ws
+   tx <- case tp of
+      "constant" -> do
+         v <- flt
+         return (constant v)
+         
+      _ -> fail ("unknown texture type " ++ tp)
+
+   _ <- ws >> string "endScalarTexture"
+   return tx
+   
+pSpectrumTexture :: String -> JobParser SpectrumTexture
+pSpectrumTexture n = do
    ws >> string "beginTexture" >> ws >> string n >> ws >> string "type" >> ws
    tp <- many alphaNum
    ws
