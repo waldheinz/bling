@@ -1,11 +1,11 @@
 
 #filter sinc 4.0 4.0 3.0
-#filter box
+filter box
 #filter triangle 3.0 3.0
-filter mitchell 3.0 3.0 0.333333 0.333333
+#filter mitchell 3.0 3.0 0.333333 0.333333
 
 imageSize 600 600
-samplesPerPixel 5
+samplesPerPixel 1
 
 #
 # camera
@@ -20,10 +20,8 @@ endCamera
 
 beginMaterial
    type matte
-   beginTexture kd
-      type constant
-      rgb 0.9 0.9 0.9
-   endTexture
+   kd { constant rgb 0.9 0.9 0.9 }
+   sigma { constant 50.0 }
 endMaterial
 
 #
@@ -110,11 +108,6 @@ endShape
 # tall block
 #
 
-beginMaterial
-   type mirror
-   rgb 0.9 0.9 0.9
-endMaterial
-
 beginShape
    type mesh
    vertexCount 20
@@ -152,10 +145,8 @@ endShape
 
 beginMaterial
    type matte
-   beginTexture kd
-      type constant
-      rgb 0.2 0.9 0.2
-   endTexture
+   kd { constant rgb 0.2 0.9 0.2 }
+   sigma { constant 0.5 }
 endMaterial
 
 beginShape
@@ -175,10 +166,8 @@ endShape
 
 beginMaterial
    type matte
-   beginTexture kd
-      type constant
-      rgb 0.9 0.2 0.2
-   endTexture
+   kd { constant rgb 0.9 0.2 0.2 }
+   sigma { constant 0.5 }
 endMaterial
 
 beginShape
@@ -198,10 +187,8 @@ endShape
 
 beginMaterial
    type matte
-   beginTexture kd
-      type constant
-      rgb 0.78 0.78 0.78
-   endTexture
+   kd { constant rgb 0.78 0.78 0.78 }
+   sigma { constant 0.0 }
 endMaterial
 
 beginEmission
