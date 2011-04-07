@@ -71,9 +71,7 @@ pSpectrum = do
    
 namedBlock :: JobParser a -> String -> JobParser a
 namedBlock p n = do
-   _ <- try ws
-   _ <- string n
-   _ <- try ws
+   string n >> try ws
    between (char '{' >> try ws) (try ws >> char '}') p
    
 namedFloat :: String -> JobParser Flt

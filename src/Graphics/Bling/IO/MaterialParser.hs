@@ -23,10 +23,9 @@ defaultMaterial = mkMatte (constant $ fromRGB (0.9, 0.9, 0.9)) (constant 0)
 --
 
 pMaterial :: JobParser ()
-pMaterial = do
-   _ <- try (string "beginMaterial")
-   ws >> string "type" >> ws
+pMaterial = (flip namedBlock) "material" $ do
    t <- many alphaNum
+   ws
    m <- case t of
       "measured"  -> pMeasuredMaterial
       "metal"     -> pMetalMaterial
@@ -35,7 +34,6 @@ pMaterial = do
       "mirror"    -> pMirrorMaterial
       _           -> fail ("unknown material type " ++ t)
    
-   _ <- ws >> string "endMaterial"
    s <- getState
    setState s { material = m }
 
@@ -54,7 +52,7 @@ pMirrorMaterial = do
 pMatteMaterial :: JobParser Material
 pMatteMaterial = do
    kd <- pSpectrumTexture "kd"
-   sig <- pScalarTexture "sigma"
+   sig <- ws >> pScalarTexture "sigma"
    return (mkMatte kd sig)
    
 pMeasuredMaterial :: JobParser Material
@@ -66,8 +64,8 @@ pMeasuredMaterial = do
 pPlasticMaterial :: JobParser Material
 pPlasticMaterial = do
    kd <- pSpectrumTexture "kd"
-   ks <- pSpectrumTexture "ks"
-   rough <- pScalarTexture "rough"
+   ks <- ws >> pSpectrumTexture "ks"
+   rough <- ws >> pScalarTexture "rough"
    return (mkPlastic kd ks rough)
 
 pScalarTexture :: String -> JobParser ScalarTexture
@@ -90,14 +88,14 @@ pSpectrumTexture = namedBlock $ do
       
       "checker" -> do
          s <- pVec
-         t1 <- pSpectrumTexture "tex1"
-         t2 <- pSpectrumTexture "tex2"
+         t1 <- ws >> pSpectrumTexture "tex1"
+         t2 <- ws >> pSpectrumTexture "tex2"
          return (checkerBoard s t1 t2)
 
       "graphPaper" -> do
          s <- flt
-         t1 <- pSpectrumTexture "tex1"
-         t2 <- pSpectrumTexture "tex2"
+         t1 <- ws >> pSpectrumTexture "tex1"
+         t2 <- ws >> pSpectrumTexture "tex2"
          return (graphPaper s t1 t2)
          
       _ -> fail ("unknown texture type " ++ tp)
