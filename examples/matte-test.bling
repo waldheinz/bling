@@ -24,9 +24,7 @@ beginMaterial type matte
       type constant
       rgb 0.7 0.7 0.7
    endTexture
-   beginScalarTexture sigma
-      type constant 0.0
-   endScalarTexture
+   sigma { constant 0.0 }
 endMaterial
 
 beginShape
@@ -83,9 +81,7 @@ beginMaterial type matte
       type constant
       rgb 0.3 0.4 0.2
    endTexture
-   beginScalarTexture sigma
-      type constant 0.5
-   endScalarTexture
+   sigma { constant 0.5 }
 endMaterial
 
 beginShape type sphere radius 2.0 endShape
@@ -104,9 +100,7 @@ beginMaterial type matte
       type constant
       rgb 0.3 0.4 0.2
    endTexture
-   beginScalarTexture sigma
-      type constant 5.0
-   endScalarTexture
+   sigma { constant 5.0 }
 endMaterial
 
 beginShape type sphere radius 2.0 endShape
@@ -126,9 +120,7 @@ beginMaterial type matte
       type constant
       rgb 0.3 0.4 0.2
    endTexture
-   beginScalarTexture sigma
-      type constant 50.0
-   endScalarTexture
+   sigma { constant 50.0 }
 endMaterial
 
 beginShape type sphere radius 2.0 endShape

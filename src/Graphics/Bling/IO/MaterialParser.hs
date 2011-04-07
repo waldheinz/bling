@@ -56,13 +56,12 @@ pPlasticMaterial :: JobParser Material
 pPlasticMaterial = do
    kd <- pSpectrumTexture "kd"
    ks <- pSpectrumTexture "ks"
-   rough <- ws >> namedFloat "rough"
-   return (plasticMaterial kd ks rough)
+   rough <- pScalarTexture "rough"
+   return (mkPlastic kd ks rough)
 
 pScalarTexture :: String -> JobParser ScalarTexture
 pScalarTexture n = do
-   _ <- ws >> string "beginScalarTexture" >> ws >> string n
-   ws >> string "type" >> ws
+   _ <- ws >> string n >> ws >> char '{' >> ws
    tp <- many alphaNum
    ws
    tx <- case tp of
@@ -72,7 +71,7 @@ pScalarTexture n = do
          
       _ -> fail ("unknown texture type " ++ tp)
 
-   _ <- ws >> string "endScalarTexture"
+   _ <- ws >> char '}'
    return tx
    
 pSpectrumTexture :: String -> JobParser SpectrumTexture
