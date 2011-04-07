@@ -1,5 +1,5 @@
 
-module Graphics.Bling.Specular (
+module Graphics.Bling.Material.Specular (
 
    
    -- * Specular materials
@@ -7,11 +7,9 @@ module Graphics.Bling.Specular (
    mirrorMaterial, glassMaterial
    ) where
 
-import Graphics.Bling.Material
 import Graphics.Bling.Math
 import Graphics.Bling.Reflection
 import Graphics.Bling.Spectrum
-import Graphics.Bling.Transport
 
 glassMaterial :: Float -> Spectrum -> Material
 glassMaterial ior r dg = mkBsdf [refl, trans] cs where
@@ -58,6 +56,6 @@ instance Bxdf SpecularReflection where
    bxdfType _ = mkBxdfType [Reflection, Specular]
    bxdfEval _ _ _ = black
    bxdfPdf _ _ _ = 0
-   bxdfSample (SpecularReflection r fresnel) (Vector x y z) _ = (f, wi, 1) where
-      f = sScale (r * fresnel z) (1.0 / abs z)
+   bxdfSample (SpecularReflection r fr) (Vector x y z) _ = (f, wi, 1) where
+      f = sScale (r * fr z) (1.0 / abs z)
       wi = Vector (-x) (-y) z

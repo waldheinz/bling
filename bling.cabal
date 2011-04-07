@@ -30,11 +30,8 @@ Library
       Graphics.Bling.Camera,
       Graphics.Bling.Filter,
       Graphics.Bling.Image,
-      Graphics.Bling.Lafortune,
       Graphics.Bling.Light,
-      Graphics.Bling.Material,
       Graphics.Bling.Math,
-      Graphics.Bling.Microfacet,
       Graphics.Bling.Pathtracer,
       Graphics.Bling.Primitive,
       Graphics.Bling.Random,
@@ -42,15 +39,16 @@ Library
       Graphics.Bling.Scene,
       Graphics.Bling.Shape,
       Graphics.Bling.Spectrum,
-      Graphics.Bling.Specular,
       Graphics.Bling.Texture,
       Graphics.Bling.Transform,
-      Graphics.Bling.Transport,
       Graphics.Bling.IO.MaterialParser,
       Graphics.Bling.IO.ParserCore,
       Graphics.Bling.IO.RenderJob,
       Graphics.Bling.IO.TransformParser,
-      Graphics.Bling.Material.Plastic
+      Graphics.Bling.Material.Lafortune,
+      Graphics.Bling.Material.Matte,
+      Graphics.Bling.Material.Plastic,
+      Graphics.Bling.Material.Specular
 
 Executable bling
    hs-source-dirs:    src/Graphics/Bling/Main

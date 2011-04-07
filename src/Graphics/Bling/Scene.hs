@@ -14,8 +14,8 @@ import Graphics.Bling.Light as L
 import Graphics.Bling.Math
 import Graphics.Bling.Primitive
 import Graphics.Bling.Random
+import Graphics.Bling.Reflection
 import Graphics.Bling.Spectrum
-import Graphics.Bling.Transport
 
 data Scene = Scene {
    scenePrim :: Bvh,

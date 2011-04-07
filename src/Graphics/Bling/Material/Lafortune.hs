@@ -1,12 +1,13 @@
 
-module Graphics.Bling.Lafortune (
+module Graphics.Bling.Material.Lafortune (
+
    measuredMaterial, Measured(..)
+   
    ) where
 
-import Graphics.Bling.Material
 import Graphics.Bling.Math
+import Graphics.Bling.Reflection
 import Graphics.Bling.Spectrum
-import Graphics.Bling.Transport
 
 import Data.List (foldl')
 
@@ -24,11 +25,11 @@ instance Bxdf Lafortune where
    
    bxdfEval (Lafortune diffuse lobes) (Vector wox woy woz) (Vector wix wiy wiz) =
       foldl' (+) (sScale diffuse invPi) $ map evalLobe lobes where
-         evalLobe (Lobe lX lY lZ lE) = sPow v lE where
-            v = vx + vy + vz
-            vx = sScale lX (wox * wix)
-            vy = sScale lY (woy * wiy)
-            vz = sScale lZ (woz * wiz)
+         evalLobe (Lobe lX lY lZ lE) = sPow l lE where
+            l = lx + ly + lz
+            lx = sScale lX (wox * wix)
+            ly = sScale lY (woy * wiy)
+            lz = sScale lZ (woz * wiz)
             
 data Measured
    = BrushedMetal

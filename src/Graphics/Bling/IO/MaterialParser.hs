@@ -1,16 +1,21 @@
 
 module Graphics.Bling.IO.MaterialParser (
-   pMaterial
+   defaultMaterial, pMaterial
    ) where
 
 import Text.ParserCombinators.Parsec
 
-import Graphics.Bling.Lafortune
-import Graphics.Bling.Material
-import Graphics.Bling.Specular
+import Graphics.Bling.Reflection
+import Graphics.Bling.Spectrum
 import Graphics.Bling.Texture
 import Graphics.Bling.IO.ParserCore
+import Graphics.Bling.Material.Lafortune
+import Graphics.Bling.Material.Matte
 import Graphics.Bling.Material.Plastic
+import Graphics.Bling.Material.Specular
+
+defaultMaterial :: Material
+defaultMaterial = mkMatte (constant $ fromRGB (0.9, 0.9, 0.9))
 
 --
 -- parsing materials
@@ -44,7 +49,7 @@ pMirrorMaterial = do
 pMatteMaterial :: JobParser Material
 pMatteMaterial = do
    kd <- pTexture "kd"
-   return (matteMaterial kd)
+   return (mkMatte kd)
 
 pPlasticMaterial :: JobParser Material
 pPlasticMaterial = do

@@ -29,6 +29,18 @@ twoPi = 2.0 * pi
 radians :: Flt -> Flt
 radians x = (x / 180 * pi)
 
+-- | clamps a value so it is withing a specified range
+clamp
+   :: Flt -- ^ the value to clamp
+   -> Flt -- ^ the lower bound
+   -> Flt -- ^ the upper bound
+   -> Flt
+{-# INLINE clamp #-}
+clamp v lo hi
+   | v < lo = lo
+   | v > hi = hi
+   | otherwise = v
+
 -- | Defines names for the three axii
 type Dimension = Int
 
@@ -102,10 +114,6 @@ data DifferentialGeometry = DifferentialGeometry {
    dgN :: {-# UNPACK #-} ! Normal
    } deriving (Show)
 
-shadingCs :: DifferentialGeometry -> LocalCoordinates
-{-# INLINE shadingCs #-}
-shadingCs dg = coordinateSystem $ dgN dg
-
 dominant :: Vector -> Dimension
 {-# INLINE dominant #-}
 dominant (Vector x y z)
@@ -156,8 +164,8 @@ len v = sqrt (sqLen v)
 
 cross :: Vector -> Vector -> Vector
 {-# INLINE cross #-}
-cross (Vector ux uy uz) (Vector vx vy vz) =
-   Vector (uy*vz - uz*vy) (-(ux*vz - uz*vx)) (ux*vy - uy*vx)
+cross (Vector ux uy uz) (Vector x2 y2 z2) =
+   Vector (uy*z2 - uz*y2) (-(ux*z2 - uz*x2)) (ux*y2 - uy*x2)
 
 dot :: Vector -> Vector -> Flt
 {-# INLINE dot #-}

@@ -14,12 +14,11 @@ module Graphics.Bling.Primitive (
 
 import Graphics.Bling.AABB
 import Graphics.Bling.Light as L
-import Graphics.Bling.Material
 import Graphics.Bling.Math
+import Graphics.Bling.Reflection
 import qualified Graphics.Bling.Shape as S
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Transform
-import Graphics.Bling.Transport
 
 import Data.Maybe(fromJust, isJust, isNothing)
 

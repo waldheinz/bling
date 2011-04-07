@@ -7,7 +7,6 @@ module Graphics.Bling.IO.RenderJob (
 
 import Graphics.Bling.Camera
 import Graphics.Bling.Filter
-import Graphics.Bling.Lafortune
 import Graphics.Bling.Light
 import Graphics.Bling.Math
 import Graphics.Bling.Pathtracer
@@ -47,7 +46,7 @@ startState :: PState
 startState = PState 1024 768 mkBoxFilter
    (pinHoleCamera (View (mkV(3, 7, -6)) (mkV(0,0,0)) (mkV(0, 1, 0)) 1.8 (4.0/3.0)))
    identity
-   (measuredMaterial BluePaint)
+   defaultMaterial
    2
    Nothing
    []

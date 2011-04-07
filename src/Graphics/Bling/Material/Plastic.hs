@@ -1,11 +1,7 @@
 
 module Graphics.Bling.Material.Plastic where
 
-import Graphics.Bling.Material
-import Graphics.Bling.Math
-import Graphics.Bling.Microfacet
 import Graphics.Bling.Texture
-import Graphics.Bling.Transport
 import Graphics.Bling.Reflection
 
 plasticMaterial :: SpectrumTexture -> SpectrumTexture -> Float -> Material

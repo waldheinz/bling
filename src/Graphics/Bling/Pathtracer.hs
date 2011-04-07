@@ -8,9 +8,9 @@ import Graphics.Bling.Light
 import Graphics.Bling.Math
 import Graphics.Bling.Primitive
 import Graphics.Bling.Random
+import Graphics.Bling.Reflection
 import Graphics.Bling.Scene
 import Graphics.Bling.Spectrum
-import Graphics.Bling.Transport
 
 pathTracer :: Integrator
 pathTracer scene r = nextVertex scene 0 True r (intersect (scenePrim scene) r) white black

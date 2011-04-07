@@ -15,9 +15,9 @@ import Text.ParserCombinators.Parsec
 import Graphics.Bling.Camera
 import Graphics.Bling.Filter
 import Graphics.Bling.Light
-import Graphics.Bling.Material
 import Graphics.Bling.Math
 import Graphics.Bling.Primitive
+import Graphics.Bling.Reflection
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Transform
 
