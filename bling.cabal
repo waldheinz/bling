@@ -20,7 +20,10 @@ Library
       pretty,
       deepseq >= 1.1 && < 1.2,
       random >= 1.0 && < 1.1
-      
+
+   Ghc-Options:
+      -Wall -O2 -fexcess-precision -fspec-constr-count=64
+   
    Exposed-Modules:
       Graphics.Bling.AABB,
       Graphics.Bling.Bvh,
@@ -43,6 +46,7 @@ Library
       Graphics.Bling.Texture,
       Graphics.Bling.Transform,
       Graphics.Bling.Transport,
+      Graphics.Bling.IO.MaterialParser,
       Graphics.Bling.IO.ParserCore,
       Graphics.Bling.IO.RenderJob,
       Graphics.Bling.IO.TransformParser

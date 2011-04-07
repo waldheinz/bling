@@ -9,17 +9,13 @@ import Graphics.Bling.Camera
 import Graphics.Bling.Filter
 import Graphics.Bling.Lafortune
 import Graphics.Bling.Light
-import Graphics.Bling.Material
 import Graphics.Bling.Math
 import Graphics.Bling.Pathtracer
-import Graphics.Bling.Plastic
 import Graphics.Bling.Primitive
 import Graphics.Bling.Scene
 import Graphics.Bling.Shape
-import Graphics.Bling.Specular
-import Graphics.Bling.Spectrum
-import Graphics.Bling.Texture
 import Graphics.Bling.Transform
+import Graphics.Bling.IO.MaterialParser
 import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.TransformParser
 
@@ -60,8 +56,6 @@ startState = PState 1024 768 mkBoxFilter
 parseJob :: String -> Job
 parseJob s = either (error . show) (id) pr where
    pr = runParser jobParser startState "unknown source"  s
-   
-
 
 jobParser :: JobParser Job
 jobParser = do
@@ -223,91 +217,3 @@ pCamera = do
    _ <- ws >> string "endCamera"
    s <- getState
    setState s {camera = pinHoleCamera (View pos la up fov (aspect s))}
-   
-pSpectrum :: JobParser Spectrum
-pSpectrum = do
-   _ <- try (string "rgb")
-   r <- ws >> flt
-   g <- ws >> flt
-   b <- ws >> flt
-   return (fromRGB (r, g, b))
-
---
--- parsing materials
---
-
-pMaterial :: JobParser ()
-pMaterial = do
-   _ <- try (string "beginMaterial")
-   ws >> string "type" >> ws
-   t <- many alphaNum
-   m <- case t of
-      "measured" -> do
-         m <- pMeasuredMaterial
-         return (measuredMaterial m)
-         
-      "plastic" -> pPlasticMaterial
-      "matte" -> pMatteMaterial
-      "mirror" -> pMirrorMaterial
-      
-      _ -> fail ("unknown material type " ++ t)
-      
-   _ <- ws >> string "endMaterial"
-   s <- getState
-   setState s { material = m }
-
-pMirrorMaterial :: JobParser Material
-pMirrorMaterial = do
-   r <- ws >> pSpectrum
-   return (mirrorMaterial r)
-
-pMatteMaterial :: JobParser Material
-pMatteMaterial = do
-   kd <- pTexture "kd"
-   return (matteMaterial kd)
-   
-pPlasticMaterial :: JobParser Material
-pPlasticMaterial = do
-   kd <- pTexture "kd"
-   ks <- pTexture "ks"
-   rough <- ws >> namedFloat "rough"
-   return (plasticMaterial kd ks rough)
-   
-pTexture :: String -> JobParser SpectrumTexture
-pTexture n = do
-   ws >> string "beginTexture" >> ws >> string n >> ws >> string "type" >> ws
-   tp <- many alphaNum
-   ws
-   tx <- case tp of
-      "constant" -> do
-         s <- pSpectrum
-         return (constant s)
-      _ -> fail ("unknown texture type " ++ tp)
-   _ <- ws >> string "endTexture"
-   return tx
-   
-pMeasuredMaterial :: JobParser Measured
-pMeasuredMaterial = do
-   _ <- string "name" >> ws
-   n <- many alphaNum
-   return (read n)
-   
-namedFloat :: String -> JobParser Flt
-namedFloat n = do
-   _ <- string n >> ws
-   res <- flt <|> fail ("cannot parse " ++ n ++ " value")
-   return res
-   
-namedInt :: String -> JobParser Int
-namedInt n = do
-   _ <- string n
-   _ <- spaces
-   res <- integ <|> fail ("cannot parse " ++ n ++ " value")
-   _ <- char '\n'
-   return res
-   
--- | parse an integer
-integ :: JobParser Int
-integ = do
-   x <- many1 digit
-   return (read x)

@@ -6,7 +6,7 @@ module Graphics.Bling.IO.ParserCore (
    JobParser, PState(..),
    
    -- * Core Parsing Primitives
-   flt, ws, pVec
+   flt, ws, pVec, pSpectrum, namedInt, namedFloat, integ
    
    ) where
 
@@ -60,3 +60,32 @@ pVec = do
    y <- ws >> flt
    z <- ws >> flt
    return (Vector x y z)
+
+pSpectrum :: JobParser Spectrum
+pSpectrum = do
+   _ <- try (string "rgb")
+   r <- ws >> flt
+   g <- ws >> flt
+   b <- ws >> flt
+   return (fromRGB (r, g, b))
+
+
+namedFloat :: String -> JobParser Flt
+namedFloat n = do
+   _ <- string n >> ws
+   res <- flt <|> fail ("cannot parse " ++ n ++ " value")
+   return res
+
+namedInt :: String -> JobParser Int
+namedInt n = do
+   _ <- string n
+   _ <- spaces
+   res <- integ <|> fail ("cannot parse " ++ n ++ " value")
+   _ <- char '\n'
+   return res
+
+-- | parse an integer
+integ :: JobParser Int
+integ = do
+   x <- many1 digit
+   return (read x)
