@@ -7,10 +7,10 @@ import Text.ParserCombinators.Parsec
 
 import Graphics.Bling.Lafortune
 import Graphics.Bling.Material
-import Graphics.Bling.Plastic
 import Graphics.Bling.Specular
 import Graphics.Bling.Texture
 import Graphics.Bling.IO.ParserCore
+import Graphics.Bling.Material.Plastic
 
 --
 -- parsing materials

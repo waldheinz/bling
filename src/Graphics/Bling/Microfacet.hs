@@ -5,7 +5,7 @@ module Graphics.Bling.Microfacet(
 
 import Graphics.Bling.Math
 import Graphics.Bling.Random
-import Graphics.Bling.Specular
+import Graphics.Bling.Reflection
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Transport
 

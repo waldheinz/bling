@@ -36,9 +36,9 @@ Library
       Graphics.Bling.Math,
       Graphics.Bling.Microfacet,
       Graphics.Bling.Pathtracer,
-      Graphics.Bling.Plastic,
       Graphics.Bling.Primitive,
       Graphics.Bling.Random,
+      Graphics.Bling.Reflection,
       Graphics.Bling.Scene,
       Graphics.Bling.Shape,
       Graphics.Bling.Spectrum,
@@ -49,7 +49,8 @@ Library
       Graphics.Bling.IO.MaterialParser,
       Graphics.Bling.IO.ParserCore,
       Graphics.Bling.IO.RenderJob,
-      Graphics.Bling.IO.TransformParser
+      Graphics.Bling.IO.TransformParser,
+      Graphics.Bling.Material.Plastic
 
 Executable bling
    hs-source-dirs:    src/Graphics/Bling/Main
