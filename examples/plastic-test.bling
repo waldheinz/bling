@@ -2,10 +2,10 @@
 # plastic
 
 filter mitchell 3.0 3.0 0.333333 0.333333
-#filter box
+filter box
 
 imageSize 640 480
-samplesPerPixel 4
+samplesPerPixel 2
 
 beginCamera
 pos 9.0 15.0 -9.0
@@ -19,10 +19,7 @@ endCamera
 #
 
 beginMaterial type matte
-   beginTexture kd
-      type constant
-      rgb 0.7 0.7 0.7
-   endTexture
+   kd { constant rgb 0.7 0.7 0.7 }
    sigma { constant 0.0 }
 endMaterial
 
@@ -76,14 +73,8 @@ beginTransform
 endTransform
 
 beginMaterial type plastic
-   beginTexture kd
-      type constant
-      rgb 0.49 0.3 0.02
-   endTexture
-   beginTexture ks
-      type constant
-      rgb 0.5 0.5 0.5
-   endTexture
+   kd { constant rgb 0.49 0.3 0.02 }
+   ks { constant rgb 0.5 0.5 0.5 }
    rough { constant 1.0 }
 endMaterial
 
@@ -99,14 +90,8 @@ beginTransform
 endTransform
 
 beginMaterial type plastic
-   beginTexture kd
-      type constant
-      rgb 0.4 0.02 0.4
-   endTexture
-   beginTexture ks
-      type constant
-      rgb 0.5 0.5 0.5
-   endTexture
+   kd { constant rgb 0.4 0.02 0.4 }
+   ks { constant rgb 0.5 0.5 0.5 }
    rough { constant 0.25 }
 endMaterial
 
@@ -123,14 +108,8 @@ beginTransform
 endTransform
 
 beginMaterial type plastic
-   beginTexture kd
-      type constant
-      rgb 0.3 0.4 0.2
-   endTexture
-   beginTexture ks
-      type constant
-      rgb 0.5 0.5 0.5
-   endTexture
+   kd { constant rgb 0.3 0.4 0.2 }
+   ks { constant rgb 0.5 0.5 0.5 }
    rough { constant 0.0625 }
 endMaterial
 
@@ -151,14 +130,8 @@ beginTransform
 endTransform
 
 beginMaterial type plastic
-   beginTexture kd
-      type constant
-      rgb 0.1 0.2 0.4
-   endTexture
-   beginTexture ks
-      type constant
-      rgb 0.5 0.5 0.5
-   endTexture
+   kd { constant rgb 0.1 0.2 0.4 }
+   ks { constant rgb 0.5 0.5 0.5 }
    rough { constant 0.015625 }
 endMaterial
 
@@ -174,14 +147,8 @@ beginTransform
 endTransform
 
 beginMaterial type plastic
-   beginTexture kd
-      type constant
-      rgb 0.3 0.15 0.01
-   endTexture
-   beginTexture ks
-      type constant
-      rgb 0.5 0.5 0.5
-   endTexture
+   kd { constant rgb 0.3 0.15 0.01 }
+   ks { constant rgb 0.5 0.5 0.5 }
    rough { constant 0.00390625 }
 endMaterial
 
@@ -198,15 +165,10 @@ beginTransform
 endTransform
 
 beginMaterial type plastic
-   beginTexture kd
-      type constant
-      rgb 0.01 0.4 0.35
-   endTexture
-   beginTexture ks
-      type constant
-      rgb 0.5 0.5 0.5
-   endTexture
+   kd { constant rgb 0.01 0.4 0.35 }
+   ks { constant rgb 0.5 0.5 0.5 }
    rough { constant 0.000976562 }
 endMaterial
 
 beginShape type sphere radius 2.0 endShape
+
