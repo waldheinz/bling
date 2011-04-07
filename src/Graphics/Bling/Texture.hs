@@ -5,7 +5,7 @@ module Graphics.Bling.Texture (
    Texture, SpectrumTexture, ScalarTexture,
    
    -- * Creating Textures
-   constant, graphPaper
+   constant, graphPaper, checkerBoard
    ) where
 
 import Graphics.Bling.Math
@@ -31,3 +31,15 @@ graphPaper lw p l (DifferentialGeometry (Vector x _ z) _)
          (_, z'') = properFraction z :: (Int, Float)
          lo = lw / 2
          hi = 1.0 - lo
+
+checkerBoard
+   :: Flt -- ^ s scale
+   -> Flt -- ^ t scale
+   -> Texture a -- ^ first texture
+   -> Texture a -- ^ second texture
+   -> Texture a
+   
+checkerBoard us vs t1 t2 dg@(DifferentialGeometry (Vector x _ z) _)
+   | (floor (x * us) + floor (z * vs) :: Int) `mod` 2 == 0 = t1 dg
+   | otherwise = t2 dg
+   

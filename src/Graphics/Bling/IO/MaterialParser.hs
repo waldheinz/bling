@@ -91,6 +91,13 @@ pSpectrumTexture n = do
       "constant" -> do
          s <- pSpectrum
          return (constant s)
+
+      "checker" -> do
+         us <- flt
+         vs <- ws >> flt
+         t1 <- pSpectrumTexture "tex1"
+         t2 <- pSpectrumTexture "tex2"
+         return (checkerBoard us vs t1 t2)
          
       _ -> fail ("unknown texture type " ++ tp)
    _ <- ws >> char '}'
