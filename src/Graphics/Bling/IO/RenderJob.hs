@@ -20,6 +20,8 @@ import Graphics.Bling.Specular
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Texture
 import Graphics.Bling.Transform
+import Graphics.Bling.IO.ParserCore
+import Graphics.Bling.IO.TransformParser
 
 import qualified Data.Vector as V
 import Text.ParserCombinators.Parsec
@@ -41,20 +43,7 @@ ppJob (MkJob sc _ f spp sx sy) = PP.vcat [
    PP.text "Samples per pixel is" PP.<+> PP.text (show spp),
    PP.text "Scene stats" PP.$$ PP.nest 3 (ppScene sc)
    ]
-   
-data PState = PState {
-   resX :: Int,
-   resY :: Int,
-   pxFilter :: Filter, -- ^ the pixel filtering function
-   camera :: Camera,
-   transform :: Transform,
-   material :: Material,
-   _spp :: Int,
-   emit :: Maybe Spectrum, -- ^ the emission for the next primitives
-   lights :: [Light],
-   prims :: [AnyPrim]
-   }
-   
+
 aspect :: PState -> Flt
 aspect s = (fromIntegral (resX s)) / (fromIntegral (resY s))
    
@@ -72,7 +61,7 @@ parseJob :: String -> Job
 parseJob s = either (error . show) (id) pr where
    pr = runParser jobParser startState "unknown source"  s
    
-type JobParser a = GenParser Char PState a
+
 
 jobParser :: JobParser Job
 jobParser = do
@@ -140,76 +129,6 @@ vertex = do
    v <- ws >> pVec
    return (Vertex v)
 
---
--- parsing transformations
---
-
-pTransform :: JobParser ()
-pTransform = between start end (many ts) >> return () where
-   ts = choice [
-      tIdentity, try tRotX,
-      try tRotY,
-      tRotZ,
-      tScale,
-      tTrans,
-      tMatrix,
-      ws]
-   start = try (string "beginTransform")
-   end = string "endTransform"
-   
-tIdentity :: JobParser ()
-tIdentity = do
-   _ <- string "identity"
-   s <- getState
-   setState s { transform = identity }
-   
-tRotX :: JobParser ()
-tRotX = do
-   deg <- string "rotateX" >> ws >> flt
-   s <- getState
-   setState s { transform = concatTrans (transform s) (rotateX deg) }
-   
-tRotY :: JobParser ()
-tRotY = do
-   deg <- string "rotateY" >> ws >> flt
-   s <- getState
-   setState s { transform = concatTrans (transform s) (rotateY deg) }
-   
-tRotZ :: JobParser ()
-tRotZ = do
-   deg <- string "rotateZ" >> ws >> flt
-   s <- getState
-   setState s { transform = concatTrans (transform s) (rotateZ deg) }
-   
-tScale :: JobParser ()
-tScale = do
-   d <- string "scale" >> ws >> pVec
-   s <- getState
-   setState s { transform = concatTrans (transform s) (scale d) }
-   
-tTrans :: JobParser ()
-tTrans = do
-   d <- string "translate" >> ws >> pVec
-   s <- getState
-   setState s { transform = concatTrans (transform s) (translate d) }
-
-tMatrix :: JobParser ()
-tMatrix = do
-   _ <- try (string "beginMatrix")
-   m <- mtr 'm'
-   i <- mtr 'i'
-   _ <- ws >> string "endMatrix"
-   let t = fromMatrix (m, i)
-   s <- getState
-   setState s { transform = concatTrans (transform s) t }
-
-mtr :: Char -> JobParser [[Flt]]
-mtr p = count 4 row where
-   row = do
-      _ <- ws >> char p
-      r <- count 4 (try (do ws; flt))
-      return r
-   
 --
 -- parsing light sources
 --
@@ -386,33 +305,9 @@ namedInt n = do
    res <- integ <|> fail ("cannot parse " ++ n ++ " value")
    _ <- char '\n'
    return res
-
-pVec :: JobParser Vector
-pVec = do
-   x <- flt
-   y <- ws >> flt
-   z <- ws >> flt
-   return (Vector x y z)
    
 -- | parse an integer
 integ :: JobParser Int
 integ = do
    x <- many1 digit
    return (read x)
-
--- | parse a floating point number
-flt :: JobParser Flt
-flt = do
-  sign <- option 1 ( do s <- oneOf "+-"
-                        return $ if s == '-' then (-1.0) else 1.0)
-  i <- many digit
-  d <- try (char '.' >> try (many digit))
-  return $ sign * read (i++"."++d)
-
--- | skips over whitespace and comments
-ws :: JobParser ()
-ws = many1 (choice [space >> return (), comment]) >> return ()
-
-comment :: JobParser ()
-comment = do
-   char '#' >> many (noneOf "\n") >> char '\n' >> return () <?> "comment"

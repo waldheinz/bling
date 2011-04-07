@@ -43,7 +43,9 @@ Library
       Graphics.Bling.Texture,
       Graphics.Bling.Transform,
       Graphics.Bling.Transport,
-      Graphics.Bling.IO.RenderJob
+      Graphics.Bling.IO.ParserCore,
+      Graphics.Bling.IO.RenderJob,
+      Graphics.Bling.IO.TransformParser
 
 Executable bling
    hs-source-dirs:    src/Graphics/Bling/Main
