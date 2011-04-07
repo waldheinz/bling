@@ -1,5 +1,5 @@
 
-module Graphics.Bling.RenderJob (
+module Graphics.Bling.IO.RenderJob (
    Job, parseJob, ppJob,
    jobScene, jobIntegrator, imageSizeX, imageSizeY, jobPixelFilter,
    samplesPerPixel

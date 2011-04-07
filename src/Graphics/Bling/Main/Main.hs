@@ -11,8 +11,8 @@ import Time
 
 import Graphics.Bling.Image
 import Graphics.Bling.Random
-import Graphics.Bling.RenderJob
 import Graphics.Bling.Scene
+import Graphics.Bling.IO.RenderJob
 
 main :: IO ()
 main = do

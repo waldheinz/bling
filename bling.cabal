@@ -36,14 +36,14 @@ Library
       Graphics.Bling.Plastic,
       Graphics.Bling.Primitive,
       Graphics.Bling.Random,
-      Graphics.Bling.RenderJob,
       Graphics.Bling.Scene,
       Graphics.Bling.Shape,
       Graphics.Bling.Spectrum,
       Graphics.Bling.Specular,
       Graphics.Bling.Texture,
       Graphics.Bling.Transform,
-      Graphics.Bling.Transport
+      Graphics.Bling.Transport,
+      Graphics.Bling.IO.RenderJob
 
 Executable bling
    hs-source-dirs:    src/Graphics/Bling/Main
