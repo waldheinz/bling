@@ -28,16 +28,13 @@ pMaterial = do
    ws >> string "type" >> ws
    t <- many alphaNum
    m <- case t of
-      "measured" -> do
-         m <- pMeasuredMaterial
-         return (measuredMaterial m)
-      "metal" -> pMetalMaterial
-      "plastic" -> pPlasticMaterial
-      "matte" -> pMatteMaterial
-      "mirror" -> pMirrorMaterial
-
-      _ -> fail ("unknown material type " ++ t)
-
+      "measured"  -> pMeasuredMaterial
+      "metal"     -> pMetalMaterial
+      "plastic"   -> pPlasticMaterial
+      "matte"     -> pMatteMaterial
+      "mirror"    -> pMirrorMaterial
+      _           -> fail ("unknown material type " ++ t)
+   
    _ <- ws >> string "endMaterial"
    s <- getState
    setState s { material = m }
@@ -60,6 +57,12 @@ pMatteMaterial = do
    sig <- pScalarTexture "sigma"
    return (mkMatte kd sig)
    
+pMeasuredMaterial :: JobParser Material
+pMeasuredMaterial = do
+   _ <- string "name" >> ws
+   n <- many alphaNum
+   return $ measuredMaterial (read n)
+   
 pPlasticMaterial :: JobParser Material
 pPlasticMaterial = do
    kd <- pSpectrumTexture "kd"
@@ -68,26 +71,19 @@ pPlasticMaterial = do
    return (mkPlastic kd ks rough)
 
 pScalarTexture :: String -> JobParser ScalarTexture
-pScalarTexture n = do
-   _ <- ws >> string n >> ws >> char '{' >> ws
+pScalarTexture = namedBlock $ do
    tp <- many alphaNum
-   ws
-   tx <- case tp of
+   ws >> case tp of
       "constant" -> do
          v <- flt
          return (constant v)
          
       _ -> fail ("unknown texture type " ++ tp)
 
-   _ <- ws >> char '}'
-   return tx
-   
 pSpectrumTexture :: String -> JobParser SpectrumTexture
-pSpectrumTexture n = do
-   ws >> string n >> ws >> char '{' >> ws
+pSpectrumTexture = namedBlock $ do
    tp <- many alphaNum
-   ws
-   tx <- case tp of
+   ws >> case tp of
       "constant" -> do
          s <- pSpectrum
          return (constant s)
@@ -105,12 +101,4 @@ pSpectrumTexture n = do
          return (graphPaper s t1 t2)
          
       _ -> fail ("unknown texture type " ++ tp)
-   _ <- ws >> char '}'
-   return tx
 
-pMeasuredMaterial :: JobParser Measured
-pMeasuredMaterial = do
-   _ <- string "name" >> ws
-   n <- many alphaNum
-   return (read n)
-   

@@ -75,7 +75,7 @@ endTransform
 beginMaterial type plastic
    kd { constant rgb 0.49 0.3 0.02 }
    ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 1.0 }
+   rough { constant 0.2 }
 endMaterial
 
 beginShape type sphere radius 2.0 endShape
@@ -92,7 +92,7 @@ endTransform
 beginMaterial type plastic
    kd { constant rgb 0.4 0.02 0.4 }
    ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.25 }
+   rough { constant 0.05 }
 endMaterial
 
 beginShape type sphere radius 2.0 endShape
@@ -110,7 +110,7 @@ endTransform
 beginMaterial type plastic
    kd { constant rgb 0.3 0.4 0.2 }
    ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.0625 }
+   rough { constant 0.0125 }
 endMaterial
 
 beginShape type sphere radius 2.0 endShape
@@ -132,7 +132,7 @@ endTransform
 beginMaterial type plastic
    kd { constant rgb 0.1 0.2 0.4 }
    ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.015625 }
+   rough { constant 0.003125 }
 endMaterial
 
 beginShape type sphere radius 2.0 endShape
@@ -149,7 +149,7 @@ endTransform
 beginMaterial type plastic
    kd { constant rgb 0.3 0.15 0.01 }
    ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.00390625 }
+   rough { constant 0.00078125 }
 endMaterial
 
 beginShape type sphere radius 2.0 endShape
@@ -167,7 +167,7 @@ endTransform
 beginMaterial type plastic
    kd { constant rgb 0.01 0.4 0.35 }
    ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.000976562 }
+   rough { constant 0.000195312 }
 endMaterial
 
 beginShape type sphere radius 2.0 endShape
