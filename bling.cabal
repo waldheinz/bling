@@ -47,6 +47,7 @@ Library
       Graphics.Bling.IO.TransformParser,
       Graphics.Bling.Material.Lafortune,
       Graphics.Bling.Material.Matte,
+      Graphics.Bling.Material.Metal,
       Graphics.Bling.Material.Plastic,
       Graphics.Bling.Material.Specular
 

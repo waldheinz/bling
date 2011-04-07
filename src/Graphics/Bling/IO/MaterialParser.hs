@@ -11,6 +11,7 @@ import Graphics.Bling.Texture
 import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.Material.Lafortune
 import Graphics.Bling.Material.Matte
+import Graphics.Bling.Material.Metal
 import Graphics.Bling.Material.Plastic
 import Graphics.Bling.Material.Specular
 
@@ -30,7 +31,7 @@ pMaterial = do
       "measured" -> do
          m <- pMeasuredMaterial
          return (measuredMaterial m)
-
+      "metal" -> pMetalMaterial
       "plastic" -> pPlasticMaterial
       "matte" -> pMatteMaterial
       "mirror" -> pMirrorMaterial
@@ -40,6 +41,13 @@ pMaterial = do
    _ <- ws >> string "endMaterial"
    s <- getState
    setState s { material = m }
+
+pMetalMaterial :: JobParser Material
+pMetalMaterial = do
+   eta <- pSpectrumTexture "eta"
+   k <- pSpectrumTexture "k"
+   rough <- pScalarTexture "rough"
+   return (mkMetal eta k rough)
 
 pMirrorMaterial :: JobParser Material
 pMirrorMaterial = do
@@ -76,15 +84,16 @@ pScalarTexture n = do
    
 pSpectrumTexture :: String -> JobParser SpectrumTexture
 pSpectrumTexture n = do
-   ws >> string "beginTexture" >> ws >> string n >> ws >> string "type" >> ws
+   ws >> string n >> ws >> char '{' >> ws
    tp <- many alphaNum
    ws
    tx <- case tp of
       "constant" -> do
          s <- pSpectrum
          return (constant s)
+         
       _ -> fail ("unknown texture type " ++ tp)
-   _ <- ws >> string "endTexture"
+   _ <- ws >> char '}'
    return tx
 
 pMeasuredMaterial :: JobParser Measured

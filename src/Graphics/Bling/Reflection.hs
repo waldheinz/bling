@@ -8,7 +8,7 @@ module Graphics.Bling.Reflection (
    
    -- * Fresnel Equations
    
-   Fresnel, frDielectric, frCond, frNoOp,
+   Fresnel, frDielectric, frConductor, frNoOp,
    
    -- * Microfacet Distributions
    
@@ -64,8 +64,8 @@ frDiel' cosi cost etai etat = (rPar * rPar + rPer * rPer) / 2 where
    rPer = (sScale etai cosi - sScale etat cost) /
           (sScale etai cosi + sScale etat cost)
 
-frCond :: Spectrum -> Spectrum -> Fresnel
-frCond eta k cosi = (rPer2 + rPar2) / 2.0 where
+frConductor :: Spectrum -> Spectrum -> Fresnel
+frConductor eta k cosi = (rPer2 + rPar2) / 2.0 where
    rPer2 = (tmpF - ec2 + sConst (cosi * cosi)) /
                 (tmpF + ec2 + sConst (cosi * cosi))
    rPar2 = (tmp - ec2 + white) /
