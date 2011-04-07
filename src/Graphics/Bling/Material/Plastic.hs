@@ -16,7 +16,7 @@ mkPlastic
    
 mkPlastic kd ks kr dg = mkBsdf [diff, spec] sc where
    diff = MkAnyBxdf $ Lambertian rd
-   spec = MkAnyBxdf $ Microfacet (Blinn (1 / rough)) (frDiel 1.5 1.0) rs
+   spec = MkAnyBxdf $ Microfacet (Blinn (1 / rough)) (frDielectric 1.5 1.0) rs
    rough = kr dg
    rd = kd dg
    rs = ks dg

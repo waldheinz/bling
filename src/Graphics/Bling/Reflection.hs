@@ -8,7 +8,7 @@ module Graphics.Bling.Reflection (
    
    -- * Fresnel Equations
    
-   Fresnel, frDiel, frCond, frNoOp,
+   Fresnel, frDielectric, frCond, frNoOp,
    
    -- * Microfacet Distributions
    
@@ -42,24 +42,23 @@ import Graphics.Bling.Spectrum
 
 type Material = DifferentialGeometry -> Bsdf
 
-type Fresnel = Float -> Spectrum
+type Fresnel = Flt -> Spectrum
 
 frNoOp :: Fresnel
 frNoOp _ = white
 
-frDiel :: Float -> Float -> Fresnel
-frDiel ei et cosi
-   | sint > 1 = white -- total internal reflection
-   | otherwise = frDiel' (abs cosi') cost (sConst ei') (sConst et')
+frDielectric :: Flt -> Flt -> Fresnel
+frDielectric etai etat cosi
+   | sint >= 1 = white -- total internal reflection
+   | otherwise = frDiel' (abs cosi') cost (sConst ei) (sConst et)
    where
       cost = sqrt $ max 0 (1 - sint * sint)
-      sint = (ei' / et') * sqrt (max 0 (1 - cosi' * cosi'))
-      cosi' = min 1 $ max (-1) cosi
-      ei' = if cosi > 0 then ei else et
-      et' = if cosi > 0 then et else ei
-
-frDiel' :: Float -> Float -> Spectrum -> Spectrum -> Spectrum
-frDiel' cosi cost etai etat = (rPar * rPar + rPer * rPer) / 2.0 where
+      sint = (ei / et) * sqrt (max 0 (1 - cosi' * cosi'))
+      cosi' = clamp cosi (-1) 1
+      (ei, et) = if cosi' > 0 then (etai, etat) else (etat, etai)
+   
+frDiel' :: Flt -> Flt -> Spectrum -> Spectrum -> Spectrum
+frDiel' cosi cost etai etat = (rPar * rPar + rPer * rPer) / 2 where
    rPar = (sScale etat cosi - sScale etai cost) /
           (sScale etat cosi + sScale etai cost)
    rPer = (sScale etai cosi - sScale etat cost) /

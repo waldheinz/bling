@@ -13,7 +13,7 @@ import Graphics.Bling.Spectrum
 
 glassMaterial :: Float -> Spectrum -> Material
 glassMaterial ior r dg = mkBsdf [refl, trans] cs where
-   refl = MkAnyBxdf $ SpecularReflection r $ frDiel 1 ior
+   refl = MkAnyBxdf $ SpecularReflection r $ frDielectric 1 ior
    trans = MkAnyBxdf $ SpecularTransmission r 1 ior
    cs = shadingCs dg
 
@@ -44,7 +44,7 @@ instance Bxdf SpecularTransmission where
                cost = if entering then (-cost') else cost'
                sini2 = sinTheta2 wo
                wi = Vector (eta * (-wox)) (eta * (-woy)) cost
-               f' = frDiel ei et $ cosTheta wo
+               f' = frDielectric ei et $ cosTheta wo
                f = sScale (t * (white - f')) (((et*et) / (ei*ei)) / abs (cosTheta wi))
 
 data SpecularReflection = SpecularReflection {

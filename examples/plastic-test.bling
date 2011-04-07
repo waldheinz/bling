@@ -5,7 +5,7 @@ filter mitchell 3.0 3.0 0.333333 0.333333
 #filter box
 
 imageSize 640 480
-samplesPerPixel 2
+samplesPerPixel 4
 
 beginCamera
 pos 9.0 15.0 -9.0
@@ -23,9 +23,7 @@ beginMaterial type matte
       type constant
       rgb 0.7 0.7 0.7
    endTexture
-   beginScalarTexture sigma
-      type constant 0.0
-   endScalarTexture
+   sigma { constant 0.0 }
 endMaterial
 
 beginShape
@@ -39,9 +37,12 @@ beginShape
    f 3 2 1 0
 endShape
 
+#
 # light source
+#
+
 beginEmission
-   rgb 0.9 0.9 0.9
+   rgb 1.9 1.9 1.9
 endEmission
 
 beginTransform
@@ -83,7 +84,7 @@ beginMaterial type plastic
       type constant
       rgb 0.5 0.5 0.5
    endTexture
-   rough 1.0
+   rough { constant 1.0 }
 endMaterial
 
 beginShape type sphere radius 2.0 endShape
@@ -106,7 +107,7 @@ beginMaterial type plastic
       type constant
       rgb 0.5 0.5 0.5
    endTexture
-   rough 0.25
+   rough { constant 0.25 }
 endMaterial
 
 beginShape type sphere radius 2.0 endShape
@@ -130,7 +131,7 @@ beginMaterial type plastic
       type constant
       rgb 0.5 0.5 0.5
    endTexture
-   rough 0.0625
+   rough { constant 0.0625 }
 endMaterial
 
 beginShape type sphere radius 2.0 endShape
@@ -158,7 +159,7 @@ beginMaterial type plastic
       type constant
       rgb 0.5 0.5 0.5
    endTexture
-   rough 0.015625
+   rough { constant 0.015625 }
 endMaterial
 
 beginShape type sphere radius 2.0 endShape
@@ -181,7 +182,7 @@ beginMaterial type plastic
       type constant
       rgb 0.5 0.5 0.5
    endTexture
-   rough 0.00390625
+   rough { constant 0.00390625 }
 endMaterial
 
 beginShape type sphere radius 2.0 endShape
@@ -205,8 +206,7 @@ beginMaterial type plastic
       type constant
       rgb 0.5 0.5 0.5
    endTexture
-   rough 0.000976562
+   rough { constant 0.000976562 }
 endMaterial
 
 beginShape type sphere radius 2.0 endShape
-
