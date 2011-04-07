@@ -2,10 +2,10 @@
 # plastic
 
 filter mitchell 3.0 3.0 0.333333 0.333333
-filter box
+#filter box
 
 imageSize 640 480
-samplesPerPixel 2
+samplesPerPixel 5
 
 beginCamera
 pos 9.0 15.0 -9.0
