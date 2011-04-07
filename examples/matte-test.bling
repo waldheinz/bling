@@ -2,8 +2,8 @@
 
 # plastic
 
-#filter mitchell 3.0 3.0 0.333333 0.333333
-filter box
+filter mitchell 3.0 3.0 0.333333 0.333333
+#filter box
 
 imageSize 640 480
 samplesPerPixel 5
