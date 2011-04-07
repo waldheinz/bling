@@ -20,10 +20,10 @@ type ScalarTexture = Texture Flt
 constant :: a -> Texture a
 constant r _ = r
 
-graphPaper :: Float -> Spectrum -> Spectrum -> SpectrumTexture
-graphPaper lw p l (DifferentialGeometry (Vector x _ z) _)
-   | x' < lo || z' < lo || x' > hi || z' > hi = l
-   | otherwise = p
+graphPaper :: Flt -> SpectrumTexture -> SpectrumTexture -> SpectrumTexture
+graphPaper lw p l dg@(DifferentialGeometry (Vector x _ z) _)
+   | x' < lo || z' < lo || x' > hi || z' > hi = l dg
+   | otherwise = p dg
    where
          x' = abs x''
          z' = abs z''
@@ -33,13 +33,12 @@ graphPaper lw p l (DifferentialGeometry (Vector x _ z) _)
          hi = 1.0 - lo
 
 checkerBoard
-   :: Flt -- ^ s scale
-   -> Flt -- ^ t scale
+   :: Vector -- ^ scale
    -> Texture a -- ^ first texture
    -> Texture a -- ^ second texture
    -> Texture a
    
-checkerBoard us vs t1 t2 dg@(DifferentialGeometry (Vector x _ z) _)
-   | (floor (x * us) + floor (z * vs) :: Int) `mod` 2 == 0 = t1 dg
+checkerBoard (Vector sx sy sz) t1 t2 dg@(DifferentialGeometry (Vector x y z) _)
+   | (floor (x * sx) + floor (y * sy) + floor (z * sz) :: Int) `mod` 2 == 0 = t1 dg
    | otherwise = t2 dg
    

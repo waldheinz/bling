@@ -3,10 +3,10 @@
 # metal
 
 filter mitchell 3.0 3.0 0.333333 0.333333
-filter box
+#filter box
 
 imageSize 640 480
-samplesPerPixel 2
+samplesPerPixel 3
 
 beginCamera
 pos 0.0 15.0 -9.0
@@ -21,7 +21,7 @@ endCamera
 
 beginMaterial type matte
    kd {
-      checker 1.0 1.0
+      graphPaper 0.1
       tex1 { constant rgb 0.7 0.7 0.7 }
       tex2 { constant rgb 0.2 0.2 0.2 }
    }
@@ -95,9 +95,13 @@ beginTransform
 endTransform
 
 beginMaterial type metal
-   eta { constant rgb 0.9 0.2 0.2 }
+   eta {
+      checker 5.0 5.0 5.0
+      tex1 { constant rgb 0.7 0.7 0.7 }
+      tex2 { constant rgb 0.2 0.2 0.2 }
+   }
    k { constant rgb 0.2 0.9 0.2 }
-   rough { constant 0.5 }
+   rough { constant 0.1 }
 endMaterial
 
 beginShape type sphere radius 2.0 endShape
@@ -114,7 +118,7 @@ endTransform
 beginMaterial type metal
    eta { constant rgb 0.9 0.2 0.2 }
    k { constant rgb 0.2 0.9 0.2 }
-   rough { constant 0.9 }
+   rough { constant 0.02 }
 endMaterial
 
 beginShape type sphere radius 2.0 endShape
