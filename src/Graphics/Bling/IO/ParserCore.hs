@@ -82,7 +82,7 @@ pSpectrum = do
 pSpectrumSpd :: JobParser Spectrum
 pSpectrumSpd = do
    spd <- between (char '{' >> optional ws) (optional ws >> char '}') ss
-   return (fromSpd spd) where
+   return (fromSpd (mkSpd spd)) where
       ss = sepBy1 s (char ',' >> optional ws)
       s = do l <- flt; v <- ws >> flt; optional ws; return (l, v)
       

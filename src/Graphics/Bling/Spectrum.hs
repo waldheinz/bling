@@ -2,13 +2,20 @@
 module Graphics.Bling.Spectrum (
    Spectrum, WeightedSpectrum, ImageSample(..),
    white, black, 
+   
+   -- * Dealing with SPDs
+   Spd, mkSpd,
+   
    isBlack, sNaN, sInfinite,
    fromXyz,  toRGB, fromRGB, fromSpd, sConst, sBlackBody, sY,
    sScale, sPow) where
 
+import Data.List (sortBy)
 import Data.Vector.Unboxed as V
 import Control.DeepSeq as DS
 import Prelude as P
+
+import Graphics.Bling.Math
 
 -- | A Spectrum of colours.
 data Spectrum = Spectrum
@@ -45,7 +52,51 @@ fromXyz (x, y, z) = fromRGB (r, g, b) where
    g = (-0.969256) * x +  1.875991 * y +  0.041556 * z;
    b =  0.055648 * x + (-0.204043) * y +  1.057311 * z;
 
-fromSpd :: [(Float, Float)] -> Spectrum
+--
+-- dealing with SPDs
+--
+
+data Spd = Spd {
+   spdLambdas :: V.Vector Flt,
+   spdValues :: V.Vector Flt
+   } deriving (Show)
+   
+-- | creates an SPD from a list of (lambda, value) pairs, which must
+--   not be empty
+mkSpd
+   :: [(Flt, Flt)] -- ^ the SPD as (lambda, value) pairs
+   -> Spd
+mkSpd [] = error "empty SPD"
+mkSpd xs = Spd ls vs where
+   ls = fromList (P.map fst sorted)
+   vs = fromList (P.map snd sorted)
+   sorted = sortBy cmp xs
+   cmp (l1, _) (l2, _) = compare l1 l2
+
+-- | evaluates a SPD
+evalSpd
+   :: Spd -- ^ the SPD to evaluate
+   -> Flt -- ^ the lambda where the SPD should be evaluated
+   -> Flt -- ^ the SPD value at the specified lambda
+   
+evalSpd (Spd ls vs) l
+   | l <= V.head ls = V.head vs
+   | l >= V.last ls = V.last vs
+   | otherwise = lerp t (vs ! i) (vs ! i+1) where
+      t = (l - (ls ! i)) / ((ls ! (i+1)) - (ls ! i))
+      i = fi 0 (V.length ls)
+      fi lo hi -- binary search for index
+         | lo == hi = lo
+         | (ls ! mid) == l = mid
+         | (ls ! mid) > l = fi mid hi
+         | otherwise = fi lo mid where
+            mid = (lo + hi) `div` 2
+   
+-- | extracts the internal @Spectrum@ representation from a SPD
+fromSpd
+   :: Spd 
+   -> Spectrum
+   
 fromSpd = undefined
 
 toRGB :: Spectrum -> (Float, Float, Float)
@@ -56,9 +107,6 @@ toRGB (Spectrum r g b) = (r, g, b)
 sY :: Spectrum -> Float
 {-# INLINE sY #-}
 sY (Spectrum r g b) = 0.212671 * r + 0.715160 * g + 0.072169 * b
-
--- toXyz :: Spectrum -> (Float, Float, Float)
--- toXyz (Spectrum x y z) = (x, y, z)
 
 sConst :: Float -> Spectrum
 sConst r = Spectrum r r r
@@ -119,12 +167,12 @@ cieStart = 360
 cieEnd :: Int
 cieEnd = 830
       
-cieX :: Int -> Float
+cieX :: Int -> Flt
 cieX lambda
    | (lambda < cieStart) || (lambda > cieEnd) = 0
    | otherwise = cieXValues ! (lambda - cieStart)
     
-cieXValues :: Vector Float
+cieXValues :: V.Vector Flt
 {-# NOINLINE cieXValues #-}
 cieXValues = fromList [
    0.0001299000, 0.0001458470, 0.0001638021, 0.0001840037,
@@ -246,12 +294,12 @@ cieXValues = fromList [
    0.000001905497,  0.000001776509,  0.000001656215,  0.000001544022,
    0.000001439440, 0.000001341977, 0.000001251141]
 
-cieY :: Int -> Float
+cieY :: Int -> Flt
 cieY lambda
    | (lambda < cieStart) || (lambda > cieEnd) = 0
    | otherwise = cieYValues ! (lambda - cieStart)
    
-cieYValues :: Vector Float
+cieYValues :: V.Vector Flt
 {-# NOINLINE cieYValues #-}
 cieYValues = fromList [
    0.000003917000,  0.000004393581,  0.000004929604,  0.000005532136,
@@ -373,12 +421,12 @@ cieYValues = fromList [
    0.0000006881098,  0.0000006415300,  0.0000005980895,  0.0000005575746,
    0.0000005198080, 0.0000004846123, 0.0000004518100 ]
    
-cieZ :: Int -> Float
+cieZ :: Int -> Flt
 cieZ lambda
    | (lambda < cieStart) || (lambda > cieEnd) = 0
    | otherwise = cieZValues ! (lambda - cieStart)
    
-cieZValues :: Vector Float
+cieZValues :: V.Vector Flt
 {-# NOINLINE cieZValues #-}
 cieZValues = fromList [
    0.0006061000,  0.0006808792,  0.0007651456,  0.0008600124,
