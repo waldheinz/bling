@@ -14,7 +14,7 @@ import Graphics.Bling.IO.ParserCore
 --
 
 pTransform :: JobParser ()
-pTransform = between start end (many ts) >> return () where
+pTransform = (namedBlock (many1 ts) "transform") >> return () where
    ts = choice [
       tIdentity, try tRotX,
       try tRotY,
@@ -23,9 +23,7 @@ pTransform = between start end (many ts) >> return () where
       tTrans,
       tMatrix,
       ws]
-   start = try (string "beginTransform")
-   end = string "endTransform"
-
+      
 tIdentity :: JobParser ()
 tIdentity = do
    _ <- string "identity"
