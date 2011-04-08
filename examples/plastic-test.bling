@@ -7,12 +7,12 @@ filter mitchell 3.0 3.0 0.333333 0.333333
 imageSize 640 480
 samplesPerPixel 1
 
-beginCamera
-pos 9.0 15.0 -9.0
-lookAt 0.0 1.0 0.0
-up 0.0 1.0 0.0
-fov 1.3
-endCamera
+camera {
+   pos 9.0 15.0 -9.0
+   lookAt 0.0 1.0 0.0
+   up 0.0 1.0 0.0
+   fov 1.3
+}
 
 #
 # ground plane

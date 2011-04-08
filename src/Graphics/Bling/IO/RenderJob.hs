@@ -203,16 +203,10 @@ pFilter = do
    setState s { pxFilter = f }
    
 pCamera :: JobParser ()
-pCamera = do
-   _ <- try (string "beginCamera")
-   _ <- ws >> string "pos"
-   pos <- ws >> pVec
-   _ <- ws >> string "lookAt"
-   la <- ws >> pVec
-   _ <- ws >> string "up"
-   up <- ws >> pVec
-   _ <- ws >> string "fov"
-   fov <- ws >> flt
-   _ <- ws >> string "endCamera"
+pCamera = (flip namedBlock) "camera" $ do
+   pos <- namedVector "pos"
+   la <- ws >> namedVector "lookAt"
+   up <- ws >> namedVector "up"
+   fov <- ws >> namedFloat "fov"
    s <- getState
    setState s {camera = pinHoleCamera (View pos la up fov (aspect s))}
