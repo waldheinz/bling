@@ -40,8 +40,8 @@ pMaterial = (flip namedBlock) "material" $ do
 pMetalMaterial :: JobParser Material
 pMetalMaterial = do
    eta <- pSpectrumTexture "eta"
-   k <- pSpectrumTexture "k"
-   rough <- pScalarTexture "rough"
+   k <- ws >> pSpectrumTexture "k"
+   rough <- ws >> pScalarTexture "rough"
    return (mkMetal eta k rough)
 
 pMirrorMaterial :: JobParser Material
