@@ -48,17 +48,17 @@ fromRGB (r, g, b) = Spectrum r g b
 
 fromXyz :: (Float, Float, Float) -> Spectrum
 fromXyz (x, y, z) = fromRGB (r, g, b) where
-   r =  3.240479 * x + (-1.537150) * y + (-0.498535) * z;
-   g = (-0.969256) * x +  1.875991 * y +  0.041556 * z;
-   b =  0.055648 * x + (-0.204043) * y +  1.057311 * z;
+   r =   3.240479  * x - 1.537150 * y - 0.498535 * z
+   g = (-0.969256) * x + 1.875991 * y + 0.041556 * z
+   b =   0.055648  * x - 0.204043 * y + 1.057311 * z
 
 --
 -- dealing with SPDs
 --
 
 data Spd = Spd {
-   spdLambdas :: V.Vector Flt,
-   spdValues :: V.Vector Flt
+   _spdLambdas :: V.Vector Flt,
+   _spdValues :: V.Vector Flt
    } deriving (Show)
    
 -- | creates an SPD from a list of (lambda, value) pairs, which must
@@ -82,13 +82,13 @@ evalSpd
 evalSpd (Spd ls vs) l
    | l <= V.head ls = V.head vs
    | l >= V.last ls = V.last vs
-   | otherwise = lerp t (vs ! i) (vs ! i+1) where
+   | otherwise = lerp t (vs ! i) (vs ! (i+1)) where
       t = (l - (ls ! i)) / ((ls ! (i+1)) - (ls ! i))
-      i = fi 0 (V.length ls)
+      i = fi 0 (V.length ls - 1)
       fi lo hi -- binary search for index
-         | lo == hi = lo
+         | lo == mid = lo
          | (ls ! mid) == l = mid
-         | (ls ! mid) > l = fi mid hi
+         | (ls ! mid) < l = fi mid hi
          | otherwise = fi lo mid where
             mid = (lo + hi) `div` 2
    
@@ -97,8 +97,14 @@ fromSpd
    :: Spd 
    -> Spectrum
    
-fromSpd = undefined
-
+fromSpd spd = fromXyz (x / yint, y / yint, z / yint) where
+   ls = [cieStart .. cieEnd]
+   vs = P.map (\l -> evalSpd spd (fromIntegral l)) ls
+   yint = P.sum (P.map cieY ls)
+   x = P.sum $ P.zipWith (*) (P.map cieX ls) vs
+   y = P.sum $ P.zipWith (*) (P.map cieY ls) vs
+   z = P.sum $ P.zipWith (*) (P.map cieZ ls) vs
+   
 toRGB :: Spectrum -> (Float, Float, Float)
 {-# INLINE toRGB #-}
 toRGB (Spectrum r g b) = (r, g, b)
