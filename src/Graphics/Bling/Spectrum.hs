@@ -3,7 +3,7 @@ module Graphics.Bling.Spectrum (
    Spectrum, WeightedSpectrum, ImageSample(..),
    white, black, 
    isBlack, sNaN, sInfinite,
-   fromXyz,  toRGB, fromRGB, sConst, sBlackBody, sY,
+   fromXyz,  toRGB, fromRGB, fromSpd, sConst, sBlackBody, sY,
    sScale, sPow) where
 
 import Data.Vector.Unboxed as V
@@ -44,6 +44,9 @@ fromXyz (x, y, z) = fromRGB (r, g, b) where
    r =  3.240479 * x + (-1.537150) * y + (-0.498535) * z;
    g = (-0.969256) * x +  1.875991 * y +  0.041556 * z;
    b =  0.055648 * x + (-0.204043) * y +  1.057311 * z;
+
+fromSpd :: [(Float, Float)] -> Spectrum
+fromSpd = undefined
 
 toRGB :: Spectrum -> (Float, Float, Float)
 {-# INLINE toRGB #-}

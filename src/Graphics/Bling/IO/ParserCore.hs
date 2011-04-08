@@ -67,12 +67,25 @@ namedVector n = do string n >> ws; pVec
    
 pSpectrum :: JobParser Spectrum
 pSpectrum = do
-   _ <- try (string "rgb")
-   r <- ws >> flt
-   g <- ws >> flt
-   b <- ws >> flt
-   return (fromRGB (r, g, b))
-   
+   t <- many alphaNum
+   ws
+   case t of
+      "rgb" -> do
+         r <- flt
+         g <- ws >> flt
+         b <- ws >> flt
+         return (fromRGB (r, g, b))
+         
+      "spd" -> pSpectrumSpd
+      _ -> fail ("unknown spectrum type " ++ t)
+      
+pSpectrumSpd :: JobParser Spectrum
+pSpectrumSpd = do
+   spd <- between (char '{' >> optional ws) (optional ws >> char '}') ss
+   return (fromSpd spd) where
+      ss = sepBy1 s (char ',' >> optional ws)
+      s = do l <- flt; v <- ws >> flt; optional ws; return (l, v)
+      
 namedBlock :: JobParser a -> String -> JobParser a
 namedBlock p n = do
    string n >> optional ws
