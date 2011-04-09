@@ -7,11 +7,11 @@ module Graphics.Bling.IO.RenderJob (
 
 import Graphics.Bling.Camera
 import Graphics.Bling.Filter
-import Graphics.Bling.Light
 import Graphics.Bling.Math
 import Graphics.Bling.Pathtracer
 import Graphics.Bling.Scene
 import Graphics.Bling.Transform
+import Graphics.Bling.IO.LightParser
 import Graphics.Bling.IO.MaterialParser
 import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.ShapeParser
@@ -75,36 +75,6 @@ object =
       <|> pTransform
       <|> ws
 
---
--- parsing light sources
---
-
-pLight :: JobParser ()
-pLight = do
-   l <- pDirectionalLight
-   s <- getState
-   setState s { lights = l : (lights s) }
-
-pDirectionalLight :: JobParser Light
-pDirectionalLight = do
-   try (string "beginDirectionalLight") >> ws
-   s <- pSpectrum  <|> fail "missing spectrum"
-   _ <- ws >> (string "normal" <|> fail "missing normal")
-   n <- ws >> (pVec <|> fail "could not parse normal")
-   _ <- ws >> string "endDirectionalLight"
-   return (mkDirectional s n)
-   
-pEmission :: JobParser ()
-pEmission = do
-   try (string "beginEmission") >> ws
-   spec <- do
-      try (string "black" >> return Nothing)
-      <|> (pSpectrum >>= (\s -> return (Just s)))
-      
-   ws >> string "endEmission" >> ws
-   s <- getState
-   setState s { emit = spec }
-   
 pSamplesPerPixel :: JobParser ()
 pSamplesPerPixel = do
    spp <- namedInt "samplesPerPixel"

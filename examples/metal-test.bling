@@ -44,9 +44,9 @@ shape {
 # light source
 #
 
-beginEmission
+emission {
    rgb 1.9 1.9 1.9
-endEmission
+}
 
 transform {
    identity
@@ -69,9 +69,7 @@ shape {
 # Gold Sphere (left)
 #
 
-beginEmission
-   black
-endEmission
+emission { none }
 
 transform {
    identity
