@@ -44,6 +44,7 @@ Library
       Graphics.Bling.IO.MaterialParser,
       Graphics.Bling.IO.ParserCore,
       Graphics.Bling.IO.RenderJob,
+      Graphics.Bling.IO.ShapeParser,
       Graphics.Bling.IO.TransformParser,
       Graphics.Bling.Material.Lafortune,
       Graphics.Bling.Material.Matte,
