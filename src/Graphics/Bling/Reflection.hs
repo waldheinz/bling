@@ -4,7 +4,7 @@ module Graphics.Bling.Reflection (
 
    -- * Material
 
-   Material,
+   Material, blackBodyMaterial,
    
    -- * Fresnel Equations
    

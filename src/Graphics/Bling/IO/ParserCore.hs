@@ -77,6 +77,9 @@ pSpectrum = do
          return (fromRGB (r, g, b))
          
       "spd" -> pSpectrumSpd
+      "temp" -> do
+         temp <- flt
+         return (sBlackBody temp)
       _ -> fail ("unknown spectrum type " ++ t)
       
 pSpectrumSpd :: JobParser Spectrum

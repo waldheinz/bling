@@ -32,6 +32,7 @@ Library
       Graphics.Bling.Image,
       Graphics.Bling.Light,
       Graphics.Bling.Math,
+      Graphics.Bling.Montecarlo,
       Graphics.Bling.Pathtracer,
       Graphics.Bling.Primitive,
       Graphics.Bling.Random,

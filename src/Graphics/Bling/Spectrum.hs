@@ -155,8 +155,11 @@ sPow (Spectrum c1 c2 c3) (Spectrum e1 e2 e3) = Spectrum (p' c1 e1) (p' c2 e2) (p
    p' c e
       | c > 0 = c ** e
       | otherwise = 0
-   
-sBlackBody :: Float -> Spectrum
+
+-- | The spectrum of a black body emitter
+sBlackBody
+   :: Float -- ^ the temperature in Kelvin
+   -> Spectrum -- ^ the emission spectrum of the emitter
 sBlackBody t = sScale (fromXyz (x, y, z)) (1 / (fromIntegral (cieEnd - cieStart))) where
    z = max 0 $ P.sum $ P.map (\wl -> (cieZ wl) * (p wl)) [cieStart .. cieEnd]
    y = max 0 $ P.sum $ P.map (\wl -> (cieY wl) * (p wl)) [cieStart .. cieEnd]

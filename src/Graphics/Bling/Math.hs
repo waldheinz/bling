@@ -201,23 +201,6 @@ solveQuadric a b c
          discrim = b * b - 4.0 * a * c
                   
 
-uniformConePdf :: Flt -> Flt
-{-# INLINE uniformConePdf #-}
-uniformConePdf cosThetaMax = 1.0 / (twoPi * (1.0 - cosThetaMax))
-         
-uniformSampleCone :: LocalCoordinates -> Flt -> Rand2D -> Vector
-{-# INLINE uniformSampleCone #-}
-uniformSampleCone (LocalCoordinates x y z) cosThetaMax (u1, u2) = let
-   cosTheta = lerp u1 cosThetaMax 1.0
-   sinTheta = sqrt (1 - cosTheta * cosTheta)
-   phi = u2 * twoPi
-   in
-      (
-      x * vpromote (cos phi * sinTheta) +
-      y * vpromote (sin phi * sinTheta) +
-      z * vpromote cosTheta
-      )
-      
 -- | generates a random point on the unit sphere,
 -- see http://mathworld.wolfram.com/SpherePointPicking.html
 randomOnSphere :: Rand2D -> Vector

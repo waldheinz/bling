@@ -27,6 +27,7 @@ pMaterial = (flip namedBlock) "material" $ do
    t <- many alphaNum
    ws
    m <- case t of
+      "blackbody" -> return blackBodyMaterial
       "measured"  -> pMeasuredMaterial
       "metal"     -> pMetalMaterial
       "plastic"   -> pPlasticMaterial

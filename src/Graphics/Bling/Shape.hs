@@ -20,6 +20,7 @@ import Data.Maybe
 import Graphics.Bling.AABB
 import Graphics.Bling.Math
 import Graphics.Bling.Random
+import Graphics.Bling.Montecarlo
 import Graphics.Bling.Transform
 
 data Vertex = Vertex {
@@ -139,7 +140,8 @@ area (Triangle v1 v2 v3) = 0.5 * len (cross (p2 - p1) (p3 - p1)) where
       p3 = vertexPos v3
       
 insideSphere :: Flt -> Point -> Bool
-insideSphere r pt = sqLen pt - r * r < 1e-4
+insideSphere _ _ = True
+-- insideSphere r pt = sqLen pt - r * r < 1e-4
 
 pdf :: Shape -- ^ the @Shape@ to compute the pdf for
     -> Point -- ^ the point which is to be illuminated
@@ -168,14 +170,10 @@ sample sp@(Sphere r) p us
       cs = coordinateSystem dn
       dn = normalize p
       cosThetaMax = sqrt $ max 0 (1 - (r * r) / sqLen p)
-      ps
-         | isJust int = positionAt ray t
-         | otherwise = dn * vpromote r
-         where
-               ray = Ray p d 0 infinity
-               int = sp `intersect` ray
-               t = fst $ fromJust int
-
+      ps = maybe (dn * vpromote r) (\i -> positionAt ray (fst i)) int where
+         ray = Ray p d 0 infinity
+         int = sp `intersect` ray
+   
 sample (Triangle v1 v2 v3) _ (u1, u2) = {-trace (show p ++ " " ++ show n)-} (p, n) where
    p = p1 * vpromote b1 + p2 * vpromote b2 + p3 * vpromote (1 - b1 - b2)
    (p1, p2, p3) = (vertexPos v1, vertexPos v2, vertexPos v3)
