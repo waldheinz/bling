@@ -2,10 +2,10 @@
 #filter sinc 4.0 4.0 3.0
 filter box
 #filter triangle 3.0 3.0
-#filter mitchell 3.0 3.0 0.333333 0.333333
+filter mitchell 3.0 3.0 0.333333 0.333333
 
 imageSize 600 600
-samplesPerPixel 1
+samplesPerPixel 4
 
 #
 # camera
@@ -236,7 +236,7 @@ material {
 }
 
 emission {
-   spd { 400.0 0.0, 500.0 0.40, 600.0 0.79, 700.0 0.92 }
+   spd { 400.0 0.0, 500.0 8.0, 600.0 15.6, 700.0 18.4 }
 }
 
 shape {

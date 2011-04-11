@@ -95,8 +95,9 @@ sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> Float -> Rand Sp
 sampleOneLight scene@(Scene _ lights _) p n wo bsdf ulNum
    | lc == 0 = return black
    | lc == 1 = estimateDirect scene (V.head lights)  p n wo bsdf
-   | otherwise = liftM scale (estimateDirect scene (V.unsafeIndex lights ln) p n wo bsdf)
+   | otherwise = liftM scale (estimateDirect scene l p n wo bsdf)
       where
+            l = V.unsafeIndex lights ln
             lc = V.length lights
             ln = min (floor $ ulNum * fromIntegral lc) (lc - 1)
             scale y = sScale y (fromIntegral lc)

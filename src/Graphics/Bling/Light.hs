@@ -39,8 +39,12 @@ data Light
 mkDirectional :: Spectrum -> Normal -> Light
 mkDirectional s n = Directional s (normalize n)
 
--- | creates a new area light sources
-mkAreaLight :: S.Shape -> Spectrum -> Transform -> Light
+-- | creates an area @Light@ sources for a gives shape and spectrum
+mkAreaLight
+   :: S.Shape -- ^ the @Shape@ to create the area light for
+   -> Spectrum -- ^ the emission @Spectrum@
+   -> Transform -- ^ the @Transform@ which places the @Light@ in the world
+   -> Light -- ^ the resulting @Light@
 mkAreaLight s r t = AreaLight s r t (inverse t)
 
 -- | the emission from the surface of an area light source

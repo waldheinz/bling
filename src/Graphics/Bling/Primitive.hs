@@ -30,6 +30,7 @@ class Primitive a where
    
    light :: a -> Maybe Light
    
+   -- | The default implementation returns @Nothing@.
    light _ = Nothing
    
    -- | returns the geometry that should be used for shading computations
@@ -100,15 +101,11 @@ instance Primitive Geometry where
    light g = maybe Nothing l (emission g) where
       l e = Just (mkAreaLight (shape g) e (o2w g))
    
-   intersect g rw
-      | isNothing mi = Nothing
-      | otherwise = Just (Intersection t (transDg (o2w g) dg) p m)
-      where
-         m = material g
-         p = MkAnyPrim g
-         ro = transRay (w2o g) rw -- ray in object space
-         mi = S.intersect (shape g) ro
-         (t, dg) = fromJust mi
+   intersect g rw = maybe Nothing int (S.intersect (shape g) ro) where
+      int (t, dg) = Just $ Intersection t (transDg (o2w g) dg) p m
+      m = material g
+      p = MkAnyPrim g
+      ro = transRay (w2o g) rw -- ray in object space
    
 nearest :: (Primitive a) => Ray -> [a] -> Maybe Intersection
 nearest (Ray ro rd tmin tmax) i = nearest' i tmax Nothing where
@@ -122,7 +119,7 @@ nearest (Ray ro rd tmin tmax) i = nearest' i tmax Nothing where
                   else intDist $ fromJust newNear
 
 --
--- Intersections
+-- Intersections TODO: strictness here? :TODO
 --
 
 data Intersection = Intersection {
@@ -135,11 +132,11 @@ data Intersection = Intersection {
 intBsdf :: Intersection -> Bsdf
 intBsdf int = intMaterial int $ intGeometry int
 
--- | the light emitted at this intersection point
-intLe :: Intersection -> Normal -> Spectrum
-intLe (Intersection _ (DifferentialGeometry p n) prim _) wo
-   | isJust l = L.lEmit (fromJust l) p n wo
-   | otherwise = black
-   where
-         l = light prim
+-- | the light emitted at an @Intersection@
+intLe
+   :: Intersection -- ^ the intersection to query for the emitted light
+   -> Normal -- ^ the outgoing direction
+   -> Spectrum -- ^ the resulting spectrum
+intLe (Intersection _ (DifferentialGeometry p n) prim _) wo =
+   maybe black (\l -> L.lEmit l p n wo) (light prim)
    
