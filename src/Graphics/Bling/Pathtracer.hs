@@ -35,16 +35,18 @@ nextVertex scene depth specBounce (Ray _ rd _ _) (Just int) throughput l
       let (BsdfSample smpType spdf f wi) = sampleBsdf bsdf wo bsdfCompU bsdfDirU
       ulNum <- rnd
       lHere <- sampleOneLight scene p n wo bsdf ulNum
-      let outRay = (Ray p wi epsilon infinity)
-      let throughput' = throughput * sScale f (absDot wi n / spdf)
       let l' = l + (throughput * (lHere + intl))
-      let spec' = Specular `member` smpType
       
       x <- rnd
       if x > pCont || (spdf == 0.0)
          then return $! (1.0, l')
-         else nextVertex scene (depth + 1) spec' outRay (intersect (scenePrim scene) outRay) throughput' l'
-         
+         else let
+                 t' = throughput * sScale f (absDot wi n / (spdf * pCont))
+                 s' = Specular `member` smpType
+                 ray' = (Ray p wi epsilon infinity)
+                 int' = intersect (scenePrim scene) ray'
+              in nextVertex scene (depth + 1) s' ray' int' t' l'
+      
       where
          dg = intGeometry int
          pCont = if depth <= 3 then 1 else min 0.5 (sY throughput)
