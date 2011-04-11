@@ -77,7 +77,7 @@ estimateDirect s l p n wo bsdf = do
    ul <- rnd2D
    let (LightSample li wi ray lpdf _) = sample l p n ul
    let f = (evalBsdf bsdf wo wi)
-   if trace (show lpdf) lpdf == 0 || isBlack li || isBlack f -- || occluded s ray
+   if {-trace (show lpdf)-} lpdf == 0 || isBlack li || isBlack f  || occluded s ray
       then return black
       else return $ sScale (f * li) (absDot wi n / lpdf)
    
