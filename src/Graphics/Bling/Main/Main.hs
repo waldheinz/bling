@@ -10,6 +10,7 @@ import qualified Text.PrettyPrint as PP
 import Time
 
 import Graphics.Bling.Image
+import Graphics.Bling.Integrator
 import Graphics.Bling.Random
 import Graphics.Bling.Scene
 import Graphics.Bling.IO.RenderJob
@@ -24,7 +25,7 @@ main = do
    putStrLn (PP.render (PP.text "Scene stats" PP.$$ PP.nest 3 (ppJob job)))
    render 1 img job
    
-onePass :: Gen s -> Image s -> Int -> Scene -> Integrator -> ST s ()
+onePass :: (SurfaceIntegrator a) => Gen s -> Image s -> Int -> Scene -> a -> ST s ()
 onePass gen img ns scene int = do
    (ox', oy') <- runRandST gen rnd2D
    let (ox, oy) = (ox' / fromIntegral ns, oy' / fromIntegral ns)
@@ -33,7 +34,7 @@ onePass gen img ns scene int = do
          sx = fromIntegral $ imageWidth img
          sy = fromIntegral $ imageHeight img
          apply (px, py) = do
-            ws <- runRandST gen $ int scene (sceneCam scene (px / sx, py / sy))
+            ws <- runRandST gen $ li int scene (sceneCam scene (px / sx, py / sy))
             addSample img (ImageSample px py ws)
 
 stratify :: Int -> [(Float, Float)] -> [(Float, Float)]

@@ -7,10 +7,11 @@ module Graphics.Bling.IO.RenderJob (
 
 import Graphics.Bling.Camera
 import Graphics.Bling.Filter
+import Graphics.Bling.Integrator
 import Graphics.Bling.Math
 import Graphics.Bling.Scene
 import Graphics.Bling.Transform
-import Graphics.Bling.Integrator.Pathtracer
+import Graphics.Bling.IO.IntegratorParser
 import Graphics.Bling.IO.LightParser
 import Graphics.Bling.IO.MaterialParser
 import Graphics.Bling.IO.ParserCore
@@ -22,7 +23,7 @@ import qualified Text.PrettyPrint as PP
 
 data Job = MkJob {
    jobScene :: Scene,
-   jobIntegrator :: Integrator,
+   jobIntegrator :: AnySurfaceIntegrator,
    jobPixelFilter :: Filter,
    samplesPerPixel :: Int,
    imageSizeX :: Int,
@@ -43,6 +44,7 @@ aspect s = (fromIntegral (resX s)) / (fromIntegral (resY s))
 startState :: PState
 startState = PState 1024 768 mkBoxFilter
    (pinHoleCamera (View (mkV(3, 7, -6)) (mkV(0,0,0)) (mkV(0, 1, 0)) 1.8 (4.0/3.0)))
+   defaultSurfaceIntegrator
    identity
    defaultMaterial
    2
@@ -58,9 +60,9 @@ jobParser :: JobParser Job
 jobParser = do
    _ <- many object
    eof
-   (PState sx sy f cam _ _ spp _ ls ps) <- getState
+   (PState sx sy f cam i _ _ spp _ ls ps) <- getState
    let scn = mkScene ls ps cam
-   return (MkJob scn pathTracer f spp sx sy)
+   return (MkJob scn i f spp sx sy)
 
 object :: JobParser ()
 object = 

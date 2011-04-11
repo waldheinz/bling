@@ -1,6 +1,5 @@
 module Graphics.Bling.Scene (
-   Scene, mkScene, scenePrim, sceneLights, sceneCam,
-   Integrator, sampleOneLight, ppScene
+   Scene, mkScene, scenePrim, sceneLights, sceneCam, sampleOneLight, ppScene
    ) where
 
 import Debug.Trace
@@ -40,7 +39,14 @@ mkScene l prims cam = Scene (mkBvh ps) (V.fromList lights) cam where
 occluded :: Scene -> Ray -> Bool
 occluded (Scene p _ _) = intersects p
 
-type Integrator = Scene -> Ray -> Rand WeightedSpectrum
+instance Primitive Scene where
+   intersect = intersect.scenePrim
+   intersects = intersects.scenePrim
+   worldBounds = worldBounds.scenePrim
+   flatten = flatten.scenePrim
+   light = light.scenePrim
+   shadingGeometry = shadingGeometry.scenePrim
+   
 {-
 sampleLightMis :: Scene -> LightSample -> Bsdf -> Vector -> Normal -> Spectrum
 sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n

@@ -15,6 +15,7 @@ import Text.ParserCombinators.Parsec
 
 import Graphics.Bling.Camera
 import Graphics.Bling.Filter
+import Graphics.Bling.Integrator
 import Graphics.Bling.Light
 import Graphics.Bling.Math
 import Graphics.Bling.Primitive
@@ -29,6 +30,7 @@ data PState = PState {
    resY :: Int,
    pxFilter :: Filter, -- ^ the pixel filtering function
    camera :: Camera,
+   surfaceIntegrator :: AnySurfaceIntegrator,
    transform :: Transform,
    material :: Material,
    _spp :: Int,
