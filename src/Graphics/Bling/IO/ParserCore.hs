@@ -51,7 +51,7 @@ flt = do
   sign <- option 1 ( do s <- oneOf "+-"
                         return $ if s == '-' then (-1.0) else 1.0)
   i <- many digit
-  d <- try (char '.' >> try (many digit))
+  d <- option "0" (char '.' >> try (many digit))
   return $ sign * read (i++"."++d)
 
 -- | parse a vector
