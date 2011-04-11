@@ -8,9 +8,9 @@ module Graphics.Bling.IO.RenderJob (
 import Graphics.Bling.Camera
 import Graphics.Bling.Filter
 import Graphics.Bling.Math
-import Graphics.Bling.Pathtracer
 import Graphics.Bling.Scene
 import Graphics.Bling.Transform
+import Graphics.Bling.Integrator.Pathtracer
 import Graphics.Bling.IO.LightParser
 import Graphics.Bling.IO.MaterialParser
 import Graphics.Bling.IO.ParserCore

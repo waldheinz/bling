@@ -1,5 +1,5 @@
 
-module Graphics.Bling.Pathtracer (pathTracer) where
+module Graphics.Bling.Integrator.Pathtracer (pathTracer) where
 
 import Data.BitSet
 import Data.Vector.Generic as V
