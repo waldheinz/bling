@@ -140,8 +140,7 @@ area (Triangle v1 v2 v3) = 0.5 * len (cross (p2 - p1) (p3 - p1)) where
       p3 = vertexPos v3
       
 insideSphere :: Flt -> Point -> Bool
-insideSphere _ _ = True
--- insideSphere r pt = sqLen pt - r * r < 1e-4
+insideSphere r pt = sqLen pt - r * r < 1e-4
 
 pdf :: Shape -- ^ the @Shape@ to compute the pdf for
     -> Point -- ^ the point which is to be illuminated
@@ -149,7 +148,7 @@ pdf :: Shape -- ^ the @Shape@ to compute the pdf for
     -> Flt -- ^ the computed pdf value
     
 pdf sp@(Sphere r) pos _
-   | insideSphere r pos = 1.0 / area sp
+   | insideSphere r pos = 1 / area sp
    | otherwise = uniformConePdf cosThetaMax
    where
       cosThetaMax = sqrt $ max 0 (1 - r * r / sqLen pos)

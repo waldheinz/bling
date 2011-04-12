@@ -81,7 +81,7 @@ sample al@(AreaLight s _ l2w w2l) p _ us = {-trace (show $ (rayOrigin ray)) -}Li
    wi' = transVector l2w wi -- incident vector in world space
    wi = normalize (ps - p') -- incident vector in local space
    ls = lEmit al ps ns (-wi) -- emitted light (computed in local space)
-   pd = pdf al p' wi -- pdf (computed in local space)
+   pd = S.pdf s p' wi -- pdf (computed in local space)
    ray = transRay l2w (segmentRay ps p') -- vis. test ray (in world space)
    
 pdf :: Light -- ^ the light to compute the pdf for
