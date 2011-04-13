@@ -3,7 +3,6 @@ module Graphics.Bling.Scene (
    ) where
 
 import Debug.Trace
-import Control.Monad
 import Data.Maybe (mapMaybe)
 import qualified Data.Vector as V
 import Text.PrettyPrint
@@ -85,7 +84,7 @@ estimateDirect s l p n wo bsdf = do
    let f = (evalBsdf bsdf wo wi)
    if lpdf == 0 || isBlack li || isBlack f || occluded s ray
       then return black
-      else trace (show lpdf) return $ sScale (f * li) (absDot wi n / lpdf)
+      else return $ sScale (f * li) (absDot wi n / lpdf)
    
 {-
 estimateDirect s l p n wo bsdf = do
@@ -100,10 +99,11 @@ estimateDirect s l p n wo bsdf = do
 sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> Float -> Rand Spectrum
 sampleOneLight scene@(Scene _ lights _) p n wo bsdf ulNum
    | lc == 0 = return black
-   | lc == 1 = estimateDirect scene (V.head lights)  p n wo bsdf
-   | otherwise = liftM scale (estimateDirect scene l p n wo bsdf)
+   | lc == 1 = ed (V.head lights)
+   | otherwise = do
+      ld <- ed $ V.unsafeIndex lights ln
+      trace (show ld) $ return $ sScale ld (fromIntegral lc)
       where
-            l = V.unsafeIndex lights ln
+            ed l = estimateDirect scene l p n wo bsdf
             lc = V.length lights
             ln = min (floor $ ulNum * fromIntegral lc) (lc - 1)
-            scale y = sScale y (fromIntegral lc)

@@ -150,8 +150,9 @@ pdf :: Shape -- ^ the @Shape@ to compute the pdf for
     
 pdf s p wi = maybe 0 pdf' (s `intersect` r) where
    r = Ray p wi 0 infinity
-   pdf' (t, dg) = sqLen (p - (rayAt r t)) / (absDot (dgN dg) (-wi)) * area s
-    
+   f p = if isInfinite p then 0 else p
+   pdf' (t, dg) = f $ sqLen (p - (rayAt r t)) / (absDot (dgN dg) (-wi) * area s)
+   
 pdf sp@(Sphere r) pos _
    | insideSphere r pos = 1 / area sp
    | otherwise = uniformConePdf cosThetaMax
