@@ -63,6 +63,12 @@ Executable bling
    ghc-options:       -Wall -O2 -fexcess-precision -fspec-constr-count=64
    ghc-prof-options:  -O2 -fexcess-precision -prof -auto-all -rtsopts
    
+Executable bling-test
+  Hs-Source-Dirs:    src/Graphics/Bling/Main
+  Main-Is:           Tests.hs
+  Build-Depends:     bling, haskell98, QuickCheck, base
+  Ghc-Options:       -Wall -O -fexcess-precision
+   
 Executable bling-benchmark
    hs-source-dirs:    src/Graphics/Bling/Benchmark
    Main-is:           Benchmark.hs

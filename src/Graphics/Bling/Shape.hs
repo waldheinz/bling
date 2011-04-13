@@ -16,6 +16,7 @@ module Graphics.Bling.Shape (
 
 import Data.List (foldl')
 import Data.Maybe
+import Debug.Trace
 
 import Graphics.Bling.AABB
 import Graphics.Bling.Math
@@ -55,7 +56,7 @@ intersect (Sphere r) ray@(Ray ro rd tmin tmax)
          t = if t1 > tmin then t1 else t2
          (t1, t2) = fromJust times
          times = solveQuadric a b c
-         hitPoint = positionAt ray t
+         hitPoint = rayAt ray t
          normalAt = normalize hitPoint
 
 intersect (Triangle v1 v2 v3) r@(Ray ro rd tmin tmax)
@@ -63,7 +64,7 @@ intersect (Triangle v1 v2 v3) r@(Ray ro rd tmin tmax)
    | b1 < 0 || b1 > 1 = Nothing
    | b2 < 0 || b1 + b2 > 1 = Nothing
    | t < tmin || t > tmax = Nothing
-   | otherwise = Just (t, DifferentialGeometry (positionAt r t) n)
+   | otherwise = Just (t, DifferentialGeometry (rayAt r t) n)
    where
       n = normalize $ cross e2 e1
       t = dot e2 s2 * invDiv
@@ -147,6 +148,10 @@ pdf :: Shape -- ^ the @Shape@ to compute the pdf for
     -> Vector -- ^ the wi vector
     -> Flt -- ^ the computed pdf value
     
+pdf s p wi = maybe 0 pdf' (s `intersect` r) where
+   r = Ray p wi 0 infinity
+   pdf' (t, dg) = sqLen (p - (rayAt r t)) / (absDot (dgN dg) (-wi)) * area s
+    
 pdf sp@(Sphere r) pos _
    | insideSphere r pos = 1 / area sp
    | otherwise = uniformConePdf cosThetaMax
@@ -169,11 +174,11 @@ sample sp@(Sphere r) p us
       cs = coordinateSystem dn
       dn = normalize p
       cosThetaMax = sqrt $ max 0 (1 - (r * r) / sqLen p)
-      ps = maybe (dn * vpromote r) (\i -> positionAt ray (fst i)) int where
+      ps = maybe (dn * vpromote r) (\i -> rayAt ray (fst i)) int where
          ray = Ray p d 0 infinity
          int = sp `intersect` ray
    
-sample (Triangle v1 v2 v3) _ (u1, u2) = {-trace (show p ++ " " ++ show n)-} (p, n) where
+sample (Triangle v1 v2 v3) _ (u1, u2) = (p, n) where
    p = p1 * vpromote b1 + p2 * vpromote b2 + p3 * vpromote (1 - b1 - b2)
    (p1, p2, p3) = (vertexPos v1, vertexPos v2, vertexPos v3)
    b1 = 1 - u1' -- first barycentric

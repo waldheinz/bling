@@ -135,9 +135,9 @@ segmentRay :: Point -> Point -> Ray
 segmentRay p1 p2 = Ray p1 p1p2 epsilon (1 - epsilon) where
    p1p2 = p2 - p1
 
-positionAt :: Ray -> Flt -> Point
-{-# INLINE positionAt #-}
-positionAt (Ray o d _ _) t = o + (d * vpromote t)
+rayAt :: Ray -> Flt -> Point
+{-# INLINE rayAt #-}
+rayAt (Ray o d _ _) t = o + (d * vpromote t)
 
 -- | decides if a @t@ value is in the ray's bounds
 onRay :: Ray -> Flt -> Bool
