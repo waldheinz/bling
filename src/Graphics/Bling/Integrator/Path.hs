@@ -28,7 +28,7 @@ directLight :: Scene -> Ray -> Spectrum
 directLight s ray = V.foldl (+) black (V.map (`le` ray) (sceneLights s))
 
 nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Rand WeightedSpectrum
-nextVertex _ 1 _ _ _ _ l = return $! (1.0, seq l l) -- hard bound
+-- nextVertex _ 1 _ _ _ _ l = return $! (1.0, seq l l) -- hard bound
 
 nextVertex s _ True ray Nothing throughput l = -- nothing hit, specular bounce
    return $! (1.0, l + throughput * directLight s ray)

@@ -2,7 +2,6 @@ module Graphics.Bling.Scene (
    Scene, mkScene, scenePrim, sceneLights, sceneCam, sampleOneLight, ppScene
    ) where
 
-import Debug.Trace
 import Data.Maybe (mapMaybe)
 import qualified Data.Vector as V
 import Text.PrettyPrint
@@ -102,7 +101,7 @@ sampleOneLight scene@(Scene _ lights _) p n wo bsdf ulNum
    | lc == 1 = ed (V.head lights)
    | otherwise = do
       ld <- ed $ V.unsafeIndex lights ln
-      trace (show ld) $ return $ sScale ld (fromIntegral lc)
+      return $ sScale ld (fromIntegral lc)
       where
             ed l = estimateDirect scene l p n wo bsdf
             lc = V.length lights
