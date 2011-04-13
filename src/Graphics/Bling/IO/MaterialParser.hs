@@ -47,7 +47,7 @@ pMetalMaterial = do
 
 pMirrorMaterial :: JobParser Material
 pMirrorMaterial = do
-   r <- ws >> pSpectrum
+   r <- pSpectrum
    return (mirrorMaterial r)
 
 pMatteMaterial :: JobParser Material
