@@ -147,6 +147,9 @@ isReflection b = Reflection `member` bxdfType b
 isTransmission :: (Bxdf b) => b -> Bool
 isTransmission b = Transmission `member` bxdfType b
 
+isSpecular :: (Bxdf b) => b -> Bool
+isSpecular b = Specular `member` bxdfType b
+
 mkBxdfType :: [BxdfProp] -> BxdfType
 mkBxdfType = foldl' (flip insert) empty
 
@@ -179,6 +182,7 @@ bsdfPdf (Bsdf bs cs) woW wiW
 sampleBsdf :: Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
 sampleBsdf (Bsdf bs cs) woW uComp uDir
    | V.null bs || pdf' == 0 = emptyBsdfSample
+   | isSpecular bxdf = BsdfSample (bxdfType bxdf) pdf' f' wiW
    | otherwise = BsdfSample (bxdfType bxdf) pdf f wiW where
       f = V.foldl' (+) f' $ V.map (\b -> bxdfEval b wo wi) bs'
       pdf = (V.sum $ V.map (\ b -> bxdfPdf b wo wi) bs) / (fromIntegral cnt)
