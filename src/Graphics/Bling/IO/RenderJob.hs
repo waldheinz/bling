@@ -31,10 +31,11 @@ data Job = MkJob {
    }
    
 ppJob :: Job -> PP.Doc
-ppJob (MkJob sc _ f spp sx sy) = PP.vcat [
+ppJob (MkJob sc int f spp sx sy) = PP.vcat [
    PP.text "Image size is" PP.<+> PP.text ((show sx) ++ "x" ++ (show sy)),
    PP.text "Pixel filter is" PP.<+> PP.text (show f),
    PP.text "Samples per pixel is" PP.<+> PP.text (show spp),
+   PP.text "Surface Integrator" PP.<+> pp int,
    PP.text "Scene stats" PP.$$ PP.nest 3 (ppScene sc)
    ]
 
@@ -67,6 +68,7 @@ jobParser = do
 object :: JobParser ()
 object = 
        do try pShape
+      <|> try pSurfaceIntegrator
       <|> pCamera
       <|> pFilter
       <|> try pSize

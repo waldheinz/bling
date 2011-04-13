@@ -22,7 +22,7 @@ main = do
    ss <- readFile fName
    let job = parseJob ss
    img <- stToIO $ mkImage (jobPixelFilter job) (imageSizeX job) (imageSizeY job)
-   putStrLn (PP.render (PP.text "Scene stats" PP.$$ PP.nest 3 (ppJob job)))
+   putStrLn (PP.render (PP.text "Job Stats" PP.$$ PP.nest 3 (ppJob job)))
    render 1 img job
    
 onePass :: (SurfaceIntegrator a) => Gen s -> Image s -> Int -> Scene -> a -> ST s ()

@@ -11,6 +11,10 @@ samplesPerPixel 2
 # camera
 #
 
+integrator {
+   directLighting
+}
+
 camera {
    pos 278.0 273.0 -800.0
    lookAt 278.0 273.0 0.0
