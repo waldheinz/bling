@@ -1,11 +1,11 @@
 
 #filter sinc 4.0 4.0 3.0
-#filter box
+filter box
 #filter triangle 3.0 3.0
-filter mitchell 3.0 3.0 0.333333 0.333333
+#filter mitchell 3.0 3.0 0.333333 0.333333
 
 imageSize 480 480
-samplesPerPixel 4
+samplesPerPixel 2
 
 #
 # camera
