@@ -24,8 +24,8 @@ material {
    sigma { constant 0.0 }
 }
 
-beginShape
-   type mesh
+shape {
+   mesh
    vertexCount 4
    faceCount 1
    v  50.0 0.0 -50.0
@@ -33,15 +33,13 @@ beginShape
    v -50.0 0.0  50.0
    v  50.0 0.0  50.0
    f 3 2 1 0
-endShape
+}
 
 #
 # light source
 #
 
-beginEmission
-   rgb 1.9 1.9 1.9
-endEmission
+emission { temp 3000 }
 
 transform {
    identity
@@ -49,8 +47,8 @@ transform {
    translate 0.0 5.0 0.0
 }
 
-beginShape
-   type mesh
+shape {
+   mesh
    vertexCount 4
    faceCount 1
    v 2.0 15.7 -2.0
@@ -58,15 +56,13 @@ beginShape
    v -2.0 15.7 2.0
    v -2.0 15.7 -2.0
    f 3 2 1 0
-endShape
+}
+
+emission { none }
 
 #
 # sphere 1
 #
-
-beginEmission
-   black
-endEmission
 
 transform {
    identity
@@ -79,7 +75,7 @@ material { plastic
    rough { constant 0.2 }
 }
 
-beginShape type sphere radius 2.0 endShape
+shape { sphere radius 2.0 }
 
 #
 #
@@ -96,7 +92,7 @@ material { plastic
    rough { constant 0.05 }
 }
 
-beginShape type sphere radius 2.0 endShape
+shape { sphere radius 2.0 }
 
 
 #
@@ -114,16 +110,11 @@ material { plastic
    rough { constant 0.0125 }
 }
 
-beginShape type sphere radius 2.0 endShape
-
+shape { sphere radius 2.0 }
 
 #
 # sphere 1
 #
-
-beginEmission
-   black
-endEmission
 
 transform {
    identity
@@ -136,7 +127,7 @@ material { plastic
    rough { constant 0.003125 }
 }
 
-beginShape type sphere radius 2.0 endShape
+shape { sphere radius 2.0 }
 
 #
 #
@@ -153,7 +144,7 @@ material { plastic
    rough { constant 0.00078125 }
 }
 
-beginShape type sphere radius 2.0 endShape
+shape { sphere radius 2.0 }
 
 
 #
@@ -171,5 +162,5 @@ material { plastic
    rough { constant 0.000195312 }
 }
 
-beginShape type sphere radius 2.0 endShape
+shape { sphere radius 2.0 }
 
