@@ -15,6 +15,8 @@ newtype Rand a = Rand {
    unR :: forall s. Gen s -> ST s a
    }
 
+{-# INLINE unR #-}
+
 -- | For allowing the Monadic syntax when using @Rand@
 instance Monad Rand where
     return k = Rand (\ _ -> return k)

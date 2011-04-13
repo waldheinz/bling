@@ -1,11 +1,11 @@
 
 #filter sinc 4.0 4.0 3.0
-filter box
+#filter box
 #filter triangle 3.0 3.0
-#filter mitchell 3.0 3.0 0.333333 0.333333
+filter mitchell 3.0 3.0 0.333333 0.333333
 
-imageSize 600 600
-samplesPerPixel 1
+imageSize 480 480
+samplesPerPixel 4
 
 #
 # camera
@@ -37,7 +37,7 @@ material {
       664 0.703, 668 0.729, 672 0.750, 676 0.760, 680 0.751, 684 0.739,
       688 0.724, 692 0.730, 696 0.740, 700 0.737
    }}
-   sigma { constant 50.0 }
+   sigma { constant 0 }
 }
 
 #
@@ -176,7 +176,7 @@ material {
       664 0.122, 668 0.128, 672 0.132, 676 0.139, 680 0.144, 684 0.146,
       688 0.150, 692 0.152, 696 0.157, 700 0.159
    }}
-   sigma { constant 0.5 }
+   sigma { constant 0 }
 }
 
 shape {
@@ -211,7 +211,7 @@ material {
       664 0.627, 668 0.620, 672 0.630, 676 0.628, 680 0.642, 684 0.639,
       688 0.657, 692 0.639, 696 0.635, 700 0.642
    }}
-   sigma { constant 0.5 }
+   sigma { constant 0 }
 }
 
 shape {
@@ -232,7 +232,7 @@ shape {
 material {
    matte
    kd { constant spd { 1 0.78 } }
-   sigma { constant 0.0 }
+   sigma { constant 0 }
 }
 
 emission {

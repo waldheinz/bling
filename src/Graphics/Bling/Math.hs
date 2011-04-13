@@ -61,15 +61,21 @@ allDimensions = [dimX, dimY, dimZ]
 --
 
 data Vector = Vector { vx, vy, vz :: {-# UNPACK #-} !Flt } deriving ( Eq )
+{-# INLINE vx #-}
+{-# INLINE vy #-}
+{-# INLINE vz #-}
 
 vzip :: (Flt -> Flt -> Flt) -> Vector -> Vector -> Vector
+{-# INLINE vzip #-}
 vzip f (Vector x1 y1 z1) (Vector x2 y2 z2) =
    Vector (f x1 x2) (f y1 y2) (f z1 z2)
 
 vmap :: (Flt -> Flt) -> Vector -> Vector
+{-# INLINE vmap #-}
 vmap f (Vector x y z) = Vector (f x) (f y) (f z)
 
 vpromote :: Flt -> Vector
+{-# INLINE vpromote #-}
 vpromote x = Vector x x x
 
 instance Show Vector where

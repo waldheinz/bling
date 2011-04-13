@@ -108,6 +108,7 @@ instance Primitive Geometry where
       ro = transRay (w2o g) rw -- ray in object space
    
 nearest :: (Primitive a) => Ray -> [a] -> Maybe Intersection
+{-# INLINE nearest #-}
 nearest (Ray ro rd tmin tmax) i = nearest' i tmax Nothing where
    nearest' [] _ mi = mi
    nearest' (x:xs) tmax' mi = nearest' xs newMax newNear where

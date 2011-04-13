@@ -23,7 +23,10 @@ Library
 
    Ghc-Options:
       -Wall -O2 -fexcess-precision -fspec-constr-count=64
-   
+
+   Ghc-Prof-Options:
+      -O -fexcess-precision -prof -auto-all
+
    Exposed-Modules:
       Graphics.Bling.AABB,
       Graphics.Bling.Bvh,
@@ -57,18 +60,18 @@ Library
       Graphics.Bling.Material.Specular
 
 Executable bling
-   hs-source-dirs:    src/Graphics/Bling/Main
-   Main-is:           Main.hs
+   hs-source-dirs:   src/Graphics/Bling/Main
+   Main-is:          Main.hs
    Build-Depends:    bling, base, haskell98, pretty, random, mwc-random
-   ghc-options:       -Wall -O2 -fexcess-precision -fspec-constr-count=64
-   ghc-prof-options:  -O2 -fexcess-precision -prof -auto-all -rtsopts
-   
+   ghc-options:      -Wall -O2 -fexcess-precision -fspec-constr-count=64
+   ghc-prof-options: -O2 -fexcess-precision -prof -auto-all -rtsopts
+
 Executable bling-test
   Hs-Source-Dirs:    src/Graphics/Bling/Main
   Main-Is:           Tests.hs
   Build-Depends:     bling, haskell98, QuickCheck, base
   Ghc-Options:       -Wall -O -fexcess-precision
-   
+
 Executable bling-benchmark
    hs-source-dirs:    src/Graphics/Bling/Benchmark
    Main-is:           Benchmark.hs
