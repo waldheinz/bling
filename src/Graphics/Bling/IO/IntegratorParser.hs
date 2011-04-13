@@ -22,7 +22,7 @@ pSurfaceIntegrator = (flip namedBlock) "integrator" $ do
            return $ mkAnySurface $ mkDirectLightingIntegrator False
         
         "path" -> do
-           md <- namedInt "maxDepth"
+           md <- ws >> namedInt "maxDepth"
            return $ mkAnySurface $ mkPathIntegrator md
            
         _ -> fail $ "unknown integrator type " ++ t

@@ -172,25 +172,24 @@ filterBsdf ap (Bsdf bs cs) = Bsdf bs' cs where
 bsdfPdf :: Bsdf -> Vector -> Vector -> Float
 bsdfPdf (Bsdf bs cs) woW wiW
    | V.null bs = 0
-   | otherwise = V.foldl' (+) 0 $ V.map (\b -> bxdfPdf b wo wi) bs where
+   | otherwise = V.sum $ V.map (\b -> bxdfPdf b wo wi) bs where
       wo = worldToLocal cs woW
       wi = worldToLocal cs wiW
-
+      
 sampleBsdf :: Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
-sampleBsdf (Bsdf bs cs) woW uComp uDir =
-   if V.null bs
-      then emptyBsdfSample
-      else BsdfSample (bxdfType bxdf) pdf f wiW where
-         f = V.foldl' (+) f' $ V.map (\b -> bxdfEval b wo wi) bs'
-         pdf = V.foldl' (+) pdf' (V.map (\ b -> bxdfPdf b wo wi) bs') / (fromIntegral bxdfCount + 1)
-         bs' = V.ifilter (\ i _ -> (i /= sNum)) bs -- filter out explicitely sampled Bxdf
-         (f', wi, pdf') = bxdfSample bxdf wo uDir
-         wiW = localToWorld cs wi
-         wo = worldToLocal cs woW
-         bxdf = V.unsafeIndex bs sNum
-         sNum = min (bxdfCount-1) (floor (uComp * fromIntegral bxdfCount)) -- index of Bxdf to sample
-         bxdfCount = V.length bs
-
+sampleBsdf (Bsdf bs cs) woW uComp uDir
+   | V.null bs || pdf' == 0 = emptyBsdfSample
+   | otherwise = BsdfSample (bxdfType bxdf) pdf f wiW where
+      f = V.foldl' (+) f' $ V.map (\b -> bxdfEval b wo wi) bs'
+      pdf = (V.sum $ V.map (\ b -> bxdfPdf b wo wi) bs) / (fromIntegral cnt)
+      bs' = V.ifilter (\ i _ -> (i /= sNum)) bs -- filter out explicitely sampled Bxdf
+      (f', wi, pdf') = bxdfSample bxdf wo uDir
+      wiW = localToWorld cs wi
+      wo = worldToLocal cs woW
+      bxdf = V.unsafeIndex bs sNum
+      sNum = min (cnt-1) (floor (uComp * fromIntegral cnt)) -- index of Bxdf to sample
+      cnt = V.length bs
+      
 evalBsdf :: Bsdf -> Vector -> Vector -> Spectrum
 evalBsdf (Bsdf bxdfs sc@(LocalCoordinates _ _ n)) woW wiW =
    V.foldl' (+) black $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bxdfs
