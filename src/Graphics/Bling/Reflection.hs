@@ -182,17 +182,18 @@ bsdfPdf (Bsdf bs cs) woW wiW
 sampleBsdf :: Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
 sampleBsdf (Bsdf bs cs) woW uComp uDir
    | V.null bs || pdf' == 0 = emptyBsdfSample
-   | isSpecular bxdf = BsdfSample (bxdfType bxdf) pdf' f' wiW
-   | otherwise = BsdfSample (bxdfType bxdf) pdf f wiW where
+   | isSpecular bxdf = BsdfSample t pdf' f' wiW
+   | otherwise = BsdfSample t pdf f wiW where
       f = V.foldl' (+) f' $ V.map (\b -> bxdfEval b wo wi) bs'
       pdf = (V.sum $ V.map (\ b -> bxdfPdf b wo wi) bs) / (fromIntegral cnt)
-      bs' = V.ifilter (\ i _ -> (i /= sNum)) bs -- filter out explicitely sampled Bxdf
+      bs' = V.ifilter (\ i _ -> (i /= sNum)) bs -- filter explicitely sampled
       (f', wi, pdf') = bxdfSample bxdf wo uDir
       wiW = localToWorld cs wi
       wo = worldToLocal cs woW
       bxdf = V.unsafeIndex bs sNum
-      sNum = min (cnt-1) (floor (uComp * fromIntegral cnt)) -- index of Bxdf to sample
+      sNum = min (cnt-1) (floor (uComp * fromIntegral cnt)) -- index to sample
       cnt = V.length bs
+      t = bxdfType bxdf
       
 evalBsdf :: Bsdf -> Vector -> Vector -> Spectrum
 evalBsdf (Bsdf bxdfs sc@(LocalCoordinates _ _ n)) woW wiW =
