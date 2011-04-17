@@ -1,10 +1,12 @@
 
 module Graphics.Bling.Image (
-   Image, ImageSample(..), 
-   mkImage,
-   imageWidth, imageHeight, 
-   writePpm, writeRgbe, addSample) where
-
+   Image, ImageSample(..),
+   
+   mkImage, addSample, 
+   
+   imageWidth, imageHeight, writePpm, writeRgbe
+   ) where
+   
 import Control.Monad
 import Control.Monad.ST
 import Debug.Trace

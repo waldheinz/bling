@@ -5,7 +5,7 @@ filter mitchell 3.0 3.0 0.333333 0.333333
 #filter box
 
 imageSize 480 480
-samplesPerPixel 3
+samplesPerPixel 6
 
 #
 # camera
@@ -129,7 +129,7 @@ shape {
 # tall block
 #
 
-material { mirror spd { 1 0.95 } }
+# material { mirror spd { 1 0.95 } }
 
 shape {
    mesh
