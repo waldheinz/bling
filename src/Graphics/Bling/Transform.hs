@@ -1,7 +1,7 @@
 
 module Graphics.Bling.Transform (
       Transform, identity, translate, scale, inverse, fromMatrix, rotateX,
-      rotateY, rotateZ, lookAt,
+      rotateY, rotateZ, lookAt, perspective,
       transPoint, transVector, transBox, transRay, transNormal, concatTrans
    ) where
 
@@ -139,6 +139,21 @@ rotateZ deg = MkTransform m (transMatrix m) where
       0      0     0 1
    sint = sin (radians deg)
    cost = cos (radians deg)
+
+-- | creates a perspective transform
+perspective
+   :: Flt -- ^ the field of view in degrees
+   -> Flt -- ^ the near clipping plane
+   -> Flt -- ^ the far clippping plane
+   -> Transform
+perspective fov n f = concatTrans (scale s) (MkTransform m (invert m)) where
+   s = Vector iTanAng iTanAng 1
+   iTanAng = 1 / tan ((radians fov) / 2)
+   m = MkMatrix
+      1 0 0 0
+      0 1 0 0
+      0 0 (f / (f - n)) (-f*n / (f - n))
+      0 0 1 0
 
 -- | Creates a "look at" @Transform@
 lookAt
