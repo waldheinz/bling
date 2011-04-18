@@ -5,7 +5,6 @@ module Graphics.Bling.Camera(
    fireRay
    ) where
 
-import Debug.Trace
 import Text.PrettyPrint
 
 import Graphics.Bling.Math
@@ -31,8 +30,8 @@ ppCamera (ProjectiveCamera c2w _ _ _ _ lr fd) = vcat [
    
 fireRay :: Camera -> CameraSample -> Ray
 fireRay
-   (ProjectiveCamera c2w _ r2c _ r2s lr fd)
-   (CameraSample ix iy luv) = trace (show $ transPoint r2s (mkPoint ix iy 0)) $ transRay c2w r where
+   (ProjectiveCamera c2w _ r2c _ _ lr fd)
+   (CameraSample ix iy luv) = transRay c2w r where
       r = if lr > 0 then ray' else ray
       
       -- ray without accounting for lens size
