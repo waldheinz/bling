@@ -22,8 +22,17 @@ pTransform = (namedBlock (many1 ts) "transform") >> return () where
       tScale,
       tTrans,
       tMatrix,
+      tLookAt,
       ws]
-      
+
+tLookAt :: JobParser ()
+tLookAt = (flip namedBlock) "lookAt" $ do
+   pos <- namedVector "pos"
+   look <- ws >> namedVector "look"
+   up <- ws >> namedVector "up"
+   s <- getState
+   setState s { transform = lookAt pos look up }
+   
 tIdentity :: JobParser ()
 tIdentity = do
    _ <- string "identity"
