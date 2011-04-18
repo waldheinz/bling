@@ -23,8 +23,8 @@ material {
    matte
    kd {
       graphPaper 0.1
-      tex1 { constant rgb 0.7 0.7 0.7 }
-      tex2 { constant rgb 0.2 0.2 0.2 }
+      tex1 { constant rgb 0.95 0.95 0.95 }
+      tex2 { constant rgb 0.05 0.05 0.05 }
    }
    sigma { constant 0.0 }
 }
@@ -45,7 +45,7 @@ shape {
 #
 
 emission {
-   rgb 1.9 1.9 1.9
+   rgb 12 12 12
 }
 
 transform {

@@ -4,6 +4,7 @@ module Graphics.Bling.Camera(
    pinHoleCamera
    ) where
 
+import Graphics.Bling.Image
 import Graphics.Bling.Math
 
 -- | a camera transforms a pixel in normalized device coordinates to a ray

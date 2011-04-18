@@ -1,7 +1,7 @@
 
 module Graphics.Bling.Transform (
       Transform, identity, translate, scale, inverse, fromMatrix, rotateX,
-      rotateY, rotateZ,
+      rotateY, rotateZ, lookAt,
       transPoint, transVector, transBox, transRay, transNormal, concatTrans
    ) where
 
@@ -9,6 +9,8 @@ import Graphics.Bling.AABB
 import Graphics.Bling.Math
 
 import Data.List (transpose, foldl')
+import Data.Vec.Base (matFromLists, matToLists, Mat44)
+import qualified Data.Vec.LinAlg as LA (invert)
 
 data Matrix = MkMatrix {
    m00 :: {-# UNPACK #-} !Flt, m01 :: {-# UNPACK #-} !Flt, m02 :: {-# UNPACK #-} !Flt, m03 :: {-# UNPACK #-} !Flt,
@@ -47,6 +49,18 @@ mul m1 m2 = fromList l where
 transMatrix :: Matrix -> Matrix
 transMatrix = fromList.transpose.toList
 
+-- | Inverts a @Matrix@; inverting a singular matrix causes an error.
+invert :: Matrix -> Matrix
+invert m = maybe (error "singular matrix") (fromList.matToLists) i where
+   i = LA.invert ((matFromLists $ toList m) :: Mat44 Flt)
+
+idMatrix :: Matrix
+idMatrix = MkMatrix
+   1 0 0 0
+   0 1 0 0
+   0 0 1 0
+   0 0 0 1
+   
 instance Show Matrix where
    show = show . toList
 
@@ -65,12 +79,7 @@ fromMatrix (m, i) = MkTransform (fromList m) (fromList i)
 
 -- | The identity transformation
 identity :: Transform
-identity = MkTransform m m where
-   m = MkMatrix
-      1 0 0 0
-      0 1 0 0
-      0 0 1 0
-      0 0 0 1
+identity = MkTransform idMatrix idMatrix
 
 -- | Translates by the specified distance
 translate :: Vector -> Transform
@@ -131,6 +140,22 @@ rotateZ deg = MkTransform m (transMatrix m) where
    sint = sin (radians deg)
    cost = cos (radians deg)
 
+-- | Creates a "look at" @Transform@
+lookAt
+   :: Point -- ^ the observer position
+   -> Point -- ^ the point to look at
+   -> Vector -- ^ the up vector
+   -> Transform
+lookAt p@(Vector px py pz) l up = MkTransform m (invert m) where
+   m = fromList [
+      [lx, ux, dx, px],
+      [ly, uy, dy, py],
+      [lz, uz, dz, pz],
+      [ 0,  0,  0,  1]]
+   dir@(Vector dx dy dz) = normalize (l - p)
+   left@(Vector lx ly lz) = normalize $ cross (normalize up) dir
+   (Vector ux uy uz) = cross dir left
+   
 -- | Creates the inverse of a given @Transform@.
 inverse :: Transform -> Transform
 inverse (MkTransform m i) = MkTransform i m

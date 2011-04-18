@@ -13,6 +13,7 @@ Library
       base >= 3 && < 5,
       haskell98,
       mwc-random,
+      Vec == 0.9.*,
       vector,
       bitset,
       bytestring,
