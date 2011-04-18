@@ -48,6 +48,7 @@ Library
       Graphics.Bling.Transform,
       Graphics.Bling.Integrator.Path,
       Graphics.Bling.Integrator.DirectLighting,
+      Graphics.Bling.IO.CameraParser,
       Graphics.Bling.IO.IntegratorParser,
       Graphics.Bling.IO.LightParser,
       Graphics.Bling.IO.MaterialParser,

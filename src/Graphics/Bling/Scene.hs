@@ -22,7 +22,8 @@ data Scene = Scene {
    }
    
 ppScene :: Scene -> Doc
-ppScene (Scene p ls _) = vcat [
+ppScene (Scene p ls cam) = vcat [
+   text "Camera is" <+> ppCamera cam,
    text "bounds" <+> text (show (worldBounds p)),
    text "number of lights" <+> int (V.length ls),
    text "BVH stats" $$ nest 3 (ppBvh p)

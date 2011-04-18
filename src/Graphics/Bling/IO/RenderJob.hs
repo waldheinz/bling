@@ -5,12 +5,11 @@ module Graphics.Bling.IO.RenderJob (
    samplesPerPixel
    ) where
 
-import Graphics.Bling.Camera
 import Graphics.Bling.Filter
 import Graphics.Bling.Integrator
-import Graphics.Bling.Math
 import Graphics.Bling.Scene
 import Graphics.Bling.Transform
+import Graphics.Bling.IO.CameraParser
 import Graphics.Bling.IO.IntegratorParser
 import Graphics.Bling.IO.LightParser
 import Graphics.Bling.IO.MaterialParser
@@ -39,12 +38,9 @@ ppJob (MkJob sc int f spp sx sy) = PP.vcat [
    PP.text "Scene stats" PP.$$ PP.nest 3 (ppScene sc)
    ]
 
-aspect :: PState -> Flt
-aspect s = (fromIntegral (resX s)) / (fromIntegral (resY s))
-   
 startState :: PState
-startState = PState 1024 768 mkBoxFilter
-   (pinHoleCamera (View (mkV(3, 7, -6)) (mkV(0,0,0)) (mkV(0, 1, 0)) 1.8 (4.0/3.0)))
+startState = PState 640 480 mkBoxFilter
+   (defaultCamera 640 480)
    defaultSurfaceIntegrator
    identity
    defaultMaterial
@@ -69,7 +65,7 @@ object :: JobParser ()
 object = 
        do try pShape
       <|> try pSurfaceIntegrator
-      <|> pCamera
+      <|> try pCamera
       <|> pFilter
       <|> try pSize
       <|> try pSamplesPerPixel
@@ -128,12 +124,3 @@ pFilter = do
    
    s <- getState
    setState s { pxFilter = f }
-   
-pCamera :: JobParser ()
-pCamera = (flip namedBlock) "camera" $ do
-   pos <- namedVector "pos"
-   la <- ws >> namedVector "lookAt"
-   up <- ws >> namedVector "up"
-   fov <- ws >> namedFloat "fov"
-   s <- getState
-   setState s {camera = pinHoleCamera (View pos la up fov (aspect s))}

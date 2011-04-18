@@ -9,6 +9,7 @@ import Text.Printf
 import qualified Text.PrettyPrint as PP
 import Time
 
+import Graphics.Bling.Camera
 import Graphics.Bling.Image
 import Graphics.Bling.Integrator
 import Graphics.Bling.Random
@@ -31,10 +32,10 @@ onePass gen img ns scene int = do
    let (ox, oy) = (ox' / fromIntegral ns, oy' / fromIntegral ns)
    mapM_ (apply . shift (ox, oy)) $ imageSamples ns (imageWidth img) (imageHeight img)
       where
-         sx = fromIntegral $ imageWidth img
-         sy = fromIntegral $ imageHeight img
          apply (px, py) = do
-            ws <- runRandST gen $ li int scene (sceneCam scene (px / sx, py / sy))
+            luv <- runRandST gen rnd2D
+            ws <- runRandST gen $ li int scene (
+               fireRay (sceneCam scene) (CameraSample px py luv))
             addSample img (ImageSample px py ws)
 
 stratify :: Int -> [(Float, Float)] -> [(Float, Float)]

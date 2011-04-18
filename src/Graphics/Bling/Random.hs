@@ -1,6 +1,8 @@
 {-# LANGUAGE RankNTypes #-}
 
 module Graphics.Bling.Random (
+
+   CameraSample(..),
    
    -- * managing the random number generator
    
@@ -93,7 +95,6 @@ stratified2D nu nv = do
 data CameraSample = CameraSample {
    imageX :: Float,
    imageY :: Float,
-   lensU :: Float,
-   lensV :: Float
+   lens :: Rand2D
    }
    

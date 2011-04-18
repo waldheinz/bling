@@ -227,4 +227,3 @@ transBox t (AABB (Vector mx my mz) (Vector nx ny nz)) = b' where
    p5 = transPoint t (mkPoint nx my nz)
    p6 = transPoint t (mkPoint nx ny mz)
    p7 = transPoint t (mkPoint nx ny nz)
-   
