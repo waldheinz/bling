@@ -2,15 +2,15 @@
 
 # metal
 
-#filter mitchell 3.0 3.0 0.333333 0.333333
-filter box
+filter mitchell 3.0 3.0 0.333333 0.333333
+#filter box
 
 imageSize 640 480
-samplesPerPixel 1
+samplesPerPixel 3
 
 transform {
    lookAt {
-      pos 0.0 11.0 -13.0
+      pos 0.0 10.0 -7.0
       look 0 1 0
       up 0 1 0
    }
@@ -18,9 +18,9 @@ transform {
 
 camera {
    perspective
-   fov 90
-   lensRadius 0.01
-   focalDistance 4
+   fov 70
+   lensRadius 0.2
+   focalDistance 14
 }
 
 #
