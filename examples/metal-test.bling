@@ -3,14 +3,14 @@
 # metal
 
 filter mitchell 3.0 3.0 0.333333 0.333333
-#filter box
+# filter box
 
 imageSize 640 480
-samplesPerPixel 3
+samplesPerPixel 5
 
 transform {
    lookAt {
-      pos 0.0 10.0 -7.0
+      pos 7.0 6.0 -3.0
       look 0 1 0
       up 0 1 0
    }
@@ -19,8 +19,8 @@ transform {
 camera {
    perspective
    fov 70
-   lensRadius 0.2
-   focalDistance 14
+   lensRadius 0.3
+   focalDistance 10
 }
 
 #
@@ -58,20 +58,14 @@ emission {
    rgb 12 12 12
 }
 
-transform {
-   identity
-   scale 5.0 1.0 5.0
-   translate 0.0 5.0 0.0
-}
-
 shape {
    mesh
    vertexCount 4
    faceCount 1
-   v 2.0 15.7 -2.0
-   v 2.0 15.7 2.0
-   v -2.0 15.7 2.0
-   v -2.0 15.7 -2.0
+   v 5.0 15.7 -5.0
+   v 5.0 15.7 5.0
+   v -5.0 15.7 5.0
+   v -5.0 15.7 -5.0
    f 3 2 1 0
 }
 
