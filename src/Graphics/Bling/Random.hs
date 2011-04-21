@@ -6,7 +6,7 @@ module Graphics.Bling.Random (
    
    -- * managing the random number generator
    
-   Rand, Rand2D, runRand, runRandST, mkRndGen,
+   Rand, Rand2D, runRand, runRand', runRandST, mkRndGen,
       
    -- * generating random values
    
@@ -36,6 +36,11 @@ instance Monad Rand where
 runRand :: Int -> Rand a -> a
 runRand seed (Rand c) = runST (do gen <- initialize $ singleton $ fromIntegral seed
                                   c gen)
+runRand' :: Seed -> Rand a -> a
+runRand' seed (Rand c) = runST $ do
+   gen <- restore seed
+   c gen
+                                  
 mkRndGen :: Int -> ST s (Gen s)
 mkRndGen seed = initialize $ singleton $ fromIntegral seed
 
