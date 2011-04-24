@@ -22,15 +22,15 @@ type Rand2D = (Float, Float)
 
 -- | Marks a computation that requires random values
 newtype Rand a = Rand {
-   unR :: forall s. Gen s -> ST s a
+   rng :: forall s. Gen s -> ST s a
    }
 
-{-# INLINE unR #-}
+{-# INLINE rng #-}
 
 -- | For allowing the Monadic syntax when using @Rand@
 instance Monad Rand where
     return k = Rand (\ _ -> return k)
-    Rand c1 >>= fc2 = Rand (\ g -> c1 g >>= \a -> unR (fc2 a) g)
+    Rand c1 >>= fc2 = Rand (\ g -> c1 g >>= \a -> rng (fc2 a) g)
 
 -- | Lets a computation run in the Rand Monad
 runRand :: Int -> Rand a -> a
@@ -53,7 +53,6 @@ rnd :: Rand Float
 rnd = do
    u <- Rand uniform
    return $ u - 2**(-33)
-
 
 -- | generates a list of given length of random numbers in [0..1)
 rndList

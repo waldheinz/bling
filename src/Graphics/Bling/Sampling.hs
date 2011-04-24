@@ -29,18 +29,34 @@ data SampleWindow = SampleWindow {
 
 class Sampler a where
 
+<<<<<<< local
+class Sampler a where
+   sample :: a -> (Sample f) -> f
+   
+data Sample a = Sample {
+   rng :: forall s. Gen s -> ST s a,
+=======
 data Sample = Sample {
    imageX :: Float,
    imageY :: Float,
    lens :: Rand2D,
+>>>>>>> other
    rnd2D :: V.Vector Rand2D,
    rnd1D :: V.Vector Float
    }
 
+<<<<<<< local
+rnd :: Int -> Sample Flt
+rnd n
+   | n < V.length 
+=======
 newtype Sampled a = Sampled {
    runS :: ReaderT Sample Rand a
    } deriving (Monad, MonadReader Sample, MonadTrans Rand)
+>>>>>>> other
 
+<<<<<<< local
+=======
 runSampled :: Seed -> Sample -> Sampled a -> a
 runSampled seed sample k = runRand' seed (runReaderT (runS k) sample)
 
@@ -52,3 +68,4 @@ rnd' n = do
    if V.length r1d < n
       then return $ V.unsafeIndex r1d n
       else rnd
+>>>>>>> other
