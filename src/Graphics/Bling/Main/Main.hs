@@ -24,32 +24,6 @@ main = do
    img <- stToIO $ mkImage (jobPixelFilter job) (imageSizeX job) (imageSizeY job)
    putStrLn (PP.render (PP.text "Job Stats" PP.$$ PP.nest 3 (ppJob job)))
    render 1 img job
-   {-
-onePass :: (SurfaceIntegrator a) => Gen s -> Image s -> Int -> Scene -> a -> ST s ()
-onePass gen img ns scene int = do
-   (ox', oy') <- runRandST gen rnd2D
-   let (ox, oy) = (ox' / fromIntegral ns, oy' / fromIntegral ns)
-   mapM_ (apply . shift (ox, oy)) $ imageSamples ns (imageWidth img) (imageHeight img)
-      where
-         apply (px, py) = do
-            luv <- runRandST gen rnd2D
-            ws <- runRandST gen $ li int scene (
-               fireRay (sceneCam scene) (CameraSample px py luv))
-            addSample img (ImageSample px py ws)
-
-stratify :: Int -> [(Float, Float)] -> [(Float, Float)]
-stratify _ [] = []
-stratify 1 xs = xs
-stratify n (p:xs) = stratify' p ++ stratify n xs where
-   stratify' (px, py) = map (shift (px, py)) [(fromIntegral x / fn, fromIntegral y / fn) | y <- [0..n-1], x <- [0..n-1]]
-   fn = fromIntegral n
-
-shift :: (Float, Float) -> (Float, Float) -> (Float, Float)
-shift (ox, oy) (x, y) = (x + ox, y + oy)
-
-imageSamples :: Int -> Int -> Int -> [(Float, Float)] -- TODO: should account for filter extent
-imageSamples ns sx sy = stratify ns [ (fromIntegral x, fromIntegral y) | y <- [0..sy-1], x <- [0..sx-1]]
-   -}
    
 -- | Pretty print the date in '1d 9h 9m 17s' format
 pretty :: TimeDiff -> String
