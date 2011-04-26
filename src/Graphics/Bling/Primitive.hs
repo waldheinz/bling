@@ -98,10 +98,9 @@ instance Primitive Geometry where
    
    intersects g rw = S.intersects (shape g) (transRay (w2o g) rw)
    
-   light g = maybe Nothing l (emission g) where
-      l e = Just (mkAreaLight (shape g) e (o2w g))
+   light g = (emission g) >>= \e -> Just (mkAreaLight (shape g) e (o2w g))
    
-   intersect g rw = maybe Nothing int (S.intersect (shape g) ro) where
+   intersect g rw = (S.intersect (shape g) ro) >>= int where
       int (t, dg) = Just $ Intersection t (transDg (o2w g) dg) p m
       m = material g
       p = MkAnyPrim g

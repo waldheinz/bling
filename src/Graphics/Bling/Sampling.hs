@@ -41,7 +41,6 @@ newtype Sampled a = Sampled {
    runS :: ReaderT Sample Rand a
    } deriving (Monad, MonadReader Sample)
 
-
 runSampled :: Seed -> Sample -> Sampled a -> a
 runSampled seed sample k = runRand' seed (runReaderT (runS k) sample)
 
