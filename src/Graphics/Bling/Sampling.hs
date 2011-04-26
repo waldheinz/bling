@@ -46,8 +46,8 @@ runSampled :: Seed -> Sample -> Sampled a -> a
 runSampled seed sample k = runRand' seed (runReaderT (runS k) sample)
 
 rnd' :: Int -> Sampled Float
-rnd' n = ask >>= liftM rnd1D >>= \r1d ->
+rnd' n = do
+   r1d <- rnd1D `liftM` ask
    if V.length r1d < n
       then return $ V.unsafeIndex r1d n
-      else rnd
-      
+      else Sampled (lift rnd)
