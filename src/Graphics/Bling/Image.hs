@@ -4,7 +4,7 @@ module Graphics.Bling.Image (
    
    mkImage, addSample, 
    
-   imageWidth, imageHeight, writePpm, writeRgbe
+   imageWidth, imageHeight, imageWindow, writePpm, writeRgbe
    ) where
    
 import Control.Monad
@@ -15,6 +15,7 @@ import qualified Data.ByteString as BS
 import System.IO
 
 import Graphics.Bling.Filter
+import Graphics.Bling.Sampling
 import Graphics.Bling.Spectrum
 
 -- | an image has a width, a height and some pixels 
@@ -29,6 +30,13 @@ mkImage :: Filter -> Int -> Int -> ST s (Image s)
 mkImage flt w h = do
    pixels <- V.replicate (w * h) (0, 0, 0, 0)
    return $ Image w h flt pixels
+
+imageWindow :: Image s -> SampleWindow
+imageWindow (Image w h f _) = SampleWindow x0 x1 y0 y1 where
+   x0 = floor (0.5 - filterWidth f)
+   x1 = floor (0.5 + (fromIntegral w) + filterWidth f)
+   y0 = floor (0.5 - filterHeight f)
+   y1 = floor (0.5 + (fromIntegral h) + filterHeight f)
 
 addPixel :: Image s -> (Int, Int, WeightedSpectrum) -> ST s ()
 {-# INLINE addPixel #-}

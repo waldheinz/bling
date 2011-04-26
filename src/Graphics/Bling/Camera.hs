@@ -8,7 +8,7 @@ module Graphics.Bling.Camera(
 import Text.PrettyPrint
 
 import Graphics.Bling.Math
-import Graphics.Bling.Random
+import Graphics.Bling.Sampling
 import Graphics.Bling.Transform
 
 data Camera
@@ -28,23 +28,25 @@ ppCamera (ProjectiveCamera c2w _ _ _ _ lr fd) = vcat [
    text "Lens Radius" <+> float lr,
    text "Focal Distance" <+>  float fd ]
    
-fireRay :: Camera -> CameraSample -> Ray
-fireRay
-   (ProjectiveCamera c2w _ r2c _ _ lr fd)
-   (CameraSample ix iy luv) = transRay c2w r where
-      r = if lr > 0 then ray' else ray
+fireRay :: Camera -> Sampled Ray
+fireRay (ProjectiveCamera c2w _ r2c _ _ lr fd) = do
+   ix <- imageX
+   iy <- imageY
+   luv <- lensUV
+   return $ transRay c2w (r ix iy luv) where
+      r ix iy luv = if lr > 0 then ray' else ray where
+         
+         -- ray without accounting for lens size
+         ray = Ray (mkPoint 0 0 0) (normalize pCamera) 0 infinity
+         pCamera = transPoint r2c pRaster
+         pRaster = mkPoint ix iy 0
       
-      -- ray without accounting for lens size
-      ray = Ray (mkPoint 0 0 0) (normalize pCamera) 0 infinity
-      pCamera = transPoint r2c pRaster
-      pRaster = mkPoint ix iy 0
-      
-      -- account for lens size
-      ray' = Ray ro rd 0 infinity
-      ro = mkPoint lu lv 0
-      (lu, lv) = (\(u', v') -> (u'*lr, v'*lr)) (concentricSampleDisk luv)
-      rd = normalize $ pFocus - ro
-      pFocus = rayAt ray (fd / (vz $ rayDir ray))
+         -- account for lens size
+         ray' = Ray ro rd 0 infinity
+         ro = mkPoint lu lv 0
+         (lu, lv) = (\(u', v') -> (u'*lr, v'*lr)) (concentricSampleDisk luv)
+         rd = normalize $ pFocus - ro
+         pFocus = rayAt ray (fd / (vz $ rayDir ray))
 
 mkProjective
    :: Transform -- ^ camera to world

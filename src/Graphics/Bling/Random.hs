@@ -2,11 +2,9 @@
 
 module Graphics.Bling.Random (
 
-   CameraSample(..),
-   
    -- * managing the random number generator
    
-   Rand, Rand2D, runRand, runRand', runRandST, mkRndGen,
+   Rand, Rand2D, runRand, runRand', runRandST, runRandIO, mkRndGen,
       
    -- * generating random values
    
@@ -40,7 +38,10 @@ runRand' :: Seed -> Rand a -> a
 runRand' seed (Rand c) = runST $ do
    gen <- restore seed
    c gen
-                                  
+
+runRandIO :: Rand a -> IO a
+runRandIO (Rand c) = withSystemRandom c
+
 mkRndGen :: Int -> ST s (Gen s)
 mkRndGen seed = initialize $ singleton $ fromIntegral seed
 
@@ -95,10 +96,3 @@ stratified2D nu nv = do
       (du, dv) = (1 / fromIntegral nu, 1 / fromIntegral nv)
       j (u, v) (ju, jv) = (min almostOne ((u+ju)*du), min almostOne ((v+jv)*dv))
       uvs = [(fromIntegral u, fromIntegral v) | u <- [0..(nu-1)], v <- [0..(nv-1)]]
-
-data CameraSample = CameraSample {
-   imageX :: Float,
-   imageY :: Float,
-   lens :: Rand2D
-   }
-   

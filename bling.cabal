@@ -12,6 +12,7 @@ Library
    Build-Depends:
       base >= 3 && < 5,
       haskell98,
+      mtl >= 2 && < 2.1,
       mwc-random,
       Vec == 0.9.*,
       vector,
@@ -41,6 +42,7 @@ Library
       Graphics.Bling.Primitive,
       Graphics.Bling.Random,
       Graphics.Bling.Reflection,
+      Graphics.Bling.Sampling,
       Graphics.Bling.Scene,
       Graphics.Bling.Shape,
       Graphics.Bling.Spectrum,
@@ -60,7 +62,8 @@ Library
       Graphics.Bling.Material.Matte,
       Graphics.Bling.Material.Metal,
       Graphics.Bling.Material.Plastic,
-      Graphics.Bling.Material.Specular
+      Graphics.Bling.Material.Specular,
+      Graphics.Bling.Sampler.Random
 
 Executable bling
    hs-source-dirs:   src/Graphics/Bling/Main

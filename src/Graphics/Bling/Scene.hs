@@ -11,8 +11,8 @@ import Graphics.Bling.Camera
 import Graphics.Bling.Light as L
 import Graphics.Bling.Math
 import Graphics.Bling.Primitive
-import Graphics.Bling.Random
 import Graphics.Bling.Reflection
+import Graphics.Bling.Sampling
 import Graphics.Bling.Spectrum
 
 data Scene = Scene {
@@ -76,7 +76,7 @@ estimateDirect
    -> Normal
    -> Vector
    -> Bsdf
-   -> Rand Spectrum
+   -> Sampled Spectrum
 {-# INLINE estimateDirect #-}
 estimateDirect s l p n wo bsdf = do
    ul <- rnd2D
@@ -96,7 +96,7 @@ estimateDirect s l p n wo bsdf = do
    return (ls + bs)
    -}
 -- | samples one randomly chosen light source
-sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> Float -> Rand Spectrum
+sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> Float -> Sampled Spectrum
 sampleOneLight scene@(Scene _ lights _) p n wo bsdf ulNum
    | lc == 0 = return black
    | lc == 1 = ed (V.head lights)

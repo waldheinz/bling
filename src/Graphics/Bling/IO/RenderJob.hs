@@ -1,12 +1,11 @@
 
 module Graphics.Bling.IO.RenderJob (
-   Job, parseJob, ppJob,
-   jobScene, jobIntegrator, imageSizeX, imageSizeY, jobPixelFilter,
-   samplesPerPixel
+   Job(..), parseJob, ppJob
    ) where
 
 import Graphics.Bling.Filter
 import Graphics.Bling.Integrator
+import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Transform
 import Graphics.Bling.IO.CameraParser
@@ -16,6 +15,7 @@ import Graphics.Bling.IO.MaterialParser
 import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.ShapeParser
 import Graphics.Bling.IO.TransformParser
+import Graphics.Bling.Sampler.Random
 
 import Text.ParserCombinators.Parsec
 import qualified Text.PrettyPrint as PP
@@ -23,17 +23,16 @@ import qualified Text.PrettyPrint as PP
 data Job = MkJob {
    jobScene :: Scene,
    jobIntegrator :: AnySurfaceIntegrator,
+   jobSampler :: AnySampler,
    jobPixelFilter :: Filter,
-   samplesPerPixel :: Int,
    imageSizeX :: Int,
    imageSizeY :: Int
    }
    
 ppJob :: Job -> PP.Doc
-ppJob (MkJob sc int f spp sx sy) = PP.vcat [
+ppJob (MkJob sc int _ f sx sy) = PP.vcat [
    PP.text "Image size is" PP.<+> PP.text ((show sx) ++ "x" ++ (show sy)),
    PP.text "Pixel filter is" PP.<+> PP.text (show f),
-   PP.text "Samples per pixel is" PP.<+> PP.text (show spp),
    PP.text "Surface Integrator" PP.<+> pp int,
    PP.text "Scene stats" PP.$$ PP.nest 3 (ppScene sc)
    ]
@@ -44,7 +43,7 @@ startState = PState 640 480 mkBoxFilter
    defaultSurfaceIntegrator
    identity
    defaultMaterial
-   2
+   (mkAnySampler $ mkRandomSampler 2)
    Nothing
    []
    []
@@ -57,9 +56,9 @@ jobParser :: JobParser Job
 jobParser = do
    _ <- many object
    eof
-   (PState sx sy f cam i _ _ spp _ ls ps) <- getState
+   (PState sx sy f cam i _ _ smp _ ls ps) <- getState
    let scn = mkScene ls ps cam
-   return (MkJob scn i f spp sx sy)
+   return (MkJob scn i smp f sx sy)
 
 object :: JobParser ()
 object = 
@@ -68,18 +67,11 @@ object =
       <|> try pCamera
       <|> pFilter
       <|> try pSize
-      <|> try pSamplesPerPixel
       <|> try pEmission
       <|> try pLight
       <|> pMaterial
       <|> pTransform
       <|> ws
-
-pSamplesPerPixel :: JobParser ()
-pSamplesPerPixel = do
-   spp <- namedInt "samplesPerPixel"
-   s <- getState
-   setState s { _spp = spp }
 
 --  | parses the image size
 pSize :: JobParser ()

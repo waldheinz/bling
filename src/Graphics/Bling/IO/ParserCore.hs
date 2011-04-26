@@ -20,6 +20,7 @@ import Graphics.Bling.Light
 import Graphics.Bling.Math
 import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
+import Graphics.Bling.Sampling
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Transform
 
@@ -33,7 +34,7 @@ data PState = PState {
    surfaceIntegrator :: AnySurfaceIntegrator,
    transform :: Transform,
    material :: Material,
-   _spp :: Int,
+   sampler :: AnySampler,
    emit :: Maybe Spectrum, -- ^ the emission for the next primitives
    lights :: [Light],
    prims :: [AnyPrim]

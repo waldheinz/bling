@@ -1,52 +1,105 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE ExistentialQuantification #-}
 
 module Graphics.Bling.Sampling (
 
    -- * Sampling Types
-   SampleWindow, Sampler
+   SampleWindow(..), Sample(..), Sampler(..), Sampled,
+   AnySampler, mkAnySampler,
+
+   -- * Sampling
+
+   rnd, rnd2D, rnd', coverWindow,
+
+   -- * Running Sampled Computations
+   
+   runSampled, runSampledIO,
+   
+   -- * Accessing Camera Samples
+
+   imageX, imageY, lensUV
    
    ) where
 
 import Control.Monad.Reader
-import Control.Monad.ST
-import Data.STRef
 import Data.Vector.Unboxed as V
 import System.Random.MWC
 
-import Graphics.Bling.Math
-import Graphics.Bling.Random as R
-
+import qualified Graphics.Bling.Random as R
 
 -- | An (image) region which should be covered with samples
 data SampleWindow = SampleWindow {
    xStart :: ! Int, -- ^ first image row to cover
    xEnd :: ! Int, -- ^ last row to cover
    yStart :: ! Int, -- ^ first line to cover
-   yEnd :: ! Int, -- ^ last line to cover
-   spp :: ! Int -- ^ samples per pixel
+   yEnd :: ! Int -- ^ last line to cover
    }
+
+data Sample = Sample {
+   smpImageX :: ! Float,
+   smpImageY :: ! Float,
+   smpLens :: ! R.Rand2D,
+   smpRnd2D :: ! (V.Vector R.Rand2D),
+   smpRnd1D :: ! (V.Vector Float)
+   } deriving (Show)
+
+coverWindow :: SampleWindow -> [(Int, Int)]
+coverWindow w = [(x, y) | x <- [xStart w .. xEnd w], y <- [yStart w .. yEnd w]]
 
 class Sampler a where
-   
-data Sample = Sample {
-   imageX :: Float,
-   imageY :: Float,
-   lens :: Rand2D,
-   rnd2D :: V.Vector Rand2D,
-   rnd1D :: V.Vector Float
-   }
+   samples :: a -> SampleWindow -> R.Rand [Sample]
+
+
+
+data AnySampler = forall a . Sampler a => MkAnySampler a
+
+mkAnySampler :: (Sampler a) => a -> AnySampler
+mkAnySampler = MkAnySampler
+
+instance Sampler AnySampler where
+   samples (MkAnySampler s) = samples s
+
+
 
 newtype Sampled a = Sampled {
-   runS :: ReaderT Sample Rand a
+   runS :: ReaderT Sample R.Rand a
    } deriving (Monad, MonadReader Sample)
 
 runSampled :: Seed -> Sample -> Sampled a -> a
-runSampled seed sample k = runRand' seed (runReaderT (runS k) sample)
+{-# INLINE runSampled #-}
+runSampled seed smp k = R.runRand' seed (runReaderT (runS k) smp)
+
+runSampledIO :: Sample -> Sampled a -> IO a
+runSampledIO smp k = R.runRandIO (runReaderT (runS k) smp)
+{-# INLINE runSampledIO #-}
+
+rnd :: Sampled Float
+rnd = Sampled (lift R.rnd)
+{-# INLINE rnd #-}
+
+rnd2D :: Sampled R.Rand2D
+rnd2D = Sampled (lift R.rnd2D)
+{-# INLINE rnd2D #-}
+
+imageX :: Sampled Float
+imageX = smpImageX `liftM` ask
+{-# INLINE imageX #-}
+
+imageY :: Sampled Float
+imageY = smpImageY `liftM` ask
+{-# INLINE imageY #-}
+
+lensUV :: Sampled R.Rand2D
+lensUV = smpLens `liftM` ask
+{-# INLINE lensUV #-}
 
 rnd' :: Int -> Sampled Float
+{-# INLINE rnd' #-}
 rnd' n = do
-   r1d <- rnd1D `liftM` ask
+   r1d <- smpRnd1D `liftM` ask
    if V.length r1d < n
       then return $ V.unsafeIndex r1d n
-      else Sampled (lift rnd)
+      else Sampled (lift R.rnd)
+
+

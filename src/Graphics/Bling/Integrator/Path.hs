@@ -11,8 +11,8 @@ import Graphics.Bling.Integrator
 import Graphics.Bling.Light
 import Graphics.Bling.Math
 import Graphics.Bling.Primitive
-import Graphics.Bling.Random
 import Graphics.Bling.Reflection
+import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Spectrum
 
@@ -31,7 +31,7 @@ instance SurfaceIntegrator PathIntegrator where
 directLight :: Scene -> Ray -> Spectrum
 directLight s ray = V.sum (V.map (`le` ray) (sceneLights s))
 
-nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Rand WeightedSpectrum
+nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Sampled WeightedSpectrum
 nextVertex _ 0 _ _ _ _ l = return (1, l) -- hard bound
 
 nextVertex s _ True ray Nothing t l = -- nothing hit, specular bounce

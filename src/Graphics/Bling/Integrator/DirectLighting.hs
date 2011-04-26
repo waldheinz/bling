@@ -8,7 +8,7 @@ import qualified Text.PrettyPrint as PP
 import Graphics.Bling.Integrator
 import Graphics.Bling.Math
 import Graphics.Bling.Primitive
-import Graphics.Bling.Random
+import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Spectrum
 
@@ -24,8 +24,7 @@ instance SurfaceIntegrator DirectLighting where
    pp dl = PP.text "Direct Lighting" 
    li (DirectLighting sa) = directLighting sa
 
-
-directLighting :: Bool -> Scene -> Ray -> Rand WeightedSpectrum
+directLighting :: Bool -> Scene -> Ray -> Sampled WeightedSpectrum
 directLighting sa s r@(Ray _ rd _ _) =
    maybe (return (0, black)) ls (s `intersect` r) where
       ls int = do
