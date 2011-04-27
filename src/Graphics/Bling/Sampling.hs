@@ -72,10 +72,10 @@ runSampledIO smp k = R.runRandIO (runReaderT (runS k) smp)
 
 -- | upgrades from @Rand@ to @Sampled@
 runSampledRand
-   :: Sample -- ^ the sample to use
-   -> Sampled a -- ^ the sampled computation
+   :: Sampled a -- ^ the sampled computation
+   -> Sample -- ^ the sample to use
    -> R.Rand a
-runSampledRand smp k = runReaderT (runS k) smp
+runSampledRand = runReaderT . runS
 
 rnd :: Sampled Float
 rnd = Sampled (lift R.rnd)
