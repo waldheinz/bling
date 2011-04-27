@@ -40,19 +40,20 @@ pretty td = join . filter (not . null) . map f $
 
 pass :: Image RealWorld -> Job -> IO ()
 pass img job = do
-   ss <- runRandIO (samples sampler wnd)
-   mapM_ f ss
    
+   imgSmp <- runRandIO $ do
+      ss <- samples sampler wnd
+      mapM f ss
+      
+   stToIO $ do
+      mapM_ (addSample img) imgSmp
+      
    where
-      --f :: Sample -> IO ()
-      f smp = do
-         ss <- runSampledIO smp $ do
-            ray <- fireRay cam
-            ws <- li int sc ray
-            mkImageSample ws
+      f smp = runSampledRand smp $ do
+         ray <- fireRay cam
+         ws <- li int sc ray
+         mkImageSample ws
             
-         stToIO (addSample img ss)
-         
       sc = jobScene job
       cam = sceneCam sc
       int = jobIntegrator job

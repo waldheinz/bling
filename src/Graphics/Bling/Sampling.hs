@@ -14,7 +14,7 @@ module Graphics.Bling.Sampling (
 
    -- * Running Sampled Computations
    
-   runSampled, runSampledIO,
+   runSampled, runSampledIO, runSampledRand,
    
    -- * Accessing Camera Samples
 
@@ -50,8 +50,6 @@ coverWindow w = [(x, y) | x <- [xStart w .. xEnd w], y <- [yStart w .. yEnd w]]
 class Sampler a where
    samples :: a -> SampleWindow -> R.Rand [Sample]
 
-
-
 data AnySampler = forall a . Sampler a => MkAnySampler a
 
 mkAnySampler :: (Sampler a) => a -> AnySampler
@@ -59,8 +57,6 @@ mkAnySampler = MkAnySampler
 
 instance Sampler AnySampler where
    samples (MkAnySampler s) = samples s
-
-
 
 newtype Sampled a = Sampled {
    runS :: ReaderT Sample R.Rand a
@@ -73,6 +69,13 @@ runSampled seed smp k = R.runRand' seed (runReaderT (runS k) smp)
 runSampledIO :: Sample -> Sampled a -> IO a
 runSampledIO smp k = R.runRandIO (runReaderT (runS k) smp)
 {-# INLINE runSampledIO #-}
+
+-- | upgrades from @Rand@ to @Sampled@
+runSampledRand
+   :: Sample -- ^ the sample to use
+   -> Sampled a -- ^ the sampled computation
+   -> R.Rand a
+runSampledRand smp k = runReaderT (runS k) smp
 
 rnd :: Sampled Float
 rnd = Sampled (lift R.rnd)
