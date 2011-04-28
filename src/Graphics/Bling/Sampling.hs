@@ -10,7 +10,7 @@ module Graphics.Bling.Sampling (
 
    -- * Sampling
 
-   rnd, rnd2D, rnd', coverWindow, splitWindow,
+   rnd, rnd2D, rnd', coverWindow, splitWindow, shiftToPixel,
 
    -- * Running Sampled Computations
    
@@ -26,6 +26,7 @@ import Control.Monad.Reader
 import Data.Vector.Unboxed as V
 import System.Random.MWC
 
+import Graphics.Bling.Math
 import qualified Graphics.Bling.Random as R
 
 -- | An (image) region which should be covered with samples
@@ -51,6 +52,14 @@ splitWindow :: SampleWindow -> [SampleWindow]
 splitWindow (SampleWindow x0 x1 y0 y1) = ws where
    ws = Prelude.map mkWnd [(x, y) | y <- [y0, y0+16 .. y1], x <- [x0, x0+16 .. x1]]
    mkWnd (x, y) = SampleWindow x (min (x+15) x1) y (min (y+15) y1)
+
+shiftToPixel
+   :: Int -- ^ pixel x ordinate
+   -> Int -- ^ pixel y ordinate
+   -> [R.Rand2D]
+   -> [(Flt, Flt)]
+shiftToPixel px py = Prelude.map (s (fromIntegral px) (fromIntegral py)) where
+   s fx fy (u, v) = (u + fx, v + fy)
    
 class Sampler a where
    samples :: a -> SampleWindow -> R.Rand [Sample]

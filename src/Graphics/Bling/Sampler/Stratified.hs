@@ -3,6 +3,10 @@ module Graphics.Bling.Sampler.Stratified (
    StratifiedSampler, mkStratifiedSampler
    ) where
 
+import Control.Monad (liftM)
+import qualified Data.Vector.Generic as V
+
+import Graphics.Bling.Math
 import Graphics.Bling.Random
 import Graphics.Bling.Sampling
 
@@ -15,7 +19,17 @@ mkStratifiedSampler :: Int -> Int -> StratifiedSampler
 mkStratifiedSampler = SS
 
 instance Sampler StratifiedSampler where
-   samples (SS nu nv) w = undefined
+   samples (SS nu nv) w = concat `liftM` mapM (pixel nu nv) (coverWindow w)
+
+pixel :: Int -> Int -> (Int, Int) -> Rand [Sample]
+pixel nu nv (px, py) = do
+   ls <- stratified2D nu nv
+   ps <- stratified2D nu nv
+   return $ mkSamples ls (shiftToPixel px py ps)
+
+mkSamples :: [Rand2D] -> [(Flt, Flt)] -> [Sample]
+mkSamples = zipWith go where
+   go l (px, py) = Sample px py l V.empty V.empty
 
 almostOne :: Float
 almostOne = 0.9999999403953552 -- 0x1.fffffep-1
