@@ -100,16 +100,13 @@ namedBlock p n = do
 namedFloat :: String -> JobParser Flt
 namedFloat n = do
    _ <- string n >> ws
-   res <- flt <|> fail ("cannot parse " ++ n ++ " value")
-   return res
+   flt <|> fail ("cannot parse " ++ n ++ " value")
    
 namedInt :: String -> JobParser Int
 namedInt n = do
    _ <- string n
    _ <- spaces
-   res <- integ <|> fail ("cannot parse " ++ n ++ " value")
-   _ <- char '\n'
-   return res
+   integ <|> fail ("cannot parse " ++ n ++ " value")
 
 -- | parse an integer
 integ :: JobParser Int

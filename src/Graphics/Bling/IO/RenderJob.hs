@@ -64,6 +64,7 @@ object :: JobParser ()
 object = 
        do try pShape
       <|> try pSurfaceIntegrator
+      <|> try pSampler
       <|> try pCamera
       <|> pFilter
       <|> try pSize
