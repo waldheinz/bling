@@ -10,7 +10,7 @@ module Graphics.Bling.Sampling (
 
    -- * Sampling
 
-   rnd, rnd2D, rnd', coverWindow,
+   rnd, rnd2D, rnd', coverWindow, splitWindow,
 
    -- * Running Sampled Computations
    
@@ -34,7 +34,7 @@ data SampleWindow = SampleWindow {
    xEnd :: ! Int, -- ^ last row to cover
    yStart :: ! Int, -- ^ first line to cover
    yEnd :: ! Int -- ^ last line to cover
-   }
+   } deriving (Show)
 
 data Sample = Sample {
    smpImageX :: ! Float,
@@ -47,6 +47,11 @@ data Sample = Sample {
 coverWindow :: SampleWindow -> [(Int, Int)]
 coverWindow w = [(x, y) | x <- [xStart w .. xEnd w], y <- [yStart w .. yEnd w]]
 
+splitWindow :: SampleWindow -> [SampleWindow]
+splitWindow (SampleWindow x0 x1 y0 y1) = ws where
+   ws = Prelude.map mkWnd [(x, y) | y <- [y0, y0+16 .. y1], x <- [x0, x0+16 .. x1]]
+   mkWnd (x, y) = SampleWindow x (min (x+15) x1) y (min (y+15) y1)
+   
 class Sampler a where
    samples :: a -> SampleWindow -> R.Rand [Sample]
 

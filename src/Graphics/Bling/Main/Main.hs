@@ -49,14 +49,11 @@ renderWindow j w = withSystemRandom $ runRandST $ do
       int = jobIntegrator j
 
 pass :: Image RealWorld -> Job -> IO ()
-pass img job = do
-   is <- renderWindow job wnd
-   
-   stToIO $ do
-      mapM_ (addSample img) is
-      
-   where
-      wnd = imageWindow img
+pass img job = mapM_ tile ws where
+   tile w = do
+      is <- renderWindow job w
+      stToIO $ mapM_ (addSample img) is
+   ws = splitWindow $ imageWindow img
    
 render :: Int -> Image RealWorld -> Job -> IO ()
 render p img job = do
