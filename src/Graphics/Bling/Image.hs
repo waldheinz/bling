@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 
 module Graphics.Bling.Image (
    Image, ImageSample(..),
@@ -54,7 +55,7 @@ addPixel (Image w h _ p) (x, y, (sw, s))
          o = (x + y*w)
          
 -- | adds a sample to the specified image
-addSample :: Image s -> ImageSample -> ST s ()
+addSample :: forall s. Image s -> ImageSample -> ST s ()
 addSample img smp@(ImageSample sx sy (_, ss))
    | sNaN ss = trace ("skipping NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )

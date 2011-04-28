@@ -3,6 +3,7 @@ import Control.Monad
 import Control.Monad.ST
 import System (getArgs)
 import System.IO
+import System.Random.MWC
 import Text.Printf
 import qualified Text.PrettyPrint as PP
 import Time
@@ -38,20 +39,23 @@ pretty td = join . filter (not . null) . map f $
     f (i,s) | i == 0    = []
             | otherwise = show i ++ s
 
+renderWindow :: Job -> SampleWindow -> IO [ImageSample]
+renderWindow j w = withSystemRandom $ runRandST $ do
+   ss <- samples sampler w
+   mapM (randToSampled (fireRay cam >>= li int sc >>= mkImageSample)) ss where
+      sampler = jobSampler j
+      sc = jobScene j
+      cam = sceneCam sc
+      int = jobIntegrator j
+
 pass :: Image RealWorld -> Job -> IO ()
 pass img job = do
-   imgSmp <- runRandIO $ do
-      ss <- samples sampler wnd
-      mapM (runSampledRand (fireRay cam >>= li int sc >>= mkImageSample)) ss
-      
+   is <- renderWindow job wnd
+   
    stToIO $ do
-      mapM_ (addSample img) imgSmp
+      mapM_ (addSample img) is
       
    where
-      sc = jobScene job
-      cam = sceneCam sc
-      int = jobIntegrator job
-      sampler = jobSampler job
       wnd = imageWindow img
    
 render :: Int -> Image RealWorld -> Job -> IO ()

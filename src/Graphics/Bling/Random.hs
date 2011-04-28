@@ -45,8 +45,8 @@ runRandIO (Rand c) = withSystemRandom c
 mkRndGen :: Int -> ST s (Gen s)
 mkRndGen seed = initialize $ singleton $ fromIntegral seed
 
-runRandST :: Gen s -> Rand a -> ST s a
-runRandST gen (Rand c) = c gen
+runRandST :: forall s t. Rand t -> Gen s -> ST s t
+runRandST (Rand c) gen  = c gen
 
 -- | Provides a random @Float@ in @[0..1)@
 rnd :: Rand Float

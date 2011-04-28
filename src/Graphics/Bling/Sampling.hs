@@ -14,7 +14,7 @@ module Graphics.Bling.Sampling (
 
    -- * Running Sampled Computations
    
-   runSampled, runSampledIO, runSampledRand,
+   runSampled, runSampledIO, randToSampled,
    
    -- * Accessing Camera Samples
 
@@ -71,11 +71,11 @@ runSampledIO smp k = R.runRandIO (runReaderT (runS k) smp)
 {-# INLINE runSampledIO #-}
 
 -- | upgrades from @Rand@ to @Sampled@
-runSampledRand
+randToSampled
    :: Sampled a -- ^ the sampled computation
    -> Sample -- ^ the sample to use
    -> R.Rand a
-runSampledRand = runReaderT . runS
+randToSampled = runReaderT . runS
 
 rnd :: Sampled Float
 rnd = Sampled (lift R.rnd)
