@@ -8,7 +8,7 @@ module Graphics.Bling.Random (
       
    -- * generating random values
    
-   rnd2D, rnd, rndList, rndList2D
+   rnd2D, rnd, rndList, rndList2D, rndInt, rndIntList
    ) where
 
 import Control.Monad (liftM)
@@ -54,6 +54,18 @@ rnd :: Rand Float
 rnd = do
    u <- Rand uniform
    return $ u - 2**(-33)
+
+rndInt :: Rand Int
+rndInt = Rand uniform
+
+rndIntList
+   :: Int
+   -> Rand [Int]
+rndIntList n
+   | n <= 0 = return []
+   | otherwise = do
+      u <- rndInt
+      (liftM . (:)) u $ rndIntList (n-1)
 
 -- | generates a list of given length of random numbers in [0..1)
 rndList
