@@ -56,6 +56,7 @@ Library
       Graphics.Bling.IO.MaterialParser,
       Graphics.Bling.IO.ParserCore,
       Graphics.Bling.IO.RenderJob,
+      Graphics.Bling.IO.SamplerParser,
       Graphics.Bling.IO.ShapeParser,
       Graphics.Bling.IO.TransformParser,
       Graphics.Bling.Material.Lafortune,
@@ -63,7 +64,8 @@ Library
       Graphics.Bling.Material.Metal,
       Graphics.Bling.Material.Plastic,
       Graphics.Bling.Material.Specular,
-      Graphics.Bling.Sampler.Random
+      Graphics.Bling.Sampler.Random,
+      Graphics.Bling.Sampler.Stratified
 
 Executable bling
    hs-source-dirs:   src/Graphics/Bling/Main

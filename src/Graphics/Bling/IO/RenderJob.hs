@@ -13,9 +13,9 @@ import Graphics.Bling.IO.IntegratorParser
 import Graphics.Bling.IO.LightParser
 import Graphics.Bling.IO.MaterialParser
 import Graphics.Bling.IO.ParserCore
+import Graphics.Bling.IO.SamplerParser
 import Graphics.Bling.IO.ShapeParser
 import Graphics.Bling.IO.TransformParser
-import Graphics.Bling.Sampler.Random
 
 import Text.ParserCombinators.Parsec
 import qualified Text.PrettyPrint as PP
@@ -43,7 +43,7 @@ startState = PState 640 480 mkBoxFilter
    defaultSurfaceIntegrator
    identity
    defaultMaterial
-   (mkAnySampler $ mkRandomSampler 2)
+   defaultSampler
    Nothing
    []
    []
