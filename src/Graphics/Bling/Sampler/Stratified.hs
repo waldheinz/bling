@@ -29,12 +29,17 @@ pixel nu nv (px, py) = do
    ls <- stratified2D nu nv
    sls <- rndInt
    ps <- stratified2D nu nv
+   r2d <- stratified2D nu nv
+   s2d <- rndInt
    
-   return $ mkSamples (shuffle' ls (nu*nv) $ mkStdGen sls) (shiftToPixel px py ps)
+   return $ mkSamples
+      (shuffle' ls (nu*nv) $ mkStdGen sls)
+      (shuffle' r2d (nu*nv) $ mkStdGen s2d)
+      (shiftToPixel px py ps)
 
-mkSamples :: [Rand2D] -> [(Flt, Flt)] -> [Sample]
-mkSamples = zipWith go where
-   go l (px, py) = Sample px py l V.empty V.empty
+mkSamples :: [Rand2D] -> [Rand2D] -> [(Flt, Flt)] -> [Sample]
+mkSamples = zipWith3 go where
+   go n2d lens (px, py) = Sample px py lens (V.singleton n2d) V.empty
 
 almostOne :: Float
 almostOne = 0.9999999403953552 -- 0x1.fffffep-1

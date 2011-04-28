@@ -10,7 +10,7 @@ module Graphics.Bling.Sampling (
 
    -- * Sampling
 
-   rnd, rnd2D, rnd', coverWindow, splitWindow, shiftToPixel,
+   rnd, rnd2D, rnd', rnd2D', coverWindow, splitWindow, shiftToPixel,
 
    -- * Running Sampled Computations
    
@@ -115,8 +115,14 @@ rnd' :: Int -> Sampled Float
 {-# INLINE rnd' #-}
 rnd' n = do
    r1d <- smpRnd1D `liftM` ask
-   if V.length r1d < n
+   if V.length r1d > n
       then return $ V.unsafeIndex r1d n
       else Sampled (lift R.rnd)
 
-
+rnd2D' :: Int -> Sampled R.Rand2D
+{-# INLINE rnd2D' #-}
+rnd2D' n = do
+   r2d <- smpRnd2D `liftM` ask
+   if V.length r2d > n
+      then return $ V.unsafeIndex r2d n
+      else Sampled (lift R.rnd2D)
