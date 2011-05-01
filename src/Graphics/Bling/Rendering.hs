@@ -42,9 +42,9 @@ render j report = do
          render' p img = do
             mapM_ tile ws
             cnt <- report $ Progress (PassDone p) img
-            case cnt of
-                 True -> render' (p + 1) img
-                 False -> return ()
+            if cnt
+               then render' (p + 1) img
+               else return ()
             
             where
                tile w = do
@@ -52,9 +52,9 @@ render j report = do
                   is <- renderWindow j w
                   stToIO $ mapM_ (addSample img) is
                   cnt <- report $ Progress (SamplesAdded w) img
-                  case cnt of
-                       True -> return ()
-                       False -> error "cancelled"
+                  if cnt
+                     then return ()
+                     else error "cancelled"
                ws = splitWindow $ imageWindow img
  
 renderWindow :: Job -> SampleWindow -> IO [ImageSample]
