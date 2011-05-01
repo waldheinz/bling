@@ -43,6 +43,7 @@ Library
       Graphics.Bling.Primitive,
       Graphics.Bling.Random,
       Graphics.Bling.Reflection,
+      Graphics.Bling.Rendering,
       Graphics.Bling.Sampling,
       Graphics.Bling.Scene,
       Graphics.Bling.Shape,

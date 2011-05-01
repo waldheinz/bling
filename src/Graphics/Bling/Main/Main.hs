@@ -1,30 +1,40 @@
 
 import Control.Monad
-import Control.Monad.ST
 import System (getArgs)
 import System.IO
-import System.Random.MWC
 import Text.Printf
 import qualified Text.PrettyPrint as PP
 import Time
 
-import Graphics.Bling.Camera
 import Graphics.Bling.Image
-import Graphics.Bling.Integrator
-import Graphics.Bling.Random
-import Graphics.Bling.Sampling
-import Graphics.Bling.Scene
+import Graphics.Bling.Rendering
 import Graphics.Bling.IO.RenderJob
+
+prog :: ProgressReporter
+prog (Progress (PassDone p) img) = do
+   putStrLn $ "Writing " ++ fname ++ "..."
+   h1 <- openFile (fname ++ ".ppm") WriteMode
+   writePpm img h1
+   hClose h1
+   
+   h2 <- openFile (fname ++ ".hdr") WriteMode
+   writeRgbe img h2
+   hClose h2
+   return ()
+   
+   where
+         fname = "pass-" ++ printf "%05d" p
+
+prog _ = return ()
 
 main :: IO ()
 main = do
    args <- getArgs
    let fName = head args
-   ss <- readFile fName
-   let job = parseJob ss
-   img <- stToIO $ mkImage (jobPixelFilter job) (imageSizeX job) (imageSizeY job)
+   job <- fmap parseJob $ readFile fName
+
    putStrLn (PP.render (PP.text "Job Stats" PP.$$ PP.nest 3 (ppJob job)))
-   render 1 img job
+   render job prog
    
 -- | Pretty print the date in '1d 9h 9m 17s' format
 pretty :: TimeDiff -> String
@@ -38,42 +48,3 @@ pretty td = join . filter (not . null) . map f $
     months  = days   `div` 28 ; years  = months `div` 12
     f (i,s) | i == 0    = []
             | otherwise = show i ++ s
-
-renderWindow :: Job -> SampleWindow -> IO [ImageSample]
-renderWindow j w = withSystemRandom $ runRandST $ do
-   ss <- samples sampler w
-   mapM (randToSampled (fireRay cam >>= li int sc >>= mkImageSample)) ss where
-      sampler = jobSampler j
-      sc = jobScene j
-      cam = sceneCam sc
-      int = jobIntegrator j
-
-pass :: Image RealWorld -> Job -> IO ()
-pass img job = mapM_ tile ws where
-   tile w = do
-      is <- renderWindow job w
-      stToIO $ mapM_ (addSample img) is
-   ws = splitWindow $ imageWindow img
-   
-render :: Int -> Image RealWorld -> Job -> IO ()
-render p img job = do
-   putStrLn "Rendering..."
-
-   start <- getClockTime
-   pass img job
-   stop <- getClockTime
-   putStrLn (pretty $ diffClockTimes stop start)
-   
-   putStrLn $ "Writing " ++ fname ++ "..."
-   h1 <- openFile (fname ++ ".ppm") WriteMode
-   writePpm img h1
-   hClose h1
-
-   h2 <- openFile (fname ++ ".hdr") WriteMode
-   writeRgbe img h2
-   hClose h2
-   
-   render (p + 1) img job
-   where
-         fname = "pass-" ++ printf "%05d" p
-         
