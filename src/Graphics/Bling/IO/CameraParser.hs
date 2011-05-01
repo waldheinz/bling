@@ -16,7 +16,7 @@ defaultCamera sx sy =
       c2w = translate (Vector 0 0 (-5))
 
 pCamera :: JobParser ()
-pCamera = (flip namedBlock) "camera" $ do
+pCamera = flip namedBlock "camera" $ do
    t <- many1 alphaNum
    s <- getState
    
