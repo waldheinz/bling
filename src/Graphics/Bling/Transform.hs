@@ -148,7 +148,7 @@ perspective
    -> Transform
 perspective fov n f = concatTrans (scale s) (MkTransform m (invert m)) where
    s = Vector iTanAng iTanAng 1
-   iTanAng = 1 / tan ((radians fov) / 2)
+   iTanAng = 1 / tan (radians fov / 2)
    m = MkMatrix
       1 0 0 0
       0 1 0 0
