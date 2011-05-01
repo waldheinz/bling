@@ -1,10 +1,10 @@
 
 #filter sinc 4.0 4.0 3.0
 #filter triangle 3.0 3.0
-#filter mitchell 3.0 3.0 0.333333 0.333333
+filter mitchell 3.0 3.0 0.333333 0.333333
 # filter box
 
-sampler { stratified xSamples 1 ySamples 1 }
+sampler { stratified xSamples 4 ySamples 4 }
 # sampler { random samples 16 }
 
 imageSize 480 480
@@ -15,7 +15,7 @@ imageSize 480 480
 
 integrator {
    path
-   maxDepth 1
+   maxDepth 25
 }
 
 transform {
@@ -106,6 +106,8 @@ shape {
 # short block
 #
 
+material { mirror spd { 1 0.95 } }
+
 shape {
    mesh
    vertexCount 20
@@ -141,7 +143,7 @@ shape {
 # tall block
 #
 
-# material { mirror spd { 1 0.95 } }
+material { mirror spd { 1 0.95 } }
 
 shape {
    mesh

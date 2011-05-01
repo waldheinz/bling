@@ -33,8 +33,8 @@ instance SurfaceIntegrator PathIntegrator where
    li (PathIntegrator md) s r =
       nextVertex s 0 True r (s `intersect` r) white black md
       
-   pp (PathIntegrator _) =
-      PP.text "Path Integrator"
+   pp (PathIntegrator md) =
+      PP.text ("Path Integrator " ++ (show md))
    
 directLight :: Scene -> Ray -> Spectrum
 directLight s ray = V.sum (V.map (`le` ray) (sceneLights s))
@@ -67,7 +67,7 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) t l md
                  spec' = Specular `member` smpType
                  ray' = (Ray p wi epsilon infinity)
                  int' = intersect (scenePrim scene) ray'
-              in nextVertex scene (depth - 1) spec' ray' int' t' l' md
+              in nextVertex scene (depth + 1) spec' ray' int' t' l' md
       
       where
          dg = intGeometry int
