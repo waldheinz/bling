@@ -20,9 +20,11 @@ data Progress = Progress
    }
 
 data ProgressType
-   = SamplesAdded
+   = SamplesAdded {
+      progRegion :: SampleWindow
+      }
    | PassDone {
-      passNum :: Int
+      progPassNum :: Int
       }
 
 type ProgressReporter = Progress -> IO ()
@@ -40,6 +42,7 @@ render j report = do
             where
                tile w = do
                   is <- renderWindow j w
+                  report $ Progress (SamplesAdded w) img
                   stToIO $ mapM_ (addSample img) is
                ws = splitWindow $ imageWindow img
             

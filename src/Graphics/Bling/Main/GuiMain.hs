@@ -4,12 +4,8 @@ import Control.Monad.ST
 import Graphics.UI.SDL as SDL
 import System (getArgs)
 
-import Graphics.Bling.Camera
 import Graphics.Bling.Image
-import Graphics.Bling.Integrator
-import Graphics.Bling.Random
-import Graphics.Bling.Sampling
-import Graphics.Bling.Scene
+import Graphics.Bling.Rendering
 import Graphics.Bling.IO.RenderJob
 
 data AppConfig = AppConfig {
@@ -31,9 +27,7 @@ waitQuit = waitEvent >>= \evt -> case evt of
 
 main :: IO ()
 main = SDL.withInit [InitVideo] $ do
-   
-   args <- getArgs
-   let fName = head args
+   fName <- fmap head getArgs
    job <- fmap parseJob $ readFile fName
    env <- initEnv job
    let sizeX = imageSizeX job

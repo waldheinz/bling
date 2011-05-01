@@ -25,7 +25,7 @@ prog (Progress (PassDone p) img) = do
    where
          fname = "pass-" ++ printf "%05d" p
 
-prog _ = return ()
+prog _ = putStr "." >> hFlush stdout 
 
 main :: IO ()
 main = do
