@@ -32,12 +32,12 @@ data TreeBvh
 
 ppBvh :: TreeBvh -> Doc
 ppBvh t = vcat [
-   text "primitive count" <+> (int p),
-   text "maximum depth" <+> (int md),
-   text "maximum leaf prims" <+> (int (maxPrims t)),
-   text "number of leaves" <+> (int l),
-   text "avg. depth" <+> (float ((fromIntegral sd) / (fromIntegral l))),
-   text "avg. prims per leaf" <+> (float ((fromIntegral p) / (fromIntegral l)))
+   text "primitive count" <+> int p,
+   text "maximum depth" <+> int md,
+   text "maximum leaf prims" <+> int (maxPrims t),
+   text "number of leaves" <+> int l,
+   text "avg. depth" <+> float ((fromIntegral sd) / (fromIntegral l)),
+   text "avg. prims per leaf" <+> float ((fromIntegral p) / (fromIntegral l))
    ] where
       (md, sd) = maxDepth t
       l = leafCount t
