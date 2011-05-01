@@ -36,8 +36,8 @@ ppBvh t = vcat [
    text "maximum depth" <+> int md,
    text "maximum leaf prims" <+> int (maxPrims t),
    text "number of leaves" <+> int l,
-   text "avg. depth" <+> float ((fromIntegral sd) / (fromIntegral l)),
-   text "avg. prims per leaf" <+> float ((fromIntegral p) / (fromIntegral l))
+   text "avg. depth" <+> float (fromIntegral sd / fromIntegral l),
+   text "avg. prims per leaf" <+> float (fromIntegral p / fromIntegral l)
    ] where
       (md, sd) = maxDepth t
       l = leafCount t
@@ -45,7 +45,7 @@ ppBvh t = vcat [
 
 primCount :: TreeBvh -> Int
 primCount (Leaf ps _) = length ps
-primCount (Node _ l r _) = (primCount l) + (primCount r)
+primCount (Node _ l r _) = primCount l + primCount r
 
 maxPrims :: TreeBvh -> Int
 maxPrims (Leaf ps _) = length ps
@@ -61,7 +61,7 @@ maxDepth t = maxDepth' t (0, 0) where
 leafCount :: TreeBvh -> Int
 leafCount t = leafCount' t where
    leafCount' (Leaf _ _) = 1
-   leafCount' (Node _ l r _) = (leafCount' l) + (leafCount' r)
+   leafCount' (Node _ l r _) = leafCount' l + leafCount' r
 
 instance Primitive TreeBvh where
    intersects = bvhIntersects
@@ -101,18 +101,18 @@ near mi1 mi2 = Just $ near' (fromJust mi1) (fromJust mi2) where
 
 -- | creates an itersection function which can be used to check multiple
 --   AABBs for intersection against a single @Ray@
-intf :: Ray -> (AABB -> Float -> Bool)
+intf :: Ray -> AABB -> Float -> Bool
 {-# INLINE intf #-}
-intf ray@(Ray _ (Vector dx dy dz) _ _) = (\b m -> intAABB b ray {rayMax = m} invD negD) where
+intf ray@(Ray _ (Vector dx dy dz) _ _) = \b m -> intAABB b ray {rayMax = m} invD negD where
    invD = mkV (1 / dx, 1 / dy, 1 / dz)
    negD = (isNeg dx, isNeg dy, isNeg dz)
    isNeg x = if x < 0 then 1 else 0
    
 bvhIntersects :: TreeBvh -> Ray -> Bool
 bvhIntersects bvh ray = go bvh where
-   go (Leaf p b) = i b && any (flip intersects ray) p
+   go (Leaf p b) = i b && any (`intersects` ray) p
    go (Node _ l r b) = i b && (go l || go r)
-   i b = (intf ray) b (rayMax ray)
+   i b = intf ray b (rayMax ray)
    
 -- | Splits the given @Primitive@ list along the specified @Dimension@
 --   in two lists
@@ -130,15 +130,15 @@ intAABB b (Ray (Vector rox roy roz) _ rmin rmax) (Vector idx idy idz) (inx, iny,
    | otherwise = tmin'' < rmax && tmax'' > rmin
    where
          e axis = if axis == 0 then aabbMin b else aabbMax b
-         tmin = ((vx (e      inx)  - rox)) * idx
-         tmax = ((vx (e (1 - inx)) - rox)) * idx
-         tymin = ((vy (e      iny)  - roy)) * idy
-         tymax = ((vy (e (1 - iny)) - roy)) * idy
+         tmin =  (vx (e      inx)  - rox) * idx
+         tmax =  (vx (e (1 - inx)) - rox) * idx
+         tymin = (vy (e      iny)  - roy) * idy
+         tymax = (vy (e (1 - iny)) - roy) * idy
          
          tmin' = if tymin > tmin then tymin else tmin
          tmax' = if tymax < tmax then tymax else tmax
-         tzmin = ((vz (e       inz) - roz)) * idz
-         tzmax = ((vz (e (1 - inz)) - roz)) * idz
+         tzmin = (vz (e       inz) - roz) * idz
+         tzmax = (vz (e (1 - inz)) - roz) * idz
          tmin'' = if tzmin > tmin' then tzmin else tmin'
          tmax'' = if tzmax < tmax' then tzmax else tmax'
          
