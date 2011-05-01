@@ -43,8 +43,8 @@ render j report = do
             where
                tile w = do
                   is <- renderWindow j w
-                  report $ Progress (SamplesAdded w) img
                   stToIO $ mapM_ (addSample img) is
+                  report $ Progress (SamplesAdded w) img
                ws = splitWindow $ imageWindow img
             
 renderWindow :: Job -> SampleWindow -> IO [ImageSample]

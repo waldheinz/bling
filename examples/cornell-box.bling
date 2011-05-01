@@ -7,7 +7,7 @@
 sampler { stratified xSamples 4 ySamples 4 }
 sampler { random samples 16 }
 
-imageSize 200 200
+imageSize 480 480
 
 #
 # camera

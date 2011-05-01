@@ -5,9 +5,9 @@ module Graphics.Bling.Image (
    
    mkImage, addSample, 
    
-   imageWidth, imageHeight, imageWindow, writePpm, writeRgbe
+   imageWidth, imageHeight, imageWindow, writePpm, writeRgbe, rgbPixels
    ) where
-   
+
 import Control.Monad
 import Control.Monad.ST
 import Debug.Trace
@@ -117,6 +117,16 @@ gamma x (r, g, b) = (r ** x', g ** x', b ** x') where
 clamp :: Float -> Int
 clamp v = round ( min 1 (max 0 v) * 255 )
 
+rgbPixels :: Image s -> SampleWindow -> ST s [((Int, Int), (Int, Int, Int))]
+rgbPixels img w = do
+   ps <- mapM (getPixel img) os
+   let rgbs = map (gamma 2.2 . toRGB . mulWeight) ps
+   let clamped = map (\(r,g,b) -> (clamp r, clamp g, clamp b)) rgbs
+   return $ Prelude.zip xs $ clamped
+   where
+         xs = coverWindow w
+         os = map (\(x,y) -> (y * (imageWidth img)) + x) xs
+      
 -- | converts a @WeightedSpectrum@ into what's expected to be found in a ppm file
 ppmPixel :: WeightedSpectrum -> String
 ppmPixel ws = (toString . gamma 2.2 .toRGB . mulWeight) ws
