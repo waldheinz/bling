@@ -20,7 +20,8 @@ data Progress = Progress
    }
 
 data ProgressType
-   = SamplesAdded {
+   = Started
+   | SamplesAdded {
       progRegion :: SampleWindow
       }
    | PassDone {

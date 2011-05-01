@@ -17,8 +17,8 @@ initEnv job = do
    let sizeX = imageSizeX job
    let sizeY = imageSizeY job
    
-   screen <- setVideoMode sizeX sizeY 32 [SWSurface]
-   return $ AppConfig screen
+   s <- setVideoMode sizeX sizeY 32 [SWSurface]
+   return $ AppConfig s
 
 waitQuit :: IO ()
 waitQuit = waitEvent >>= \evt -> case evt of
@@ -30,9 +30,6 @@ main = SDL.withInit [InitVideo] $ do
    fName <- fmap head getArgs
    job <- fmap parseJob $ readFile fName
    env <- initEnv job
-   let sizeX = imageSizeX job
-   let sizeY = imageSizeY job
-   img <- stToIO $ mkImage (jobPixelFilter job) sizeX sizeY
    waitQuit
    
    

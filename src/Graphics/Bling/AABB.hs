@@ -24,7 +24,7 @@ emptyAABB = AABB
 
 mkAABB :: Point -> Point -> AABB
 {-# INLINE mkAABB #-}
-mkAABB pMin pMax = AABB pMin pMax
+mkAABB = AABB
 
 extendAABB :: AABB -> AABB -> AABB
 {-# INLINE extendAABB #-}
@@ -60,8 +60,8 @@ intersectAABB (AABB bMin bMax) (Ray o d tmin tmax) = testSlabs allDimensions tmi
       | near > far = Nothing
       | otherwise = testSlabs ds (max near near') (min far far') where
 	 (near', far') = if tNear > tFar then (tFar, tNear) else (tNear, tFar)
-	 tFar = ((component bMax dim) - oc) * dInv
-	 tNear = ((component bMin dim) - oc) * dInv
+	 tFar = (component bMax dim - oc) * dInv
+	 tNear = (component bMin dim - oc) * dInv
 	 oc = component o dim
-	 dInv = 1 / (component d dim)
+	 dInv = 1 / component d dim
    

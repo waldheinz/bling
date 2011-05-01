@@ -12,7 +12,7 @@ import Graphics.Bling.IO.RenderJob
 
 prog :: ProgressReporter
 prog (Progress (PassDone p) img) = do
-   putStrLn $ "Writing " ++ fname ++ "..."
+   putStrLn $ "\nWriting " ++ fname ++ "..."
    h1 <- openFile (fname ++ ".ppm") WriteMode
    writePpm img h1
    hClose h1
@@ -25,7 +25,8 @@ prog (Progress (PassDone p) img) = do
    where
          fname = "pass-" ++ printf "%05d" p
 
-prog _ = putStr "." >> hFlush stdout 
+prog (Progress (SamplesAdded _) _) = putStr "." >> hFlush stdout
+prog _ = return ()
 
 main :: IO ()
 main = do
