@@ -28,7 +28,7 @@ data ProgressType
       progPassNum :: Int
       }
 
-type ProgressReporter = Progress -> IO ()
+type ProgressReporter = Progress -> IO Bool
 
 render :: Job -> ProgressReporter -> IO ()
 render j report = do
@@ -38,13 +38,19 @@ render j report = do
          render' :: Int -> Image RealWorld -> IO ()
          render' p img = do
             mapM_ tile ws
-            report $ Progress (PassDone p) img
-            render' (p + 1) img
+            cnt <- report $ Progress (PassDone p) img
+            case cnt of
+                 True -> render' (p + 1) img
+                 False -> return ()
+            
             where
                tile w = do
                   is <- renderWindow j w
                   stToIO $ mapM_ (addSample img) is
-                  report $ Progress (SamplesAdded w) img
+                  cnt <- report $ Progress (SamplesAdded w) img
+                  case cnt of
+                       True -> return ()
+                       False -> error "cancelled"
                ws = splitWindow $ imageWindow img
             
 renderWindow :: Job -> SampleWindow -> IO [ImageSample]

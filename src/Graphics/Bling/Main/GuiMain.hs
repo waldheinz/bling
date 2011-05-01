@@ -36,23 +36,24 @@ prog ac (Progress (SamplesAdded w) img) = do
    ps <- stToIO $ rgbPixels img w
    mapM_ (putPixel s) ps
    SDL.flip s
+   evt <- pollEvent
+   return $ case evt of
+        Quit -> False
+        _ -> True
    
-prog _ _ = return ()
+prog _ _ = return True
 
 putPixel :: Surface -> ((Int, Int), (Int, Int, Int))-> IO ()
 putPixel s ((x, y), (r,g,b)) = do
     pixels <- castPtr `liftM` surfaceGetPixels s
     (Pixel p) <- mapRGB (surfaceGetPixelFormat s) (fromIntegral r) (fromIntegral g) (fromIntegral b)
     pokeElemOff pixels ((y * surfaceGetWidth s) + x) p
-         
+   
 main :: IO ()
-main = SDL.withInit [InitVideo] $ do
+main = SDL.withInit [InitEverything] $ do
    fName <- fmap head getArgs
    job <- fmap parseJob $ readFile fName
    env <- initEnv job
    render job (prog env)
    waitQuit
-   
-   
-   
    

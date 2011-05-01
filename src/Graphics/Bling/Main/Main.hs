@@ -20,13 +20,13 @@ prog (Progress (PassDone p) img) = do
    h2 <- openFile (fname ++ ".hdr") WriteMode
    writeRgbe img h2
    hClose h2
-   return ()
+   return True
    
    where
          fname = "pass-" ++ printf "%05d" p
 
-prog (Progress (SamplesAdded _) _) = putStr "." >> hFlush stdout
-prog _ = return ()
+prog (Progress (SamplesAdded _) _) = putStr "." >> hFlush stdout >> return True
+prog _ = return True
 
 main :: IO ()
 main = do
