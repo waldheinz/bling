@@ -78,7 +78,7 @@ mkTableFilter f = Table w h vs n where
    w = filterWidth f
    h = filterHeight f
    n = show f
-   vs = fromList (Prelude.map (\(x, y) -> evalFilter f x y) ps)
+   vs = fromList (Prelude.map (uncurry (evalFilter f)) ps)
    ps = tablePositions w h
    
 -- | finds the positions where the filter function has to be evaluated
@@ -148,7 +148,7 @@ evalFilter (Triangle w h) x y = f (x, y) where
    f (px, py) = max 0 (w - abs px) * max 0 (h - abs py)
 
 evalFilter f _ _ =
-   error ("evalFilter for " Prelude.++ (show f) Prelude.++ " called")
+   error ("evalFilter for " Prelude.++ show f Prelude.++ " called")
 
 tableFilter
    :: Float -> Float
