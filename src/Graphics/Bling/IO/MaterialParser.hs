@@ -28,6 +28,7 @@ pMaterial = (flip namedBlock) "material" $ do
    ws
    m <- case t of
       "blackbody" -> return blackBodyMaterial
+      "glass"     -> pGlass
       "measured"  -> pMeasuredMaterial
       "metal"     -> pMetalMaterial
       "plastic"   -> pPlasticMaterial
@@ -38,6 +39,12 @@ pMaterial = (flip namedBlock) "material" $ do
    s <- getState
    setState s { material = m }
 
+pGlass :: JobParser Material
+pGlass = do
+   ior <- namedFloat "ior"
+   s <- ws >> pSpectrumTexture "r"
+   return $ glassMaterial ior s
+   
 pMetalMaterial :: JobParser Material
 pMetalMaterial = do
    eta <- pSpectrumTexture "eta"

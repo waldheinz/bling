@@ -10,12 +10,14 @@ module Graphics.Bling.Material.Specular (
 import Graphics.Bling.Math
 import Graphics.Bling.Reflection
 import Graphics.Bling.Spectrum
+import Graphics.Bling.Texture
 
-glassMaterial :: Float -> Spectrum -> Material
-glassMaterial ior r dg = mkBsdf [refl, trans] cs where
+glassMaterial :: Float -> SpectrumTexture -> Material
+glassMaterial ior rt dg = mkBsdf [refl, trans] cs where
    refl = MkAnyBxdf $ SpecularReflection r $ frDielectric 1 ior
    trans = MkAnyBxdf $ SpecularTransmission r 1 ior
    cs = shadingCs dg
+   r = rt dg
 
 mirrorMaterial :: Spectrum -> Material
 mirrorMaterial r dg = mkBsdf [bxdf] cs where
