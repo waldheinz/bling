@@ -1,7 +1,6 @@
 
 module Main where
 
-import Control.Monad.ST (stToIO)
 import Criterion.Main
 
 import Graphics.Bling.Filter
@@ -30,22 +29,7 @@ filters = [
    mkTriangleFilter 3 3,
    mkMitchellFilter 3 3 (1/3) (1/3) ]
 
---
--- image benchmarks
---
-
-benchAddPixel :: Benchmark
-benchAddPixel = bench "addSample" (nfIO fn) where
-   -- TODO: this mainly benchmarks image creation
-   fn = stToIO $ do
-      img <- (mkImage mkBoxFilter 50 50)
-      addSample img smp where
-      
-   smp = ImageSample 10 10 (1, fromRGB (0.9, 0.9, 0.9))
-   
 main :: IO ()
 main = defaultMain [
-   bgroup "image" [benchAddPixel],
    bgroup "filter" (map benchFilter filters)
    ]
-
