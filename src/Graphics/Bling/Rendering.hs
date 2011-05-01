@@ -24,6 +24,9 @@ data ProgressType
    | SamplesAdded {
       progRegion :: SampleWindow
       }
+   | RegionStarted {
+      progRegStart :: SampleWindow
+      }
    | PassDone {
       progPassNum :: Int
       }
@@ -45,6 +48,7 @@ render j report = do
             
             where
                tile w = do
+                  _ <- report $ Progress (RegionStarted w) img
                   is <- renderWindow j w
                   stToIO $ mapM_ (addSample img) is
                   cnt <- report $ Progress (SamplesAdded w) img

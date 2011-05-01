@@ -7,6 +7,7 @@ import System (getArgs)
 
 import Graphics.Bling.Image
 import Graphics.Bling.Rendering
+import Graphics.Bling.Sampling
 import Graphics.Bling.IO.RenderJob
 
 data AppConfig = AppConfig {
@@ -40,6 +41,13 @@ prog :: AppConfig -> ProgressReporter
 prog ac (Progress (SamplesAdded w) img) = do
    let s = screen ac
    ps <- stToIO $ rgbPixels img w
+   mapM_ (putPixel s) ps
+   SDL.flip s
+   lookQuit
+
+prog ac (Progress (RegionStarted w) img) = do
+   let s = screen ac
+   let ps = map (\p -> (p, (0, 255, 255))) $ coverWindow w
    mapM_ (putPixel s) ps
    SDL.flip s
    lookQuit
