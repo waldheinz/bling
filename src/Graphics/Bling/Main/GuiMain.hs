@@ -4,6 +4,8 @@ import Control.Monad
 import Foreign
 import Graphics.UI.SDL as SDL
 import System (getArgs)
+import System.IO
+import Text.Printf
 
 import Graphics.Bling.Image
 import Graphics.Bling.Rendering
@@ -45,12 +47,27 @@ prog ac (Progress (SamplesAdded w) img) = do
    SDL.flip s
    lookQuit
 
-prog ac (Progress (RegionStarted w) img) = do
+prog ac (Progress (RegionStarted w) _) = do
    let s = screen ac
    let ps = map (\p -> (p, (0, 255, 255))) $ coverWindow w
    mapM_ (putPixel s) ps
    SDL.flip s
    lookQuit
+
+prog _ (Progress (PassDone p) img) = do
+   putStrLn $ "\nWriting " ++ fname ++ "..."
+   h1 <- openFile (fname ++ ".ppm") WriteMode
+   writePpm img h1
+   hClose h1
+
+   h2 <- openFile (fname ++ ".hdr") WriteMode
+   writeRgbe img h2
+   hClose h2
+   return True
+
+   where
+         fname = "pass-" ++ printf "%05d" p
+
 
 prog _ _ = return True
 

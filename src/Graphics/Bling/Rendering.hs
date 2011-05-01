@@ -36,7 +36,7 @@ type ProgressReporter = Progress -> IO Bool
 render :: Job -> ProgressReporter -> IO ()
 render j report = do
    img <- stToIO $ mkImage (jobPixelFilter j) (imageSizeX j) (imageSizeY j)
-   render' 0 img
+   render' 1 img
    where
          render' :: Int -> Image RealWorld -> IO ()
          render' p img = do
