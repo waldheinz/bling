@@ -52,7 +52,7 @@ render j report = do
                        True -> return ()
                        False -> error "cancelled"
                ws = splitWindow $ imageWindow img
-            
+ 
 renderWindow :: Job -> SampleWindow -> IO [ImageSample]
 renderWindow j w = withSystemRandom $ runRandST $ do
    ss <- samples sampler w
