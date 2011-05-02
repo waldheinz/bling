@@ -2,9 +2,9 @@
 #filter sinc 4.0 4.0 3.0
 #filter triangle 3.0 3.0
 filter mitchell 3.0 3.0 0.333333 0.333333
-# filter box
+filter box
 
-sampler { stratified xSamples 2 ySamples 2 }
+sampler { stratified xSamples 6 ySamples 6 }
 # sampler { random samples 16 }
 
 imageSize 480 480
@@ -106,7 +106,7 @@ shape {
 # short block
 #
 
-material { glass ior 1.5 r { constant spd { 1 0.95 } } }
+# material { glass ior 1.5 r { constant spd { 1 0.95 } } }
 
 shape {
    mesh
@@ -144,6 +144,7 @@ shape {
 #
 
 material { mirror spd { 1 0.95 } }
+material { glass ior 1.5 r { constant spd { 1 0.95 } } }
 
 shape {
    mesh
