@@ -8,7 +8,7 @@ module Graphics.Bling.Primitive (
 
    -- * Primitives
 
-   Primitive(..), Geometry, mkGeom, mkMesh, nearest, AnyPrim(..)
+   Primitive(..), Geometry, mkGeom, mkMesh, nearest, AnyPrim(..), mkAnyPrim
    
    ) where
 
@@ -52,6 +52,9 @@ instance Primitive AnyPrim where
    worldBounds (MkAnyPrim p) = worldBounds p
    flatten (MkAnyPrim p) = flatten p
    light (MkAnyPrim p) = light p
+
+mkAnyPrim :: (Primitive a) => a -> AnyPrim
+mkAnyPrim = MkAnyPrim
 
 --
 -- geometric primitives

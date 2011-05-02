@@ -120,6 +120,9 @@ data DifferentialGeometry = DifferentialGeometry {
    dgN :: {-# UNPACK #-} ! Normal
    } deriving (Show)
 
+mkDg :: Point -> Normal -> DifferentialGeometry
+mkDg = DifferentialGeometry
+
 dominant :: Vector -> Dimension
 {-# INLINE dominant #-}
 dominant (Vector x y z)
@@ -134,6 +137,9 @@ dominant (Vector x y z)
 mkV :: (Flt, Flt, Flt) -> Vector
 {-# INLINE mkV #-}
 mkV (x, y, z) = Vector x y z
+
+smul :: Flt -> Vector -> Vector
+smul d (Vector x y z) = Vector (x*d) (y*d) (z*d)
 
 -- | Creates a ray that connects the two specified points.
 segmentRay :: Point -> Point -> Ray
