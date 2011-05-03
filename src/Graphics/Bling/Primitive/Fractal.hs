@@ -39,7 +39,7 @@ mkFractalPrim = FP
 instance Primitive FractalPrim where
    flatten fp = [mkAnyPrim fp]
    worldBounds fp = AABB (mkPoint (-3) (-3) (-3)) $ mkPoint 3 3 3
-   intersects (FP (Julia c e mi) _) r = False -- intersectsJulia (nRay r) c mi e
+   intersects (FP (Julia c e mi) _) r = intersectsJulia (nRay r) c mi e
    intersect p@(FP (Julia mu e mi) mat) ray =
       intersectJulia (nRay ray) mu mi e >>= \(d, dg) ->
          Just $ Intersection d dg (mkAnyPrim p) mat
@@ -57,8 +57,9 @@ intersectsJulia
    -> Int
    -> Flt
    -> Bool
+-- intersectsJulia _ _ _ _ = False
 intersectsJulia ray@(Ray ro _ rmin rmax) c mi e = go start where
-   start = max rmin $ sqrt $ max 0 $ sqLen ro - boundingRadius2
+   start = rmin --max rmin $ sqrt $ max 0 $ sqLen ro - boundingRadius2
    go rd
       | rd > rmax = False
       | d < e = True
@@ -76,11 +77,11 @@ intersectJulia
    -> Maybe (Flt, DifferentialGeometry)
 
 intersectJulia r@(Ray ro _ rmin rmax) c mi e = {-trace ("start=" ++ show start) $-} go start where
-   start = max rmin $ sqrt $ max 0 $ sqLen ro - boundingRadius2
+   start = rmin -- max rmin $ sqrt $ max 0 $ sqLen ro - boundingRadius2
    end = 10 -- min rmax $ len $ (rayAt r boundingRadius2) - ro
    go rd
       | rd > end = Nothing
-      | d < e = Just $ (len (o - ro), mkDg o $ normalJulia o c (mi `div` 2) (e*2))
+      | d < e = Just $ (len (o - ro), mkDg o $ normalJulia o c mi e)
       | otherwise = go (rd + d)
       where
          d = (0.5 * nz * log nz) / qlen zp
@@ -114,7 +115,7 @@ iter' qs c n = iter' qs' c (n-1) where
    qs' = map (qadd c) $ map qsq qs
 
 boundingRadius2 :: Flt
-boundingRadius2 = 3
+boundingRadius2 = 5
 
 -- | if the magnitude of the quaternion exceeds this value it is considered
 -- to diverge
