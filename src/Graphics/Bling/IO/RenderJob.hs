@@ -72,6 +72,7 @@ object =
       <|> try pLight
       <|> pMaterial
       <|> pTransform
+      <|> pFractal
       <|> ws
 
 --  | parses the image size

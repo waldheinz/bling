@@ -7,7 +7,7 @@ module Graphics.Bling.Primitive.Fractal (
    
    -- * The Fractal Primitive
    
-   FractalPrim
+   FractalPrim, mkFractalPrim
    
 ) where
 
@@ -16,7 +16,7 @@ import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 
 data Fractal = Julia
-   { mu        :: Quaternion
+   { juliaC    :: Quaternion
    , epsilon   :: Flt
    , maxIt     :: Int
    }
@@ -28,6 +28,9 @@ data FractalPrim = FP
    { fractal   :: Fractal
    , material  :: Material
    }
+
+mkFractalPrim :: Fractal -> Material -> FractalPrim
+mkFractalPrim = FP
    
 instance Primitive FractalPrim where
    intersect p@(FP (Julia mu e mi) mat) ray =
