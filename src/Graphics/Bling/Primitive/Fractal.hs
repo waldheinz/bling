@@ -34,6 +34,7 @@ instance Primitive FractalPrim where
       intersectJulia ray mu mi e >>= \(d, dg) ->
          Just $ Intersection d dg (mkAnyPrim p) mat
 
+
 intersectJulia
    :: Ray
    -> Quaternion
@@ -55,10 +56,31 @@ qpromote :: Point -> Quaternion
 qpromote (Vector x y z) = Quaternion x $ mkV (y, z, 0)
 
 normalJulia :: Point -> Quaternion -> Int -> Normal
-normalJulia = undefined
+normalJulia p c mi = normalize $ mkV (gx, gy, gz) where
+   (gx, gy, gz) = (qlen gx2' - qlen gx1', qlen gy2' - qlen gy1', qlen gz2' - qlen gz1')
+   qp = qpromote p
+   (dx, gx1, gx2) = (qpromote $ mkV (delta, 0, 0), qp `qsub` dx, qp `qadd` dx)
+   (dy, gy1, gy2) = (qpromote $ mkV (0, delta, 0), qp `qsub` dy, qp `qadd` dy)
+   (dz, gz1, gz2) = (qpromote $ mkV (0, 0, delta), qp `qsub` dz, qp `qadd` dz)
+   v' = iter' [gx1, gx2, gy1, gy2, gz1, gz2] c mi
+   (gx1':gx2':gy1':gy2':gz1':gz2':[]) = v'
+   
+-- | iterates several @Quaternion@s together
+iter'
+   :: [Quaternion] -- ^ the quaternions to iterate
+   -> Quaternion -- ^ the c value
+   -> Int -- ^ the number of iterations
+   -> [Quaternion]
+   
+iter' qs _ 0 = qs
+iter' qs c n = iter' qs' c (n-1) where
+   qs' = map (qadd c) $ map qsq qs
 
 boundingRadius2 :: Flt
 boundingRadius2 = 3
+
+delta :: Flt
+delta = 1e-4
 
 -- | if the magnitude of the quaternion exceeds this value it is considered
 -- to diverge
@@ -101,6 +123,11 @@ qadd :: Quaternion -> Quaternion -> Quaternion
 qadd q r = Quaternion r' i' where
    r' = real q + real r
    i' = imag q + imag r
+
+qsub :: Quaternion -> Quaternion -> Quaternion
+qsub q r = Quaternion r' i' where
+   r' = real q - real r
+   i' = imag q - imag r
 
 qmul :: Quaternion -> Quaternion -> Quaternion
 qmul q r = Quaternion r' i' where
