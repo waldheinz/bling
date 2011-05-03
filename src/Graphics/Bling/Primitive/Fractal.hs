@@ -11,8 +11,6 @@ module Graphics.Bling.Primitive.Fractal (
    
 ) where
 
-import Debug.Trace
-
 import Graphics.Bling.AABB
 import Graphics.Bling.Math
 import Graphics.Bling.Primitive
@@ -37,12 +35,38 @@ instance Primitive FractalPrim where
    worldBounds _ = AABB (mkPoint n n n) $ mkPoint p p p where
       (n, p) = (-juliaRadius, juliaRadius)
       
-   intersects (FP (Julia q e mi) _) r =
-      maybe False (\_ -> trace "yo" True) $ traverseJulia r q mi e
+   intersects (FP (Julia q e mi) _) r = intersectsJulia (nRay r) q mi e
    
-   intersect p@(FP (Julia q e mi) m) r = Nothing
---      traverseJulia r q mi e >>= \(d, o) ->
---         Just $ Intersection d (mkDg o $ normalJulia o q mi e) (mkAnyPrim p) m
+   intersect p@(FP (Julia q e mi) m) r =
+      traverseJulia r q mi e >>= \(d, o) ->
+         Just $ Intersection d (mkDg o $ normalJulia o q mi e) (mkAnyPrim p) m
+
+
+
+nRay :: Ray -> Ray
+nRay (Ray ro rd rmin rmax) = Ray ro rd' rmin' rmax' where
+   l = len rd
+   rmin' = rmin * l
+   rmax' = rmax * l
+   rd' = rd * vpromote (1 / l)
+
+intersectsJulia
+   :: Ray
+   -> Quaternion
+   -> Int
+   -> Flt
+   -> Bool
+-- intersectsJulia _ _ _ _ = False
+intersectsJulia ray@(Ray ro _ rmin rmax) c mi e = go start where
+   start = rmin --max rmin $ sqrt $ max 0 $ sqLen ro - boundingRadius2
+   go rd
+      | rd > rmax = False
+      | d < e = True
+      | otherwise = go (rd + d) where
+         d = (0.5 * nz * log nz) / qlen zp
+         nz = qlen z
+         o = rayAt ray rd
+         (z, zp) = iter (qpromote o) c mi
 
 prepare :: Ray -> Maybe Flt
 prepare (Ray ro rd rmin rmax)
@@ -50,8 +74,8 @@ prepare (Ray ro rd rmin rmax)
    | otherwise = solveQuadric a b c >>= cb
    where
          cb (t0, t1) -- check with ray bounds
-            | t0 > rmax ||  t1 < rmin = trace (show rmax) $ Nothing
-            | otherwise = trace ("t0=" ++ show t0) $ Just t0
+            | t0 > rmax || t1 < rmin = Nothing
+            | otherwise = Just t0
 
          c = sqLen ro - juliaRadius2
          a = sqLen rd
@@ -76,7 +100,7 @@ traverseJulia r c mi e = prepare r >>= go where
    rd = rayDir r
    irl = 1 / len rd
    go d
-      | sqLen o > juliaRadius2 + 1 = trace ("out " ++ show o ++ " orig=" ++ show r ++ " d=" ++ show (sqLen o - juliaRadius2)) Nothing
+      | sqLen o > juliaRadius2 + e = Nothing
       | dist * irl < e = if onRay r d then Just (d, o) else Nothing
       | otherwise = go (d + dist)
       where

@@ -3,13 +3,13 @@
 # Julia Fractal Test
 #
 
-# filter mitchell 3.0 3.0 0.333333 0.333333
-filter box
+filter mitchell 3.0 3.0 0.333333 0.333333
+# filter box
 
 imageSize 640 480
 
-#sampler { stratified xSamples 5 ySamples 5 }
-sampler { random samples 1 }
+sampler { stratified xSamples 3 ySamples 3 }
+#sampler { random samples 1 }
 
 
 integrator {
@@ -76,10 +76,10 @@ shape {
    mesh
    vertexCount 4
    faceCount 1
-   v 1.0 5 -1.0
-   v 1.0 5 1.0
-   v -1.0 5 1.0
-   v -1.0 5 -1.0
+   v 1.0 3 -1.0
+   v 1.0 3 1.0
+   v -1.0 3 1.0
+   v -1.0 3 -1.0
    f 3 2 1 0
 }
 
@@ -96,6 +96,6 @@ fractal {
 #   c -0.2 0.4 -0.4 -0.4
    c -0.2 0.6 0.2 0.2
 #   c -0.213 -0.041 -0.563 -0.56
-   epsilon 0.00001
-   iterations 15
+   epsilon 0.000025
+   iterations 16
 }
