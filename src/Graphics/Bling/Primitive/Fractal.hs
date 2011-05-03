@@ -18,18 +18,14 @@ import Graphics.Bling.Math
 import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 
-data Fractal = Julia
-   { _juliaC    :: Quaternion
-   , _epsilon   :: Flt
-   , _maxIt     :: Int
-   }
+data Fractal = Julia Quaternion Flt Int
    
 mkJuliaQuat :: Quaternion -> Flt -> Int -> Fractal
 mkJuliaQuat = Julia
 
 data FractalPrim = FP
-   { fractal   :: Fractal
-   , material  :: Material
+   { _fractal   :: Fractal
+   , _material  :: Material
    }
 
 mkFractalPrim :: Fractal -> Material -> FractalPrim
@@ -41,21 +37,25 @@ instance Primitive FractalPrim where
    worldBounds _ = AABB (mkPoint n n n) $ mkPoint p p p where
       (n, p) = (-juliaRadius, juliaRadius)
       
-   intersects (FP (Julia c e mi) _) r = intersectsJulia (nRay r) c mi e
-   intersect p@(FP (Julia mu e mi) mat) ray =
-      intersectJulia (nRay ray) mu mi e >>= \(d, dg) ->
-         Just $ Intersection d dg (mkAnyPrim p) mat
+   intersects (FP (Julia q e mi) _) r =
+      maybe False (\_ -> trace "yo" True) $ traverseJulia r q mi e
+   
+   intersect p@(FP (Julia q e mi) m) r = Nothing
+--      traverseJulia r q mi e >>= \(d, o) ->
+--         Just $ Intersection d (mkDg o $ normalJulia o q mi e) (mkAnyPrim p) m
 
-nRay :: Ray -> Ray
-nRay (Ray ro rd rmin rmax) = Ray ro rd' rmin' rmax' where
-   l = len rd
-   rmin' = rmin * l
-   rmax' = rmax * l
-   rd' = rd * vpromote (1 / l)
+prepare :: Ray -> Maybe Flt
+prepare (Ray ro rd rmin rmax)
+   | c <= 0 = Just rmin -- start inside sphere
+   | otherwise = solveQuadric a b c >>= cb
+   where
+         cb (t0, t1) -- check with ray bounds
+            | t0 > rmax ||  t1 < rmin = trace (show rmax) $ Nothing
+            | otherwise = trace ("t0=" ++ show t0) $ Just t0
 
---
--- The Julia Quaternion Fractal
---
+         c = sqLen ro - juliaRadius2
+         a = sqLen rd
+         b = 2 * (rd `dot` ro)
 
 -- | the radius of the sphere where the Julia Quaternion lives
 juliaRadius :: Flt
@@ -65,44 +65,26 @@ juliaRadius = sqrt juliaRadius2
 juliaRadius2 :: Flt
 juliaRadius2 = 3
 
-intersectsJulia
+traverseJulia
    :: Ray
    -> Quaternion
    -> Int
    -> Flt
-   -> Bool
--- intersectsJulia _ _ _ _ = False
-intersectsJulia ray@(Ray ro _ rmin rmax) c mi e = go start where
-   start = rmin --max rmin $ sqrt $ max 0 $ sqLen ro - boundingRadius2
-   go rd
-      | rd > rmax = False
-      | d < e = True
-      | otherwise = go (rd + d) where
-         d = (0.5 * nz * log nz) / qlen zp
-         nz = qlen z
-         o = rayAt ray rd
-         (z, zp) = iter (qpromote o) c mi
-
-intersectJulia
-   :: Ray
-   -> Quaternion
-   -> Int
-   -> Flt
-   -> Maybe (Flt, DifferentialGeometry)
-
-intersectJulia r@(Ray ro _ rmin rmax) c mi e = {-trace ("start=" ++ show start) $-} go start where
-   start = rmin -- max rmin $ sqrt $ max 0 $ sqLen ro - boundingRadius2
-   end = 10 -- min rmax $ len $ (rayAt r boundingRadius2) - ro
-   go rd
-      | rd > end = Nothing
-      | d < e = Just $ (len (o - ro), mkDg o $ normalJulia o c mi e)
-      | otherwise = go (rd + d)
+   -> Maybe (Flt, Point)
+   
+traverseJulia r c mi e = prepare r >>= go where
+   rd = rayDir r
+   irl = 1 / len rd
+   go d
+      | sqLen o > juliaRadius2 + 1 = trace ("out " ++ show o ++ " orig=" ++ show r ++ " d=" ++ show (sqLen o - juliaRadius2)) Nothing
+      | dist * irl < e = if onRay r d then Just (d, o) else Nothing
+      | otherwise = go (d + dist)
       where
-         d = (0.5 * nz * log nz) / qlen zp
+         dist = (0.5 * nz * log nz) / qlen zp
          nz = qlen z
-         o = {-trace ("r=" ++ show r ++ ", rd=" ++ show rd) $-} rayAt r rd
-         (z, zp) = {-trace ("o=" ++ show o ++ ", c=" ++ show c) $-} iter (qpromote o) c mi
-         
+         o = rayAt r d
+         (z, zp) = iter (qpromote o) c mi
+   
 qpromote :: Point -> Quaternion
 qpromote (Vector x y z) = Quaternion x $ mkV (y, z, 0)
 
@@ -126,7 +108,7 @@ iter'
    
 iter' qs _ 0 = qs
 iter' qs c n = iter' qs' c (n-1) where
-   qs' = map (qadd c) $ map qsq qs
+   qs' = map (qadd c . qsq) qs
 
 -- | if the magnitude of the quaternion exceeds this value it is considered
 -- to diverge
@@ -141,11 +123,10 @@ iter
 
 iter qi c mi = go qi qzero mi where
    go q qp i
---      | trace ("q=" ++ show q ++ ", qp=" ++ show qp) False = undefined
       | i == 0 = (q', qp')
-      | q `qdot` q > escapeThreashold = (q', qp')
+      | qlen q > escapeThreashold = (q', qp')
       | otherwise = go q' qp' (i-1) where
-         q' = (qsq q) `qadd` c
+         q' = qsq q `qadd` c
          qp' = (q `qmul` qp) `qscale` 2
          
 -- | a Quaternion
@@ -163,18 +144,11 @@ qlen (Quaternion r (Vector i j k)) = sqrt $ r*r + i*i + j*j + k*k
 qscale :: Quaternion -> Flt -> Quaternion
 qscale (Quaternion r i) s = Quaternion (r*s) $ vpromote s * i
 
-qdot :: Quaternion -> Quaternion -> Flt
-qdot q r = (real q * real r) + (imag q `dot` imag r)
-
 qadd :: Quaternion -> Quaternion -> Quaternion
-qadd q r = Quaternion r' i' where
-   r' = real q + real r
-   i' = imag q + imag r
+qadd q r = Quaternion (real q + real r) (imag q + imag r)
 
 qsub :: Quaternion -> Quaternion -> Quaternion
-qsub q r = Quaternion r' i' where
-   r' = real q - real r
-   i' = imag q - imag r
+qsub q r = Quaternion (real q - real r) (imag q - imag r)
 
 qmul :: Quaternion -> Quaternion -> Quaternion
 qmul q r = Quaternion r' i' where

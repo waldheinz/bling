@@ -201,17 +201,15 @@ lerp t v1 v2 = (1 - t) * v1 + t * v2
 solveQuadric :: Flt -> Flt -> Flt -> Maybe (Flt, Flt)
 {-# INLINE solveQuadric #-}
 solveQuadric a b c
-   | discrim < 0.0 = Nothing
+   | discrim < 0 = Nothing
    | otherwise = Just (min t0 t1, max t0 t1)
    where
-         t0 = q / a
-         t1 = c / q
+         (t0, t1) = (q / a, c / q)
          q
             | b < 0 = -0.5 * (b - rootDiscrim)
             | otherwise = -0.5 * (b + rootDiscrim)
          rootDiscrim = sqrt discrim
          discrim = b * b - 4.0 * a * c
-                  
 
 -- | generates a random point on the unit sphere,
 -- see http://mathworld.wolfram.com/SpherePointPicking.html
