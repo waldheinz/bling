@@ -11,7 +11,6 @@ module Graphics.Bling.Primitive.Fractal (
    
 ) where
 
-import Maybe
 import Debug.Trace
 
 import Graphics.Bling.AABB
@@ -20,9 +19,9 @@ import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 
 data Fractal = Julia
-   { juliaC    :: Quaternion
-   , epsilon   :: Flt
-   , maxIt     :: Int
+   { _juliaC    :: Quaternion
+   , _epsilon   :: Flt
+   , _maxIt     :: Int
    }
    
 mkJuliaQuat :: Quaternion -> Flt -> Int -> Fractal
@@ -35,10 +34,13 @@ data FractalPrim = FP
 
 mkFractalPrim :: Fractal -> Material -> FractalPrim
 mkFractalPrim = FP
-   
+
 instance Primitive FractalPrim where
    flatten fp = [mkAnyPrim fp]
-   worldBounds fp = AABB (mkPoint (-3) (-3) (-3)) $ mkPoint 3 3 3
+   
+   worldBounds _ = AABB (mkPoint n n n) $ mkPoint p p p where
+      (n, p) = (-juliaRadius, juliaRadius)
+      
    intersects (FP (Julia c e mi) _) r = intersectsJulia (nRay r) c mi e
    intersect p@(FP (Julia mu e mi) mat) ray =
       intersectJulia (nRay ray) mu mi e >>= \(d, dg) ->
@@ -50,6 +52,18 @@ nRay (Ray ro rd rmin rmax) = Ray ro rd' rmin' rmax' where
    rmin' = rmin * l
    rmax' = rmax * l
    rd' = rd * vpromote (1 / l)
+
+--
+-- The Julia Quaternion Fractal
+--
+
+-- | the radius of the sphere where the Julia Quaternion lives
+juliaRadius :: Flt
+juliaRadius = sqrt juliaRadius2
+
+-- | often we need @juliaRadius@ squared
+juliaRadius2 :: Flt
+juliaRadius2 = 3
 
 intersectsJulia
    :: Ray
@@ -113,9 +127,6 @@ iter'
 iter' qs _ 0 = qs
 iter' qs c n = iter' qs' c (n-1) where
    qs' = map (qadd c) $ map qsq qs
-
-boundingRadius2 :: Flt
-boundingRadius2 = 5
 
 -- | if the magnitude of the quaternion exceeds this value it is considered
 -- to diverge
