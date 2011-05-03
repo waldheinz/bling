@@ -1,0 +1,100 @@
+
+#
+# Julia Fractal Test
+#
+
+# filter mitchell 3.0 3.0 0.333333 0.333333
+filter box
+
+imageSize 640 480
+
+# sampler { stratified xSamples 1 ySamples 1 }
+sampler { random samples 1 }
+
+
+integrator {
+   path
+   maxDepth 5
+}
+
+transform {
+   lookAt {
+      pos 3.0 3.0 -2.0
+      look 0 0 0
+      up 0 1 0
+   }
+}
+
+camera {
+   perspective
+   fov 45
+   lensRadius 0
+   focalDistance 10
+}
+
+#
+# ground plane
+#
+
+transform {
+   identity
+   translate 0 -2 0
+}
+
+material {
+   matte
+   kd {
+      graphPaper 0.1
+      tex1 { constant rgb 0.95 0.95 0.95 }
+      tex2 { constant rgb 0.05 0.05 0.05 }
+   }
+   sigma { constant 0.0 }
+}
+
+shape {
+   mesh
+   vertexCount 4
+   faceCount 1
+   v  50.0 0.0 -50.0
+   v -50.0 0.0 -50.0
+   v -50.0 0.0  50.0
+   v  50.0 0.0  50.0
+   f 3 2 1 0
+}
+
+#
+# light source
+#
+
+transform { identity }
+
+emission {
+   rgb 12 12 12
+}
+
+shape {
+   mesh
+   vertexCount 4
+   faceCount 1
+   v 2.0 5 -2.0
+   v 2.0 5 2.0
+   v -2.0 5 2.0
+   v -2.0 5 -2.0
+   f 3 2 1 0
+}
+
+emission { none }
+
+material { plastic
+   kd { constant rgb 0.1 0.2 0.4 }
+   ks { constant rgb 0.5 0.5 0.5 }
+   rough { constant 0.003125 }
+}
+
+fractal {
+   julia
+   c -0.2 0.4 -0.4 -0.4
+#   c -0.213 -0.041 -0.563 -0.56
+   epsilon 0.01
+   iterations 15
+}

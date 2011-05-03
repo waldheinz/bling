@@ -11,6 +11,10 @@ module Graphics.Bling.Primitive.Fractal (
    
 ) where
 
+import Maybe
+import Debug.Trace
+
+import Graphics.Bling.AABB
 import Graphics.Bling.Math
 import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
@@ -33,10 +37,36 @@ mkFractalPrim :: Fractal -> Material -> FractalPrim
 mkFractalPrim = FP
    
 instance Primitive FractalPrim where
+   flatten fp = [mkAnyPrim fp]
+   worldBounds fp = AABB (mkPoint (-3) (-3) (-3)) $ mkPoint 3 3 3
+   intersects (FP (Julia c e mi) _) r = False -- intersectsJulia (nRay r) c mi e
    intersect p@(FP (Julia mu e mi) mat) ray =
-      intersectJulia ray mu mi e >>= \(d, dg) ->
+      intersectJulia (nRay ray) mu mi e >>= \(d, dg) ->
          Just $ Intersection d dg (mkAnyPrim p) mat
 
+nRay :: Ray -> Ray
+nRay (Ray ro rd rmin rmax) = Ray ro rd' rmin' rmax' where
+   l = len rd
+   rmin' = rmin * l
+   rmax' = rmax * l
+   rd' = rd * vpromote (1 / l)
+
+intersectsJulia
+   :: Ray
+   -> Quaternion
+   -> Int
+   -> Flt
+   -> Bool
+intersectsJulia ray@(Ray ro _ rmin rmax) c mi e = go start where
+   start = max rmin $ sqrt $ max 0 $ sqLen ro - boundingRadius2
+   go rd
+      | rd > rmax = False
+      | d < e = True
+      | otherwise = go (rd + d) where
+         d = (0.5 * nz * log nz) / qlen zp
+         nz = qlen z
+         o = rayAt ray rd
+         (z, zp) = iter (qpromote o) c mi
 
 intersectJulia
    :: Ray
@@ -45,26 +75,30 @@ intersectJulia
    -> Flt
    -> Maybe (Flt, DifferentialGeometry)
 
-intersectJulia (Ray ro rd rmin rmax) c md e = go ro where
-   go o
-      | sqLen o > boundingRadius2 = Nothing
-      | d < e = Just $ (d, mkDg o $ normalJulia o c md)
-      | otherwise = go $ o + smul d rd
+intersectJulia r@(Ray ro _ rmin rmax) c mi e = {-trace ("start=" ++ show start) $-} go start where
+   start = max rmin $ sqrt $ max 0 $ sqLen ro - boundingRadius2
+   end = 10 -- min rmax $ len $ (rayAt r boundingRadius2) - ro
+   go rd
+      | rd > end = Nothing
+      | d < e = Just $ (len (o - ro), mkDg o $ normalJulia o c (mi `div` 2) (e*2))
+      | otherwise = go (rd + d)
       where
-         d = 0.5 * nz * log nz / qlen zp
+         d = (0.5 * nz * log nz) / qlen zp
          nz = qlen z
-         (z, zp) = iter (qpromote o) c md
+         o = {-trace ("r=" ++ show r ++ ", rd=" ++ show rd) $-} rayAt r rd
+         (z, zp) = {-trace ("o=" ++ show o ++ ", c=" ++ show c) $-} iter (qpromote o) c mi
          
 qpromote :: Point -> Quaternion
 qpromote (Vector x y z) = Quaternion x $ mkV (y, z, 0)
 
-normalJulia :: Point -> Quaternion -> Int -> Normal
-normalJulia p c mi = normalize $ mkV (gx, gy, gz) where
+normalJulia :: Point -> Quaternion -> Int -> Flt -> Normal
+normalJulia p c mi e = normalize v where
+   v = mkV (gx, gy, gz)
    (gx, gy, gz) = (qlen gx2' - qlen gx1', qlen gy2' - qlen gy1', qlen gz2' - qlen gz1')
    qp = qpromote p
-   (dx, gx1, gx2) = (qpromote $ mkV (delta, 0, 0), qp `qsub` dx, qp `qadd` dx)
-   (dy, gy1, gy2) = (qpromote $ mkV (0, delta, 0), qp `qsub` dy, qp `qadd` dy)
-   (dz, gz1, gz2) = (qpromote $ mkV (0, 0, delta), qp `qsub` dz, qp `qadd` dz)
+   (dx, gx1, gx2) = (qpromote $ mkV (e, 0, 0), qp `qsub` dx, qp `qadd` dx)
+   (dy, gy1, gy2) = (qpromote $ mkV (0, e, 0), qp `qsub` dy, qp `qadd` dy)
+   (dz, gz1, gz2) = (qpromote $ mkV (0, 0, e), qp `qsub` dz, qp `qadd` dz)
    v' = iter' [gx1, gx2, gy1, gy2, gz1, gz2] c mi
    (gx1':gx2':gy1':gy2':gz1':gz2':[]) = v'
    
@@ -82,9 +116,6 @@ iter' qs c n = iter' qs' c (n-1) where
 boundingRadius2 :: Flt
 boundingRadius2 = 3
 
-delta :: Flt
-delta = 1e-4
-
 -- | if the magnitude of the quaternion exceeds this value it is considered
 -- to diverge
 escapeThreashold :: Flt
@@ -96,13 +127,14 @@ iter
    -> Int -- ^ the maximum number of iterations
    -> (Quaternion, Quaternion) -- ^ the result and it's derivate
 
-iter qi c md = go qi qzero md where
-   go q qp d
-      | d == 0 = (q, qp)
-      | q `qdot` q > escapeThreashold = (q, qp)
-      | otherwise = go q' qp' (d-1) where
-         q' = qsq q `qadd` c
-         qp' = q `qmul` qp `qscale` 2
+iter qi c mi = go qi qzero mi where
+   go q qp i
+--      | trace ("q=" ++ show q ++ ", qp=" ++ show qp) False = undefined
+      | i == 0 = (q', qp')
+      | q `qdot` q > escapeThreashold = (q', qp')
+      | otherwise = go q' qp' (i-1) where
+         q' = (qsq q) `qadd` c
+         qp' = (q `qmul` qp) `qscale` 2
          
 -- | a Quaternion
 data Quaternion = Quaternion
@@ -120,7 +152,7 @@ qscale :: Quaternion -> Flt -> Quaternion
 qscale (Quaternion r i) s = Quaternion (r*s) $ vpromote s * i
 
 qdot :: Quaternion -> Quaternion -> Flt
-qdot q r = real q * real r + (imag q `dot` imag r)
+qdot q r = (real q * real r) + (imag q `dot` imag r)
 
 qadd :: Quaternion -> Quaternion -> Quaternion
 qadd q r = Quaternion r' i' where
@@ -149,4 +181,3 @@ qsq :: Quaternion -> Quaternion
 qsq (Quaternion r i) = Quaternion r' i' where
    r' = r * r - i `dot` i
    i' = vpromote (2 * r) * i
-
