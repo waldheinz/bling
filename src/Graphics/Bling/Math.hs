@@ -156,6 +156,16 @@ onRay :: Ray -> Flt -> Bool
 {-# INLINE onRay #-}
 onRay (Ray _ _ tmin tmax) t = t >= tmin && t <= tmax
 
+-- | normalizes the direction component of a @Ray@ and adjusts the
+-- min/max values accordingly
+normalizeRay :: Ray -> Ray
+{-# INLINE normalizeRay #-}
+normalizeRay (Ray ro rd rmin rmax) = Ray ro rd' rmin' rmax' where
+   l = len rd
+   rmin' = rmin * l
+   rmax' = rmax * l
+   rd' = rd * vpromote (1 / l)
+
 component :: Vector -> Dimension -> Flt
 {-# INLINE component #-}
 component !(Vector x y z) !d
