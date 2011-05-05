@@ -16,7 +16,6 @@ module Graphics.Bling.Shape (
 
 import Data.List (foldl')
 import Data.Maybe
-import Debug.Trace
 
 import Graphics.Bling.AABB
 import Graphics.Bling.Math
@@ -83,7 +82,11 @@ intersect (Triangle v1 v2 v3) r@(Ray ro rd tmin tmax)
 
 intersects :: Shape -> Ray -> Bool
 intersects (Sphere rad) (Ray ro rd tmin tmax) = si where
-   si = maybe False (\(t0, t1) -> t0 < tmax && t1 > tmin ) roots
+   si = maybe False cb roots
+   cb (t0, t1) -- check with ray bounds
+      | t0 > tmax || t1 < tmin = False
+      | t0 < tmin = t1 < tmax
+      | otherwise = True
    a = sqLen rd
    b = 2 * dot ro rd
    c = sqLen ro - (rad * rad)

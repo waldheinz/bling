@@ -55,18 +55,18 @@ emission { rgb 3 9 3 }
 
 transform {
    identity
-   rotateZ 45.0
+   translate -20 4 0
+   rotateZ -45.0
 }
 
 shape {
    mesh
    vertexCount 4
    faceCount 1
-   v 2 5 0
-   v 2 5 2
-   v 0 5 2
-   v 0 5 0
- #  f 0 1 2 3
+   v 2 0 0
+   v 2 0 2
+   v 0 0 2
+   v 0 0 0
    f 3 2 1 0
 }
 
@@ -78,7 +78,7 @@ emission { rgb 10 4 2 }
 
 transform {
    identity
-   translate -5 5 0
+   translate 0 5 0
 }
 
 # shape { sphere radius 1 }
