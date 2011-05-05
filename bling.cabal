@@ -7,6 +7,14 @@ License:             GPL
 Build-Type:          Simple
 Cabal-Version:       >=1.8
 
+Flag Gui
+   Description:      Enable building the SDL based GUI
+   Default:          False
+   
+Flag Devel
+   Description:      Enable building some development tools
+   Default:          False
+   
 Library
    Hs-Source-Dirs:   src
    Build-Depends:
@@ -78,6 +86,11 @@ Executable bling
    ghc-prof-options: -O2 -fexcess-precision -prof -auto-all -rtsopts
 
 Executable bling-gui
+   if flag(Gui)
+      Buildable:     True
+   else
+      Buildable:     False
+      
    hs-source-dirs:   src/Graphics/Bling/Main
    Main-is:          GuiMain.hs
    Build-Depends:
@@ -88,12 +101,22 @@ Executable bling-gui
    ghc-prof-options: -O2 -fexcess-precision -prof -auto-all -rtsopts
 
 Executable bling-test
+   if flag(Devel)
+      Buildable:     True
+   else
+      Buildable:     False
+    
   Hs-Source-Dirs:    src/Graphics/Bling/Main
   Main-Is:           Tests.hs
   Build-Depends:     bling, haskell98, QuickCheck, base
   Ghc-Options:       -Wall -O -fexcess-precision
 
 Executable bling-benchmark
+   if flag(Devel)
+      Buildable:     True
+   else
+      Buildable:     False
+    
    hs-source-dirs:    src/Graphics/Bling/Benchmark
    Main-is:           Benchmark.hs
    Build-Depends:     bling, base >= 3 && < 5, haskell98, mwc-random, vector,
