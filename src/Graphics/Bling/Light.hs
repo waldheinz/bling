@@ -64,6 +64,19 @@ le (Directional _ _) _ = black
 -- that intersection for le
 le (AreaLight _ _ _ _) _ = black
 
+lightL
+   :: Light
+   -> Point
+   -> Normal
+   -> Vector
+   -> Spectrum
+
+lightL (AreaLight _ r _ _) _ n w
+   | n `dot` w > 0 = r
+   | otherwise = 0
+
+lightL _ _ _ _ = black
+
 -- | samples one light source
 sample
    :: Light -- ^ the light to sample
@@ -73,9 +86,10 @@ sample
    -> LightSample -- ^ the computed @LightSample@
 sample (SoftBox r) p n us = lightSampleSB r p n us
 sample (Directional r d) p n _ = lightSampleD r d p n
-sample (AreaLight s r l2w w2l) p _ us = LightSample r wi' ray pd False where
+sample al@(AreaLight s _ l2w w2l) p _ us = LightSample r wi' ray pd False where
+   r = lightL al ps ns (-wi)
    p' = transPoint w2l p -- point to be lit in local space
-   (ps, _) = S.sample s p' us -- point in local space
+   (ps, ns) = S.sample s p' us -- point in local space
    wi' = transVector l2w wi -- incident vector in world space
    wi = normalize (ps - p') -- incident vector in local space
    pd = S.pdf s p' wi -- pdf (computed in local space)
