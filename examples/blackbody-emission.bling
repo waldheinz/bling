@@ -10,6 +10,10 @@ imageSize 640 480
 sampler { random samples 1 }
 sampler { stratified xSamples 5 ySamples 5 }
 
+integrator {
+   directLighting
+}
+
 transform {
    lookAt {
       pos 0 3 -3
