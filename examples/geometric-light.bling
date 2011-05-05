@@ -2,30 +2,45 @@
 # test scene for geometric light sources
 
 
-filter triangle 3.0 3.0
-#filter box
-filter mitchell 3.0 3.0 0.333333 0.333333
+#filter triangle 3.0 3.0
+filter box
+#filter mitchell 3.0 3.0 0.333333 0.333333
 imageSize 640 480
-samplesPerPixel 1
 
-beginCamera
-pos 0.0 50.0 -50.0
-lookAt 0.0 0.0 0.0
-up 0.0 1.0 0.0
-fov 1.3
-endCamera
+sampler { random samples 1 }
+
+transform {
+   lookAt {
+      pos 0 15 -15
+      look 0 0 0
+      up 0 1 0
+   }
+}
+
+
+camera {
+   perspective
+   fov 80
+   lensRadius 0
+   focalDistance 4
+}
+
+transform {identity}
 
 # ground plane
 
-beginMaterial type matte
-   beginTexture kd
-      type constant
-      rgb 0.9 0.9 0.9
-   endTexture
-endMaterial
+material {
+   matte
+   kd {
+      graphPaper 0.1
+      tex1 { constant rgb 0.95 0.95 0.95 }
+      tex2 { constant rgb 0.05 0.05 0.05 }
+   }
+   sigma { constant 0.0 }
+}
 
-beginShape
-   type mesh
+shape {
+   mesh
    vertexCount 4
    faceCount 1
    v  50.0 0.0 -50.0
@@ -33,58 +48,37 @@ beginShape
    v -50.0 0.0  50.0
    v  50.0 0.0  50.0
    f 3 2 1 0
-endShape
+}
 
 # light source
-beginEmission
-   rgb 0.3 0.9 0.3
-endEmission
+emission { rgb 3 9 3 }
 
-beginTransform
-   # just test matrix parsing
-   beginMatrix
-      m 1.0 0.0 0.0 0.0
-      m 0.0 1.0 0.0 0.0
-      # can we add a comment here?
-      m 0.0 0.0 1.0 0.0
-      # sure we can!
-      m 0.0 0.0 0.0 1.0
-      i 1.0 0.0 0.0 0.0
-      i 0.0 1.0 0.0 0.0
-      i 0.0 0.0 1.0 0.0
-      i 0.0 0.0 0.0 1.0
-   endMatrix
-endTransform
-
-beginTransform
+transform {
    identity
- #  rotateZ 45.0
-endTransform
+   rotateZ 45.0
+}
 
-beginShape
-   type mesh
+shape {
+   mesh
    vertexCount 4
    faceCount 1
-   v 2.0 5.7 0.0
-   v 2.0 5.7 2.0
-   v 0.0 5.7 2.0
-   v 0.0 5.7 0.0
+   v 2 5 0
+   v 2 5 2
+   v 0 5 2
+   v 0 5 0
  #  f 0 1 2 3
    f 3 2 1 0
-endShape
+}
 
 #
 # sphere light
 #
 
-beginEmission
-   black
-endEmission
+emission { rgb 10 4 2 }
 
-beginTransform
+transform {
    identity
-   translate -4.0 3.0 0.0
-endTransform
+   translate -5 5 0
+}
 
-beginShape type sphere radius 2.0 endShape
-
+# shape { sphere radius 1 }
