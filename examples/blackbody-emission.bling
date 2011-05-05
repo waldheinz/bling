@@ -8,7 +8,7 @@ filter triangle 2.0 2.0
 imageSize 640 480
 
 sampler { random samples 1 }
-#sampler { stratified xSamples 3 ySamples 3 }
+sampler { stratified xSamples 5 ySamples 5 }
 
 transform {
    lookAt {
@@ -53,24 +53,24 @@ transform {
    translate -2 0.5 -1
 }
 
-emission { temp 10000 }
-shape { sphere radius 0.0009765625}
-transform { translate 1 0 0 }
-
-emission { temp 9000 }
-shape { sphere radius 0.001953125 }
-transform { translate 1 0 0 }
-
-emission { temp 8000 }
-shape { sphere radius 0.00390625 }
-transform { translate 1 0 0 }
-
-emission { temp 7000 }
-shape { sphere radius 0.0078125 }
+emission { temp 6500 }
+shape { sphere radius 0.0041370103 }
 transform { translate 1 0 0 }
 
 emission { temp 6000 }
-shape { sphere radius 0.015625 }
+shape { sphere radius 0.0048987344 }
+transform { translate 1 0 0 }
+
+emission { temp 5500 }
+shape { sphere radius 0.005973678 }
+transform { translate 1 0 0 }
+
+emission { temp 5000 }
+shape { sphere radius 0.007568171 }
+transform { translate 1 0 0 }
+
+emission { temp 4500 }
+shape { sphere radius 0.010088972 }
 transform { translate 1 0 0 }
 
 transform {
@@ -78,21 +78,21 @@ transform {
    translate -2 0.5 1
 }
 
-emission { temp 5000 }
-shape { sphere radius 0.03125 }
+emission { temp 4000 }
+shape { sphere radius 0.014422736 }
 transform { translate 1 0 0 }
 
-emission { temp 4000 }
-shape { sphere radius 0.0625 }
+emission { temp 3500 }
+shape { sphere radius 0.022774793 }
 transform { translate 1 0 0 }
 
 emission { temp 3000 }
-shape { sphere radius 0.125 }
+shape { sphere radius 0.041717213 }
+transform { translate 1 0 0 }
+
+emission { temp 2500 }
+shape { sphere radius 0.0967 }
 transform { translate 1 0 0 }
 
 emission { temp 2000 }
-shape { sphere radius 0.25 }
-transform { translate 1 0 0 }
-
-emission { temp 1000 }
 shape { sphere radius 0.5 }
