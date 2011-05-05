@@ -169,19 +169,19 @@ pdf s _ _ = 1 / area s
 --   which is preferably visible from the specified point
 sample :: Shape -> Point -> Rand2D -> (Point, Normal)
 sample sp@(Sphere r) p us
-   | insideSphere r p = 
+   | insideSphere r p =
       let rndPt = randomOnSphere us 
       in (rndPt * vpromote r, rndPt) -- sample full sphere if inside
       
    | otherwise = (ps, normalize ps) where -- sample only the visible part if outside
       d = uniformSampleCone cs cosThetaMax us
       cs = coordinateSystem dn
-      dn = normalize p
+      dn = normalize (-p)
       cosThetaMax = sqrt $ max 0 (1 - (r * r) / sqLen p)
       ps = maybe (dn * vpromote r) (\i -> rayAt ray (fst i)) int where
          ray = Ray p d 0 infinity
          int = sp `intersect` ray
-   
+
 sample (Triangle v1 v2 v3) _ (u1, u2) = (p, n) where
    p = p1 * vpromote b1 + p2 * vpromote b2 + p3 * vpromote (1 - b1 - b2)
    (p1, p2, p3) = (vertexPos v1, vertexPos v2, vertexPos v3)
