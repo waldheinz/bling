@@ -1,0 +1,98 @@
+
+# test scene for geometric light sources
+
+
+filter triangle 2.0 2.0
+#filter box
+#filter mitchell 3.0 3.0 0.333333 0.333333
+imageSize 640 480
+
+sampler { random samples 1 }
+#sampler { stratified xSamples 3 ySamples 3 }
+
+transform {
+   lookAt {
+      pos 0 3 -3
+      look 0 0 0
+      up 0 1 0
+   }
+}
+
+camera {
+   perspective
+   fov 65
+   lensRadius 0
+   focalDistance 4
+}
+
+transform { identity }
+
+# ground plane
+
+material { plastic
+   kd { constant rgb 0.15 0.15 0.15 }
+   ks { constant rgb 0.5 0.5 0.5 }
+   rough { constant 0.005 }
+}
+
+shape {
+   mesh
+   vertexCount 4
+   faceCount 1
+   v  50.0 0.0 -50.0
+   v -50.0 0.0 -50.0
+   v -50.0 0.0  50.0
+   v  50.0 0.0  50.0
+   f 3 2 1 0
+}
+
+material { blackbody }
+
+transform {
+   identity
+   translate -2 0.5 -1
+}
+
+emission { temp 10000 }
+shape { sphere radius 0.0009765625}
+transform { translate 1 0 0 }
+
+emission { temp 9000 }
+shape { sphere radius 0.001953125 }
+transform { translate 1 0 0 }
+
+emission { temp 8000 }
+shape { sphere radius 0.00390625 }
+transform { translate 1 0 0 }
+
+emission { temp 7000 }
+shape { sphere radius 0.0078125 }
+transform { translate 1 0 0 }
+
+emission { temp 6000 }
+shape { sphere radius 0.015625 }
+transform { translate 1 0 0 }
+
+transform {
+   identity
+   translate -2 0.5 1
+}
+
+emission { temp 5000 }
+shape { sphere radius 0.03125 }
+transform { translate 1 0 0 }
+
+emission { temp 4000 }
+shape { sphere radius 0.0625 }
+transform { translate 1 0 0 }
+
+emission { temp 3000 }
+shape { sphere radius 0.125 }
+transform { translate 1 0 0 }
+
+emission { temp 2000 }
+shape { sphere radius 0.25 }
+transform { translate 1 0 0 }
+
+emission { temp 1000 }
+shape { sphere radius 0.5 }

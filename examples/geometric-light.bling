@@ -78,7 +78,7 @@ emission { rgb 10 4 2 }
 
 transform {
    identity
-   translate 0 0 0
+   translate -5 2 0
 }
 
-shape { sphere radius 1 }
+shape { sphere radius 2 }
