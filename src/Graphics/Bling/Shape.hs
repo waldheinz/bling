@@ -153,17 +153,8 @@ pdf :: Shape -- ^ the @Shape@ to compute the pdf for
     
 pdf s p wi = maybe 0 pdf' (s `intersect` r) where
    r = Ray p wi 0 infinity
-   f p = if isInfinite p then 0 else p
+   f pd = if isInfinite pd then 0 else pd
    pdf' (t, dg) = f $ sqLen (p - (rayAt r t)) / (absDot (dgN dg) (-wi) * area s)
-   
-pdf sp@(Sphere r) pos _
-   | insideSphere r pos = 1 / area sp
-   | otherwise = uniformConePdf cosThetaMax
-   where
-      cosThetaMax = sqrt $ max 0 (1 - r * r / sqLen pos)
-
--- for general shapes just return the inverse of the area
-pdf s _ _ = 1 / area s
 
 -- | returns a random point (along with its normal) on the object, 
 --   which is preferably visible from the specified point
