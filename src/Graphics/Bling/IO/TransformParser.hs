@@ -70,11 +70,9 @@ tTrans = do
    setState s { transform = concatTrans (transform s) (translate d) }
 
 tMatrix :: JobParser ()
-tMatrix = do
-   _ <- try (string "beginMatrix")
+tMatrix = (flip namedBlock) "matrix" $ do
    m <- mtr 'm'
    i <- mtr 'i'
-   _ <- ws >> string "endMatrix"
    let t = fromMatrix (m, i)
    s <- getState
    setState s { transform = concatTrans (transform s) t }
@@ -82,7 +80,8 @@ tMatrix = do
 mtr :: Char -> JobParser [[Flt]]
 mtr p = count 4 row where
    row = do
-      _ <- ws >> char p
+      _ <- char p
       r <- count 4 (try (do ws; flt))
+      _ <- ws
       return r
    
