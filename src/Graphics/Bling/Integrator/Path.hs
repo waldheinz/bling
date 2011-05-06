@@ -36,14 +36,11 @@ instance SurfaceIntegrator PathIntegrator where
    pp (PathIntegrator md) =
       PP.text ("Path Integrator " ++ (show md))
    
-directLight :: Scene -> Ray -> Spectrum
-directLight s ray = V.sum (V.map (`le` ray) (sceneLights s))
-
 nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled WeightedSpectrum
--- nextVertex _ 0 _ _ _ _ l = return (1, l) -- hard bound
 
-nextVertex s _ True ray Nothing t l _ = -- nothing hit, specular bounce
-   return (1, l + t * directLight s ray)
+-- nothing hit, specular bounce
+nextVertex s _ True ray Nothing t l _ = 
+   return (1, l + t * V.sum (V.map (`le` ray) (sceneLights s)))
    
 nextVertex _ _ False _ Nothing _ l _ = -- nothing hit, non-specular bounce
    return (1, l)
