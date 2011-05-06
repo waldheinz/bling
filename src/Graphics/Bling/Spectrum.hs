@@ -8,7 +8,9 @@ module Graphics.Bling.Spectrum (
    
    isBlack, sNaN, sInfinite,
    fromXyz,  toRGB, fromRGB, fromSpd, sConst, sBlackBody, sY,
-   sScale, sPow) where
+   sScale, sPow, sClamp, sSqrt
+   
+   ) where
 
 import Data.List (sortBy)
 import Data.Vector.Unboxed as V
@@ -134,11 +136,22 @@ instance Num Spectrum where
    
 -- | Decides if a @Spectrum@ is black (within an epsilon value).
 isBlack :: Spectrum -> Bool
+{-# INLINE isBlack #-}
 isBlack (Spectrum r g b) = r == 0 && g == 0 && b == 0
 
 sScale :: Spectrum -> Float -> Spectrum
 {-# INLINE sScale #-}
 sScale (Spectrum a b c) f = Spectrum (a*f) (b*f) (c*f)
+
+-- | clamps the @Spectrum@ coefficients to [0,1]
+sClamp :: Flt -> Flt -> Spectrum -> Spectrum
+{-# INLINE sClamp #-}
+sClamp smin smax (Spectrum r g b) = Spectrum (c r) (c g) (c b) where
+   c x = max smin $ min smax x
+
+sSqrt :: Spectrum -> Spectrum
+{-# INLINE sSqrt #-}
+sSqrt (Spectrum r g b) = Spectrum (sqrt r) (sqrt g) (sqrt b)
 
 sNaN :: Spectrum -> Bool
 {-# INLINE sNaN #-}

@@ -27,14 +27,15 @@ pMaterial = (flip namedBlock) "material" $ do
    t <- many alphaNum
    ws
    m <- case t of
-      "blackbody" -> return blackBodyMaterial
-      "glass"     -> pGlass
-      "measured"  -> pMeasuredMaterial
-      "metal"     -> pMetalMaterial
-      "plastic"   -> pPlasticMaterial
-      "matte"     -> pMatteMaterial
-      "mirror"    -> pMirrorMaterial
-      _           -> fail ("unknown material type " ++ t)
+      "blackbody"    -> return blackBodyMaterial
+      "glass"        -> pGlass
+      "measured"     -> pMeasuredMaterial
+      "metal"        -> pMetalMaterial
+      "shinyMetal"   -> pShinyMetal
+      "plastic"      -> pPlasticMaterial
+      "matte"        -> pMatteMaterial
+      "mirror"       -> pMirrorMaterial
+      _              -> fail ("unknown material type " ++ t)
    
    s <- getState
    setState s { material = m }
@@ -44,13 +45,21 @@ pGlass = do
    ior <- namedFloat "ior"
    s <- ws >> pSpectrumTexture "r"
    return $ glassMaterial ior s
-   
+
 pMetalMaterial :: JobParser Material
 pMetalMaterial = do
    eta <- pSpectrumTexture "eta"
    k <- ws >> pSpectrumTexture "k"
    rough <- ws >> pScalarTexture "rough"
    return (mkMetal eta k rough)
+
+pShinyMetal :: JobParser Material
+pShinyMetal = do
+   kr <- pSpectrumTexture "kr"
+   ks <- ws >> pSpectrumTexture "ks"
+   rough <- ws >> pScalarTexture "rough"
+   return $ mkShinyMetal kr ks rough
+
 
 pMirrorMaterial :: JobParser Material
 pMirrorMaterial = do

@@ -8,7 +8,7 @@ filter triangle 2.0 2.0
 imageSize 640 480
 
 sampler { random samples 1 }
-sampler { stratified xSamples 5 ySamples 5 }
+# sampler { stratified xSamples 5 ySamples 5 }
 
 integrator {
    directLighting
@@ -33,8 +33,8 @@ transform { identity }
 
 # ground plane
 
-material { plastic
-   kd { constant rgb 0.05 0.05 0.05 }
+material { shinyMetal
+   kr { constant rgb 0.05 0.05 0.05 }
    ks { constant rgb 0.25 0.25 0.25 }
    rough { constant 0.005 }
 }

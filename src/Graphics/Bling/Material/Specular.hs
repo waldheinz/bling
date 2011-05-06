@@ -1,10 +1,15 @@
 
 module Graphics.Bling.Material.Specular (
-
    
    -- * Specular materials
    
-   mirrorMaterial, glassMaterial
+   mirrorMaterial, glassMaterial,
+
+   -- * Specular BxDFs
+
+   SpecularReflection, SpecularTransmission,
+   mkSpecRefl
+   
    ) where
 
 import Graphics.Bling.Math
@@ -53,7 +58,14 @@ data SpecularReflection = SpecularReflection {
    _specReflR :: {-# UNPACK #-} !Spectrum,
    _specReflFresnel :: !Fresnel
    }
-        
+
+mkSpecRefl
+   :: Spectrum 
+   -> Fresnel
+   -> SpecularReflection
+   
+mkSpecRefl = SpecularReflection
+
 instance Bxdf SpecularReflection where
    bxdfType _ = mkBxdfType [Reflection, Specular]
    bxdfEval _ _ _ = black
