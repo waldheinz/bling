@@ -34,8 +34,8 @@ transform { identity }
 # ground plane
 
 material { plastic
-   kd { constant rgb 0.15 0.15 0.15 }
-   ks { constant rgb 0.5 0.5 0.5 }
+   kd { constant rgb 0.05 0.05 0.05 }
+   ks { constant rgb 0.25 0.25 0.25 }
    rough { constant 0.005 }
 }
 
@@ -52,9 +52,34 @@ shape {
 
 material { blackbody }
 
+
 transform {
    identity
    translate -2 0.5 -1
+}
+
+emission { temp 9000 }
+shape { sphere radius 0.0023255954 }
+transform { translate 1 0 0 }
+
+emission { temp 8500 }
+shape { sphere radius 0.0025443658 }
+transform { translate 1 0 0 }
+
+emission { temp 8000 }
+shape { sphere radius 0.0028124535 }
+transform { translate 1 0 0 }
+
+emission { temp 7500 }
+shape { sphere radius 0.0031473541 }
+transform { translate 1 0 0 }
+
+emission { temp 7000 }
+shape { sphere radius 0.0035752829 }
+
+transform {
+   identity
+   translate -2 0.5 0
 }
 
 emission { temp 6500 }
