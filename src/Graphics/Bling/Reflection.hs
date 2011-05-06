@@ -22,7 +22,7 @@ module Graphics.Bling.Reflection (
    -- * BSDF
    
    Bsdf, BsdfSample(..),
-   mkBsdf, evalBsdf, sampleBsdf, 
+   mkBsdf, evalBsdf, sampleBsdf, bsdfPdf,
    
    -- * Working with Vectors in shading coordinate system
 

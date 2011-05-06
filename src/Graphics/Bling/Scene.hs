@@ -2,7 +2,7 @@ module Graphics.Bling.Scene (
    Scene, mkScene, scenePrim, sceneLights, sceneCam, sampleOneLight, ppScene
    ) where
 
-import Data.Maybe (mapMaybe)
+import Data.Maybe (mapMaybe, isJust, fromJust)
 import qualified Data.Vector as V
 import Text.PrettyPrint
 
@@ -10,6 +10,7 @@ import Graphics.Bling.Bvh
 import Graphics.Bling.Camera
 import Graphics.Bling.Light as L
 import Graphics.Bling.Math
+import Graphics.Bling.Montecarlo
 import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 import Graphics.Bling.Sampling
@@ -46,7 +47,7 @@ instance Primitive Scene where
    light = light.scenePrim
    shadingGeometry = shadingGeometry.scenePrim
    
-{-
+
 sampleLightMis :: Scene -> LightSample -> Bsdf -> Vector -> Normal -> Spectrum
 sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n
    | lpdf == 0 || isBlack li || isBlack f || occluded scene ray = black
@@ -59,15 +60,15 @@ sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n
 sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Spectrum
 sampleBsdfMis (Scene sp _ _) l (BsdfSample _ bPdf f wi) n p
    | isBlack f || bPdf == 0 = black
-   | isJust lint = scale $ intLe (fromJust lint) (neg wi) -- TODO: need to check if the "right" light was hit
+   | isJust lint = maybe black ff $ intLight (fromJust lint)
    | otherwise = scale (le l ray)
    where
+         ff l' = if l' == l then scale $ intLe (fromJust lint) (-wi) else black
          lPdf = pdf l p wi
          weight = powerHeuristic (1, bPdf) (1, lPdf)
          scale li = sScale (f * li) (absDot wi n * weight / bPdf)
          ray = Ray p wi epsilon infinity
          lint = sp `intersect` ray
--}
 
 estimateDirect
    :: Scene
@@ -78,6 +79,7 @@ estimateDirect
    -> Bsdf
    -> Sampled Spectrum
 {-# INLINE estimateDirect #-}
+{-
 estimateDirect s l p n wo bsdf = do
    ul <- rnd2D
    let (LightSample li wi ray lpdf _) = sample l p n ul
@@ -85,16 +87,16 @@ estimateDirect s l p n wo bsdf = do
    if lpdf == 0 || isBlack li || isBlack f || occluded s ray
       then return black
       else return $ sScale (f * li) (absDot wi n / lpdf)
-   
-{-
+   -}
+
 estimateDirect s l p n wo bsdf = do
    uL <- rnd2D
    uBC <- rnd
    uBD <- rnd2D
    let ls = sampleLightMis s (sample l p n uL) bsdf wo n
-   let bs = black -- sampleBsdfMis s l (sampleBsdf bsdf wo uBC uBD) n p
-   return (ls + bs)
-   -}
+   let bs = sampleBsdfMis s l (sampleBsdf bsdf wo uBC uBD) n p
+   return $ ls + bs
+   
 -- | samples one randomly chosen light source
 sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> Float -> Sampled Spectrum
 sampleOneLight scene@(Scene _ lights _) p n wo bsdf ulNum

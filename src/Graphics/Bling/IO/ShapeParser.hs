@@ -61,7 +61,10 @@ pShape = (flip namedBlock) "shape" $ do
       _ -> fail $ "unknown shape type \"" ++ t ++ "\""
    
    s <- getState
-   let p = map (\shp -> mkGeom (transform s) False (material s) (emit s) shp (currId s)) sh
+   p <- (flip mapM) sh $ \shp -> do
+      sid <- nextId
+      return $ mkGeom (transform s) False (material s) (emit s) shp sid
+      
    setState s {prims = map MkAnyPrim p ++ (prims s), currId = (currId s) + 1 }
 
 pMesh :: JobParser [Shape]

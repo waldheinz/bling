@@ -3,7 +3,7 @@ module Graphics.Bling.IO.ParserCore (
 
    -- * Data Types
 
-   JobParser, PState(..),
+   JobParser, PState(..), nextId,
    
    -- * Core Parsing Primitives
    flt, ws, pVec, pSpectrum, namedBlock, namedInt, namedFloat,
@@ -40,6 +40,13 @@ data PState = PState {
    prims :: [AnyPrim],
    currId :: Int
    }
+
+nextId :: JobParser Int
+nextId = do
+   s <- getState
+   let nid = currId s
+   setState s { currId = nid + 1 }
+   return $ nid
 
 comment :: JobParser ()
 comment = do

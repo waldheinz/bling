@@ -4,7 +4,7 @@ module Graphics.Bling.Primitive (
 
    -- * Ray - Primitive intersections
 
-   Intersection(..), intLe, intBsdf,
+   Intersection(..), intLe, intLight, intBsdf,
 
    -- * Primitives
 
@@ -144,6 +144,10 @@ intLe
    :: Intersection -- ^ the intersection to query for the emitted light
    -> Normal -- ^ the outgoing direction
    -> Spectrum -- ^ the resulting spectrum
+{-# INLINE intLe #-}
 intLe (Intersection _ (DifferentialGeometry p n) prim _) wo =
    maybe black (\l -> L.lEmit l p n wo) (light prim)
    
+intLight :: Intersection -> Maybe Light
+{-# INLINE intLight #-}
+intLight = light . intPrimitive
