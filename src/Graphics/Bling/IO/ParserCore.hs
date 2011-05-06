@@ -7,7 +7,7 @@ module Graphics.Bling.IO.ParserCore (
    
    -- * Core Parsing Primitives
    flt, ws, pVec, pSpectrum, namedBlock, namedInt, namedFloat,
-   namedVector, integ
+   namedVector, namedSpectrum, integ
    
    ) where
 
@@ -75,7 +75,10 @@ pVec = do
 
 namedVector :: String -> JobParser Vector
 namedVector n = do string n >> ws; pVec
-   
+
+namedSpectrum :: String -> JobParser Spectrum
+namedSpectrum n = string n >> ws >> pSpectrum
+
 pSpectrum :: JobParser Spectrum
 pSpectrum = do
    t <- many alphaNum

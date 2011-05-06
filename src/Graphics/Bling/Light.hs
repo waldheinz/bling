@@ -3,7 +3,7 @@
 module Graphics.Bling.Light (
    
    -- * Creating Light sources
-   Light, mkDirectional, mkAreaLight,
+   Light, mkPointLight, mkDirectional, mkAreaLight,
 
    -- * Working with light sources
    LightSample(..), sample, le, lEmit, pdf
@@ -26,6 +26,7 @@ data LightSample = LightSample {
 data Light
    = SoftBox ! Int ! Spectrum -- ^ an infinite area light surrounding the whole scene, emitting a constant amount of light from all directions.
    | Directional ! Int !Spectrum !Normal
+   | PointLight !Int !Spectrum !Point
    | AreaLight {
       _alId :: Int,
       _alShape :: S.Shape,
@@ -40,10 +41,19 @@ instance Eq Light where
       lightId (SoftBox lid _) = lid
       lightId (Directional lid _ _) = lid
       lightId (AreaLight lid _ _ _ _) = lid
+      lightId (PointLight lid _ _) = lid
 
--- | creates a new directional light source
+-- | creates a directional light source
 mkDirectional :: Spectrum -> Normal -> Int -> Light
 mkDirectional s n lid = Directional lid s (normalize n)
+
+-- | creates a point light source
+mkPointLight
+   :: Spectrum -- ^ intensity
+   -> Point -- ^ position
+   -> Int -- ^ light id
+   -> Light
+mkPointLight r p lid = PointLight lid r p
 
 -- | creates an area @Light@ sources for a gives shape and spectrum
 mkAreaLight
@@ -67,11 +77,12 @@ lEmit (AreaLight _ _ r _ t) _ n' wo'
 lEmit _ _ _ _ = black
 
 le :: Light -> Ray -> Spectrum
-le (SoftBox _ r) _ = r
-le (Directional _ _ _) _ = black
 -- area lights must be sampled by intersecting the shape directly and asking
 -- that intersection for le
 le (AreaLight _ _ _ _ _) _ = black
+le (Directional _ _ _) _ = black
+le (PointLight _ _ _) _ = black
+le (SoftBox _ r) _ = r
 
 -- | samples one light source
 sample
@@ -82,6 +93,10 @@ sample
    -> LightSample -- ^ the computed @LightSample@
 sample (SoftBox _ r) p n us = lightSampleSB r p n us
 sample (Directional _ r d) p n _ = lightSampleD r d p n
+sample (PointLight _ r pos) p _ _ = LightSample r' wi ray 1 True where
+   r' = sScale r (1 / (sqLen $ pos - p))
+   wi = normalize $ pos - p
+   ray = segmentRay pos p
 sample (AreaLight _ s r l2w w2l) p _ us = LightSample r' wi' ray pd False where
    r' = if ns `dot` (-wi) > 0 then r else black
    p' = transPoint w2l p -- point to be lit in local space
@@ -98,6 +113,7 @@ pdf :: Light -- ^ the light to compute the pdf for
 pdf (SoftBox _ _) _ _ = undefined
 pdf (Directional _ _ _) _ _ = 0 -- zero chance to find the direction by sampling
 pdf (AreaLight _ ss _ _ t) p wi = S.pdf ss (transPoint t p) (transVector t wi)
+pdf (PointLight _ _ _) _ _ = 0
 
 lightSampleSB :: Spectrum -> Point -> Normal -> Rand2D -> LightSample
 lightSampleSB r pos n us = LightSample r (toWorld lDir) (ray $ toWorld lDir) (p lDir) False
@@ -111,3 +127,4 @@ lightSampleD :: Spectrum -> Normal -> Point -> Normal -> LightSample
 lightSampleD r d pos n = LightSample y d ray 1.0 True where
    y = sScale r (absDot n d)
    ray = Ray pos d epsilon infinity
+
