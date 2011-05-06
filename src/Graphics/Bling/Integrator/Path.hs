@@ -59,7 +59,7 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) t l md
       rnd >>= \x -> if x > pc || (spdf == 0) || isBlack f
          then return $! (1.0, l')
          else let
-                 t' = t * sScale f (absDot wi n / (spdf * pCont))
+                 t' = t * sScale f (absDot wi n / (spdf * pc))
                  spec' = Specular `member` smpType
                  ray' = (Ray p wi epsilon infinity)
                  int' = intersect (scenePrim scene) ray'
