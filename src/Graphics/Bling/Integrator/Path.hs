@@ -42,12 +42,12 @@ nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> S
 nextVertex s _ True ray Nothing t l _ = 
    return (1, l + t * V.sum (V.map (`le` ray) (sceneLights s)))
    
-nextVertex _ _ False _ Nothing _ l _ = -- nothing hit, non-specular bounce
+-- nothing hit, non-specular bounce
+nextVertex _ _ False _ Nothing _ l _ = 
    return (1, l)
 
 nextVertex scene depth spec (Ray _ rd _ _) (Just int) t l md
-   | isBlack t = return (1, l)
-   | depth == md = return (1, l)
+   | isBlack t || depth == md = return (1, l)
    | otherwise = do
       bsdfDirU <- rnd2D' $ smp2doff depth
       bsdfCompU <- rnd
@@ -56,21 +56,22 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) t l md
       lHere <- sampleOneLight scene p n wo bsdf ulNum
       let l' = l + (t * (lHere + intl))
       
-      x <- rnd
-      if x > pCont || (spdf == 0.0) || isBlack f
+      rnd >>= \x -> if x > pc || (spdf == 0) || isBlack f
          then return $! (1.0, l')
          else let
                  t' = t * sScale f (absDot wi n / (spdf * pCont))
                  spec' = Specular `member` smpType
                  ray' = (Ray p wi epsilon infinity)
                  int' = intersect (scenePrim scene) ray'
-              in nextVertex scene (depth + 1) spec' ray' int' t' l' md
+                 depth' = depth + 1
+              in nextVertex scene depth' spec' ray' int' t' l' md
       
       where
          dg = intGeometry int
-         pCont = if depth <= 3 then 1 else min 0.5 (sY t)
+         pc = if depth <= 3 then 1 else min 0.5 (sY t) -- cont. probability
          intl = if spec then intLe int wo else black
          wo = -rd
          bsdf = intBsdf int
          n = dgN dg
          p = dgP dg
+
