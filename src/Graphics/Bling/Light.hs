@@ -34,6 +34,14 @@ data Light
       _w2l :: Transform -- ^ the world-to-light transformation
       }
 
+lightId :: Light -> Int
+lightId (SoftBox lid _) = lid
+lightId (Directional lid _ _) = lid
+lightId (AreaLight lid _ _ _ _) = lid
+
+instance Eq Light where
+   (==) l1 l2 = (lightId l1) == (lightId l2)
+   
 -- | creates a new directional light source
 mkDirectional :: Spectrum -> Normal -> Int -> Light
 mkDirectional s n lid = Directional lid s (normalize n)
