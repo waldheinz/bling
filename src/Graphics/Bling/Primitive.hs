@@ -61,6 +61,7 @@ mkAnyPrim = MkAnyPrim
 --   
 
 data Geometry = MkGeometry {
+   geomId :: Int,
    o2w :: Transform, -- ^ the object-to-world transformation
    w2o :: Transform, -- ^ the world-to-object transformation
    _reverseOrientation :: Bool, -- ^ reverse the normal orientation?
@@ -75,16 +76,18 @@ mkGeom
    -> Material
    -> Maybe Spectrum
    -> S.Shape
+   -> Int
    -> Geometry
-mkGeom t ro m e s = MkGeometry t (inverse t) ro s m e
+mkGeom t ro m e s gid = MkGeometry gid t (inverse t) ro s m e
 
 mkMesh
    :: Material
    -> Maybe Spectrum
    -> Transform
    -> [[S.Vertex]]
+   -> Int -- ^ geometry id
    -> [Geometry]
-mkMesh m e t vs = map (mkGeom t False m e) (S.triangulate vs)
+mkMesh m e t vs gid = map (\s -> mkGeom t False m e s gid) (S.triangulate vs)
 
 instance Eq Geometry where
 
@@ -101,7 +104,8 @@ instance Primitive Geometry where
    
    intersects g rw = S.intersects (shape g) (transRay (w2o g) rw)
    
-   light g = (emission g) >>= \e -> Just (mkAreaLight (shape g) e (o2w g))
+   light g = emission g >>= \e ->
+      Just $ mkAreaLight (shape g) e (o2w g) (geomId g)
    
    intersect g rw = (S.intersect (shape g) ro) >>= int where
       int (t, dg) = Just $ Intersection t (transDg (o2w g) dg) p m

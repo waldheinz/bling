@@ -12,18 +12,21 @@ import Graphics.Bling.IO.ParserCore
 
 pLight :: JobParser ()
 pLight = do
-   l <- pDirectionalLight
+   lf <- pDirectionalLight
    s <- getState
-   setState s { lights = l : (lights s) }
+   let l = lf (currId s)
+   setState s { lights = l : (lights s), currId = (currId s) + 1 }
 
-pDirectionalLight :: JobParser Light
+type LightFactory = Int -> Light
+
+pDirectionalLight :: JobParser LightFactory
 pDirectionalLight = do
    try (string "beginDirectionalLight") >> ws
    s <- pSpectrum  <|> fail "missing spectrum"
    _ <- ws >> (string "normal" <|> fail "missing normal")
    n <- ws >> (pVec <|> fail "could not parse normal")
    _ <- ws >> string "endDirectionalLight"
-   return (mkDirectional s n)
+   return $ mkDirectional s n
    
 pEmission :: JobParser ()
 pEmission = (flip namedBlock) "emission" $ do

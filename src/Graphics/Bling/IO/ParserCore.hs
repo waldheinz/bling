@@ -37,7 +37,8 @@ data PState = PState {
    sampler :: AnySampler,
    emit :: Maybe Spectrum, -- ^ the emission for the next primitives
    lights :: [Light],
-   prims :: [AnyPrim]
+   prims :: [AnyPrim],
+   currId :: Int
    }
 
 comment :: JobParser ()

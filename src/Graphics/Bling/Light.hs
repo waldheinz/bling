@@ -24,9 +24,10 @@ data LightSample = LightSample {
    }
 
 data Light
-   = SoftBox Spectrum -- ^ an infinite area light surrounding the whole scene, emitting a constant amount of light from all directions.
-   | Directional !Spectrum !Normal
+   = SoftBox ! Int ! Spectrum -- ^ an infinite area light surrounding the whole scene, emitting a constant amount of light from all directions.
+   | Directional ! Int !Spectrum !Normal
    | AreaLight {
+      _alId :: Int,
       _alShape :: S.Shape,
       _areaRadiance :: Spectrum,
       _l2w :: Transform, -- ^ the light-to-world transformation
@@ -34,20 +35,21 @@ data Light
       }
 
 -- | creates a new directional light source
-mkDirectional :: Spectrum -> Normal -> Light
-mkDirectional s n = Directional s (normalize n)
+mkDirectional :: Spectrum -> Normal -> Int -> Light
+mkDirectional s n lid = Directional lid s (normalize n)
 
 -- | creates an area @Light@ sources for a gives shape and spectrum
 mkAreaLight
    :: S.Shape -- ^ the @Shape@ to create the area light for
    -> Spectrum -- ^ the emission @Spectrum@
    -> Transform -- ^ the @Transform@ which places the @Light@ in the world
+   -> Int -- ^ the light id
    -> Light -- ^ the resulting @Light@
-mkAreaLight s r t = AreaLight s r t (inverse t)
+mkAreaLight s r t lid = AreaLight lid s r t (inverse t)
 
 -- | the emission from the surface of an area light source
 lEmit :: Light -> Point -> Normal -> Vector -> Spectrum
-lEmit (AreaLight _ r _ t) _ n' wo'
+lEmit (AreaLight _ _ r _ t) _ n' wo'
    | n `dot` wo > 0 = r
    | otherwise = black
    where
@@ -58,24 +60,11 @@ lEmit (AreaLight _ r _ t) _ n' wo'
 lEmit _ _ _ _ = black
 
 le :: Light -> Ray -> Spectrum
-le (SoftBox r) _ = r
-le (Directional _ _) _ = black
+le (SoftBox _ r) _ = r
+le (Directional _ _ _) _ = black
 -- area lights must be sampled by intersecting the shape directly and asking
 -- that intersection for le
-le (AreaLight _ _ _ _) _ = black
-
-lightL
-   :: Light
-   -> Point
-   -> Normal
-   -> Vector
-   -> Spectrum
-
-lightL (AreaLight _ r _ _) _ n w
-   | n `dot` w > 0 = r
-   | otherwise = 0
-
-lightL _ _ _ _ = black
+le (AreaLight _ _ _ _ _) _ = black
 
 -- | samples one light source
 sample
@@ -84,10 +73,10 @@ sample
    -> Normal -- ^ the surface normal in world space from where the light is viewed
    -> Rand2D -- ^ the random value for sampling the light
    -> LightSample -- ^ the computed @LightSample@
-sample (SoftBox r) p n us = lightSampleSB r p n us
-sample (Directional r d) p n _ = lightSampleD r d p n
-sample al@(AreaLight s _ l2w w2l) p _ us = LightSample r wi' ray pd False where
-   r = lightL al ps ns (-wi)
+sample (SoftBox _ r) p n us = lightSampleSB r p n us
+sample (Directional _ r d) p n _ = lightSampleD r d p n
+sample (AreaLight _ s r l2w w2l) p _ us = LightSample r' wi' ray pd False where
+   r' = if ns `dot` (-wi) > 0 then r else black
    p' = transPoint w2l p -- point to be lit in local space
    (ps, ns) = S.sample s p' us -- point in local space
    wi' = transVector l2w wi -- incident vector in world space
@@ -99,9 +88,9 @@ pdf :: Light -- ^ the light to compute the pdf for
     -> Point -- ^ the point from which the light is viewed
     -> Vector -- ^ the wi vector
     -> Float -- ^ the computed pdf value
-pdf (SoftBox _) _ _ = undefined
-pdf (Directional _ _) _ _ = 0 -- zero chance to find the direction by sampling
-pdf (AreaLight ss _ _ t) p wi = S.pdf ss (transPoint t p) (transVector t wi)
+pdf (SoftBox _ _) _ _ = undefined
+pdf (Directional _ _ _) _ _ = 0 -- zero chance to find the direction by sampling
+pdf (AreaLight _ ss _ _ t) p wi = S.pdf ss (transPoint t p) (transVector t wi)
 
 lightSampleSB :: Spectrum -> Point -> Normal -> Rand2D -> LightSample
 lightSampleSB r pos n us = LightSample r (toWorld lDir) (ray $ toWorld lDir) (p lDir) False

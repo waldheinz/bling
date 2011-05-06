@@ -47,6 +47,7 @@ startState = PState 640 480 mkBoxFilter
    Nothing
    []
    []
+   0
    
 parseJob :: String -> Job
 parseJob s = either (error . show) (id) pr where
@@ -56,7 +57,7 @@ jobParser :: JobParser Job
 jobParser = do
    _ <- many object
    eof
-   (PState sx sy f cam i _ _ smp _ ls ps) <- getState
+   (PState sx sy f cam i _ _ smp _ ls ps _) <- getState
    let scn = mkScene ls ps cam
    return (MkJob scn i smp f sx sy)
 
