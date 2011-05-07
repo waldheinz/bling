@@ -138,9 +138,8 @@ def writeLamp(o, obj) :
       o.write("   directional\n")
       p = lamp.energy
       o.write("   intensity rgb %f %f %f\n" % (lamp.r*p, lamp.g*p, lamp.b*p))
-      v = Vector (0,0,1)
-      n = obj.getMatrix() * v
-      o.write("   normal %f %f %f\n" % (n.x, n.y, n.z))
+      im = Mathutils.Matrix(obj.getInverseMatrix())
+      o.write("   normal %f %f %f\n" % (im[0][2], im[1][2], im[2][2]))
       o.write("}\n")
       
    else :
