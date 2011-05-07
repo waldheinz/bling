@@ -82,7 +82,7 @@ Executable bling
    hs-source-dirs:   src/Graphics/Bling/Main
    Main-is:          Main.hs
    Build-Depends:    bling, base, haskell98, pretty, random, mwc-random
-   ghc-options:      -Wall -O2 -fexcess-precision -fspec-constr-count=64
+   ghc-options:      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -rtsopts
    ghc-prof-options: -O2 -fexcess-precision -prof -auto-all -rtsopts
 
 Executable bling-gui
@@ -97,7 +97,7 @@ Executable bling-gui
       bling, base, haskell98, pretty, random, mwc-random,
       SDL
 
-   ghc-options:      -Wall -O2 -fexcess-precision -fspec-constr-count=64
+   ghc-options:      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -rtsopts
    ghc-prof-options: -O2 -fexcess-precision -prof -auto-all -rtsopts
 
 Executable bling-test

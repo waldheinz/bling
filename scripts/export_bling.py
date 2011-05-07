@@ -58,7 +58,8 @@ def writeCamera(o, scene) :
   # o.write("fov %f\n" % fov)
    
    o.write("lensRadius 0 focalDistance 10 }\n")
-          
+   o.write("transform { identity }\n")
+   
 def writeMaterial(o, mat) :
    o.write("material {\n")
    o.write("   plastic\n")
@@ -67,7 +68,7 @@ def writeMaterial(o, mat) :
    o.write("   kd { constant rgb %f %f %f }\n" % (d[0], d[1], d[2]))
 
    d = mat.mirCol   
-   o.write("   ks { constant rgb %f %f %f }\n" % (d[0], d[1], d[2]))
+   o.write("   ks { constant rgb %f %f %f }\n" % (0,0,0)) # % (d[0], d[1], d[2]))
    o.write("   rough { constant 0.1 }\n")
    o.write("}\n")
           
@@ -78,11 +79,14 @@ def writeDefaultMaterial(o) :
 
 def writeMesh(o, obj) :
    o.write("# Mesh " + obj.name + "\n")
-   mesh = obj.getData()
+   mesh = Mesh.New(obj.name) # Note the "mesh.verts = None" at the end of this if.  Used to clear the new mesh from memory
+   mesh.getFromObject(obj, 0, 1)
+   mesh.transform(obj.mat, 1)
+  # mesh = mesh.getData()
    verts = mesh.verts
    faces = mesh.faces
    
-   writeMatrix(o, obj.getMatrix())
+ #  writeMatrix(o, obj.getMatrix())
    
    if len (mesh.materials) > 0 :
       mat = mesh.materials[0]
@@ -96,25 +100,36 @@ def writeMesh(o, obj) :
    o.write("   faceCount %u\n" % len(faces))
       
    for v in verts :
-      o.write("   v %.6f %.6f %.6f\n" % (v[0], v[1], v[2]))
+      o.write("   v %.6f %.6f %.6f\n" % (v.co[0], v.co[1], v.co[2]))
    
    for face in faces:
-		face_v = list(face.v)
-		face_v.reverse()
-		o.write("   f")
-		
-		for f in face_v :
-		   o.write(" %i" % f.index)
-		   
-		o.write("\n")
-		
+      fv = face.v
+      o.write("   f ")
+      
+      if len(fv) == 4:
+         o.write("%d %d %d %d\n" % (fv[0].index, fv[1].index, fv[2].index, fv[3].index))
+      elif len(fv) == 3:
+         o.write("%d %d %d\n" % (fv[2].index, fv[1].index, fv[0].index))
 		
    o.write("}\n")
 		
 def writeLamp(o, obj) :
    lamp = obj.getData()
    
-   if lamp.getType() == Lamp.Types.Area :
+   objmatrix = obj.matrix
+   lampV = Mathutils.Vector([0, 0, 0, 1])
+   lampV = lampV * objmatrix
+   
+   if lamp.getType() == Lamp.Types.Lamp :
+      o.write("# point lamp %s\n" % str(lamp))
+      o.write("light {\n")
+      o.write("   point\n")
+      p = lamp.energy
+      o.write("   intensity rgb %f %f %f\n" % (lamp.r*p, lamp.g*p, lamp.b*p))
+      o.write("   position %f %f %f\n" % (lampV[0], lampV[1], lampV[2]))
+      o.write("}\n")
+   
+   elif lamp.getType() == Lamp.Types.Area :
       o.write("# area lamp " + str(dir(lamp)) + "\n")
       
    elif lamp.getType() == Lamp.Types.Sun :
