@@ -72,8 +72,7 @@ tTrans = do
 tMatrix :: JobParser ()
 tMatrix = (flip namedBlock) "matrix" $ do
    m <- mtr 'm'
-   i <- mtr 'i'
-   let t = fromMatrix (m, i)
+   let t = fromMatrix' m
    s <- getState
    setState s { transform = concatTrans (transform s) t }
 

@@ -13,6 +13,7 @@ import Graphics.Bling.IO.ParserCore
 pLight :: JobParser ()
 pLight = (flip namedBlock) "light" $ do
    t <- many1 alphaNum
+   ws
    lf <- case t of
       "directional"  -> pDirectionalLight
       "point"        -> pPointLight
@@ -32,9 +33,8 @@ pPointLight = do
 
 pDirectionalLight :: JobParser LightFactory
 pDirectionalLight = do
-   s <- pSpectrum  <|> fail "missing spectrum"
-   _ <- ws >> (string "normal" <|> fail "missing normal")
-   n <- ws >> (pVec <|> fail "could not parse normal")
+   s <- namedSpectrum "intensity"
+   n <- ws >> namedVector "normal"
    return $ mkDirectional s n
    
 pEmission :: JobParser ()

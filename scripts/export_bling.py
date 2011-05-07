@@ -8,8 +8,9 @@ Tooltip: 'Save a Bling File'
 """
 
 import Blender
-from Blender import Mesh, Scene, Window, sys, Image, Draw, Types, Lamp
+from Blender import Mesh, Scene, Window, sys, Image, Draw, Types, Lamp, Mathutils
 import math
+from Blender.Mathutils import *
 
 def writeMatrix(o, m) :
    m1 = m.copy().transpose()
@@ -20,11 +21,6 @@ def writeMatrix(o, m) :
    o.write("      m %.6f %.6f %.6f %.6f\n" % (m1[1][0], m1[1][1], m1[1][2], m1[1][3]))
    o.write("      m %.6f %.6f %.6f %.6f\n" % (m1[2][0], m1[2][1], m1[2][2], m1[2][3]))
    o.write("      m %.6f %.6f %.6f %.6f\n" % (m1[3][0], m1[3][1], m1[3][2], m1[3][3]))
-   i = m.copy().invert().transpose()
-   o.write("      i %.6f %.6f %.6f %.6f\n" % (i[0][0], i[0][1], i[0][2], i[0][3]))
-   o.write("      i %.6f %.6f %.6f %.6f\n" % (i[1][0], i[1][1], i[1][2], i[1][3]))
-   o.write("      i %.6f %.6f %.6f %.6f\n" % (i[2][0], i[2][1], i[2][2], i[2][3]))
-   o.write("      i %.6f %.6f %.6f %.6f\n" % (i[3][0], i[3][1], i[3][2], i[3][3]))
    o.write("   }\n")
    o.write("}\n")
    
@@ -115,12 +111,25 @@ def writeMesh(o, obj) :
 		
    o.write("}\n")
 		
-def writeLamp(o, lamp) :
+def writeLamp(o, obj) :
+   lamp = obj.getData()
+   
    if lamp.getType() == Lamp.Types.Area :
       o.write("# area lamp " + str(dir(lamp)) + "\n")
       
+   elif lamp.getType() == Lamp.Types.Sun :
+      o.write("# Sun Lamp %s\n" % str(lamp))
+      o.write("light {\n")
+      o.write("   directional\n")
+      p = lamp.energy
+      o.write("   intensity rgb %f %f %f\n" % (lamp.r*p, lamp.g*p, lamp.b*p))
+      v = Vector (0,0,1)
+      n = obj.getMatrix() * v
+      o.write("   normal %f %f %f\n" % (n.x, n.y, n.z))
+      o.write("}\n")
+      
    else :
-      o.write("# unsupported lamp type " + str(lamp) + "\n")
+      o.write("# unsupported lamp type " + str(lamp.getType()) + "\n")
    
 def write(filename, scene) :
    out = open(filename, "w")
@@ -132,8 +141,7 @@ def write(filename, scene) :
       if o.type == "Mesh" :
          writeMesh(out, o)
       elif o.type == "Lamp" :
-         out.write("# Lamp " + o.name + "\n")
-         writeLamp(out, o.getData())
+         writeLamp(out, o)
       else :
          out.write("# skipped " + o.type + ": " + o.name + "\n")
         

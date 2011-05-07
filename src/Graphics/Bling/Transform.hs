@@ -2,7 +2,8 @@
 module Graphics.Bling.Transform (
       Transform, identity, translate, scale, inverse, fromMatrix, rotateX,
       rotateY, rotateZ, lookAt, perspective,
-      transPoint, transVector, transBox, transRay, transNormal, concatTrans
+      transPoint, transVector, transBox, transRay, transNormal, concatTrans,
+      fromMatrix'
    ) where
 
 import Graphics.Bling.AABB
@@ -76,6 +77,9 @@ instance Show Transform where
 -- | Creates a @Transform@ from the two matrices
 fromMatrix :: ([[Flt]], [[Flt]]) -> Transform
 fromMatrix (m, i) = MkTransform (fromList m) (fromList i)
+
+fromMatrix' :: [[Flt]] -> Transform
+fromMatrix' m = MkTransform (fromList m) (invert (fromList m))
 
 -- | The identity transformation
 identity :: Transform
