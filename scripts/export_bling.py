@@ -30,11 +30,20 @@ def writeCamera(o, scene) :
    
    o.write("transform { lookAt {\n")
    mat = camobj.getMatrix()
-      
+   
+   eyeV    = Mathutils.Vector([0, 0,  0, 1])
+   targetV = Mathutils.Vector([0, 0, -1, 1])
+   upV     = Mathutils.Vector([0, 1,  0, 0])
+	
+   eyeV    = eyeV * mat
+   targetV = targetV * mat
+   upV     = upV * mat
+   
+   
    # eye position can just be read out of the matrix
    w = mat[3][3]
    eye = (mat[3][0] / w, mat[3][1] / w, mat[3][2] / w)
-   o.write("   pos %f %f %f\n" % eye)
+   o.write("   pos %f %f %f\n" % (eyeV.x, eyeV.y, eyeV.z))
    
    # get the dir vector (camera looking down z)
    d = (mat[2][0], mat[2][1], mat[2][2])
@@ -44,21 +53,24 @@ def writeCamera(o, scene) :
    
    # look is just the eye position - the direction
    look = (eye[0] - d[0], eye[1] - d[1], eye[2] - d[2])
-   o.write("   look %f %f %f\n" % d)
+   o.write("   look %f %f %f\n" % (targetV.x, targetV.y, targetV.z))
    
    # up vector can just be read out of the matrix (y axis)
    up = (mat[1][0], mat[1][1], mat[1][2])
-   o.write("   up %f %f %f\n" % up)
+   o.write("   up %f %f %f\n" % (upV.x, upV.y, upV.z))
    o.write("}}\n\n")
    
-   o.write("camera { perspective ")
-   factor = 1
-   fov = (360.0 * math.atan(factor * 16.0 / camera.getLens() ) / math.pi)
-   o.write("fov %f " % fov)
-  # o.write("fov %f\n" % fov)
+   o.write("camera {\n")
+   o.write("   perspective")
    
-   o.write("lensRadius 0 focalDistance 10 }\n")
-   o.write("transform { identity }\n")
+   factor = 1
+   fov = 360.0 * math.atan(factor * 16.0 / camera.lens) / math.pi
+   o.write("   fov %f\n" % fov)
+   
+   o.write("   lensRadius 0\n")
+   o.write("   focalDistance 10 }\n\n")
+   
+   o.write("transform { identity }\n\n")
    
 def writeMaterial(o, mat) :
    o.write("material {\n")
