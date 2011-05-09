@@ -72,19 +72,21 @@ mkKdTree ps = KdTree bounds root where
 buildTree :: AABB -> V.Vector BP -> Int -> KdTreeNode
 buildTree bounds bps depth
    | trace ("build " ++ show bounds ++ ", pc=" ++ show (V.length bps)) False = undefined
-   | depth == 0 || V.length bps <= 1 = Leaf $ V.map bpPrim bps
-   | otherwise = trace ("int t=" ++ show t ++ ", axis=" ++ show axis) $ Interior left right t axis
+   | depth == 0 || V.length bps <= 1 = leaf
+   | otherwise = maybe leaf split mt
    where
-      left = buildTree lb lp (depth - 1)
-      right = buildTree rb rp (depth - 1)
-      (lp, rp) = partition edges' t
-      (lb, rb) = splitAABB t axis bounds
-      t = trace ("splits=" ++ show splits) bestSplit bounds axis splits
+      leaf = Leaf $ V.map bpPrim bps
+      split t = Interior left right t axis where
+         left = buildTree lb lp (depth - 1)
+         right = buildTree rb rp (depth - 1)
+         (lp, rp) = partition edges' t
+         (lb, rb) = splitAABB t axis bounds
+      mt = trace ("splits=" ++ show splits) bestSplit bounds axis splits
       splits = trace ("edges=" ++ show edges) allSplits edges $ V.length bps
       axis = maximumExtent bounds
       edgeCount = 2 * V.length bps
       edges = sort $ V.toList edges'
-      edges' = V.generate (2 * V.length bps) ef where -- TODO: sort edges!
+      edges' = V.generate (2 * V.length bps) ef where
          ef i = let bp = bps V.! (i `div` 2)
                     start = (i `mod` 2 == 0)
                     (AABB pmin pmax) = bpBounds bp
@@ -101,8 +103,10 @@ partition es t = (\(ls, rs) -> (V.fromList ls, V.fromList rs)) $ V.foldl go  ([]
 -- | a split is (t, # prims left, # prims right)
 type Split = (Flt, Int, Int)
 
-bestSplit :: AABB -> Dimension -> [Split] -> Flt
-bestSplit bounds axis ss = trace ("bs " ++ show (length ss)) $ snd $ go fs (infinity, undefined) where
+bestSplit :: AABB -> Dimension -> [Split] -> Maybe Flt
+bestSplit bounds axis ss
+   | null fs = Nothing
+   | otherwise = Just $ snd $ go fs (infinity, undefined) where
    tmin = aabbMin bounds .! axis
    tmax = aabbMax bounds .! axis
    fs = filter (\(t, _, _) -> (t > tmin) && (t < tmax)) ss
@@ -110,7 +114,7 @@ bestSplit bounds axis ss = trace ("bs " ++ show (length ss)) $ snd $ go fs (infi
    go [] x = x
    go ((t, nl, nr):xs) s@(c, _)
       | trace ("c'=" ++ show c') $ c' < c = go xs (c', t)
-      | otherwise = s
+      | otherwise = go xs s
       where
          c' = cost bounds axis t nl nr
 
