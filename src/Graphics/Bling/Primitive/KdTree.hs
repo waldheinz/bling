@@ -78,5 +78,7 @@ cost b@(AABB pmin pmax) axis t nl nr = cT + cI * (1 - eb) * pI where
    sar = 2 * (d .! oa0 * d .! oa1 + (pmax .! axis - t) * d .! oa0 + d .! oa1)
    
 instance Primitive KdTree where
+   flatten t = [MkAnyPrim t]
    
+   worldBounds (KdTree b _) = b
    
