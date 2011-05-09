@@ -5,7 +5,7 @@ module Graphics.Bling.Primitive.KdTree (
 
 import Debug.Trace
 
-import Data.List (foldl')   
+import Data.List (foldl', sort)   
 import qualified Data.Vector as V
 
 import Graphics.Bling.AABB
@@ -43,6 +43,20 @@ data Edge = Edge
    , edgeStart :: ! Bool
    }
 
+instance Eq Edge where
+   (Edge _ t1 s1) == (Edge _ t2 s2) = t1 == t2 && s1 == s2
+
+
+instance Ord Edge where
+   (Edge _ t1 s1) <= (Edge _ t2 s2)
+      | t1 == t2 = s1 && not s2
+      | otherwise = t1 < t2
+
+instance Show Edge where
+   show (Edge _ t s)
+      | s = "S " ++ show t
+      | otherwise = "E " ++ show t
+
 data BP = BP
    { bpPrim    :: ! AnyPrim
    , bpBounds  :: ! AABB
@@ -53,7 +67,7 @@ mkKdTree ps = KdTree bounds root where
    root = buildTree bounds bps maxDepth
    bps = V.map (\p -> BP p (worldBounds p)) (V.fromList ps)
    bounds = V.foldl' extendAABB emptyAABB $ V.map bpBounds bps
-   maxDepth = 1 -- round (8 + 1.3 * log (fromIntegral $ V.length bps))
+   maxDepth = round (8 + 1.3 * log (fromIntegral $ V.length bps))
    
 buildTree :: AABB -> V.Vector BP -> Int -> KdTreeNode
 buildTree bounds bps depth
@@ -63,14 +77,16 @@ buildTree bounds bps depth
    where
       left = buildTree lb lp (depth - 1)
       right = buildTree rb rp (depth - 1)
-      (lp, rp) = partition edges t
+      (lp, rp) = partition edges' t
       (lb, rb) = splitAABB t axis bounds
-      t = bestSplit bounds axis $ allSplits (V.toList edges) edgeCount
+      t = trace ("splits=" ++ show splits) bestSplit bounds axis splits
+      splits = trace ("edges=" ++ show edges) allSplits edges $ V.length bps
       axis = maximumExtent bounds
       edgeCount = 2 * V.length bps
-      edges = V.generate (2 * V.length bps) ef where -- TODO: sort edges!
+      edges = sort $ V.toList edges'
+      edges' = V.generate (2 * V.length bps) ef where -- TODO: sort edges!
          ef i = let bp = bps V.! (i `div` 2)
-                    start = (i `div` 2 == 0)
+                    start = (i `mod` 2 == 0)
                     (AABB pmin pmax) = bpBounds bp
                     et = if start then pmin .! axis else pmax .! axis
                     in Edge bp et start
@@ -78,27 +94,31 @@ buildTree bounds bps depth
 partition :: V.Vector Edge -> Flt -> (V.Vector BP, V.Vector BP)
 partition es t = (\(ls, rs) -> (V.fromList ls, V.fromList rs)) $ V.foldl go  ([], []) es where
    go (ls, rs) (Edge p et start)
-      | et <= t && start = (p : ls, rs)
-      | et > t && (not start) = (ls, p:rs)
+      | et < t && start = (p : ls, rs)
+      | et >= t && (not start) = (ls, p:rs)
       | otherwise = (ls, rs)
       
 -- | a split is (t, # prims left, # prims right)
 type Split = (Flt, Int, Int)
 
 bestSplit :: AABB -> Dimension -> [Split] -> Flt
-bestSplit bounds axis ss = trace ("bs " ++ show (length ss)) $ snd $ go ss (infinity, undefined) where
+bestSplit bounds axis ss = trace ("bs " ++ show (length ss)) $ snd $ go fs (infinity, undefined) where
+   tmin = aabbMin bounds .! axis
+   tmax = aabbMax bounds .! axis
+   fs = filter (\(t, _, _) -> (t > tmin) && (t < tmax)) ss
+   
    go [] x = x
    go ((t, nl, nr):xs) s@(c, _)
       | trace ("c'=" ++ show c') $ c' < c = go xs (c', t)
       | otherwise = s
       where
          c' = cost bounds axis t nl nr
-         
+
 allSplits :: [Edge] -> Int -> [Split]
-allSplits e ec = trace ("as " ++ show (length e)) $ allSplits' e 0 ec where
-   allSplits' ((Edge _ t True):es') l r = (t, l, r):(allSplits' es' (l+1) r)
-   allSplits' ((Edge _ t False):es') l r = (t, l, r-1):allSplits' es' l (r-1)
-   allSplits' _ _ _ = []
+allSplits e ec = go e 0 ec where
+   go ((Edge _ t False):es') l r = (t, l, r-1):go es' l (r-1)
+   go ((Edge _ t True ):es') l r = (t, l, r  ):go es' (l+1) r
+   go [] _ _ = []
 
 -- | the SAH cost function
 cost
