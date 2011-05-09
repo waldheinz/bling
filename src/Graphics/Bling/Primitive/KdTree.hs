@@ -129,13 +129,13 @@ cost b@(AABB pmin pmax) axis t nl nr = cT + cI * (1 - eb) * pI where
    sal = 2 * (d .! oa0 * d .! oa1 + (t - pmin .! axis) * d .! oa0 + d .! oa1)
    sar = 2 * (d .! oa0 * d .! oa1 + (pmax .! axis - t) * d .! oa0 + d .! oa1)
    
-traverse :: Ray -> KdTreeNode -> (Flt, Flt) -> Maybe Intersection
-traverse = undefined
+trav :: Point -> Vector -> KdTreeNode -> (Flt, Flt) -> Maybe Intersection
+trav = undefined
    
 instance Primitive KdTree where
    flatten t = [MkAnyPrim t]
    
    worldBounds (KdTree b _) = b
    
-   intersect (KdTree b t) r = intersectAABB b r >>= traverse r t
+   intersect (KdTree b t) r@(Ray o d _ _) = intersectAABB b r >>= trav o d t
    
