@@ -5,29 +5,19 @@ module Graphics.Bling.Primitive.KdTree (
 
 import Debug.Trace
 
-import Data.List (foldl', sort)   
+import Data.List (sort)   
 import qualified Data.Vector as V
 
 import Graphics.Bling.AABB
 import Graphics.Bling.Math
 import Graphics.Bling.Primitive
 
-data KdTree = KdTree
-   { treeBounds :: AABB
-   , treeRoot :: KdTreeNode
-   } deriving (Show)
+data KdTree = KdTree AABB KdTreeNode deriving (Show)
    
 data KdTreeNode
-   = Interior
-      { leftChild :: KdTreeNode
-      , rightChild :: KdTreeNode
-      , splitPos :: ! Flt
-      , splitAxis :: ! Dimension
-      }
-   | Leaf
-      { leafPrims :: ! (V.Vector AnyPrim)
-      }
-
+   = Interior KdTreeNode KdTreeNode !Flt !Dimension
+   | Leaf !(V.Vector AnyPrim)
+   
 instance Show KdTreeNode where
    show (Interior l r t a) = "I t=" ++ show t ++ ", a=" ++ show a ++ "("
       ++ show l ++ ") (" ++ show r ++ ")"
@@ -37,11 +27,7 @@ instance Show KdTreeNode where
 -- Creation
 --
 
-data Edge = Edge
-   { edgePrim  :: ! BP
-   , edgeT     :: ! Flt
-   , edgeStart :: ! Bool
-   }
+data Edge = Edge !BP !Flt !Bool
 
 instance Eq Edge where
    (Edge _ t1 s1) == (Edge _ t2 s2) = t1 == t2 && s1 == s2
@@ -67,7 +53,7 @@ mkKdTree ps = KdTree bounds root where
    root = buildTree bounds bps maxDepth
    bps = V.map (\p -> BP p (worldBounds p)) (V.fromList ps)
    bounds = V.foldl' extendAABB emptyAABB $ V.map bpBounds bps
-   maxDepth = round (8 + 1.3 * log (fromIntegral $ V.length bps))
+   maxDepth = round (8 + 1.3 * log (fromIntegral $ V.length bps :: Flt))
    
 buildTree :: AABB -> V.Vector BP -> Int -> KdTreeNode
 buildTree bounds bps depth
@@ -84,7 +70,6 @@ buildTree bounds bps depth
       mt = trace ("splits=" ++ show splits) bestSplit bounds axis splits
       splits = trace ("edges=" ++ show edges) allSplits edges $ V.length bps
       axis = maximumExtent bounds
-      edgeCount = 2 * V.length bps
       edges = sort $ V.toList edges'
       edges' = V.generate (2 * V.length bps) ef where
          ef i = let bp = bps V.! (i `div` 2)
@@ -144,8 +129,13 @@ cost b@(AABB pmin pmax) axis t nl nr = cT + cI * (1 - eb) * pI where
    sal = 2 * (d .! oa0 * d .! oa1 + (t - pmin .! axis) * d .! oa0 + d .! oa1)
    sar = 2 * (d .! oa0 * d .! oa1 + (pmax .! axis - t) * d .! oa0 + d .! oa1)
    
+traverse :: Ray -> KdTreeNode -> (Flt, Flt) -> Maybe Intersection
+traverse = undefined
+   
 instance Primitive KdTree where
    flatten t = [MkAnyPrim t]
    
    worldBounds (KdTree b _) = b
+   
+   intersect (KdTree b t) r = intersectAABB b r >>= traverse r t
    
