@@ -176,6 +176,13 @@ component !(Vector x y z) !d
 (.!) :: Vector -> Dimension -> Flt
 (.!) = component
 
+setComponent :: Dimension -> Flt -> Vector -> Vector
+{-# INLINE setComponent #-}
+setComponent dim t (Vector x y z)
+   | dim == dimX  = mkPoint t y z
+   | dim == dimY  = mkPoint x t z
+   | otherwise    = mkPoint x y t
+
 sqLen :: Vector -> Flt
 {-# INLINE sqLen #-}
 sqLen (Vector x y z) = x*x + y*y + z*z

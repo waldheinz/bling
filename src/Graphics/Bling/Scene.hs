@@ -6,7 +6,6 @@ import Data.Maybe (mapMaybe, isJust, fromJust)
 import qualified Data.Vector as V
 import Text.PrettyPrint
 
-import Graphics.Bling.Bvh
 import Graphics.Bling.Camera
 import Graphics.Bling.Light as L
 import Graphics.Bling.Math
@@ -15,9 +14,10 @@ import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 import Graphics.Bling.Sampling
 import Graphics.Bling.Spectrum
+import Graphics.Bling.Primitive.KdTree
 
 data Scene = Scene {
-   scenePrim :: Bvh,
+   scenePrim :: KdTree,
    sceneLights :: V.Vector Light,
    sceneCam :: Camera
    }
@@ -27,11 +27,11 @@ ppScene (Scene p ls cam) = vcat [
    text "Camera is" <+> ppCamera cam,
    text "bounds" <+> text (show (worldBounds p)),
    text "number of lights" <+> int (V.length ls),
-   text "BVH stats" $$ nest 3 (ppBvh p)
+   text "BVH stats" $$ nest 3 (text (show p))
    ]
    
 mkScene :: (Primitive a) => [Light] -> [a] -> Camera -> Scene
-mkScene l prims cam = Scene (mkBvh ps) (V.fromList lights) cam where
+mkScene l prims cam = Scene (mkKdTree ps) (V.fromList lights) cam where
    lights = l ++ gl
    gl = mapMaybe light ps -- collect the geometric lights
    ps = Prelude.concatMap flatten prims

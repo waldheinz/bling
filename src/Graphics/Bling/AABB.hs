@@ -2,7 +2,7 @@
 module Graphics.Bling.AABB (
    AABB(..), mkAABB,
    emptyAABB, extendAABB, extendAABBP, maximumExtent, centroid, surfaceArea,
-   intersectAABB
+   intersectAABB, splitAABB
 ) where
 
 import Graphics.Bling.Math
@@ -54,6 +54,12 @@ surfaceArea :: AABB -> Flt
 {-# INLINE surfaceArea #-}
 surfaceArea (AABB pmin pmax) = 2 * (dx * dy + dx * dz + dy * dz) where
    (Vector dx dy dz) = pmax - pmin
+
+splitAABB :: Flt -> Dimension -> AABB -> (AABB, AABB)
+{-# INLINE splitAABB #-}
+splitAABB t axis (AABB pmin pmax) = ((AABB pmin pmax'), (AABB pmin' pmax)) where
+   pmin' = setComponent axis t pmin
+   pmax' = setComponent axis t pmax   
 
 intersectAABB :: AABB -> Ray -> Maybe (Flt, Flt)
 {-# INLINE intersectAABB #-}
