@@ -45,13 +45,13 @@ clamp v lo hi
 type Dimension = Int
 
 dimX :: Dimension
-dimX = 1
+dimX = 0
 
 dimY :: Dimension
-dimY = 2
+dimY = 1
 
 dimZ :: Dimension
-dimZ = 3
+dimZ = 2
 
 allDimensions :: [Dimension]
 allDimensions = [dimX, dimY, dimZ]
@@ -173,8 +173,8 @@ component !(Vector x y z) !d
    | d == dimY = y
    | otherwise = z
 
-component' :: Vector -> Int -> Flt
-component' = component
+(.!) :: Vector -> Dimension -> Flt
+(.!) = component
 
 sqLen :: Vector -> Flt
 {-# INLINE sqLen #-}

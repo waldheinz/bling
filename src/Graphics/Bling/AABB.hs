@@ -1,7 +1,8 @@
 
 module Graphics.Bling.AABB (
    AABB(..), mkAABB,
-   emptyAABB, extendAABB, extendAABBP, maximumExtent, centroid, intersectAABB
+   emptyAABB, extendAABB, extendAABBP, maximumExtent, centroid, surfaceArea,
+   intersectAABB
 ) where
 
 import Graphics.Bling.Math
@@ -48,6 +49,11 @@ maximumExtent (AABB pmin pmax) = dominant $ pmax - pmin
 centroid :: AABB -> Point
 {-# INLINE centroid #-}
 centroid (AABB pmin pmax) = pmin + (pmax - pmin) * 0.5 
+
+surfaceArea :: AABB -> Flt
+{-# INLINE surfaceArea #-}
+surfaceArea (AABB pmin pmax) = 2 * (dx * dy + dx * dz + dy * dz) where
+   (Vector dx dy dz) = pmax - pmin
 
 intersectAABB :: AABB -> Ray -> Maybe (Flt, Flt)
 {-# INLINE intersectAABB #-}
