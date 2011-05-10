@@ -3,6 +3,7 @@ module Graphics.Bling.Primitive.Bvh
    ( Bvh, mkBvh, ppBvh ) 
    where
 
+import qualified Data.Vector as V
 import Data.Maybe (fromJust)
 import Text.PrettyPrint
 
@@ -23,7 +24,7 @@ data TreeBvh
       !TreeBvh
       {-# UNPACK #-} !AABB
    | Leaf 
-      ![AnyPrim]
+      !(V.Vector AnyPrim)
       {-# UNPACK #-} !AABB
 
 --
@@ -44,11 +45,11 @@ ppBvh t = vcat [
       p = primCount t
 
 primCount :: TreeBvh -> Int
-primCount (Leaf ps _) = length ps
+primCount (Leaf ps _) = V.length ps
 primCount (Node _ l r _) = primCount l + primCount r
 
 maxPrims :: TreeBvh -> Int
-maxPrims (Leaf ps _) = length ps
+maxPrims (Leaf ps _) = V.length ps
 maxPrims (Node _ l r _) = max (maxPrims l) (maxPrims r)
 
 maxDepth :: TreeBvh -> (Int, Int)
@@ -71,11 +72,11 @@ instance Primitive TreeBvh where
    flatten _ = error "Unimplemented BVH.flatten"
    
 mkBvh :: [AnyPrim] -> TreeBvh
-mkBvh [] = Leaf [] emptyAABB
-mkBvh [p] = Leaf [p] $ worldBounds p
+mkBvh [] = Leaf V.empty emptyAABB
+mkBvh [p] = Leaf (V.singleton p) $ worldBounds p
 mkBvh ps
-   | null left = Leaf right allBounds
-   | null right = Leaf left allBounds
+   | null left = Leaf (V.fromList right) allBounds
+   | null right = Leaf (V.fromList left) allBounds
    | otherwise = Node dim (mkBvh left) (mkBvh right) allBounds where
    (left, right) = splitMidpoint ps dim
    dim = splitAxis ps
@@ -84,7 +85,7 @@ mkBvh ps
 bvhIntersect :: TreeBvh -> Ray -> Maybe Intersection
 bvhIntersect bvh ray = go bvh ray where
    i = intf ray
-   go (Leaf p b) r = if i b (rayMax r) then nearest r p else Nothing
+   go (Leaf p b) r = if i b (rayMax r) then nearest p r else Nothing
    go (Node d lt rt b) r@(Ray _ rd _ tmax) = if i b tmax then near fi oi else Nothing where
       (fc, oc) = if component rd d >= 0 then (lt, rt) else (rt, lt)
       fi = go fc r  -- first intersection
@@ -110,7 +111,7 @@ intf ray@(Ray _ (Vector dx dy dz) _ _) = \b m -> intAABB b ray {rayMax = m} invD
    
 bvhIntersects :: TreeBvh -> Ray -> Bool
 bvhIntersects bvh ray = go bvh where
-   go (Leaf p b) = i b && any (`intersects` ray) p
+   go (Leaf p b) = i b && V.any (`intersects` ray) p
    go (Node _ l r b) = i b && (go l || go r)
    i b = intf ray b (rayMax ray)
    

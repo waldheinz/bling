@@ -8,10 +8,13 @@ module Graphics.Bling.Primitive (
 
    -- * Primitives
 
-   Primitive(..), Geometry, mkGeom, mkMesh, nearest, AnyPrim(..), mkAnyPrim
+   Primitive(..), Geometry, mkGeom, mkMesh, nearest, nearest',
+   AnyPrim(..), mkAnyPrim
    
    ) where
 
+import qualified Data.Vector.Generic as V
+   
 import Graphics.Bling.AABB
 import Graphics.Bling.Light as L
 import Graphics.Bling.Math
@@ -19,8 +22,6 @@ import Graphics.Bling.Reflection
 import qualified Graphics.Bling.Shape as S
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Transform
-
-import Data.Maybe(fromJust, isJust, isNothing)
 
 class Primitive a where
    intersect :: a -> Ray -> Maybe Intersection
@@ -113,17 +114,18 @@ instance Primitive Geometry where
       p = MkAnyPrim g
       ro = transRay (w2o g) rw -- ray in object space
    
-nearest :: (Primitive a) => Ray -> [a] -> Maybe Intersection
+near :: (Primitive a) => (Ray, Maybe Intersection) -> a -> (Ray, Maybe Intersection)
+{-# INLINE near #-}
+near o@(r, _) p = maybe o go $ intersect p r where
+   go i = (r { rayMax = intDist i }, Just i)
+
+nearest :: (Primitive a, V.Vector v a) => v a -> Ray -> Maybe Intersection
 {-# INLINE nearest #-}
-nearest (Ray ro rd tmin tmax) i = nearest' i tmax Nothing where
-   nearest' [] _ mi = mi
-   nearest' (x:xs) tmax' mi = nearest' xs newMax newNear where
-      clamped = Ray ro rd tmin tmax'
-      newNear = if isJust newNear' then newNear' else mi
-      newNear' = intersect x clamped
-      newMax = if isNothing newNear
-                  then tmax'
-                  else intDist $ fromJust newNear
+nearest ps r = snd $ nearest' ps r
+   
+nearest' :: (Primitive a, V.Vector v a) => v a -> Ray -> (Ray, Maybe Intersection)
+{-# INLINE nearest' #-}
+nearest' ps r = V.foldl' near (r, Nothing) ps
 
 --
 -- Intersections TODO: strictness here? :TODO
