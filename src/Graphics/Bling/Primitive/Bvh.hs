@@ -1,5 +1,5 @@
 
-module Graphics.Bling.Bvh 
+module Graphics.Bling.Primitive.Bvh 
    ( Bvh, mkBvh, ppBvh ) 
    where
 
