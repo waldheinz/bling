@@ -129,13 +129,31 @@ cost b@(AABB pmin pmax) axis t nl nr = cT + cI * (1 - eb) * pI where
    sal = 2 * (d .! oa0 * d .! oa1 + (t - pmin .! axis) * d .! oa0 + d .! oa1)
    sar = 2 * (d .! oa0 * d .! oa1 + (pmax .! axis - t) * d .! oa0 + d .! oa1)
    
-trav :: Point -> Vector -> KdTreeNode -> (Flt, Flt) -> Maybe Intersection
-trav = undefined
-   
+traverse :: Ray -> Vector -> KdTreeNode -> (Flt, Flt) -> Maybe Intersection
+traverse = undefined
+
+traverse' :: Ray -> Vector -> KdTreeNode -> (Flt, Flt) -> Bool
+traverse' r _ (Leaf ps) _ca = V.any (`intersects` r) ps
+traverse' r inv (Interior left right sp axis) mima@(tmin, tmax)
+   | tp > tmax || tp <= 0 = traverse' r inv fc mima
+   | tp < tmin = traverse' r inv sc mima
+   | otherwise = traverse' r inv fc (tmin, tp) || traverse' r inv sc (tp, tmax)
+   where
+         (ro, rd) = (rayOrigin r, rayDir r)
+         tp = (sp - ro .! axis) * inv .! axis
+         (fc, sc) = if lf then (left, right) else (right, left)
+         lf = (ro .! axis < sp) || (ro .! axis == sp && rd .! axis <= 0)
+         
 instance Primitive KdTree where
    flatten t = [MkAnyPrim t]
    
    worldBounds (KdTree b _) = b
    
-   intersect (KdTree b t) r@(Ray o d _ _) = intersectAABB b r >>= trav o d t
-   
+   intersect (KdTree b t) r@(Ray _ d _ _) = intersectAABB b r >>= trav where
+      trav = traverse r invDir t
+      invDir = mkV (1 / d .! 0, 1 / d .! 1, 1 / d .! 2)
+      
+   intersects (KdTree b t) r@(Ray _ d _ _) = maybe False tr (intersectAABB b r) where
+      tr = traverse' r invDir t
+      invDir = mkV (1 / d .! 0, 1 / d .! 1, 1 / d .! 2)
+      
