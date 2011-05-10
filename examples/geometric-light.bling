@@ -39,16 +39,16 @@ material {
    sigma { constant 0.0 }
 }
 
-shape {
-   mesh
-   vertexCount 4
-   faceCount 1
-   v  50.0 0.0 -50.0
-   v -50.0 0.0 -50.0
-   v -50.0 0.0  50.0
-   v  50.0 0.0  50.0
-   f 3 2 1 0
-}
+#shape {
+#   mesh
+#   vertexCount 4
+#   faceCount 1
+#   v  50.0 0.0 -50.0
+#   v -50.0 0.0 -50.0
+#   v -50.0 0.0  50.0
+#   v  50.0 0.0  50.0
+#   f 3 2 1 0
+#}
 
 # light source
 emission { rgb 3 9 3 }
@@ -79,6 +79,14 @@ emission { rgb 10 4 2 }
 transform {
    identity
    translate -5 2 0
+}
+
+shape { sphere radius 2 }
+
+emission { none }
+
+transform {
+   translate 0 -5 0
 }
 
 shape { sphere radius 2 }

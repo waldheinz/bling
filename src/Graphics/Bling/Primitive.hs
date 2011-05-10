@@ -121,11 +121,14 @@ near o@(r, _) p = maybe o go $ intersect p r where
 
 nearest :: (Primitive a, V.Vector v a) => v a -> Ray -> Maybe Intersection
 {-# INLINE nearest #-}
-nearest ps r = snd $ nearest' ps r
+nearest ps r = snd $ nearest' ps (r, Nothing)
    
-nearest' :: (Primitive a, V.Vector v a) => v a -> Ray -> (Ray, Maybe Intersection)
+nearest' :: (Primitive a, V.Vector v a)
+   => v a
+   -> (Ray, Maybe Intersection)
+   -> (Ray, Maybe Intersection)
 {-# INLINE nearest' #-}
-nearest' ps r = V.foldl' near (r, Nothing) ps
+nearest' ps x = V.foldl' near x ps
 
 --
 -- Intersections TODO: strictness here? :TODO

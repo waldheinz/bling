@@ -183,7 +183,7 @@ traverse' r inv (Interior left right sp axis) mima@(tmin, tmax)
 
 -- | traversal function for @Primitive.intersect@
 traverse :: (Ray, Maybe Intersection) -> Vector -> KdTreeNode -> (Flt, Flt) -> (Ray, Maybe Intersection)
-traverse (r, _) _ (Leaf ps) _ca = nearest' ps r
+traverse ri _ (Leaf ps) _ca = nearest' ps ri
 traverse ri@(r, _) inv (Interior left right sp axis) mima@(tmin, tmax)
    | rayMax r < tmin = ri
    | tp > tmax || tp <= 0 = traverse ri inv fc mima
@@ -203,6 +203,7 @@ instance Primitive KdTree where
    intersect (KdTree b t) r@(Ray _ d _ _) = intersectAABB b r >>= trav where
       trav ts = snd $ traverse (r, Nothing) invDir t ts
       invDir = mkV (1 / d .! 0, 1 / d .! 1, 1 / d .! 2)
+      
       
    intersects (KdTree b t) r@(Ray _ d _ _) = maybe False tr (intersectAABB b r) where
       tr = traverse' r invDir t
