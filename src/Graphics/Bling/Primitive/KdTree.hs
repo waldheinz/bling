@@ -128,10 +128,8 @@ cost b@(AABB pmin pmax) axis t nl nr = cT + cI * (1 - eb) * pI where
    (oa0, oa1) = ((axis + 1) `mod` 3 , (axis + 2) `mod` 3)
    sal = 2 * (d .! oa0 * d .! oa1 + (t - pmin .! axis) * d .! oa0 + d .! oa1)
    sar = 2 * (d .! oa0 * d .! oa1 + (pmax .! axis - t) * d .! oa0 + d .! oa1)
-   
-traverse :: Ray -> Vector -> KdTreeNode -> (Flt, Flt) -> Maybe Intersection
-traverse = undefined
 
+-- | traversal function for @Primitive.intersects@
 traverse' :: Ray -> Vector -> KdTreeNode -> (Flt, Flt) -> Bool
 traverse' r _ (Leaf ps) _ca = V.any (`intersects` r) ps
 traverse' r inv (Interior left right sp axis) mima@(tmin, tmax)
@@ -143,7 +141,11 @@ traverse' r inv (Interior left right sp axis) mima@(tmin, tmax)
          tp = (sp - ro .! axis) * inv .! axis
          (fc, sc) = if lf then (left, right) else (right, left)
          lf = (ro .! axis < sp) || (ro .! axis == sp && rd .! axis <= 0)
-         
+
+-- | traversal function for @Primitive.intersect@
+traverse :: Ray -> Vector -> KdTreeNode -> (Flt, Flt) -> Maybe Intersection
+traverse = undefined
+
 instance Primitive KdTree where
    flatten t = [MkAnyPrim t]
    
