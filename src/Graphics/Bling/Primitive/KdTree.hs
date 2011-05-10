@@ -25,7 +25,7 @@ instance Show KdTreeNode where
 
 
 --
--- pretty printing BVH stats
+-- pretty printing stats
 --
 
 ppKdTree :: KdTree -> Doc
@@ -98,56 +98,54 @@ buildTree :: AABB -> V.Vector BP -> Int -> KdTreeNode
 buildTree bounds bps depth
 --   | trace ("build " ++ show bounds ++ ", pc=" ++ show (V.length bps)) False = undefined
    | depth == 0 || V.length bps <= 1 = leaf
-   | otherwise = maybe leaf split mt
+   | otherwise = maybe leaf split mbs
    where
       leaf = Leaf $ V.map bpPrim bps
-      split t = Interior left right t axis where
+      split (i, t, _, _) = Interior left right t axis where
          left = buildTree lb lp (depth - 1)
          right = buildTree rb rp (depth - 1)
-         (lp, rp) = partition edges' t
+         (lp, rp) = partition es i
          (lb, rb) = splitAABB t axis bounds
-      mt = bestSplit bounds axis splits
-      splits = allSplits edges $ V.length bps
+      mbs = bestSplit bounds axis splits
+      splits = allSplits es
       axis = maximumExtent bounds
-      edges = sort $ V.toList edges'
-      edges' = V.generate (2 * V.length bps) ef where
-         ef i = let bp = bps V.! (i `div` 2)
-                    start = (i `mod` 2 == 0)
-                    (AABB pmin pmax) = bpBounds bp
-                    et = if start then pmin .! axis else pmax .! axis
-                    in Edge bp et start
+      es = edges bps axis
 
-partition :: V.Vector Edge -> Flt -> (V.Vector BP, V.Vector BP)
-partition es t = (\(ls, rs) -> (V.fromList ls, V.fromList rs)) $ V.foldl go  ([], []) es where
-   go (ls, rs) (Edge p et start)
-      | et <= t && start = (p : ls, rs)
-      | et > t && (not start) = (ls, p:rs)
-      | otherwise = (ls, rs)
-      
--- | a split is (t, # prims left, # prims right)
-type Split = (Flt, Int, Int)
+partition :: V.Vector Edge -> Int -> (V.Vector BP, V.Vector BP)
+partition es i = (lp, rp) where
+   lp = V.map (\(Edge p _ _) -> p) $ V.filter (\(Edge _ _ st) -> st) le
+   rp = V.map (\(Edge p _ _) -> p) $ V.filter (\(Edge _ _ st) -> not st) re
+   (le, re) = (V.take (i-1) es, V.drop i es) 
 
-bestSplit :: AABB -> Dimension -> [Split] -> Maybe Flt
+-- | a split is (index to es, t, # prims left, # prims right)
+type Split = (Int, Flt, Int, Int)
+
+bestSplit :: AABB -> Dimension -> [Split] -> Maybe Split
 bestSplit bounds axis ss
    | null fs = Nothing
-   | otherwise = Just $ snd $ go fs (infinity, undefined) where
+   | otherwise = Just $ go fs (infinity, undefined) where
    tmin = aabbMin bounds .! axis
    tmax = aabbMax bounds .! axis
-   fs = filter (\(t, _, _) -> (t > tmin) && (t < tmax)) ss
+   fs = filter (\(_, t, _, _) -> (t > tmin) && (t < tmax)) ss
    
-   go [] x = x
-   go ((t, nl, nr):xs) s@(c, _)
-      | c' < c = go xs (c', t)
-      | otherwise = go xs s
+   go [] (_, s) = s
+   go (s@(_, t, nl, nr):xs) x@(c, _)
+      | c' < c = go xs (c', s)
+      | otherwise = go xs x
       where
          c' = cost bounds axis t nl nr
 
-allSplits :: [Edge] -> Int -> [Split]
-allSplits e ec = go e 0 ec where
-   go ((Edge _ t False):es') l r = (t, l, r-1):go es' l (r-1)
-   go ((Edge _ t True ):es') l r = (t, l, r  ):go es' (l+1) r
-   go [] _ _ = []
+allSplits :: V.Vector Edge -> [Split]
+allSplits es = go 0 (V.toList es) 0 (V.length es) where
+   go i ((Edge _ t False):es') l r = (i, t, l, r-1):go (i+1) es' l (r-1)
+   go i ((Edge _ t True ):es') l r = (i, t, l, r  ):go (i+1) es' (l+1) r
+   go _ [] _ _ = []
 
+edges :: V.Vector BP -> Dimension -> V.Vector Edge
+edges bps axis = V.fromList $ sort $ concatMap te $ V.toList bps where
+   te bp = [Edge bp (pmin .! axis) True, Edge bp (pmax .! axis) False] where
+      (AABB pmin pmax) = bpBounds bp
+   
 -- | the SAH cost function
 cost
    :: AABB -- ^ the bounds of the region to be split
