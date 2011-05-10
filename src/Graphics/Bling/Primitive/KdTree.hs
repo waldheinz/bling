@@ -3,6 +3,7 @@ module Graphics.Bling.Primitive.KdTree (
    KdTree, mkKdTree, ppKdTree
    ) where
 
+import Debug.Trace
 import Text.PrettyPrint
 
 import Data.List (sort)   
@@ -96,18 +97,18 @@ mkKdTree ps = KdTree bounds root where
    
 buildTree :: AABB -> V.Vector BP -> Int -> KdTreeNode
 buildTree bounds bps depth
---   | trace ("build " ++ show bounds ++ ", pc=" ++ show (V.length bps)) False = undefined
+   | trace ("build " ++ show bounds ++ ", pc=" ++ show (V.length bps)) False = undefined
    | depth == 0 || V.length bps <= 1 = leaf
-   | otherwise = maybe leaf split mbs
+   | otherwise = maybe leaf split bs
    where
       leaf = Leaf $ V.map bpPrim bps
-      split (i, t, _, _) = Interior left right t axis where
+      split (i, t, nl, nr) = trace (show (V.length lp) ++ " " ++ show nl ++ " - " ++ show (V.length rp) ++ " " ++ show nr) $ Interior left right t axis where
          left = buildTree lb lp (depth - 1)
          right = buildTree rb rp (depth - 1)
          (lp, rp) = partition es i
          (lb, rb) = splitAABB t axis bounds
-      mbs = bestSplit bounds axis splits
-      splits = allSplits es
+      bs = bestSplit bounds axis splits
+      splits = trace ("edges " ++ show es) $ allSplits es
       axis = maximumExtent bounds
       es = edges bps axis
 
@@ -115,19 +116,20 @@ partition :: V.Vector Edge -> Int -> (V.Vector BP, V.Vector BP)
 partition es i = (lp, rp) where
    lp = V.map (\(Edge p _ _) -> p) $ V.filter (\(Edge _ _ st) -> st) le
    rp = V.map (\(Edge p _ _) -> p) $ V.filter (\(Edge _ _ st) -> not st) re
-   (le, re) = (V.take (i-1) es, V.drop i es) 
+   (le, re) = (V.take i es, V.drop (i+1) es) 
 
 -- | a split is (index to es, t, # prims left, # prims right)
 type Split = (Int, Flt, Int, Int)
 
 bestSplit :: AABB -> Dimension -> [Split] -> Maybe Split
 bestSplit bounds axis ss
+   | trace ( "all " ++ show fs) False = undefined
    | null fs = Nothing
-   | otherwise = Just $ go fs (infinity, undefined) where
+   | otherwise = trace ("best " ++ show best) $ Just best where
    tmin = aabbMin bounds .! axis
    tmax = aabbMax bounds .! axis
    fs = filter (\(_, t, _, _) -> (t > tmin) && (t < tmax)) ss
-   
+   best = go fs (infinity, undefined)
    go [] (_, s) = s
    go (s@(_, t, nl, nr):xs) x@(c, _)
       | c' < c = go xs (c', s)
@@ -136,7 +138,7 @@ bestSplit bounds axis ss
          c' = cost bounds axis t nl nr
 
 allSplits :: V.Vector Edge -> [Split]
-allSplits es = go 0 (V.toList es) 0 (V.length es) where
+allSplits es = go 0 (V.toList es) 0 (V.length es `div` 2) where
    go i ((Edge _ t False):es') l r = (i, t, l, r-1):go (i+1) es' l (r-1)
    go i ((Edge _ t True ):es') l r = (i, t, l, r  ):go (i+1) es' (l+1) r
    go _ [] _ _ = []
