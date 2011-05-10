@@ -143,8 +143,18 @@ traverse' r inv (Interior left right sp axis) mima@(tmin, tmax)
          lf = (ro .! axis < sp) || (ro .! axis == sp && rd .! axis <= 0)
 
 -- | traversal function for @Primitive.intersect@
-traverse :: Ray -> Vector -> KdTreeNode -> (Flt, Flt) -> Maybe Intersection
-traverse = undefined
+traverse :: (Ray, Maybe Intersection) -> Vector -> KdTreeNode -> (Flt, Flt) -> (Ray, Maybe Intersection)
+traverse (r, _) _ (Leaf ps) _ca = nearest' ps r
+traverse ri@(r, _) inv (Interior left right sp axis) mima@(tmin, tmax)
+   | rayMax r < tmin = ri
+   | tp > tmax || tp <= 0 = traverse ri inv fc mima
+   | tp < tmin = traverse ri inv sc mima
+   | otherwise = traverse (traverse ri inv fc (tmin, tp)) inv sc (tp, tmax)
+   where
+         (ro, rd) = (rayOrigin r, rayDir r)
+         tp = (sp - ro .! axis) * inv .! axis
+         (fc, sc) = if lf then (left, right) else (right, left)
+         lf = (ro .! axis < sp) || (ro .! axis == sp && rd .! axis <= 0)
 
 instance Primitive KdTree where
    flatten t = [MkAnyPrim t]
@@ -152,7 +162,7 @@ instance Primitive KdTree where
    worldBounds (KdTree b _) = b
    
    intersect (KdTree b t) r@(Ray _ d _ _) = intersectAABB b r >>= trav where
-      trav = traverse r invDir t
+      trav ts = snd $ traverse (r, Nothing) invDir t ts
       invDir = mkV (1 / d .! 0, 1 / d .! 1, 1 / d .! 2)
       
    intersects (KdTree b t) r@(Ray _ d _ _) = maybe False tr (intersectAABB b r) where
