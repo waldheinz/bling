@@ -1,9 +1,9 @@
 
 module Graphics.Bling.Primitive.KdTree (
-   KdTree, mkKdTree
+   KdTree, mkKdTree, ppKdTree
    ) where
 
-import Debug.Trace
+import Text.PrettyPrint
 
 import Data.List (sort)   
 import qualified Data.Vector as V
@@ -22,7 +22,46 @@ instance Show KdTreeNode where
    show (Interior l r t a) = "I t=" ++ show t ++ ", a=" ++ show a ++ "("
       ++ show l ++ ") (" ++ show r ++ ")"
    show (Leaf ps) = "L pc=" ++ show (V.length ps)
-      
+
+
+--
+-- pretty printing BVH stats
+--
+
+ppKdTree :: KdTree -> Doc
+ppKdTree (KdTree _ t) = vcat [
+   text "primitive count" <+> int p,
+   text "maximum depth" <+> int md,
+   text "maximum leaf prims" <+> int (maxPrims t),
+   text "number of leaves" <+> int l,
+   text "avg. depth" <+> float (fromIntegral sd / fromIntegral l),
+   text "avg. prims per leaf" <+> float (fromIntegral p / fromIntegral l)
+   ] where
+      (md, sd) = maxDepth t
+      l = leafCount t
+      p = primCount t
+
+primCount :: KdTreeNode -> Int
+primCount (Leaf ps) = V.length ps
+primCount (Interior l r _ _) = primCount l + primCount r
+
+maxPrims :: KdTreeNode -> Int
+maxPrims (Leaf ps) = V.length ps
+maxPrims (Interior l r _ _) = max (maxPrims l) (maxPrims r)
+
+maxDepth :: KdTreeNode -> (Int, Int)
+maxDepth t = maxDepth' t (0, 0) where
+   maxDepth' (Leaf _) (m, s) = (m + 1, s + 1)
+   maxDepth' (Interior l r _ _) (m, s) = (max ml mr, sl + sr) where
+      (ml, sl) = maxDepth' l (m + 1, s + 1)
+      (mr, sr) = maxDepth' r (m + 1, s + 1)
+
+leafCount :: KdTreeNode -> Int
+leafCount t = leafCount' t where
+   leafCount' (Leaf _) = 1
+   leafCount' (Interior l r _ _) = leafCount' l + leafCount' r
+
+
 --
 -- Creation
 --
@@ -50,14 +89,14 @@ data BP = BP
 
 mkKdTree :: [AnyPrim] -> KdTree
 mkKdTree ps = KdTree bounds root where
-   root = buildTree bounds bps maxDepth
+   root = buildTree bounds bps md
    bps = V.map (\p -> BP p (worldBounds p)) (V.fromList ps)
    bounds = V.foldl' extendAABB emptyAABB $ V.map bpBounds bps
-   maxDepth = round (8 + 1.3 * log (fromIntegral $ V.length bps :: Flt))
+   md = round (8 + 1.3 * log (fromIntegral $ V.length bps :: Flt))
    
 buildTree :: AABB -> V.Vector BP -> Int -> KdTreeNode
 buildTree bounds bps depth
-   | trace ("build " ++ show bounds ++ ", pc=" ++ show (V.length bps)) False = undefined
+--   | trace ("build " ++ show bounds ++ ", pc=" ++ show (V.length bps)) False = undefined
    | depth == 0 || V.length bps <= 1 = leaf
    | otherwise = maybe leaf split mt
    where
@@ -67,8 +106,8 @@ buildTree bounds bps depth
          right = buildTree rb rp (depth - 1)
          (lp, rp) = partition edges' t
          (lb, rb) = splitAABB t axis bounds
-      mt = trace ("splits=" ++ show splits) bestSplit bounds axis splits
-      splits = trace ("edges=" ++ show edges) allSplits edges $ V.length bps
+      mt = bestSplit bounds axis splits
+      splits = allSplits edges $ V.length bps
       axis = maximumExtent bounds
       edges = sort $ V.toList edges'
       edges' = V.generate (2 * V.length bps) ef where
@@ -81,8 +120,8 @@ buildTree bounds bps depth
 partition :: V.Vector Edge -> Flt -> (V.Vector BP, V.Vector BP)
 partition es t = (\(ls, rs) -> (V.fromList ls, V.fromList rs)) $ V.foldl go  ([], []) es where
    go (ls, rs) (Edge p et start)
-      | et < t && start = (p : ls, rs)
-      | et >= t && (not start) = (ls, p:rs)
+      | et <= t && start = (p : ls, rs)
+      | et > t && (not start) = (ls, p:rs)
       | otherwise = (ls, rs)
       
 -- | a split is (t, # prims left, # prims right)
@@ -98,7 +137,7 @@ bestSplit bounds axis ss
    
    go [] x = x
    go ((t, nl, nr):xs) s@(c, _)
-      | trace ("c'=" ++ show c') $ c' < c = go xs (c', t)
+      | c' < c = go xs (c', t)
       | otherwise = go xs s
       where
          c' = cost bounds axis t nl nr

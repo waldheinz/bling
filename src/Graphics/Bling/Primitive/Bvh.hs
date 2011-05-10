@@ -29,7 +29,7 @@ data TreeBvh
 
 --
 -- pretty printing BVH stats
----
+--
 
 ppBvh :: TreeBvh -> Doc
 ppBvh t = vcat [
