@@ -27,8 +27,7 @@ ppScene (Scene p ls cam) = vcat [
    text "Camera is" <+> ppCamera cam,
    text "bounds" <+> text (show (worldBounds p)),
    text "number of lights" <+> int (V.length ls),
-   text "BVH stats" $$ nest 3 (ppKdTree p),
-   text $ show p
+   text "BVH stats" $$ nest 3 (ppKdTree p)
    ]
    
 mkScene :: (Primitive a) => [Light] -> [a] -> Camera -> Scene

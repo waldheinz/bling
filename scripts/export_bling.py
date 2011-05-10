@@ -177,5 +177,5 @@ def write(filename, scene) :
 
 scn = Scene.GetCurrent()
 
-write("/home/trem/test.bling", scn)
+write("/Users/trem/test.bling", scn)
 

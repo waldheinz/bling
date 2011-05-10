@@ -156,17 +156,17 @@ cost
    -> Int -- ^ the number of prims to the left of the split
    -> Int -- ^ the number of prims to the right of the split
    -> Flt -- ^ the resulting split cost according to the SAH
-cost b@(AABB pmin pmax) axis t nl nr = cT + cI * (1 - eb) * pI where
+cost b@(AABB pmin pmax) axis t nl nr = cT + cI * eb * pI where
    pI = (pl * fromIntegral nl + pr * fromIntegral nr)
    cT = 1 -- cost for traversal
    cI = 80  -- cost for primitive intersection
-   eb = if nl == 0 || nr == 0 then 0.5 else 0
+   eb = if nl == 0 || nr == 0 then 0.5 else 1
    (pl, pr) = (sal * invTotSa, sar * invTotSa)
    invTotSa = 1 / surfaceArea b
    d = pmax - pmin
    (oa0, oa1) = ((axis + 1) `mod` 3 , (axis + 2) `mod` 3)
-   sal = 2 * (d .! oa0 * d .! oa1 + (t - pmin .! axis) * d .! oa0 + d .! oa1)
-   sar = 2 * (d .! oa0 * d .! oa1 + (pmax .! axis - t) * d .! oa0 + d .! oa1)
+   sal = 2 * (d .! oa0 * d .! oa1 + (t - pmin .! axis) * (d .! oa0 + d .! oa1))
+   sar = 2 * (d .! oa0 * d .! oa1 + (pmax .! axis - t) * (d .! oa0 + d .! oa1))
 
 -- | traversal function for @Primitive.intersects@
 traverse' :: Ray -> Vector -> KdTreeNode -> (Flt, Flt) -> Bool
