@@ -27,13 +27,14 @@ Library
       bitset,
       bytestring,
       parsec,
+      parallel,
       pretty,
       deepseq >= 1.1 && < 1.2,
       random >= 1.0 && < 1.1,
       random-shuffle == 0.0.2
 
    Ghc-Options:
-      -Wall -O2 -fexcess-precision -fspec-constr-count=64
+      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -threaded
 
    Ghc-Prof-Options:
       -O -fexcess-precision -prof -auto-all
@@ -83,7 +84,7 @@ Executable bling
    hs-source-dirs:   src/Graphics/Bling/Main
    Main-is:          Main.hs
    Build-Depends:    bling, base, haskell98, pretty, random, mwc-random
-   ghc-options:      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -rtsopts
+   ghc-options:      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -rtsopts -threaded
    ghc-prof-options: -O2 -fexcess-precision -prof -auto-all -rtsopts
 
 Executable bling-gui

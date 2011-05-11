@@ -17,27 +17,30 @@ import Graphics.Bling.Spectrum
 import Graphics.Bling.Primitive.KdTree
 
 data Scene = Scene {
+   _scenePrimCount :: Int, -- just for reference
    scenePrim :: KdTree,
    sceneLights :: V.Vector Light,
    sceneCam :: Camera
    }
    
 ppScene :: Scene -> Doc
-ppScene (Scene p ls cam) = vcat [
-   text "Camera is" <+> ppCamera cam,
+ppScene (Scene cnt p ls cam) = vcat [
+   text "camera is" <+> ppCamera cam,
    text "bounds" <+> text (show (worldBounds p)),
    text "number of lights" <+> int (V.length ls),
-   text "BVH stats" $$ nest 3 (ppKdTree p)
+   text "number of primitives" <+> int cnt,
+   text "stats" $$ nest 3 (ppKdTree p)
    ]
    
 mkScene :: (Primitive a) => [Light] -> [a] -> Camera -> Scene
-mkScene l prims cam = Scene (mkKdTree ps) (V.fromList lights) cam where
+mkScene l prims cam = Scene cnt (mkKdTree ps) (V.fromList lights) cam where
    lights = l ++ gl
    gl = mapMaybe light ps -- collect the geometric lights
    ps = Prelude.concatMap flatten prims
+   cnt = length ps
    
 occluded :: Scene -> Ray -> Bool
-occluded (Scene p _ _) = intersects p
+occluded (Scene _ p _ _) = intersects p
 
 instance Primitive Scene where
    intersect = intersect.scenePrim
@@ -58,7 +61,7 @@ sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n
          weight = powerHeuristic (1, lpdf) (1, bsdfPdf bsdf wo wi)
 
 sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Spectrum
-sampleBsdfMis (Scene sp _ _) l (BsdfSample _ bPdf f wi) n p
+sampleBsdfMis (Scene _ sp _ _) l (BsdfSample _ bPdf f wi) n p
    | isBlack f || bPdf == 0 = black
    | isJust lint = maybe black ff $ intLight (fromJust lint)
    | otherwise = scale (le l ray)
@@ -99,7 +102,7 @@ estimateDirect s l p n wo bsdf = do
    
 -- | samples one randomly chosen light source
 sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> Float -> Sampled Spectrum
-sampleOneLight scene@(Scene _ lights _) p n wo bsdf ulNum
+sampleOneLight scene@(Scene _ _ lights _) p n wo bsdf ulNum
    | lc == 0 = return black
    | lc == 1 = ed (V.head lights)
    | otherwise = do

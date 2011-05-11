@@ -3,7 +3,7 @@ module Graphics.Bling.Primitive.KdTree (
    KdTree, mkKdTree, ppKdTree
    ) where
 
-import Debug.Trace
+import Control.Parallel
 import Text.PrettyPrint
 
 import Data.List (sort)   
@@ -16,14 +16,13 @@ import Graphics.Bling.Primitive
 data KdTree = KdTree AABB KdTreeNode deriving (Show)
    
 data KdTreeNode
-   = Interior KdTreeNode KdTreeNode !Flt !Dimension
-   | Leaf !(V.Vector AnyPrim)
+   = Interior !KdTreeNode !KdTreeNode {-# UNPACK #-} !Flt {-# UNPACK #-} !Dimension
+   | Leaf {-# UNPACK #-} !(V.Vector AnyPrim)
    
 instance Show KdTreeNode where
    show (Interior l r t a) = "I t=" ++ show t ++ ", a=" ++ show a ++ "("
       ++ show l ++ ") (" ++ show r ++ ")"
    show (Leaf ps) = "L pc=" ++ show (V.length ps)
-
 
 --
 -- pretty printing stats
@@ -35,10 +34,11 @@ ppKdTree (KdTree _ t) = vcat [
    text "maximum depth" <+> int md,
    text "maximum leaf prims" <+> int (maxPrims t),
    text "number of leaves" <+> int l,
+   text "number of empty leaves" <+> int el,
    text "avg. depth" <+> float (fromIntegral sd / fromIntegral l),
    text "avg. prims per leaf" <+> float (fromIntegral p / fromIntegral l)
    ] where
-      (md, sd) = maxDepth t
+      (md, sd, el) = maxDepth t
       l = leafCount t
       p = primCount t
 
@@ -50,12 +50,12 @@ maxPrims :: KdTreeNode -> Int
 maxPrims (Leaf ps) = V.length ps
 maxPrims (Interior l r _ _) = max (maxPrims l) (maxPrims r)
 
-maxDepth :: KdTreeNode -> (Int, Int)
-maxDepth t = maxDepth' t (0, 0) where
-   maxDepth' (Leaf _) (m, s) = (m + 1, s + 1)
-   maxDepth' (Interior l r _ _) (m, s) = (max ml mr, sl + sr) where
-      (ml, sl) = maxDepth' l (m + 1, s + 1)
-      (mr, sr) = maxDepth' r (m + 1, s + 1)
+maxDepth :: KdTreeNode -> (Int, Int, Int)
+maxDepth t = maxDepth' t (0, 0, 0) where
+   maxDepth' (Leaf ps) (m, s, el) = (m + 1, s + 1, el + if V.null ps then 1 else 0)
+   maxDepth' (Interior l r _ _) (m, s, el) = (max ml mr, sl + sr, el + ell + elr) where
+      (ml, sl, ell) = maxDepth' l (m + 1, s + 1, el)
+      (mr, sr, elr) = maxDepth' r (m + 1, s + 1, el)
 
 leafCount :: KdTreeNode -> Int
 leafCount t = leafCount' t where
@@ -64,14 +64,22 @@ leafCount t = leafCount' t where
 
 
 --
--- Creation
+-- construction
 --
 
-data Edge = Edge !BP !Flt !Bool
+-- first some constants to tune SAH behaviour
 
-instance Eq Edge where
-   (Edge _ t1 s1) == (Edge _ t2 s2) = t1 == t2 && s1 == s2
+-- | cost for traversal
+cT :: Flt
+cT = 1
 
+-- | cost for primitive intersection
+cI :: Flt
+cI = 80
+
+data Edge = Edge {-# UNPACK #-} !BP {-# UNPACK #-} !Flt !Bool
+
+instance Eq Edge where (Edge _ t1 s1) == (Edge _ t2 s2) = t1 == t2 && s1 == s2
 
 instance Ord Edge where
    (Edge _ t1 s1) <= (Edge _ t2 s2)
@@ -97,20 +105,35 @@ mkKdTree ps = KdTree bounds root where
    
 buildTree :: AABB -> V.Vector BP -> Int -> KdTreeNode
 buildTree bounds bps depth
-   | trace ("build " ++ show bounds ++ ", pc=" ++ show (V.length bps)) False = undefined
    | depth == 0 || V.length bps <= 1 = leaf
-   | otherwise = maybe leaf split bs
+   | otherwise = maybe leaf id $ trySplit bounds bps depth
    where
       leaf = Leaf $ V.map bpPrim bps
-      split (i, t, nl, nr) = trace (show (V.length lp) ++ " " ++ show nl ++ " - " ++ show (V.length rp) ++ " " ++ show nr) $ Interior left right t axis where
+      
+trySplit :: AABB -> V.Vector BP -> Int -> Maybe KdTreeNode
+trySplit bounds bps depth = go Nothing axii where
+   axii = [a `mod` 3 | a <- take 3 [(maximumExtent bounds)..]]
+   oldCost = cI * (fromIntegral $ V.length bps)
+   
+   go :: Maybe KdTreeNode -> [Int] -> Maybe KdTreeNode
+   go o [] = o
+   go o (axis:axs)
+      | null fs = go o axs
+      | c < oldCost = par right (seq left (Just $ Interior left right t axis))
+      | otherwise = go o axs
+      where
+         (c, (i, t, _, _)) = bestSplit bounds axis fs
+         fs = filterSplits axis bounds $ allSplits es
+         es = edges bps axis
          left = buildTree lb lp (depth - 1)
          right = buildTree rb rp (depth - 1)
          (lp, rp) = partition es i
          (lb, rb) = splitAABB t axis bounds
-      bs = bestSplit bounds axis splits
-      splits = trace ("edges " ++ show es) $ allSplits es
-      axis = maximumExtent bounds
-      es = edges bps axis
+
+filterSplits :: Dimension -> AABB -> [Split] -> [Split]
+filterSplits axis b ss = filter (\(_, t, _, _) -> (t > tmin) && (t < tmax)) ss where
+   tmin = aabbMin b .! axis
+   tmax = aabbMax b .! axis
 
 partition :: V.Vector Edge -> Int -> (V.Vector BP, V.Vector BP)
 partition es i = (lp, rp) where
@@ -118,23 +141,15 @@ partition es i = (lp, rp) where
    rp = V.map (\(Edge p _ _) -> p) $ V.filter (\(Edge _ _ st) -> not st) re
    (le, re) = (V.take i es, V.drop (i+1) es) 
 
--- | a split is (index to es, t, # prims left, # prims right)
+-- | a split is (offset into es, t, # prims left, # prims right)
 type Split = (Int, Flt, Int, Int)
 
-bestSplit :: AABB -> Dimension -> [Split] -> Maybe Split
-bestSplit bounds axis ss
-   | trace ( "all " ++ show fs) False = undefined
-   | null fs = Nothing
-   | otherwise = trace ("best " ++ show best) $ Just best where
-   tmin = aabbMin bounds .! axis
-   tmax = aabbMax bounds .! axis
-   fs = filter (\(_, t, _, _) -> (t > tmin) && (t < tmax)) ss
-   best = go fs (infinity, undefined)
-   go [] (_, s) = s
+bestSplit :: AABB -> Dimension -> [Split] -> (Flt, Split)
+bestSplit bounds axis fs = go fs (infinity, undefined) where
+   go [] s = s
    go (s@(_, t, nl, nr):xs) x@(c, _)
       | c' < c = go xs (c', s)
-      | otherwise = go xs x
-      where
+      | otherwise = go xs x where
          c' = cost bounds axis t nl nr
 
 allSplits :: V.Vector Edge -> [Split]
@@ -156,17 +171,15 @@ cost
    -> Int -- ^ the number of prims to the left of the split
    -> Int -- ^ the number of prims to the right of the split
    -> Flt -- ^ the resulting split cost according to the SAH
-cost b@(AABB pmin pmax) axis t nl nr = cT + cI * eb * pI where
+cost b@(AABB pmin pmax) a0 t nl nr = cT + cI * eb * pI where
    pI = (pl * fromIntegral nl + pr * fromIntegral nr)
-   cT = 1 -- cost for traversal
-   cI = 80  -- cost for primitive intersection
    eb = if nl == 0 || nr == 0 then 0.5 else 1
    (pl, pr) = (sal * invTotSa, sar * invTotSa)
    invTotSa = 1 / surfaceArea b
    d = pmax - pmin
-   (oa0, oa1) = ((axis + 1) `mod` 3 , (axis + 2) `mod` 3)
-   sal = 2 * (d .! oa0 * d .! oa1 + (t - pmin .! axis) * (d .! oa0 + d .! oa1))
-   sar = 2 * (d .! oa0 * d .! oa1 + (pmax .! axis - t) * (d .! oa0 + d .! oa1))
+   (a1, a2) = ((a0 + 1) `mod` 3 , (a0 + 2) `mod` 3)
+   sal = 2 * ((d .! a1) * (d .! a2) + (t - (pmin .! a0)) * ((d .! a1) + (d .! a2)))
+   sar = 2 * ((d .! a1) * (d .! a2) + ((pmax .! a0) - t) * ((d .! a1) + (d .! a2)))
 
 -- | traversal function for @Primitive.intersects@
 traverse' :: Ray -> Vector -> KdTreeNode -> (Flt, Flt) -> Bool

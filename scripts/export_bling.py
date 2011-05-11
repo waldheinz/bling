@@ -1,4 +1,5 @@
 #!BPY
+# -*- coding: utf-8 -*-
 
 """
 Name: 'Bling (.bling)...'
@@ -177,5 +178,5 @@ def write(filename, scene) :
 
 scn = Scene.GetCurrent()
 
-write("/Users/trem/test.bling", scn)
+write("/home/trem/test.bling", scn)
 
