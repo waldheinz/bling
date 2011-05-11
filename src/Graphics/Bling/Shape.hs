@@ -180,4 +180,3 @@ sample (Triangle v1 v2 v3) _ (u1, u2) = (p, n) where
    b2 = u2 * u1' -- second barycentric
    u1' = sqrt u1
    n = normalize $ cross (p3 - p1) (p2 - p1)
-      

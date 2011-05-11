@@ -63,7 +63,6 @@ leafCount t = leafCount' t where
    leafCount' (Leaf _) = 1
    leafCount' (Interior l r _ _) = leafCount' l + leafCount' r
 
-
 --
 -- construction
 --
@@ -76,7 +75,7 @@ cT = 1
 
 -- | cost for primitive intersection
 cI :: Flt
-cI = 80
+cI = 2
 
 data Edge = Edge {-# UNPACK #-} !BP {-# UNPACK #-} !Flt !Bool
 
@@ -85,7 +84,7 @@ instance Eq Edge where (Edge _ t1 s1) == (Edge _ t2 s2) = t1 == t2 && s1 == s2
 instance Ord Edge where
    (Edge _ t1 s1) <= (Edge _ t2 s2)
       | t1 == t2 = s1 && not s2
-      | otherwise = t1 < t2
+      | otherwise = t1 <= t2
 
 instance Show Edge where
    show (Edge _ t s)
@@ -102,7 +101,7 @@ mkKdTree ps = KdTree bounds root where
    root = buildTree bounds bps md
    bps = V.map (\p -> BP p (worldBounds p)) (V.fromList ps)
    bounds = V.foldl' extendAABB emptyAABB $ V.map bpBounds bps
-   md = round (8 + 1.3 * log (fromIntegral $ V.length bps :: Flt))
+   md = round (8 + 3 * log (fromIntegral $ V.length bps :: Flt))
    
 buildTree :: AABB -> V.Vector BP -> Int -> KdTreeNode
 buildTree bounds bps depth
@@ -174,13 +173,14 @@ cost
    -> Flt -- ^ the resulting split cost according to the SAH
 cost b@(AABB pmin pmax) a0 t nl nr = cT + cI * eb * pI where
    pI = pl * fromIntegral nl + pr * fromIntegral nr
-   eb = if nl == 0 || nr == 0 then 0.5 else 1
+   eb = if nl == 0 || nr == 0 then 0.8 else 1
    (pl, pr) = (sal * invTotSa, sar * invTotSa)
    invTotSa = 1 / surfaceArea b
    d = pmax - pmin
    (a1, a2) = ((a0 + 1) `mod` 3 , (a0 + 2) `mod` 3)
-   sal = 2 * ((d .! a1) * (d .! a2) + (t - (pmin .! a0)) * ((d .! a1) + (d .! a2)))
-   sar = 2 * ((d .! a1) * (d .! a2) + ((pmax .! a0) - t) * ((d .! a1) + (d .! a2)))
+   (dl, dr) = (t - (pmin .! a0), (pmax .! a0) - t)
+   sal = 2 * ((d .! a1) * (d .! a2) + dl * ((d .! a1) + (d .! a2)))
+   sar = 2 * ((d .! a1) * (d .! a2) + dr * ((d .! a1) + (d .! a2)))
 
 -- | traversal function for @Primitive.intersects@
 traverse' :: Ray -> Vector -> KdTreeNode -> (Flt, Flt) -> Bool

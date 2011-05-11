@@ -2,12 +2,12 @@
 # plastic
 
 filter mitchell 3.0 3.0 0.333333 0.333333
-#filter box
+filter box
 
 imageSize 640 480
 
-sampler { stratified xSamples 6 ySamples 6 }
-sampler { random samples 1 }
+sampler { stratified xSamples 2 ySamples 2 }
+# sampler { random samples 1 }
 
 transform {
    lookAt {
@@ -36,16 +36,16 @@ material {
    sigma { constant 0.0 }
 }
 
-shape {
-   mesh
-   vertexCount 4
-   faceCount 1
-   v  50.0 0.0 -50.0
-   v -50.0 0.0 -50.0
-   v -50.0 0.0  50.0
-   v  50.0 0.0  50.0
-   f 3 2 1 0
-}
+#shape {
+#   mesh
+#   vertexCount 4
+#   faceCount 1
+#   v  50.0 0.0 -50.0
+#   v -50.0 0.0 -50.0
+#   v -50.0 0.0  50.0
+#   v  50.0 0.0  50.0
+#   f 3 2 1 0
+#}
 
 #
 # light source

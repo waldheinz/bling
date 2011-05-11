@@ -41,6 +41,8 @@ class Primitive a where
    --   geometry used for shading is the same as for reflection calculations
    shadingGeometry _ _ dg = dg
 
+type Accelerator = [AnyPrim] -> AnyPrim
+
 --
 -- the existential primitive
 --
