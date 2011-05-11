@@ -174,6 +174,7 @@ component !(Vector x y z) !d
    | otherwise = z
 
 (.!) :: Vector -> Dimension -> Flt
+{-# INLINE (.!) #-}
 (.!) = component
 
 setComponent :: Dimension -> Flt -> Vector -> Vector
