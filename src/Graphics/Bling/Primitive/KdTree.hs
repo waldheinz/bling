@@ -4,6 +4,7 @@ module Graphics.Bling.Primitive.KdTree (
    ) where
 
 import Control.Parallel
+import Data.Maybe (fromMaybe)
 import Text.PrettyPrint
 
 import Data.List (sort)   
@@ -106,14 +107,14 @@ mkKdTree ps = KdTree bounds root where
 buildTree :: AABB -> V.Vector BP -> Int -> KdTreeNode
 buildTree bounds bps depth
    | depth == 0 || V.length bps <= 1 = leaf
-   | otherwise = maybe leaf id $ trySplit bounds bps depth
+   | otherwise = fromMaybe leaf $ trySplit bounds bps depth
    where
       leaf = Leaf $ V.map bpPrim bps
       
 trySplit :: AABB -> V.Vector BP -> Int -> Maybe KdTreeNode
 trySplit bounds bps depth = go Nothing axii where
    axii = [a `mod` 3 | a <- take 3 [(maximumExtent bounds)..]]
-   oldCost = cI * (fromIntegral $ V.length bps)
+   oldCost = cI * fromIntegral (V.length bps)
    
    go :: Maybe KdTreeNode -> [Int] -> Maybe KdTreeNode
    go o [] = o
@@ -131,7 +132,7 @@ trySplit bounds bps depth = go Nothing axii where
          (lb, rb) = splitAABB t axis bounds
 
 filterSplits :: Dimension -> AABB -> [Split] -> [Split]
-filterSplits axis b ss = filter (\(_, t, _, _) -> (t > tmin) && (t < tmax)) ss where
+filterSplits axis b = filter (\(_, t, _, _) -> (t > tmin) && (t < tmax)) where
    tmin = aabbMin b .! axis
    tmax = aabbMax b .! axis
 
@@ -154,8 +155,8 @@ bestSplit bounds axis fs = go fs (infinity, undefined) where
 
 allSplits :: V.Vector Edge -> [Split]
 allSplits es = go 0 (V.toList es) 0 (V.length es `div` 2) where
-   go i ((Edge _ t False):es') l r = (i, t, l, r-1):go (i+1) es' l (r-1)
-   go i ((Edge _ t True ):es') l r = (i, t, l, r  ):go (i+1) es' (l+1) r
+   go i (Edge _ t False : es') l r = (i, t, l, r-1):go (i+1) es' l (r-1)
+   go i (Edge _ t True  : es') l r = (i, t, l, r  ):go (i+1) es' (l+1) r
    go _ [] _ _ = []
 
 edges :: V.Vector BP -> Dimension -> V.Vector Edge
@@ -172,7 +173,7 @@ cost
    -> Int -- ^ the number of prims to the right of the split
    -> Flt -- ^ the resulting split cost according to the SAH
 cost b@(AABB pmin pmax) a0 t nl nr = cT + cI * eb * pI where
-   pI = (pl * fromIntegral nl + pr * fromIntegral nr)
+   pI = pl * fromIntegral nl + pr * fromIntegral nr
    eb = if nl == 0 || nr == 0 then 0.5 else 1
    (pl, pr) = (sal * invTotSa, sar * invTotSa)
    invTotSa = 1 / surfaceArea b

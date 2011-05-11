@@ -99,7 +99,7 @@ Executable bling-gui
       bling, base, haskell98, pretty, random, mwc-random,
       SDL
 
-   ghc-options:      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -rtsopts
+   ghc-options:      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -rtsopts -threaded
    ghc-prof-options: -O2 -fexcess-precision -prof -auto-all -rtsopts
 
 Executable bling-test
