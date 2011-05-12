@@ -133,24 +133,65 @@ def writeLamp(o, obj) :
    lampV = Mathutils.Vector([0, 0, 0, 1])
    lampV = lampV * objmatrix
    
+   p = lamp.energy
+   red = lamp.r * p
+   green = lamp.b * p
+   blue = lamp.b * p
+   rgb = (red, green, blue)
+   
    if lamp.getType() == Lamp.Types.Lamp :
       o.write("# point lamp %s\n" % str(lamp))
       o.write("light {\n")
       o.write("   point\n")
-      p = lamp.energy
-      o.write("   intensity rgb %f %f %f\n" % (lamp.r*p, lamp.g*p, lamp.b*p))
+      o.write("   intensity rgb %f %f %f\n" % rgb)
       o.write("   position %f %f %f\n" % (lampV[0], lampV[1], lampV[2]))
       o.write("}\n")
    
    elif lamp.getType() == Lamp.Types.Area :
       o.write("# area lamp " + str(dir(lamp)) + "\n")
+
+      # first emission spectrum
+
+      o.write("emission { rgb %f %f %f }\n" % rgb)
+
+      # then geometry
+      xsize = lamp.areaSizeX * 0.5
+      
+      if lamp.areaSizeY:
+         ysize = lamp.areaSizeY * 0.5
+      else:
+         ysize = xsize
+      
+      lampV0 = Mathutils.Vector([-xsize, ysize, 0, 1])
+      lampV1 = Mathutils.Vector([ xsize, ysize, 0, 1])
+      lampV2 = Mathutils.Vector([ xsize, -ysize, 0, 1])
+      lampV3 = Mathutils.Vector([-xsize, -ysize, 0, 1])
+
+      lampV0 = lampV0 * objmatrix
+      lampV1 = lampV1 * objmatrix
+      lampV2 = lampV2 * objmatrix
+      lampV3 = lampV3 * objmatrix
+
+      o.write("shape {\n")
+      o.write("   mesh\n")
+      o.write("   vertexCount 4\n")
+      o.write("   faceCount 1\n")
+      o.write("   v %f %f %f\n" % (lampV0[0], lampV0[1], lampV0[2]))
+      o.write("   v %f %f %f\n" % (lampV1[0], lampV1[1], lampV1[2]))
+      o.write("   v %f %f %f\n" % (lampV2[0], lampV2[1], lampV2[2]))
+      o.write("   v %f %f %f\n" % (lampV3[0], lampV3[1], lampV3[2]))
+      o.write("   f 3 2 1 0\n")
+      o.write("}\n")
+      
+      # and turn off emission for remaining gemoetry
+
+      o.write("emission { none }\n")
       
    elif lamp.getType() == Lamp.Types.Sun :
       o.write("# Sun Lamp %s\n" % str(lamp))
       o.write("light {\n")
       o.write("   directional\n")
-      p = lamp.energy
-      o.write("   intensity rgb %f %f %f\n" % (lamp.r*p, lamp.g*p, lamp.b*p))
+      o.write("   intensity rgb %f %f %f\n" % rgb)
       im = Mathutils.Matrix(obj.getInverseMatrix())
       o.write("   normal %f %f %f\n" % (im[0][2], im[1][2], im[2][2]))
       o.write("}\n")
