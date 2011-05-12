@@ -9,9 +9,11 @@ Tooltip: 'Save a Bling File'
 """
 
 import Blender
-from Blender import Mesh, Scene, Window, sys, Image, Draw, Types, Lamp, Mathutils
+from Blender import Mesh, Scene, Window, sys, Image, Draw, Types, Lamp, Mathutils, Material
+
 import math
 from Blender.Mathutils import *
+from Blender.Material import *
 
 def writeMatrix(o, m) :
    m1 = m.copy().transpose()
@@ -75,14 +77,23 @@ def writeCamera(o, scene) :
    
 def writeMaterial(o, mat) :
    o.write("material {\n")
-   o.write("   plastic\n")
-   
    d = mat.rgbCol
-   o.write("   kd { constant rgb %f %f %f }\n" % (d[0], d[1], d[2]))
+   s = mat.specCol
+   
+   if (mat.diffuseShader == Shaders.DIFFUSE_LAMBERT and
+       mat.specShader == Shaders.SPEC_BLINN) :
 
-   d = mat.mirCol   
-   o.write("   ks { constant rgb %f %f %f }\n" % (0,0,0)) # % (d[0], d[1], d[2]))
-   o.write("   rough { constant 0.1 }\n")
+      o.write("\tplastic\n")
+      o.write("\tkd { constant rgb %f %f %f }\n" % (d[0], d[1], d[2]))
+      o.write("\tks { constant rgb %f %f %f }\n" % (s[0], s[1], s[2]))
+      h = (512 - float(mat.hard)) / 511
+      o.write("\trough { constant %f }\n" % (h * h))
+   else :
+      o.write("# unknown material type, using matte")
+      o.write("\tmatte\n")
+      o.write("\tkd { constant rgb %f %f %f }\n" % (d[0], d[1], d[2]))
+      o.write("\tsigma { constant 0 }\n")
+      
    o.write("}\n")
           
 def writeDefaultMaterial(o) :
