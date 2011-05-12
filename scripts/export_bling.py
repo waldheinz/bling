@@ -89,7 +89,7 @@ def writeMaterial(o, mat) :
       h = (512 - float(mat.hard)) / 511
       o.write("\trough { constant %f }\n" % (h * h))
    else :
-      o.write("# unknown material type, using matte")
+      o.write("\t# unknown material type, using matte\n")
       o.write("\tmatte\n")
       o.write("\tkd { constant rgb %f %f %f }\n" % (d[0], d[1], d[2]))
       o.write("\tsigma { constant 0 }\n")
