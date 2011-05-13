@@ -63,7 +63,7 @@ data Spd = Spd {
    _spdValues :: V.Vector Flt
    } deriving (Show)
    
--- | creates an SPD from a list of (lambda, value) pairs, which must
+-- | creates a SPD from a list of (lambda, value) pairs, which must
 --   not be empty
 mkSpd
    :: [(Flt, Flt)] -- ^ the SPD as (lambda, value) pairs
@@ -75,12 +75,21 @@ mkSpd xs = Spd ls vs where
    sorted = sortBy cmp xs
    cmp (l1, _) (l2, _) = compare l1 l2
 
+-- | creates a SPD from a list of regulary sampled amplitudes
+mkSpd'
+   :: [Flt] -- ^ the amplitudes of the SPD, must not be empty
+   -> Flt -- ^ the wavelength of the first amplitude sample
+   -> Flt -- ^ the wavelength of the last amplitude sample
+   -> Spd -- ^ the resulting SPD
+mkSpd' vs s e = mkSpd $ P.zip ls vs where
+   ls = [s, (s+inc) .. e]
+   inc = (e-s) / (fromIntegral $ P.length vs - 1)
+
 -- | evaluates a SPD
 evalSpd
    :: Spd -- ^ the SPD to evaluate
    -> Flt -- ^ the lambda where the SPD should be evaluated
    -> Flt -- ^ the SPD value at the specified lambda
-   
 evalSpd (Spd ls vs) l
    | l <= V.head ls = V.head vs
    | l >= V.last ls = V.last vs
