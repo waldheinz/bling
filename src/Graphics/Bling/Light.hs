@@ -80,7 +80,7 @@ mkSunSky
    -> Int -- ^ the light id
    -> Light
 mkSunSky up east sdw turb lid = SunSky lid basis ssd where
-   basis = coordinateSystem' up east
+   basis = coordinateSystem' (normalize up) (normalize east)
    ssd = initSunSky basis sdw turb
 
 -- | the emission from the surface of an area light source
@@ -178,32 +178,32 @@ initSunSky :: LocalCoordinates -> Vector -> Flt -> SunSkyData
 initSunSky basis sdw t = SSD sd st px py pY zx zy zY where
    sd = normalize $ worldToLocal basis sdw
    st = acos $ clamp (sd .! dimZ) (-1) 1
+   (st2, st3, t2) = (st * st, st * st * st, t * t)
+   chi = (4 / 9 - t / 120) * (pi - 2 * st)
+   
    pY = ( 0.17872 * t - 1.46303, -0.35540 * t + 0.42749, -0.02266 * t + 5.32505,
           0.12064 * t - 2.57705, -0.06696 * t + 0.37027)
    px = (-0.01925 * t - 0.25922, -0.06651 * t + 0.00081, -0.00041 * t + 0.21247,
          -0.06409 * t - 0.89887, -0.00325 * t + 0.04517)
    py = (-0.01669 * t - 0.26078, -0.09495 * t + 0.00921, -0.00792 * t + 0.21023,
          -0.04405 * t - 1.65369, -0.01092 * t + 0.05291)
-         
-   t2 = t * t
-   chi = (4 / 9 - t / 120) * (pi - 2 * st)
-   th2 = st * st
-   th3 = th2 * st
-   
-   zY = (( 4.04530 * t - 4.97100) * tan chi  - 0.2155 * t + 2.4192) * 1000
-   zx = ( 0.00165 * th3 - 0.00374 * th2 + 0.00208 * st          ) * t2 +
-        (-0.02902 * th3 + 0.06377 * th2 - 0.03202 * st + 0.00394) *  t +
-        ( 0.11693 * th3 - 0.21196 * th2 + 0.06052 * st + 0.25885)
-   zy = ( 0.00275 * th3 - 0.00610 * th2 + 0.00316 * st          ) * t2 +
-        (-0.04212 * th3 + 0.08970 * th2 - 0.04153 * st + 0.00515) *  t +
-        ( 0.15346 * th3 - 0.26756 * th2 + 0.06669 * st + 0.26688)
+
+   zY = ((4.04530 * t - 4.97100) * tan chi  - 0.2155 * t + 2.4192) * 1000
+   zx = ( 0.00165 * st3 - 0.00374 * st2 + 0.00208 * st          ) * t2 +
+        (-0.02902 * st3 + 0.06377 * st2 - 0.03202 * st + 0.00394) * t  +
+        ( 0.11693 * st3 - 0.21196 * st2 + 0.06052 * st + 0.25885)
+   zy = ( 0.00275 * st3 - 0.00610 * st2 + 0.00316 * st          ) * t2 +
+        (-0.04212 * st3 + 0.08970 * st2 - 0.04153 * st + 0.00515) * t  +
+        ( 0.15346 * st3 - 0.26756 * st2 + 0.06669 * st + 0.26688)
 
 skySpectrum :: SunSkyData -> Vector -> Spectrum
 skySpectrum ssd dir@(Vector _ _ dz)
    | dz < 0.001 = black
-   | otherwise = fromSpd $ fromCIExy (x ) (y )
+   | otherwise = fromXYZ (x', y', z')
    where
-      theta = acos $ clamp dz (-1) 1
+      (cx, cy, cz) = spdToXYZ $ fromCIExy x y
+      (x', z') = (cx * y' / cy, cz * y' / cy)
+      theta = acos dz
       gamma = acos $ clamp (dir `dot` (sunDir ssd)) (-1) (1)
       x = perez (perezx ssd) (sunTheta ssd) theta gamma (zenithx ssd)
       y = perez (perezy ssd) (sunTheta ssd) theta gamma (zenithy ssd)
@@ -211,6 +211,7 @@ skySpectrum ssd dir@(Vector _ _ dz)
       
 perez :: Perez -> Flt -> Flt -> Flt -> Flt -> Flt
 perez (p0, p1, p2, p3, p4) sunT t g lvz = lvz * num / den where
-   num = (1 + p0 * exp p1 / cos t) * (1 + p2 * exp p3 * g) + p4 * cos g * cos g
-   den = (1 + p0 * exp p1 * (1 + p2 * exp p3 * sunT) + p4 * cos sunT * cos sunT)
-      
+   num = (1 + p0 * exp (p1 / cos t)) * (1 + p2 * exp (p3 * g)) + p4 * csg * csg
+   den = (1 + p0 * exp p1) * (1 + p2 * exp (p3 * sunT)) + p4 * cst * cst
+   csg = cos g
+   cst = cos sunT

@@ -5,15 +5,15 @@
 filter mitchell 3.0 3.0 0.333333 0.333333
 filter box
 
-imageSize 640 480
+imageSize 320 240
 
 # sampler { stratified xSamples 2 ySamples 2 }
 sampler { random samples 1 }
 
 transform {
    lookAt {
-      pos 9 0.2 -9
-      look 0 0.2 0
+      pos 9 5 -9
+      look 0 0.0 0
       up 0 1 0
    }
 }
@@ -31,8 +31,8 @@ light {
    sunSky
    up 0 1 0
    east 1 0 0
-   sunDir 1 1 1
-   turbidity 4
+   sunDir 0 0.1 0.8
+   turbidity 2
 }
 
 #
@@ -62,101 +62,15 @@ shape {
 
 transform {
    identity
-   translate -5.0 3.0 -2.5
+   translate 0 3.0 0
 }
 
 material { plastic
-   kd { constant rgb 0.49 0.3 0.02 }
+   kd { constant rgb 0.49 0.49 0.49 }
    ks { constant rgb 0.5 0.5 0.5 }
    rough { constant 0.2 }
 }
 
-shape { sphere radius 2.0 }
-
-#
-#
-#
-
-transform {
-   identity
-   translate 0.0 3.0 -2.5
-}
-
-material { plastic
-   kd { constant rgb 0.4 0.02 0.4 }
-   ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.05 }
-}
+material { glass ior 1.5 r { constant rgb 0.9 0.9 0.9 }}
 
 shape { sphere radius 2.0 }
-
-
-#
-#
-#
-
-transform {
-   identity
-   translate 5.0 3.0 -2.5
-}
-
-material { plastic
-   kd { constant rgb 0.3 0.4 0.2 }
-   ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.0125 }
-}
-
-shape { sphere radius 2.0 }
-
-#
-# sphere 1
-#
-
-transform {
-   identity
-   translate -5.0 3.0 2.5
-}
-
-material { plastic
-   kd { constant rgb 0.1 0.2 0.4 }
-   ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.003125 }
-}
-
-shape { sphere radius 2.0 }
-
-#
-#
-#
-
-transform {
-   identity
-   translate 0.0 3.0 2.5
-}
-
-material { plastic
-   kd { constant rgb 0.3 0.15 0.01 }
-   ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.00078125 }
-}
-
-shape { sphere radius 2.0 }
-
-
-#
-#
-#
-
-transform {
-   identity
-   translate 5.0 3.0 2.5
-}
-
-material { plastic
-   kd { constant rgb 0.01 0.4 0.35 }
-   ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.000195312 }
-}
-
-shape { sphere radius 2.0 }
-

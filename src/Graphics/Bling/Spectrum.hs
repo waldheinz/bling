@@ -3,8 +3,8 @@ module Graphics.Bling.Spectrum (
    Spectrum, WeightedSpectrum, ImageSample(..),
    white, black, 
    
-   -- * Dealing with SPDs
-   Spd, mkSpd, fromCIExy,
+   -- * Working with SPDs
+   Spd, mkSpd, fromCIExy, spdToXYZ,
    
    isBlack, sNaN, sInfinite,
    fromXYZ,  toRGB, fromRGB, fromSpd, sConst, sBlackBody, sY,
@@ -111,7 +111,7 @@ evalSpd (IrregularSpd ls vs) l
          | (ls ! mid) < l = fi mid hi
          | otherwise = fi lo mid where
             mid = (lo + hi) `div` 2
-            
+
 evalSpd (RegularSpd l0 l1 amps) l
    | l <= l0 = V.head amps
    | l >= l1 = V.last amps
@@ -127,20 +127,23 @@ evalSpd (Chromaticity m1 m2) l = s0 + m1 * s1 + m2 * s2 where
    s0 = evalSpd cieS0 l
    s1 = evalSpd cieS1 l
    s2 = evalSpd cieS2 l
-   
--- | extracts the internal @Spectrum@ representation from a SPD
-fromSpd
-   :: Spd 
-   -> Spectrum
-   
-fromSpd spd = fromXYZ (x / yint, y / yint, z / yint) where
+
+-- | converts a @Spd@ to CIE XYZ values
+spdToXYZ :: Spd -> (Flt, Flt, Flt)
+spdToXYZ spd = (x / yint, y / yint, z / yint) where
    ls = [cieStart .. cieEnd]
    vs = P.map (\l -> evalSpd spd (fromIntegral l)) ls
    yint = P.sum (P.map cieY ls)
    x = P.sum $ P.zipWith (*) (P.map cieX ls) vs
    y = P.sum $ P.zipWith (*) (P.map cieY ls) vs
    z = P.sum $ P.zipWith (*) (P.map cieZ ls) vs
-   
+
+-- | extracts the internal @Spectrum@ representation from a SPD
+fromSpd
+   :: Spd 
+   -> Spectrum   
+fromSpd = fromXYZ . spdToXYZ
+
 toRGB :: Spectrum -> (Float, Float, Float)
 {-# INLINE toRGB #-}
 toRGB (Spectrum r g b) = (r, g, b)
