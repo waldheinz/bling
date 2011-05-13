@@ -3,7 +3,7 @@
 module Graphics.Bling.Light (
    
    -- * Creating Light sources
-   Light, mkPointLight, mkDirectional, mkAreaLight, mkSunSky,
+   Light, mkPointLight, mkDirectional, mkAreaLight, mkSkyLight,
 
    -- * Working with light sources
    LightSample(..), sample, le, lEmit, pdf
@@ -34,21 +34,21 @@ data Light
       _l2w :: Transform, -- ^ the light-to-world transformation
       _w2l :: Transform -- ^ the world-to-light transformation
       }
-   | SunSky
+   | Sky
       { _ssId :: Int
       , _basis :: LocalCoordinates
-      , _ssd :: SunSkyData
+      , _ssd :: SkyData
       }
       -- ^ the Perez sun/sky model
 
--- two lights are considered equal if the have the same id
+-- two lights are considered equal if they have the same id
 instance Eq Light where
    l1 == l2 = lightId l1 == lightId l2 where
       lightId (AreaLight lid _ _ _ _) = lid
       lightId (Directional lid _ _) = lid
       lightId (PointLight lid _ _) = lid
       lightId (SoftBox lid _) = lid
-      lightId (SunSky lid _ _) = lid
+      lightId (Sky lid _ _) = lid
       
 -- | creates a directional light source
 mkDirectional :: Spectrum -> Normal -> Int -> Light
@@ -72,16 +72,16 @@ mkAreaLight
 mkAreaLight s r t lid = AreaLight lid s r t (inverse t)
 
 -- | creates the Perez sun/sky model
-mkSunSky
+mkSkyLight
    :: Vector -- ^ the up vector
    -> Vector -- ^ the east vector
    -> Vector -- ^ the sun direction in world coordinates
    -> Flt -- ^ the sky's turbidity
    -> Int -- ^ the light id
    -> Light
-mkSunSky up east sdw turb lid = SunSky lid basis ssd where
+mkSkyLight up east sdw turb lid = Sky lid basis ssd where
    basis = coordinateSystem' (normalize up) (normalize east)
-   ssd = initSunSky basis sdw turb
+   ssd = initSky basis sdw turb
 
 -- | the emission from the surface of an area light source
 lEmit :: Light -> Point -> Normal -> Vector -> Spectrum
@@ -102,7 +102,7 @@ le (AreaLight _ _ _ _ _) _ = black
 le (Directional _ _ _) _ = black
 le (PointLight _ _ _) _ = black
 le (SoftBox _ r) _ = r
-le (SunSky _ basis ssd) r = skySpectrum ssd d where
+le (Sky _ basis ssd) r = skySpectrum ssd d where
    d = normalize $ worldToLocal basis (rayDir r)
    
 -- | samples one light source
@@ -137,7 +137,7 @@ sample (SunSky _ basis ssd) p n us = LightSample r dw ray pd False where
    ray = Ray p dw epsilon infinity
 -}
 
-sample (SunSky _ basis ssd) p n us = LightSample r dw ray pd False where
+sample (Sky _ basis ssd) p n us = LightSample r dw ray pd False where
    dw = randomOnSphere us
    pd = 1 / (4 * pi)
    r = skySpectrum ssd $ normalize $ worldToLocal basis dw
@@ -151,7 +151,7 @@ pdf (SoftBox _ _) _ _ = undefined
 pdf (Directional _ _ _) _ _ = 0 -- zero chance to find the direction by sampling
 pdf (AreaLight _ ss _ _ t) p wi = S.pdf ss (transPoint t p) (transVector t wi)
 pdf (PointLight _ _ _) _ _ = 0
-pdf (SunSky _ _ _) _ _ = 1 / (4 * pi) -- invTwoPi
+pdf (Sky _ _ _) _ _ = 1 / (4 * pi) -- invTwoPi
 
 lightSampleSB :: Spectrum -> Point -> Normal -> Rand2D -> LightSample
 lightSampleSB r pos n us = LightSample r (toWorld lDir) (ray $ toWorld lDir) (p lDir) False
@@ -172,7 +172,7 @@ lightSampleD r d pos n = LightSample y d ray 1.0 True where
 
 type Perez = (Flt, Flt, Flt, Flt, Flt)
 
-data SunSkyData = SSD
+data SkyData = SD
    { sunDir :: !Vector
    , sunTheta :: Flt
    , perezx :: !Perez
@@ -183,8 +183,8 @@ data SunSkyData = SSD
    , zenithY :: !Flt
    }
 
-initSunSky :: LocalCoordinates -> Vector -> Flt -> SunSkyData
-initSunSky basis sdw t = SSD sd st px py pY zx zy zY where
+initSky :: LocalCoordinates -> Vector -> Flt -> SkyData
+initSky basis sdw t = SD sd st px py pY zx zy zY where
    sd = normalize $ worldToLocal basis sdw
    st = acos $ clamp (sd .! dimZ) (-1) 1
    (st2, st3, t2) = (st * st, st * st * st, t * t)
@@ -205,7 +205,7 @@ initSunSky basis sdw t = SSD sd st px py pY zx zy zY where
         (-0.04212 * st3 + 0.08970 * st2 - 0.04153 * st + 0.00515) * t  +
         ( 0.15346 * st3 - 0.26756 * st2 + 0.06669 * st + 0.26688)
 
-skySpectrum :: SunSkyData -> Vector -> Spectrum
+skySpectrum :: SkyData -> Vector -> Spectrum
 skySpectrum ssd dir@(Vector _ _ dz)
    | dz < 0.001 = black
    | otherwise = fromXYZ (x', y', z')
