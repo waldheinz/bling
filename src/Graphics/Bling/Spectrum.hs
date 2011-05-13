@@ -8,7 +8,7 @@ module Graphics.Bling.Spectrum (
    
    isBlack, sNaN, sInfinite,
    fromXYZ,  toRGB, fromRGB, fromSpd, sConst, sBlackBody, sY,
-   sScale, sPow, sClamp, sSqrt
+   sScale, sPow, sClamp, sSqrt, chromaticityToXYZ
    
    ) where
 
@@ -91,9 +91,32 @@ fromCIExy
    -> Flt
    -> Spd
 fromCIExy x y = Chromaticity m1 m2 where
+   (m1, m2) = chromaParams x y
+   
+chromaParams :: Flt -> Flt -> (Flt, Flt)
+chromaParams x y = (m1, m2) where
    m1 = (-1.3515 - 1.7703 * x + 5.9114 * y) / (0.0241 + 0.2562 * x - 0.7341 * y)
    m2 = (0.03 - 31.4424 * x + 30.0717 * y) / (0.0241 + 0.2562 * x - 0.7341 * y)
 
+s0XYZ :: (Flt, Flt, Flt)
+s0XYZ = spdToXYZ cieS0
+
+s1XYZ :: (Flt, Flt, Flt)
+s1XYZ = spdToXYZ cieS1
+
+s2XYZ :: (Flt, Flt, Flt)
+s2XYZ = spdToXYZ cieS2
+
+chromaticityToXYZ :: Flt -> Flt -> (Flt, Flt, Flt)
+chromaticityToXYZ x y = (x', y', z') where
+   (s0x, s0y, s0z) = s0XYZ
+   (s1x, s1y, s1z) = s1XYZ
+   (s2x, s2y, s2z) = s2XYZ
+   (m1, m2) = chromaParams x y
+   x' = s0x + m1 * s1x + m2 * s2x
+   y' = s0y + m1 * s1y + m2 * s2y
+   z' = s0z + m1 * s1z + m2 * s2z
+      
 -- | evaluates a SPD at a given wavelength
 evalSpd
    :: Spd -- ^ the SPD to evaluate

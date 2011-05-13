@@ -201,7 +201,7 @@ skySpectrum ssd dir@(Vector _ _ dz)
    | dz < 0.001 = black
    | otherwise = fromXYZ (x', y', z')
    where
-      (cx, cy, cz) = spdToXYZ $ fromCIExy x y
+      (cx, cy, cz) = chromaticityToXYZ x y
       (x', z') = (cx * y' / cy, cz * y' / cy)
       theta = acos dz
       gamma = acos $ clamp (dir `dot` (sunDir ssd)) (-1) (1)
