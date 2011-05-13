@@ -80,7 +80,7 @@ material { plastic
 shape { sphere radius 1.0 }
 
 transform { translate 2.5 0 0 }
-material { glass ior 1.5 r { constant rgb 0.9 0.9 0.9 }}
+material { glass ior 1.5 r { constant rgb 0.98 0.98 0.98 }}
 shape { sphere radius 1.0 }
 
 transform { translate 2.5 0 0 }

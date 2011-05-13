@@ -118,6 +118,7 @@ sample (PointLight _ r pos) p _ _ = LightSample r' wi ray 1 True where
    r' = sScale r (1 / (sqLen $ pos - p))
    wi = normalize $ pos - p
    ray = segmentRay p pos
+   
 sample (AreaLight _ s r l2w w2l) p _ us = LightSample r' wi' ray pd False where
    r' = if ns `dot` (-wi) > 0 then r else black
    p' = transPoint w2l p -- point to be lit in local space
@@ -126,16 +127,22 @@ sample (AreaLight _ s r l2w w2l) p _ us = LightSample r' wi' ray pd False where
    wi = normalize (ps - p') -- incident vector in local space
    pd = S.pdf s p' wi -- pdf (computed in local space)
    ray = transRay l2w (segmentRay ps p') -- vis. test ray (in world space)
-
+{- 
 sample (SunSky _ basis ssd) p n us = LightSample r dw ray pd False where
    v = cosineSampleHemisphere us
    c2 = coordinateSystem $ normalize n
    dw = localToWorld c2 v
-   dl = worldToLocal basis dw
    pd = invTwoPi * (v .! dimZ)
-   r = skySpectrum ssd dl
+   r = skySpectrum ssd $ normalize $ worldToLocal basis dw
    ray = Ray p dw epsilon infinity
-      
+-}
+
+sample (SunSky _ basis ssd) p n us = LightSample r dw ray pd False where
+   dw = randomOnSphere us
+   pd = 1 / (4 * pi)
+   r = skySpectrum ssd $ normalize $ worldToLocal basis dw
+   ray = Ray p dw epsilon infinity
+
 pdf :: Light -- ^ the light to compute the pdf for
     -> Point -- ^ the point from which the light is viewed
     -> Vector -- ^ the wi vector
@@ -144,7 +151,7 @@ pdf (SoftBox _ _) _ _ = undefined
 pdf (Directional _ _ _) _ _ = 0 -- zero chance to find the direction by sampling
 pdf (AreaLight _ ss _ _ t) p wi = S.pdf ss (transPoint t p) (transVector t wi)
 pdf (PointLight _ _ _) _ _ = 0
-pdf (SunSky _ _ _) _ _ = 2 * pi
+pdf (SunSky _ _ _) _ _ = 1 / (4 * pi) -- invTwoPi
 
 lightSampleSB :: Spectrum -> Point -> Normal -> Rand2D -> LightSample
 lightSampleSB r pos n us = LightSample r (toWorld lDir) (ray $ toWorld lDir) (p lDir) False
