@@ -3,7 +3,7 @@
 module Graphics.Bling.Light (
    
    -- * Creating Light sources
-   Light, mkPointLight, mkDirectional, mkAreaLight,
+   Light, mkPointLight, mkDirectional, mkAreaLight, mkSunSky,
 
    -- * Working with light sources
    LightSample(..), sample, le, lEmit, pdf
@@ -34,15 +34,22 @@ data Light
       _l2w :: Transform, -- ^ the light-to-world transformation
       _w2l :: Transform -- ^ the world-to-light transformation
       }
+   | SunSky
+      { _ssId :: Int
+      , _basis :: LocalCoordinates
+      , _tub :: Flt
+      }
+      -- ^ the Perez sun/sky model
 
 -- two lights are considered equal if the have the same id
 instance Eq Light where
-   (==) l1 l2 = (lightId l1) == (lightId l2) where
-      lightId (SoftBox lid _) = lid
-      lightId (Directional lid _ _) = lid
+   l1 == l2 = (lightId l1) == (lightId l2) where
       lightId (AreaLight lid _ _ _ _) = lid
+      lightId (Directional lid _ _) = lid
       lightId (PointLight lid _ _) = lid
-
+      lightId (SoftBox lid _) = lid
+      lightId (SunSky lid _ _) = lid
+      
 -- | creates a directional light source
 mkDirectional :: Spectrum -> Normal -> Int -> Light
 mkDirectional s n lid = Directional lid s (normalize n)
@@ -63,6 +70,16 @@ mkAreaLight
    -> Int -- ^ the light id
    -> Light -- ^ the resulting @Light@
 mkAreaLight s r t lid = AreaLight lid s r t (inverse t)
+
+-- | creates the Perez sun/sky model
+mkSunSky
+   :: Vector -- ^ the up vector
+   -> Vector -- ^ the east vector
+   -> Flt -- ^ the sky's turbidity
+   -> Int -- ^ the light id
+   -> Light
+mkSunSky up east turb lid = SunSky lid basis turb where
+   basis = coordinateSystem' up east
 
 -- | the emission from the surface of an area light source
 lEmit :: Light -> Point -> Normal -> Vector -> Spectrum
@@ -128,3 +145,18 @@ lightSampleD r d pos n = LightSample y d ray 1.0 True where
    y = sScale r (absDot n d)
    ray = Ray pos d epsilon infinity
 
+--
+-- Perez physically based Sun / Sky model
+--
+
+data SunSkyData = SSD
+   { sunDir :: Vector
+   }
+
+skySpectrum :: SunSkyData -> Vector -> Spectrum
+skySpectrum ssd dir
+   | dir .! dimZ < 0.001 = black
+   | otherwise = fromXYZ x' y' z'
+   where
+      
+      

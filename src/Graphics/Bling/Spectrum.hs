@@ -58,10 +58,13 @@ fromXyz (x, y, z) = fromRGB (r, g, b) where
 -- dealing with SPDs
 --
 
-data Spd = Spd {
-   _spdLambdas :: V.Vector Flt,
-   _spdValues :: V.Vector Flt
-   } deriving (Show)
+data Spd
+   = IrregularSpd
+      { _spdLambdas :: !(V.Vector Flt)
+      ,  _spdValues :: !(V.Vector Flt) }
+   | RegularSpd !Flt !Flt !(V.Vector Flt) -- min, max lambda and amplitudes
+   | Chromaticity !Flt !Flt -- CIE M1 and M2 parameters
+   deriving (Show)
    
 -- | creates a SPD from a list of (lambda, value) pairs, which must
 --   not be empty
@@ -69,7 +72,7 @@ mkSpd
    :: [(Flt, Flt)] -- ^ the SPD as (lambda, value) pairs
    -> Spd
 mkSpd [] = error "empty SPD"
-mkSpd xs = Spd ls vs where
+mkSpd xs = IrregularSpd ls vs where
    ls = fromList (P.map fst sorted)
    vs = fromList (P.map snd sorted)
    sorted = sortBy cmp xs
@@ -81,16 +84,22 @@ mkSpd'
    -> Flt -- ^ the wavelength of the first amplitude sample
    -> Flt -- ^ the wavelength of the last amplitude sample
    -> Spd -- ^ the resulting SPD
-mkSpd' vs s e = mkSpd $ P.zip ls vs where
-   ls = [s, (s+inc) .. e]
-   inc = (e-s) / (fromIntegral $ P.length vs - 1)
+mkSpd' vs s e = RegularSpd s e (fromList vs)
 
--- | evaluates a SPD
+fromCIExy
+   :: Flt
+   -> Flt
+   -> Spd
+fromCIExy x y = Chromaticity m1 m2 where
+   m1 = (-1.3515 - 1.7703 * x + 5.9114 * y) / (0.0241 + 0.2562 * x - 0.7341 * y)
+   m2 = (0.03 - 31.4424 * x + 30.0717 * y) / (0.0241 + 0.2562 * x - 0.7341 * y)
+
+-- | evaluates a SPD at a given wavelength
 evalSpd
    :: Spd -- ^ the SPD to evaluate
    -> Flt -- ^ the lambda where the SPD should be evaluated
    -> Flt -- ^ the SPD value at the specified lambda
-evalSpd (Spd ls vs) l
+evalSpd (IrregularSpd ls vs) l
    | l <= V.head ls = V.head vs
    | l >= V.last ls = V.last vs
    | otherwise = lerp t (vs ! i) (vs ! (i+1)) where
@@ -102,6 +111,22 @@ evalSpd (Spd ls vs) l
          | (ls ! mid) < l = fi mid hi
          | otherwise = fi lo mid where
             mid = (lo + hi) `div` 2
+            
+evalSpd (RegularSpd l0 l1 amps) l
+   | l <= l0 = V.head amps
+   | l >= l1 = V.last amps
+   | otherwise = (1 - dx) * (amps ! b0) + dx * (amps ! b1)
+   where
+      d1 = 1 / ((l1 - l0) / fromIntegral (V.length amps - 1)) -- 1 / delta
+      x = (l - l0) * d1
+      b0 = floor x
+      b1 = min (b0 + 1) (V.length amps - 1)
+      dx = x - fromIntegral b0
+      
+evalSpd (Chromaticity m1 m2) l = s0 + m1 * s1 + m2 * s2 where
+   s0 = evalSpd cieS0 l
+   s1 = evalSpd cieS1 l
+   s2 = evalSpd cieS2 l
    
 -- | extracts the internal @Spectrum@ representation from a SPD
 fromSpd
@@ -191,7 +216,41 @@ sBlackBody t = sScale (fromXyz (x, y, z)) (1 / (fromIntegral (cieEnd - cieStart)
 planck :: RealFloat a => a -> a -> a
 planck temp w = (0.4e-9 * (3.74183e-16 * w' ^^ (-5::Int))) / (exp (1.4388e-2 / (w' * temp)) - 1) where
    w' = w * 1e-9
-   
+
+--
+-- CIE chromaticity SPDs
+--
+
+cieS0 :: Spd
+cieS0 = mkSpd' amps 300 830 where
+   amps = [  0.04,   6.0,  29.6,  55.3,  57.3,  61.8,  61.5,  68.8,  63.4,
+             65.8,  94.8, 104.8, 105.9,  96.8, 113.9, 125.6, 125.5, 121.3,
+            121.3, 113.5, 113.1, 110.8, 106.5, 108.8, 105.3, 104.4, 100.0,
+             96.0,  95.1,  89.1,  90.5,  90.3,  88.4,  84.0,  85.1,  81.9,
+             82.6,  84.9,  81.3,  71.9,  74.3,  76.4,  63.3,  71.7,  77.0,
+             65.2,  47.7,  68.6,  65.0,  66.0,  61.0,  53.3,  58.9,  61.9 ]
+
+cieS1 :: Spd
+cieS1 = mkSpd' amps 300 830 where
+   amps = [ 0.02, 4.5, 22.4, 42.0, 40.6, 41.6, 38.0, 42.4, 38.5, 35.0, 43.4,
+            46.3, 43.9, 37.1, 36.7, 35.9, 32.6, 27.9, 24.3, 20.1, 16.2, 13.2,
+            8.6, 6.1, 4.2, 1.9, 0.0, -1.6, -3.5, -3.5, -5.8, -7.2, -8.6, -9.5,
+            -10.9, -10.7, -12.0, -14.0, -13.6, -12.0, -13.3, -12.9, -10.6,
+            -11.6, -12.2, -10.2, -7.8, -11.2, -10.4, -10.6, -9.7, -8.3, -9.3,
+            -9.8]
+
+cieS2 :: Spd
+cieS2 = mkSpd' amps 300 830 where
+   amps = [0.0, 2.0, 4.0, 8.5, 7.8, 6.7, 5.3, 6.1, 3.0, 1.2, -1.1, -0.5, -0.7,
+          -1.2, -2.6, -2.9, -2.8, -2.6, -2.6, -1.8, -1.5, -1.3, -1.2, -1.0,
+          -0.5, -0.3, 0.0, 0.2, 0.5, 2.1, 3.2, 4.1, 4.7, 5.1, 6.7, 7.3, 8.6,
+           9.8, 10.2, 8.3, 9.6, 8.5, 7.0, 7.6, 8.0, 6.7, 5.2, 7.4, 6.8, 7.0,
+           6.4, 5.5, 6.1, 6.5]
+
+--
+-- CIE XYZ color space
+--
+
 cieStart :: Int
 cieStart = 360
 

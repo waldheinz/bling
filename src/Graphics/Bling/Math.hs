@@ -278,6 +278,7 @@ sphericalPhi (Vector x y _)
    where
          p' = atan2 y x
 
+-- | an orthonormal basis
 data LocalCoordinates = LocalCoordinates
     {-# UNPACK #-} ! Vector
     {-# UNPACK #-} ! Vector
@@ -296,6 +297,13 @@ coordinateSystem v@(Vector x y z)
           invLen = 1.0 / sqrt (y*y + z*z)
           v2 = Vector 0 (z * invLen) (-y * invLen)
       in LocalCoordinates v2 (cross v v2) v
+
+coordinateSystem' :: Vector -> Vector -> LocalCoordinates
+{-# INLINE coordinateSystem' #-}
+coordinateSystem' w v = LocalCoordinates u v' w' where
+   w' = normalize w
+   u = normalize $ v `cross` w'
+   v' = w' `cross` u
 
 worldToLocal :: LocalCoordinates -> Vector -> Vector
 {-# INLINE worldToLocal #-}
