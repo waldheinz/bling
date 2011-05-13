@@ -5,24 +5,24 @@
 filter mitchell 3.0 3.0 0.333333 0.333333
 filter box
 
-imageSize 320 240
+imageSize 640 480
 
-# sampler { stratified xSamples 2 ySamples 2 }
-sampler { random samples 1 }
+sampler { stratified xSamples 5 ySamples 5 }
+#sampler { random samples 1 }
 
 transform {
    lookAt {
-      pos 9 5 -9
-      look 0 0.0 0
+      pos 3 5 -5
+      look 0.5 0 0
       up 0 1 0
    }
 }
 
 camera {
    perspective
-   fov 45
-   lensRadius 0
-   focalDistance 10
+   fov 50
+   lensRadius 0.1
+   focalDistance 7
 }
 
 transform { identity }
@@ -30,8 +30,8 @@ transform { identity }
 light {
    sunSky
    up 0 1 0
-   east 1 0 0
-   sunDir 0 0.1 0.8
+   east 0 0 1
+   sunDir 0.7 0.3 -0.1
    turbidity 2
 }
 
@@ -40,9 +40,15 @@ light {
 #
 
 material {
-   matte
-   kd { constant rgb 0.7 0.7 0.7 }
-   sigma { constant 0.0 }
+   plastic
+   kd {
+      graphPaper 0.05
+      tex1 { constant rgb 0.95 0.95 0.95 }
+      tex2 { constant rgb 0.02 0.02 0.02 }
+
+   }
+   ks { constant rgb 0.8 0.8 0.8 }
+   rough { constant 0.005 }
 }
 
 shape {
@@ -62,15 +68,50 @@ shape {
 
 transform {
    identity
-   translate 0 3.0 0
+   translate -2.5 1 0
 }
 
 material { plastic
-   kd { constant rgb 0.49 0.49 0.49 }
+   kd { constant rgb 0.3 0.15 0.01 }
    ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.2 }
+   rough { constant 0.00078125 }
 }
 
-material { glass ior 1.5 r { constant rgb 0.9 0.9 0.9 }}
+shape { sphere radius 1.0 }
 
-shape { sphere radius 2.0 }
+transform { translate 2.5 0 0 }
+material { glass ior 1.5 r { constant rgb 0.9 0.9 0.9 }}
+shape { sphere radius 1.0 }
+
+transform { translate 2.5 0 0 }
+
+material {
+   metal
+   eta {
+      constant spd {
+         309.950012 1.340000, 326.263000 1.340000, 344.389008 1.310000,
+         364.647003 1.270000, 387.437988 1.180000, 413.266998 1.180000,
+         442.785980 1.170000, 476.846008 1.150000, 516.583008 1.120000,
+         539.044006 1.040000, 563.545044 0.826000, 590.381042 0.468000,
+         619.900024 0.272000, 652.526001 0.214000, 670.162048 0.215000,
+         688.778015 0.213000, 708.456970 0.214000, 729.294006 0.223000,
+         826.533020 0.260000
+      }
+   }
+   k {
+      constant spd {
+         309.950012 1.720000, 326.263000 1.810000, 344.389008 1.870000,
+         364.647003 1.950000, 387.437988 2.210000, 413.266998 2.210000,
+         442.785980 2.360000, 476.846008 2.500000, 516.583008 2.600000,
+         539.044006 2.590000, 563.545044 2.600000, 590.381042 2.810000,
+         619.900024 3.240000, 652.526001 3.670000, 670.162048 3.860000,
+         688.778015 4.050000, 708.456970 4.240000, 729.294006 4.430000,
+         826.533020 5.260000
+      }
+   }
+   rough { constant 0.01 }
+}
+
+shape { sphere radius 1.0 }
+
+

@@ -127,10 +127,12 @@ sample (AreaLight _ s r l2w w2l) p _ us = LightSample r' wi' ray pd False where
    pd = S.pdf s p' wi -- pdf (computed in local space)
    ray = transRay l2w (segmentRay ps p') -- vis. test ray (in world space)
 
-sample (SunSky _ basis ssd) p _n us = LightSample r dw ray pd False where
-   dl = cosineSampleHemisphere us
-   dw = localToWorld basis dl
-   pd = invPi * (dw .! dimZ)
+sample (SunSky _ basis ssd) p n us = LightSample r dw ray pd False where
+   v = cosineSampleHemisphere us
+   c2 = coordinateSystem $ normalize n
+   dw = localToWorld c2 v
+   dl = worldToLocal basis dw
+   pd = invTwoPi * (v .! dimZ)
    r = skySpectrum ssd dl
    ray = Ray p dw epsilon infinity
       
