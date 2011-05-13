@@ -22,6 +22,7 @@ pCamera = flip namedBlock "camera" $ do
    
    cam <- case t of
                "perspective" -> pPerspectiveCam s
+               "environment" -> pEnvironmentCam s
                _ -> fail $ "unknown camera type " ++ t
    
    setState s { camera = cam }
@@ -35,3 +36,10 @@ pPerspectiveCam s = do
    let sy = fromIntegral $ resY s
    let c2w = transform s
    return $ mkPerspectiveCamera c2w lr fd fov sx sy
+   
+pEnvironmentCam :: PState -> JobParser Camera
+pEnvironmentCam s = return $ mkEnvironmentCamera c2w sx sy where
+   sx = fromIntegral $ resX s
+   sy = fromIntegral $ resY s
+   c2w = transform s
+   

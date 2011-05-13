@@ -1,8 +1,13 @@
 
-module Graphics.Bling.Camera(
-   Camera, mkPerspectiveCamera, ppCamera,
+module Graphics.Bling.Camera (
 
-   fireRay
+   -- * Creating Cameras
+   
+   Camera, mkPerspectiveCamera, mkEnvironmentCamera,
+   
+   -- * Using Cameras
+   
+   ppCamera, fireRay
    ) where
 
 import Text.PrettyPrint
@@ -20,14 +25,20 @@ data Camera
          _raster2screen :: Transform,
          _lensRadius :: Flt,
          _focalDistance :: Flt }
+      | Environment Transform Flt Flt -- cam2world xres yres
+         
 
+-- | briefly describes the @Camera@
 ppCamera :: Camera -> Doc
 ppCamera (ProjectiveCamera _ _ _ _ _ lr fd) = vcat [
    text "Projective",
    text "Lens Radius" <+> float lr,
    text "Focal Distance" <+>  float fd ]
-   
+
+ppCamera (Environment _ _ _) = text "Environment"
+
 fireRay :: Camera -> Sampled Ray
+
 fireRay (ProjectiveCamera c2w _ r2c _ _ lr fd) = do
    ix <- imageX
    iy <- imageY
@@ -39,7 +50,7 @@ fireRay (ProjectiveCamera c2w _ r2c _ _ lr fd) = do
          ray = Ray (mkPoint 0 0 0) (normalize pCamera) 0 infinity
          pCamera = transPoint r2c pRaster
          pRaster = mkPoint ix iy 0
-      
+         
          -- account for lens size
          ray' = Ray ro rd 0 infinity
          ro = mkPoint lu lv 0
@@ -47,6 +58,14 @@ fireRay (ProjectiveCamera c2w _ r2c _ _ lr fd) = do
          rd = normalize $ pFocus - ro
          pFocus = rayAt ray (fd / vz (rayDir ray))
 
+fireRay (Environment c2w sx sy) = do
+   ix <- imageX
+   iy <- imageY
+   return $ transRay c2w $ Ray (mkPoint 0 0 0) (dir ix iy) 0 infinity where
+      dir ix iy = mkV (sin t * cos p, cos t, sin t * sin p) where
+         t = pi * iy / sy
+         p = 2 * pi * ix / sx
+         
 mkProjective
    :: Transform -- ^ camera to world
    -> Transform -- ^ the projection
@@ -79,3 +98,11 @@ mkPerspectiveCamera
 
 mkPerspectiveCamera c2w lr fd fov sx sy = mkProjective c2w p lr fd sx sy where
    p = perspective fov 1e-2 1000
+   
+mkEnvironmentCamera
+   :: Transform -- ^ the camera to world transform
+   -> Flt -- ^ film x resolution
+   -> Flt -- ^ film y resolution
+   -> Camera
+mkEnvironmentCamera = Environment
+
