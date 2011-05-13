@@ -37,7 +37,7 @@ data Light
    | SunSky
       { _ssId :: Int
       , _basis :: LocalCoordinates
-      , _tub :: Flt
+      , _ssd :: SunSkyData
       }
       -- ^ the Perez sun/sky model
 
@@ -75,11 +75,13 @@ mkAreaLight s r t lid = AreaLight lid s r t (inverse t)
 mkSunSky
    :: Vector -- ^ the up vector
    -> Vector -- ^ the east vector
+   -> Vector -- ^ the sun direction in world coordinates
    -> Flt -- ^ the sky's turbidity
    -> Int -- ^ the light id
    -> Light
-mkSunSky up east turb lid = SunSky lid basis turb where
+mkSunSky up east sdw turb lid = SunSky lid basis ssd where
    basis = coordinateSystem' up east
+   ssd = initSunSky basis sdw turb
 
 -- | the emission from the surface of an area light source
 lEmit :: Light -> Point -> Normal -> Vector -> Spectrum
@@ -100,7 +102,9 @@ le (AreaLight _ _ _ _ _) _ = black
 le (Directional _ _ _) _ = black
 le (PointLight _ _ _) _ = black
 le (SoftBox _ r) _ = r
-
+le (SunSky _ basis ssd) r = skySpectrum ssd d where
+   d = normalize $ worldToLocal basis (rayDir r)
+   
 -- | samples one light source
 sample
    :: Light -- ^ the light to sample
@@ -122,7 +126,14 @@ sample (AreaLight _ s r l2w w2l) p _ us = LightSample r' wi' ray pd False where
    wi = normalize (ps - p') -- incident vector in local space
    pd = S.pdf s p' wi -- pdf (computed in local space)
    ray = transRay l2w (segmentRay ps p') -- vis. test ray (in world space)
-   
+
+sample (SunSky _ basis ssd) p _n us = LightSample r dw ray pd False where
+   dl = cosineSampleHemisphere us
+   dw = localToWorld basis dl
+   pd = invPi * (dw .! dimZ)
+   r = skySpectrum ssd dl
+   ray = Ray p dw epsilon infinity
+      
 pdf :: Light -- ^ the light to compute the pdf for
     -> Point -- ^ the point from which the light is viewed
     -> Vector -- ^ the wi vector
@@ -131,6 +142,7 @@ pdf (SoftBox _ _) _ _ = undefined
 pdf (Directional _ _ _) _ _ = 0 -- zero chance to find the direction by sampling
 pdf (AreaLight _ ss _ _ t) p wi = S.pdf ss (transPoint t p) (transVector t wi)
 pdf (PointLight _ _ _) _ _ = 0
+pdf (SunSky _ _ _) _ _ = 2 * pi
 
 lightSampleSB :: Spectrum -> Point -> Normal -> Rand2D -> LightSample
 lightSampleSB r pos n us = LightSample r (toWorld lDir) (ray $ toWorld lDir) (p lDir) False
@@ -149,14 +161,56 @@ lightSampleD r d pos n = LightSample y d ray 1.0 True where
 -- Perez physically based Sun / Sky model
 --
 
+type Perez = (Flt, Flt, Flt, Flt, Flt)
+
 data SunSkyData = SSD
-   { sunDir :: Vector
+   { sunDir :: !Vector
+   , sunTheta :: Flt
+   , perezx :: !Perez
+   , perezy :: !Perez
+   , perezY :: !Perez
+   , zenithx :: !Flt
+   , zenithy :: !Flt
+   , zenithY :: !Flt
    }
 
+initSunSky :: LocalCoordinates -> Vector -> Flt -> SunSkyData
+initSunSky basis sdw t = SSD sd st px py pY zx zy zY where
+   sd = normalize $ worldToLocal basis sdw
+   st = acos $ clamp (sd .! dimZ) (-1) 1
+   pY = ( 0.17872 * t - 1.46303, -0.35540 * t + 0.42749, -0.02266 * t + 5.32505,
+          0.12064 * t - 2.57705, -0.06696 * t + 0.37027)
+   px = (-0.01925 * t - 0.25922, -0.06651 * t + 0.00081, -0.00041 * t + 0.21247,
+         -0.06409 * t - 0.89887, -0.00325 * t + 0.04517)
+   py = (-0.01669 * t - 0.26078, -0.09495 * t + 0.00921, -0.00792 * t + 0.21023,
+         -0.04405 * t - 1.65369, -0.01092 * t + 0.05291)
+         
+   t2 = t * t
+   chi = (4 / 9 - t / 120) * (pi - 2 * st)
+   th2 = st * st
+   th3 = th2 * st
+   
+   zY = (( 4.04530 * t - 4.97100) * tan chi  - 0.2155 * t + 2.4192) * 1000
+   zx = ( 0.00165 * th3 - 0.00374 * th2 + 0.00208 * st          ) * t2 +
+        (-0.02902 * th3 + 0.06377 * th2 - 0.03202 * st + 0.00394) *  t +
+        ( 0.11693 * th3 - 0.21196 * th2 + 0.06052 * st + 0.25885)
+   zy = ( 0.00275 * th3 - 0.00610 * th2 + 0.00316 * st          ) * t2 +
+        (-0.04212 * th3 + 0.08970 * th2 - 0.04153 * st + 0.00515) *  t +
+        ( 0.15346 * th3 - 0.26756 * th2 + 0.06669 * st + 0.26688)
+
 skySpectrum :: SunSkyData -> Vector -> Spectrum
-skySpectrum ssd dir
-   | dir .! dimZ < 0.001 = black
-   | otherwise = fromXYZ x' y' z'
+skySpectrum ssd dir@(Vector _ _ dz)
+   | dz < 0.001 = black
+   | otherwise = fromSpd $ fromCIExy (x ) (y )
    where
+      theta = acos $ clamp dz (-1) 1
+      gamma = acos $ clamp (dir `dot` (sunDir ssd)) (-1) (1)
+      x = perez (perezx ssd) (sunTheta ssd) theta gamma (zenithx ssd)
+      y = perez (perezy ssd) (sunTheta ssd) theta gamma (zenithy ssd)
+      y' = perez (perezY ssd) (sunTheta ssd) theta gamma (zenithY ssd) * 1e-4
       
+perez :: Perez -> Flt -> Flt -> Flt -> Flt -> Flt
+perez (p0, p1, p2, p3, p4) sunT t g lvz = lvz * num / den where
+   num = (1 + p0 * exp p1 / cos t) * (1 + p2 * exp p3 * g) + p4 * cos g * cos g
+   den = (1 + p0 * exp p1 * (1 + p2 * exp p3 * sunT) + p4 * cos sunT * cos sunT)
       
