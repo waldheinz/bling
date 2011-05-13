@@ -43,7 +43,7 @@ data Light
 
 -- two lights are considered equal if the have the same id
 instance Eq Light where
-   l1 == l2 = (lightId l1) == (lightId l2) where
+   l1 == l2 = lightId l1 == lightId l2 where
       lightId (AreaLight lid _ _ _ _) = lid
       lightId (Directional lid _ _) = lid
       lightId (PointLight lid _ _) = lid
@@ -115,7 +115,7 @@ sample
 sample (SoftBox _ r) p n us = lightSampleSB r p n us
 sample (Directional _ r d) p n _ = lightSampleD r d p n
 sample (PointLight _ r pos) p _ _ = LightSample r' wi ray 1 True where
-   r' = sScale r (1 / (sqLen $ pos - p))
+   r' = sScale r (1 / sqLen (pos - p))
    wi = normalize $ pos - p
    ray = segmentRay p pos
    
@@ -213,7 +213,7 @@ skySpectrum ssd dir@(Vector _ _ dz)
       (cx, cy, cz) = chromaticityToXYZ x y
       (x', z') = (cx * y' / cy, cz * y' / cy)
       theta = acos dz
-      gamma = acos $ clamp (dir `dot` (sunDir ssd)) (-1) (1)
+      gamma = acos $ clamp (dir `dot` sunDir ssd) (-1) 1
       x = perez (perezx ssd) (sunTheta ssd) theta gamma (zenithx ssd)
       y = perez (perezy ssd) (sunTheta ssd) theta gamma (zenithy ssd)
       y' = perez (perezY ssd) (sunTheta ssd) theta gamma (zenithY ssd) * 1e-4

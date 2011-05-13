@@ -22,9 +22,8 @@ data Camera
          _focalDistance :: Flt }
 
 ppCamera :: Camera -> Doc
-ppCamera (ProjectiveCamera c2w _ _ _ _ lr fd) = vcat [
+ppCamera (ProjectiveCamera _ _ _ _ _ lr fd) = vcat [
    text "Projective",
-   text "Cam2World" <+> text (show c2w),
    text "Lens Radius" <+> float lr,
    text "Focal Distance" <+>  float fd ]
    
