@@ -7,8 +7,8 @@ filter box
 
 imageSize 640 480
 
-sampler { stratified xSamples 5 ySamples 5 }
-#sampler { random samples 1 }
+sampler { stratified xSamples 3 ySamples 3 }
+sampler { random samples 1 }
 
 transform {
    lookAt {

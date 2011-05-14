@@ -11,6 +11,7 @@ module Graphics.Bling.Light (
    ) where
 
 import Graphics.Bling.Math
+import Graphics.Bling.Montecarlo
 import Graphics.Bling.Random
 import qualified Graphics.Bling.Shape as S
 import Graphics.Bling.Spectrum
@@ -110,8 +111,15 @@ le (PointLight _ _ _) _ = black
 le (SoftBox _ r) _ = r
 le (Sky _ basis ssd) r = skySpectrum ssd d where
    d = normalize $ worldToLocal basis (rayDir r)
-le (Sun _ _ _) _ = black
-   
+le (Sun _ sd r) ray
+   | sd `absDot` rd < sunThetaMax = r
+   | otherwise = black
+   where
+      rd = normalize $ rayDir ray
+      
+sunThetaMax :: Flt
+sunThetaMax = 0.01
+
 -- | samples one light source
 sample
    :: Light -- ^ the light to sample
@@ -150,7 +158,11 @@ sample (Sky _ basis ssd) p n us = LightSample r dw ray pd False where
    r = skySpectrum ssd $ normalize $ worldToLocal basis dw
    ray = Ray p dw epsilon infinity
 
-sample (Sun _ dir r) p n _ = lightSampleD r dir p n
+sample (Sun _ dir r) p n us = LightSample r' d ray pd False where
+   r' = sScale r (absDot n d)
+   d = uniformSampleCone (coordinateSystem (-dir)) sunThetaMax us
+   ray = Ray p d epsilon infinity
+   pd = uniformConePdf sunThetaMax
 
 pdf :: Light -- ^ the light to compute the pdf for
     -> Point -- ^ the point from which the light is viewed
@@ -161,7 +173,7 @@ pdf (Directional _ _ _) _ _ = 0 -- zero chance to find the direction by sampling
 pdf (AreaLight _ ss _ _ t) p wi = S.pdf ss (transPoint t p) (transVector t wi)
 pdf (PointLight _ _ _) _ _ = 0
 pdf (Sky _ _ _) _ _ = 1 / (4 * pi) -- invTwoPi
-pdf (Sun _ _ _) _ _ = 0
+pdf (Sun _ _ _) _ _ = uniformConePdf sunThetaMax
 
 lightSampleSB :: Spectrum -> Point -> Normal -> Rand2D -> LightSample
 lightSampleSB r pos n us = LightSample r (toWorld lDir) (ray $ toWorld lDir) (p lDir) False
