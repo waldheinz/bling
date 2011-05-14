@@ -27,7 +27,7 @@ camera {
 
 transform { translate 3 4 -5 }
 
-#camera { environment }
+camera { environment }
 
 transform { identity }
 

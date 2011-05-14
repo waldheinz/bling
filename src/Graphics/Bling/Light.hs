@@ -86,7 +86,7 @@ mkSunSkyLight
    -> (Light, Light)
 mkSunSkyLight up east sdw turb lid1 lid2 = (sky, sun) where
    sky = Sky lid1 basis ssd
-   sun = Sun lid2 sdw $ sunSpectrum ssd turb
+   sun = Sun lid2 (normalize sdw) $ sunSpectrum ssd turb
    basis = coordinateSystem' (normalize up) (normalize east)
    ssd = initSky basis sdw turb
 
@@ -112,13 +112,13 @@ le (SoftBox _ r) _ = r
 le (Sky _ basis ssd) r = skySpectrum ssd d where
    d = normalize $ worldToLocal basis (rayDir r)
 le (Sun _ sd r) ray
-   | sd `absDot` rd < sunThetaMax = r
+   | acos (sd `absDot` rd) < sunThetaMax = r
    | otherwise = black
    where
-      rd = normalize $ rayDir ray
+      rd = (normalize $ rayDir ray)
       
 sunThetaMax :: Flt
-sunThetaMax = 0.01
+sunThetaMax = 0.1
 
 -- | samples one light source
 sample
@@ -158,11 +158,11 @@ sample (Sky _ basis ssd) p n us = LightSample r dw ray pd False where
    r = skySpectrum ssd $ normalize $ worldToLocal basis dw
    ray = Ray p dw epsilon infinity
 
-sample (Sun _ dir r) p n us = LightSample r' d ray pd False where
+sample (Sun _ dir r) p n us = LightSample r' d ray pd True where
    r' = sScale r (absDot n d)
    d = uniformSampleCone (coordinateSystem (-dir)) sunThetaMax us
    ray = Ray p d epsilon infinity
-   pd = uniformConePdf sunThetaMax
+   pd = 0 -- uniformConePdf sunThetaMax
 
 pdf :: Light -- ^ the light to compute the pdf for
     -> Point -- ^ the point from which the light is viewed
