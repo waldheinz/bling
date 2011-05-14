@@ -3,7 +3,7 @@
 # Sun / Sky Test Scene
 #
 filter mitchell 3.0 3.0 0.333333 0.333333
-filter box
+#filter box
 
 imageSize 640 480
 
