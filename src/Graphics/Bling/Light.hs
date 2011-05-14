@@ -112,13 +112,16 @@ le (SoftBox _ r) _ = r
 le (Sky _ basis ssd) r = skySpectrum ssd d where
    d = normalize $ worldToLocal basis (rayDir r)
 le (Sun _ sd r) ray
-   | acos (sd `absDot` rd) < sunThetaMax = r
+   | (sd `dot` rd) > sunThetaMax = r
    | otherwise = black
    where
       rd = (normalize $ rayDir ray)
       
 sunThetaMax :: Flt
-sunThetaMax = 0.1
+sunThetaMax = sqrt $ max 0 (1 - sint2) where
+   sint2 = radius / meanDistance
+   radius = 6.955e5 -- km
+   meanDistance = 1.496e8 -- 149,60 million km
 
 -- | samples one light source
 sample
@@ -158,11 +161,11 @@ sample (Sky _ basis ssd) p n us = LightSample r dw ray pd False where
    r = skySpectrum ssd $ normalize $ worldToLocal basis dw
    ray = Ray p dw epsilon infinity
 
-sample (Sun _ dir r) p n us = LightSample r' d ray pd True where
+sample (Sun _ dir r) p n us = LightSample r' d ray pd False where
    r' = sScale r (absDot n d)
-   d = uniformSampleCone (coordinateSystem (-dir)) sunThetaMax us
+   d = uniformSampleCone (coordinateSystem dir) sunThetaMax us
    ray = Ray p d epsilon infinity
-   pd = 0 -- uniformConePdf sunThetaMax
+   pd = uniformConePdf sunThetaMax
 
 pdf :: Light -- ^ the light to compute the pdf for
     -> Point -- ^ the point from which the light is viewed

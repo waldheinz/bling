@@ -7,12 +7,12 @@ filter box
 
 imageSize 640 480
 
-sampler { stratified xSamples 3 ySamples 3 }
-sampler { random samples 1 }
+sampler { stratified xSamples 6 ySamples 6 }
+#sampler { random samples 1 }
 
 transform {
    lookAt {
-      pos 3 4 -5
+      pos 2.5 4 -5
       look 0.5 0 0
       up 0 1 0
    }
@@ -27,15 +27,15 @@ camera {
 
 transform { translate 3 4 -5 }
 
-camera { environment }
+# camera { environment }
 
 transform { identity }
 
 light {
    sunSky
    up 0 1 0
-   east 0 0 1
-   sunDir 0 0.1 0.5
+   east 1 0 0 
+   sunDir 0 0.2 0.5
    turbidity 5
 }
 
