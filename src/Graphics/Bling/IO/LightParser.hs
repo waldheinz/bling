@@ -17,7 +17,7 @@ pLight = (flip namedBlock) "light" $ do
    lf <- case t of
       "directional"  -> pDirectionalLight
       "point"        -> pPointLight
-      "sky"          -> pSkyLight
+      "sunSky"       -> pSunSkyLight
       _              -> fail $ "unknown light type " ++ t
       
    s <- getState
@@ -26,13 +26,19 @@ pLight = (flip namedBlock) "light" $ do
 
 type LightFactory = Int -> Light
 
-pSkyLight :: JobParser LightFactory
-pSkyLight = do
+pSunSkyLight :: JobParser LightFactory
+pSunSkyLight = do
    up <- namedVector "up"
    east <- ws >> namedVector "east"
    sunDir <- ws >> namedVector "sunDir"
    turb <- ws >> namedFloat "turbidity"
-   return $ mkSkyLight up east sunDir turb
+   -- we need two ids
+   s <- getState
+   let lid = currId s
+   setState s { currId = (currId s) + 2 }
+   let (l1, l2) = mkSunSkyLight up east sunDir turb lid (lid+1)
+   setState s { lights = l1 : (lights s) }
+   return $ (\_ -> l2)
 
 pPointLight :: JobParser LightFactory
 pPointLight = do

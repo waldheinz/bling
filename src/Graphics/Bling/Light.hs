@@ -3,7 +3,8 @@
 module Graphics.Bling.Light (
    
    -- * Creating Light sources
-   Light, mkPointLight, mkDirectional, mkAreaLight, mkSkyLight,
+   Light, mkPointLight, mkDirectional, mkAreaLight,
+   mkSunSkyLight,
 
    -- * Working with light sources
    LightSample(..), sample, le, lEmit, pdf
@@ -28,18 +29,19 @@ data Light
    | Directional ! Int !Spectrum !Normal
    | PointLight !Int !Spectrum !Point
    | AreaLight {
-      _alId :: Int,
+      _alId :: !Int,
       _alShape :: S.Shape,
       _areaRadiance :: Spectrum,
       _l2w :: Transform, -- ^ the light-to-world transformation
       _w2l :: Transform -- ^ the world-to-light transformation
       }
    | Sky
-      { _ssId :: Int
+      { _ssId :: !Int
       , _basis :: LocalCoordinates
       , _ssd :: SkyData
       }
       -- ^ the Perez sun/sky model
+   | Sun !Int Vector Spectrum
 
 -- two lights are considered equal if they have the same id
 instance Eq Light where
@@ -49,6 +51,7 @@ instance Eq Light where
       lightId (PointLight lid _ _) = lid
       lightId (SoftBox lid _) = lid
       lightId (Sky lid _ _) = lid
+      lightId (Sun lid _ _) = lid
       
 -- | creates a directional light source
 mkDirectional :: Spectrum -> Normal -> Int -> Light
@@ -72,14 +75,17 @@ mkAreaLight
 mkAreaLight s r t lid = AreaLight lid s r t (inverse t)
 
 -- | creates the Perez sun/sky model
-mkSkyLight
+mkSunSkyLight
    :: Vector -- ^ the up vector
    -> Vector -- ^ the east vector
    -> Vector -- ^ the sun direction in world coordinates
    -> Flt -- ^ the sky's turbidity
-   -> Int -- ^ the light id
-   -> Light
-mkSkyLight up east sdw turb lid = Sky lid basis ssd where
+   -> Int -- ^ the sky light id
+   -> Int -- ^ the sun light id
+   -> (Light, Light)
+mkSunSkyLight up east sdw turb lid1 lid2 = (sky, sun) where
+   sky = Sky lid1 basis ssd
+   sun = Sun lid2 sdw $ sunSpectrum ssd turb
    basis = coordinateSystem' (normalize up) (normalize east)
    ssd = initSky basis sdw turb
 
@@ -104,6 +110,7 @@ le (PointLight _ _ _) _ = black
 le (SoftBox _ r) _ = r
 le (Sky _ basis ssd) r = skySpectrum ssd d where
    d = normalize $ worldToLocal basis (rayDir r)
+le (Sun _ _ _) _ = black
    
 -- | samples one light source
 sample
@@ -143,6 +150,8 @@ sample (Sky _ basis ssd) p n us = LightSample r dw ray pd False where
    r = skySpectrum ssd $ normalize $ worldToLocal basis dw
    ray = Ray p dw epsilon infinity
 
+sample (Sun _ dir r) p n _ = lightSampleD r dir p n
+
 pdf :: Light -- ^ the light to compute the pdf for
     -> Point -- ^ the point from which the light is viewed
     -> Vector -- ^ the wi vector
@@ -152,6 +161,7 @@ pdf (Directional _ _ _) _ _ = 0 -- zero chance to find the direction by sampling
 pdf (AreaLight _ ss _ _ t) p wi = S.pdf ss (transPoint t p) (transVector t wi)
 pdf (PointLight _ _ _) _ _ = 0
 pdf (Sky _ _ _) _ _ = 1 / (4 * pi) -- invTwoPi
+pdf (Sun _ _ _) _ _ = 0
 
 lightSampleSB :: Spectrum -> Point -> Normal -> Rand2D -> LightSample
 lightSampleSB r pos n us = LightSample r (toWorld lDir) (ray $ toWorld lDir) (p lDir) False
@@ -224,3 +234,67 @@ perez (p0, p1, p2, p3, p4) sunT t g lvz = lvz * num / den where
    den = (1 + p0 * exp p1) * (1 + p2 * exp (p3 * sunT)) + p4 * cst * cst
    csg = cos g
    cst = cos sunT
+   
+sunSpectrum :: SkyData -> Flt -> Spectrum
+sunSpectrum ssd turb
+   | (sunDir ssd) .! dimZ < 0 = black -- below horizon
+   | otherwise = fromSpd $ mkSpdFunc sf
+   where
+      t = sunTheta ssd
+      sf l = (evalSpd solCurve l) * tR * tA * tO * tG * tWA where
+         -- relative optical mass
+         m = 1 / (cos t + 0.000940 * ((1.6386 - t) **  (-1.253)))
+         
+         -- rayleigh scattering
+         tR = exp(-m * 0.008735 * ((l / 1000) ** (-4.08)))
+         
+         -- aerosol (water + dust) attenuation
+         alpha = 1.3
+         beta = 0.04608365822050 * turb - 0.04586025928522
+         tA = exp(-m * beta * ((l / 1000) ** (-alpha)))
+         
+         -- attenuation due to ozone absorption
+         lozone = 0.35
+         tO = exp $ -m * (evalSpd koCurve l) * lozone
+         
+         -- attenuation due to mixed gases absorption
+         kg = evalSpd kgCurve l
+         tG = exp $ -1.41 * kg * m / ((1.0 + 118.93 * kg * m) ** 0.45)
+         
+         -- attenuation due to water vapor absorption
+         kwa = evalSpd kwaCurve l
+         w = 2
+         tWA = exp $ -0.2385 * kwa * w * m / ((1 + 20.07 * kwa * w * m) ** 0.45)
+         
+solCurve :: Spd
+solCurve = mkSpd' amps 380 750 where
+   amps = [ 165.5, 162.3, 211.2, 258.8, 258.2, 242.3, 267.6, 296.6, 305.4,
+            300.6, 306.6, 288.3, 287.1, 278.2, 271.0, 272.3, 263.6, 255.0,
+            250.6, 253.1, 253.5, 251.3, 246.3, 241.7, 236.8, 232.1, 228.2,
+            223.4, 219.7, 215.3, 211.0, 207.3, 202.4, 198.7, 194.3, 190.7,
+            186.3, 182.6 ]
+      
+koCurve :: Spd
+koCurve = mkSpd $ zip ls as where
+   ls = [ 300, 305, 310, 315, 320, 325, 330, 335, 340, 345, 350, 355, 445, 450,
+          455, 460, 465, 470, 475, 480, 485, 490, 495, 500, 505, 510, 515, 520,
+          525, 530, 535, 540, 545, 550, 555, 560, 565, 570, 575, 580, 585, 590,
+          595, 600, 605, 610, 620, 630, 640, 650, 660, 670, 680, 690, 700, 710,
+          720, 730, 740, 750, 760, 770, 780, 790 ]
+   as = [ 10.0, 4.8, 2.7, 1.35, 0.8, 0.380, 0.160, 0.075, 0.04, 0.019, 0.007, 0,
+          0.003, 0.003, 0.004, 0.006, 0.008, 0.009, 0.012, 0.014, 0.017, 0.021,
+          0.025, 0.03, 0.035, 0.04, 0.045, 0.048, 0.057, 0.063, 0.07, 0.075,
+          0.08, 0.085, 0.095, 0.103, 0.110, 0.12, 0.122, 0.12, 0.118, 0.115,
+          0.12, 0.125, 0.130, 0.12, 0.105, 0.09, 0.079, 0.067, 0.057, 0.048,
+          0.036, 0.028, 0.023, 0.018, 0.014, 0.011, 0.010, 0.009, 0.007,
+          0.004, 0, 0 ]
+
+kgCurve :: Spd
+kgCurve = mkSpd $ zip [759, 760, 770, 771] [0, 3.0, 0.210, 0]
+   
+kwaCurve :: Spd
+kwaCurve = mkSpd $ zip ls as where
+   ls = [ 689, 690, 700, 710, 720, 730, 740, 750, 760, 770, 780, 790, 800 ]
+   as = [ 0, 0.160e-1, 0.240e-1, 0.125e-1, 0.100e+1, 0.870, 0.610e-1,
+          0.100e-2, 0.100e-4, 0.100e-4, 0.600e-3, 0.175e-1, 0.360e-1 ]
+   

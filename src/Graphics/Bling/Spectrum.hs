@@ -4,7 +4,7 @@ module Graphics.Bling.Spectrum (
    white, black, 
    
    -- * Working with SPDs
-   Spd, mkSpd, fromCIExy, spdToXYZ,
+   Spd, mkSpd, mkSpd', mkSpdFunc, fromCIExy, spdToXYZ, evalSpd,
    
    isBlack, sNaN, sInfinite,
    fromXYZ,  toRGB, fromRGB, fromSpd, sConst, sBlackBody, sY,
@@ -64,12 +64,12 @@ data Spd
       ,  _spdValues :: !(V.Vector Flt) }
    | RegularSpd !Flt !Flt !(V.Vector Flt) -- min, max lambda and amplitudes
    | Chromaticity !Flt !Flt -- CIE M1 and M2 parameters
-   deriving (Show)
+   | SpdFunc (Flt -> Flt) -- ^ defined by a function
    
 -- | creates a SPD from a list of (lambda, value) pairs, which must
 --   not be empty
 mkSpd
-   :: [(Flt, Flt)] -- ^ the SPD as (lambda, value) pairs
+   :: [(Flt, Flt)] -- ^ the SPD as (lambda, amplitude) pairs
    -> Spd
 mkSpd [] = error "empty SPD"
 mkSpd xs = IrregularSpd ls vs where
@@ -85,6 +85,11 @@ mkSpd'
    -> Flt -- ^ the wavelength of the last amplitude sample
    -> Spd -- ^ the resulting SPD
 mkSpd' vs s e = RegularSpd s e (fromList vs)
+
+mkSpdFunc
+   :: (Flt -> Flt) -- ^ the SPD function from lambda in nanometers to amplitude
+   -> Spd
+mkSpdFunc = SpdFunc
 
 fromCIExy
    :: Flt
@@ -150,6 +155,8 @@ evalSpd (Chromaticity m1 m2) l = s0 + m1 * s1 + m2 * s2 where
    s0 = evalSpd cieS0 l
    s1 = evalSpd cieS1 l
    s2 = evalSpd cieS2 l
+
+evalSpd (SpdFunc f) l = f l
 
 -- | converts a @Spd@ to CIE XYZ values
 spdToXYZ :: Spd -> (Flt, Flt, Flt)
