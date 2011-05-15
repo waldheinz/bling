@@ -2,13 +2,14 @@
 #
 # Sun / Sky Test Scene
 #
-filter mitchell 3.0 3.0 0.333333 0.333333
-#filter box
+filter mitchell 3 3 0.333333 0.333333
+# filter box
+filter triangle 2 2
 
 imageSize 640 480
 
-sampler { stratified xSamples 6 ySamples 6 }
-#sampler { random samples 1 }
+sampler { stratified xSamples 10 ySamples 10 }
+# sampler { random samples 1 }
 
 transform {
    lookAt {
@@ -35,7 +36,7 @@ light {
    sunSky
    up 0 1 0
    east 1 0 0 
-   sunDir 0 0.2 0.5
+   sunDir 0 0.1 0.5
    turbidity 5
 }
 
@@ -76,9 +77,9 @@ transform {
 }
 
 material { plastic
-   kd { constant rgb 0.3 0.15 0.01 }
+   kd { constant rgb 0.01 0.4 0.35 }
    ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.00078125 }
+   rough { constant 0.000195312 }
 }
 
 shape { sphere radius 1.0 }

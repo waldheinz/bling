@@ -146,16 +146,16 @@ sample (AreaLight _ s r l2w w2l) p _ us = LightSample r' wi' ray pd False where
    pd = S.pdf s p' wi -- pdf (computed in local space)
    ray = transRay l2w (segmentRay ps p') -- vis. test ray (in world space)
 {- 
-sample (SunSky _ basis ssd) p n us = LightSample r dw ray pd False where
+sample (Sky _ basis ssd) p n us = LightSample r dw ray pd False where
    v = cosineSampleHemisphere us
    c2 = coordinateSystem $ normalize n
    dw = localToWorld c2 v
-   pd = invTwoPi * (v .! dimZ)
+   pd = invPi * (v .! dimZ) * 2
    r = skySpectrum ssd $ normalize $ worldToLocal basis dw
    ray = Ray p dw epsilon infinity
--}
+ -}
 
-sample (Sky _ basis ssd) p n us = LightSample r dw ray pd False where
+sample (Sky _ basis ssd) p _ us = LightSample r dw ray pd False where
    dw = randomOnSphere us
    pd = 1 / (4 * pi)
    r = skySpectrum ssd $ normalize $ worldToLocal basis dw
@@ -256,7 +256,7 @@ sunSpectrum ssd turb
    | otherwise = fromSpd $ mkSpdFunc sf
    where
       t = sunTheta ssd
-      sf l = (evalSpd solCurve l) * tR * tA * tO * tG * tWA where
+      sf l = (evalSpd solCurve l) * tR * tA * tO * tG * tWA * 100 where
          -- relative optical mass
          m = 1 / (cos t + 0.000940 * ((1.6386 - t) **  (-1.253)))
          
