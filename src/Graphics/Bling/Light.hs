@@ -256,7 +256,7 @@ sunSpectrum ssd turb
    | otherwise = fromSpd $ mkSpdFunc sf
    where
       t = sunTheta ssd
-      sf l = (evalSpd solCurve l) * tR * tA * tO * tG * tWA * 100 where
+      sf l = (evalSpd solCurve l) * tR * tA * tO * tG * tWA where
          -- relative optical mass
          m = 1 / (cos t + 0.000940 * ((1.6386 - t) **  (-1.253)))
          

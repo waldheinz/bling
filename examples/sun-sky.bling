@@ -8,7 +8,7 @@ filter triangle 2 2
 
 imageSize 640 480
 
-sampler { stratified xSamples 10 ySamples 10 }
+sampler { stratified xSamples 3 ySamples 3 }
 # sampler { random samples 1 }
 
 transform {
@@ -36,7 +36,7 @@ light {
    sunSky
    up 0 1 0
    east 1 0 0 
-   sunDir 0 0.1 0.5
+   sunDir 0 0.9 0.5
    turbidity 5
 }
 
