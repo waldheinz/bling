@@ -58,6 +58,7 @@ Library
       Graphics.Bling.Spectrum,
       Graphics.Bling.Texture,
       Graphics.Bling.Transform,
+      Graphics.Bling.Integrator.BidirPath,
       Graphics.Bling.Integrator.Path,
       Graphics.Bling.Integrator.DirectLighting,
       Graphics.Bling.IO.CameraParser,
