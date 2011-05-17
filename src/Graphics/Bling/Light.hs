@@ -7,9 +7,10 @@ module Graphics.Bling.Light (
    mkSunSkyLight,
 
    -- * Working with light sources
-   LightSample(..), sample, le, lEmit, pdf
+   LightSample(..), sample, sample', le, lEmit, pdf
    ) where
 
+import Graphics.Bling.AABB
 import Graphics.Bling.Math
 import Graphics.Bling.Montecarlo
 import Graphics.Bling.Random
@@ -166,6 +167,22 @@ sample (Sun _ dir r) p n us = LightSample r' d ray pd False where
    d = uniformSampleCone (coordinateSystem dir) sunThetaMax us
    ray = Ray p d epsilon infinity
    pd = uniformConePdf sunThetaMax
+
+-- | samples an outgoing @Ray@ from a light source
+sample'
+   :: Light -- ^ the light to sample the ray from
+   -> AABB -- ^ the bounds of the region to be lit
+   -> Rand2D -- ^ for sampling the position on the light
+   -> Rand2D -- ^ for sampling the outgoing direction
+   -> (Spectrum, Ray, Normal, Flt)
+      -- ^ (radiance, outgoing ray, normal at light source, PDF)
+
+sample' (AreaLight _ s r l2w w2l) _ uo ud = (ls, ray, ns, pd) where
+   ls = if ns `dot` dir > 0 then r else black
+   (org, ns) = S.sample' s uo
+   pd = invTwoPi * S.pdf' s org
+   dir = uniformSampleHemisphere ns ud
+   ray = Ray org dir 1e-3 infinity
 
 pdf :: Light -- ^ the light to compute the pdf for
     -> Point -- ^ the point from which the light is viewed

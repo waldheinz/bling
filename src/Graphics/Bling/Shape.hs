@@ -11,7 +11,8 @@ module Graphics.Bling.Shape (
 
    -- * Working with shapes
    
-   area, sample, pdf, objectBounds, worldBounds, intersect, intersects
+   area, sample, sample', pdf, pdf',
+   objectBounds, worldBounds, intersect, intersects
    ) where
 
 import Data.List (foldl')
@@ -151,20 +152,25 @@ pdf :: Shape -- ^ the @Shape@ to compute the pdf for
     -> Vector -- ^ the wi vector
     -> Flt -- ^ the computed pdf value
     
-pdf s p wi = maybe 0 pdf' (s `intersect` r) where
+pdf s p wi = maybe 0 p' (s `intersect` r) where
    r = Ray p wi 0 infinity
    f pd = if isInfinite pd then 0 else pd
-   pdf' (t, dg) = f $ sqLen (p - (rayAt r t)) / (absDot (dgN dg) (-wi) * area s)
+   p' (t, dg) = f $ sqLen (p - (rayAt r t)) / (absDot (dgN dg) (-wi) * area s)
+
+-- | the probability of choosing the specified point by sampling a @Shape@
+pdf'
+   :: Shape -- ^ the @Shape@ to get the pdf for
+   -> Point -- ^ the @Point@ on that @Shape@
+   -> Flt -- ^ the probability for choosing this @Point@
+
+pdf' s _ = 1 / area s
 
 -- | returns a random point (along with its normal) on the object, 
 --   which is preferably visible from the specified point
 sample :: Shape -> Point -> Rand2D -> (Point, Normal)
 sample sp@(Sphere r) p us
-   | insideSphere r p =
-      let rndPt = randomOnSphere us 
-      in (rndPt * vpromote r, rndPt) -- sample full sphere if inside
-      
-   | otherwise = (ps, normalize ps) where -- sample only the visible part if outside
+   | insideSphere r p = sample' sp us -- sample full sphere if inside
+   | otherwise = (ps, normalize ps) where -- sample only the visible part
       d = uniformSampleCone cs cosThetaMax us
       cs = coordinateSystem dn
       dn = normalize (-p)
@@ -173,7 +179,18 @@ sample sp@(Sphere r) p us
          ray = Ray p d 0 infinity
          int = sp `intersect` ray
 
-sample (Triangle v1 v2 v3) _ (u1, u2) = (p, n) where
+sample s _ us = sample' s us -- ignore the point if nothing clever can be done
+
+-- | returns a random Point and the Normal from a @Shape@
+sample'
+   :: Shape
+   -> Rand2D
+   -> (Point, Normal)
+   
+sample' (Sphere r) us = (p * vpromote r, p) where
+   p = randomOnSphere us 
+
+sample' (Triangle v1 v2 v3) (u1, u2) = (p, n) where
    p = p1 * vpromote b1 + p2 * vpromote b2 + p3 * vpromote (1 - b1 - b2)
    (p1, p2, p3) = (vertexPos v1, vertexPos v2, vertexPos v3)
    b1 = 1 - u1' -- first barycentric

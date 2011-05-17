@@ -237,7 +237,14 @@ randomOnSphere (u1, u2) = Vector (s * cos omega) (s * sin omega) u where
    u = u1 * 2 - 1
    s = sqrt (1 - (u * u))
    omega = u2 * 2 * pi
-   
+
+uniformSampleHemisphere :: Vector -> Rand2D -> Vector
+uniformSampleHemisphere d u
+   | d `dot` rd < 0 = -rd
+   | otherwise = rd
+   where
+      rd = randomOnSphere u
+
 cosineSampleHemisphere :: Rand2D -> Vector
 {-# INLINE cosineSampleHemisphere #-}
 cosineSampleHemisphere u = Vector x y (sqrt (max 0 (1 - x*x - y*y))) where

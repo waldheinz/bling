@@ -36,7 +36,7 @@ evalPath vs = do
 
 tracePath :: Scene -> Ray -> Rand [Vertex]
 tracePath s r = evalInt s (-(rayDir r)) (s `intersect` r)
-   
+
 evalInt :: Scene -> Vector -> Maybe Intersection -> Rand [Vertex]
 evalInt _ _ Nothing = return []
 evalInt s wo (Just int) = do
