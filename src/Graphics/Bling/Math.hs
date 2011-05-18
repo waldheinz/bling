@@ -13,10 +13,11 @@ module Graphics.Bling.Math (
    
    -- * Vectors
    
-   Vector(..), mkV, vpromote, dot, cross, normalize, sphericalDirection, absDot,
+   Vector(..), mkV, vpromote, dot, cross, normalize, absDot,
    len, sqLen,
    Normal, mkNormal, Point, mkPoint,
    Dimension, allDimensions, setComponent, (.!), dominant, dimX, dimY, dimZ,
+   sphericalDirection, sphericalTheta, sphericalPhi,
    
    -- * Rays
    
@@ -128,9 +129,6 @@ type Point = Vector
 mkPoint :: Flt -> Flt -> Flt -> Point
 mkPoint = Vector
 
-mkPoint' :: (Flt, Flt, Flt) -> Point
-mkPoint' (x, y, z) = mkPoint x y z
-
 type Normal = Vector
 
 mkNormal :: Flt -> Flt -> Flt -> Normal
@@ -165,9 +163,6 @@ dominant (Vector x y z)
 mkV :: (Flt, Flt, Flt) -> Vector
 {-# INLINE mkV #-}
 mkV (x, y, z) = Vector x y z
-
-smul :: Flt -> Vector -> Vector
-smul d (Vector x y z) = Vector (x*d) (y*d) (z*d)
 
 -- | Creates a ray that connects the two specified points.
 segmentRay :: Point -> Point -> Ray
