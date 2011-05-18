@@ -17,6 +17,7 @@ import Graphics.Bling.Montecarlo
 import Graphics.Bling.Sampling
 import Graphics.Bling.Transform
 
+-- | a @Camera@
 data Camera
       = ProjectiveCamera {
          _cam2world :: Transform,
@@ -38,6 +39,7 @@ ppCamera (ProjectiveCamera _ _ _ _ _ lr fd) = vcat [
 
 ppCamera (Environment _ _ _) = text "Environment"
 
+-- | fires an eye ray from a camera
 fireRay :: Camera -> Sampled Ray
 
 fireRay (ProjectiveCamera c2w _ r2c _ _ lr fd) = do
@@ -88,6 +90,7 @@ mkProjective c2w p lr fd sx sy = ProjectiveCamera c2w p r2c s2r r2s lr fd where
    r2s = inverse s2r
    r2c = r2s `concatTrans` inverse p
    
+-- | creates a perspective camera using the specified parameters
 mkPerspectiveCamera
    :: Transform -- ^ the camera to world transform
    -> Flt -- ^ lens radius
@@ -96,10 +99,10 @@ mkPerspectiveCamera
    -> Flt -- ^ frame size in x
    -> Flt -- ^ frame size in y
    -> Camera
-
 mkPerspectiveCamera c2w lr fd fov sx sy = mkProjective c2w p lr fd sx sy where
    p = perspective fov 1e-2 1000
    
+-- | creates an environmental camera using the specified parameters
 mkEnvironmentCamera
    :: Transform -- ^ the camera to world transform
    -> Flt -- ^ film x resolution
