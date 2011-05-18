@@ -157,7 +157,7 @@ sample (Sky _ basis ssd) p n us = LightSample r dw ray pd False where
  -}
 
 sample (Sky _ basis ssd) p _ us = LightSample r dw ray pd False where
-   dw = randomOnSphere us
+   dw = uniformSampleSphere us
    pd = 1 / (4 * pi)
    r = skySpectrum ssd $ normalize $ worldToLocal basis dw
    ray = Ray p dw epsilon infinity

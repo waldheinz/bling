@@ -20,8 +20,8 @@ import Data.Maybe
 
 import Graphics.Bling.AABB
 import Graphics.Bling.Math
-import Graphics.Bling.Random
 import Graphics.Bling.Montecarlo
+import Graphics.Bling.Random
 import Graphics.Bling.Transform
 
 data Vertex = Vertex {
@@ -188,7 +188,7 @@ sample'
    -> (Point, Normal)
    
 sample' (Sphere r) us = (p * vpromote r, p) where
-   p = randomOnSphere us 
+   p = uniformSampleSphere us 
 
 sample' (Triangle v1 v2 v3) (u1, u2) = (p, n) where
    p = p1 * vpromote b1 + p2 * vpromote b2 + p3 * vpromote (1 - b1 - b2)

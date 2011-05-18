@@ -9,7 +9,9 @@ module Graphics.Bling.Montecarlo (
    
    -- * Misc Sampling Functions
    
-   uniformSampleCone, uniformConePdf
+   uniformSampleCone, uniformConePdf, cosineSampleHemisphere,
+   concentricSampleDisk, concentricSampleDisk', uniformSampleSphere,
+   uniformSampleHemisphere
    ) where
 
 import Data.Maybe (fromJust, isJust)
@@ -100,3 +102,43 @@ uniformSampleCone (LocalCoordinates x y z) cosThetaMax (u1, u2) = let
       z * vpromote cosTheta
       )
 
+
+cosineSampleHemisphere :: Rand2D -> Vector
+{-# INLINE cosineSampleHemisphere #-}
+cosineSampleHemisphere u = Vector x y (sqrt (max 0 (1 - x*x - y*y))) where
+   (x, y) = concentricSampleDisk u
+   
+concentricSampleDisk :: Rand2D -> (Flt, Flt)
+{-# INLINE concentricSampleDisk #-}
+concentricSampleDisk (u1, u2) = concentricSampleDisk' (sx, sy) where
+   sx = u1 * 2 - 1
+   sy = u2 * 2 - 1
+
+concentricSampleDisk' :: (Flt, Flt) -> (Flt, Flt)
+concentricSampleDisk' (0, 0) = (0, 0) -- handle degeneracy at origin
+concentricSampleDisk' (sx, sy) = (r * cos theta, r * sin theta) where
+   theta = theta' * pi / 4.0
+   (r, theta')
+      | sx >= (-sy) =
+         if sx > sy then
+            if sy > 0 then (sx, sy / sx) else (sx, 8.0 + sy / sx)
+         else
+            (sy, 2.0 - sx / sy)
+      | sx <= sy = (-sx, 4.0 - sy / (-sx))
+      | otherwise = (-sy, 6.0 + sx / (-sy))
+
+-- | generates a random point on the unit sphere,
+-- see http://mathworld.wolfram.com/SpherePointPicking.html
+uniformSampleSphere :: Rand2D -> Vector
+{-# INLINE uniformSampleSphere #-}
+uniformSampleSphere (u1, u2) = Vector (s * cos omega) (s * sin omega) u where
+   u = u1 * 2 - 1
+   s = sqrt (1 - (u * u))
+   omega = u2 * 2 * pi
+
+uniformSampleHemisphere :: Vector -> Rand2D -> Vector
+uniformSampleHemisphere d u
+   | d `dot` rd < 0 = -rd
+   | otherwise = rd
+   where
+      rd = uniformSampleSphere u

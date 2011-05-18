@@ -1,15 +1,43 @@
 {-# LANGUAGE BangPatterns #-}
 
-module Graphics.Bling.Math where
+module Graphics.Bling.Math (
+   module  Graphics.Bling.Types,
+   
+   -- * Constants
+   
+   twoPi, invPi, invTwoPi, infinity, epsilon,
+   
+   -- * Basic Functions
+   
+   lerp, clamp, radians, solveQuadric,
+   
+   -- * Vectors
+   
+   Vector(..), mkV, vpromote, dot, cross, normalize, sphericalDirection, absDot,
+   len, sqLen,
+   Normal, mkNormal, Point, mkPoint,
+   Dimension, allDimensions, setComponent, (.!), dominant, dimX, dimY, dimZ,
+   
+   -- * Rays
+   
+   Ray(..), normalizeRay, rayAt, segmentRay, onRay,
+   
+   -- * Otrth. Basis
+   LocalCoordinates(..), worldToLocal, localToWorld, coordinateSystem,
+   coordinateSystem',
+   
+   -- * Differential Geometry
+   
+   DifferentialGeometry(..), mkDg
+   
+   ) where
 
-import Graphics.Bling.Random
+import Graphics.Bling.Types
 
 
 ---
 --- basic maths stuff used everywhere
 ---
-
-type Flt = Float
 
 infinity :: Flt
 infinity = 1 / 0
@@ -228,46 +256,6 @@ solveQuadric a b c
             | otherwise = -0.5 * (b + rootDiscrim)
          rootDiscrim = sqrt discrim
          discrim = b * b - 4.0 * a * c
-
--- | generates a random point on the unit sphere,
--- see http://mathworld.wolfram.com/SpherePointPicking.html
-randomOnSphere :: Rand2D -> Vector
-{-# INLINE randomOnSphere #-}
-randomOnSphere (u1, u2) = Vector (s * cos omega) (s * sin omega) u where
-   u = u1 * 2 - 1
-   s = sqrt (1 - (u * u))
-   omega = u2 * 2 * pi
-
-uniformSampleHemisphere :: Vector -> Rand2D -> Vector
-uniformSampleHemisphere d u
-   | d `dot` rd < 0 = -rd
-   | otherwise = rd
-   where
-      rd = randomOnSphere u
-
-cosineSampleHemisphere :: Rand2D -> Vector
-{-# INLINE cosineSampleHemisphere #-}
-cosineSampleHemisphere u = Vector x y (sqrt (max 0 (1 - x*x - y*y))) where
-   (x, y) = concentricSampleDisk u
-   
-concentricSampleDisk :: Rand2D -> (Flt, Flt)
-{-# INLINE concentricSampleDisk #-}
-concentricSampleDisk (u1, u2) = concentricSampleDisk' (sx, sy) where
-   sx = u1 * 2 - 1
-   sy = u2 * 2 - 1
-
-concentricSampleDisk' :: (Flt, Flt) -> (Flt, Flt)
-concentricSampleDisk' (0, 0) = (0, 0) -- handle degeneracy at origin
-concentricSampleDisk' (sx, sy) = (r * cos theta, r * sin theta) where
-   theta = theta' * pi / 4.0
-   (r, theta')
-      | sx >= (-sy) =
-         if sx > sy then
-            if sy > 0 then (sx, sy / sx) else (sx, 8.0 + sy / sx)
-         else
-            (sy, 2.0 - sx / sy)
-      | sx <= sy = (-sx, 4.0 - sy / (-sx))
-      | otherwise = (-sy, 6.0 + sx / (-sy))
 
 sphericalDirection :: Flt -> Flt -> Flt -> Vector
 {-# INLINE sphericalDirection #-}

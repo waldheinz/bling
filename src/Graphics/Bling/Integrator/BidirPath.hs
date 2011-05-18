@@ -21,6 +21,9 @@ data BidirPath = BidirPath
 mkBidirPathIntegrator :: BidirPath
 mkBidirPathIntegrator = BidirPath
 
+instance Printable BidirPath where
+   
+
 instance SurfaceIntegrator BidirPath where
    
 

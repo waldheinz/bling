@@ -68,7 +68,6 @@ prog _ (Progress (PassDone p) img) = do
    where
          fname = "pass-" ++ printf "%05d" p
 
-
 prog _ _ = return True
 
 putPixel :: Surface -> ((Int, Int), (Int, Int, Int))-> IO ()
@@ -83,8 +82,9 @@ putPixel s ((x, y), (r,g,b))
 main :: IO ()
 main = SDL.withInit [InitEverything] $ do
    fName <- fmap head getArgs
-   job <- fmap parseJob $ readFile fName
-   env <- initEnv job
-   render job (prog env)
+   j <- fmap parseJob $ readFile fName
+   env <- initEnv j
+   img <- stToIO $ mkImage (jobPixelFilter j) (imageSizeX j) (imageSizeY j)
+   render (jobRenderer j) (jobScene j) img (prog env)
    waitQuit
    

@@ -1,19 +1,21 @@
 
 module Graphics.Bling.IO.RenderJob (
-   Job(..), parseJob, ppJob
+   Job(..), parseJob
    ) where
 
 import Graphics.Bling.Filter
 import Graphics.Bling.Integrator
+import Graphics.Bling.Rendering
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Transform
+import Graphics.Bling.Types
 import Graphics.Bling.IO.CameraParser
 import Graphics.Bling.IO.IntegratorParser
 import Graphics.Bling.IO.LightParser
 import Graphics.Bling.IO.MaterialParser
 import Graphics.Bling.IO.ParserCore
-import Graphics.Bling.IO.SamplerParser
+import Graphics.Bling.IO.RendererParser
 import Graphics.Bling.IO.ShapeParser
 import Graphics.Bling.IO.TransformParser
 
@@ -22,28 +24,25 @@ import qualified Text.PrettyPrint as PP
 
 data Job = MkJob {
    jobScene :: Scene,
-   jobIntegrator :: AnySurfaceIntegrator,
-   jobSampler :: AnySampler,
+   jobRenderer :: AnyRenderer,
    jobPixelFilter :: Filter,
    imageSizeX :: Int,
    imageSizeY :: Int
    }
    
-ppJob :: Job -> PP.Doc
-ppJob (MkJob sc int _ f sx sy) = PP.vcat [
-   PP.text "Image size is" PP.<+> PP.text ((show sx) ++ "x" ++ (show sy)),
-   PP.text "Pixel filter is" PP.<+> PP.text (show f),
-   PP.text "Surface Integrator" PP.<+> pp int,
-   PP.text "Scene stats" PP.$$ PP.nest 3 (ppScene sc)
-   ]
-
+instance Printable Job where
+   prettyPrint (MkJob sc r f sx sy) = PP.vcat [
+      PP.text "Image size is" PP.<+> PP.text ((show sx) ++ "x" ++ (show sy)),
+      PP.text "Pixel filter is" PP.<+> PP.text (show f),
+      PP.text "renderer " PP.<+> prettyPrint r,
+      PP.text "Scene stats" PP.$$ PP.nest 3 (ppScene sc)
+      ]
+   
 startState :: PState
-startState = PState 640 480 mkBoxFilter
+startState = PState 640 480 defaultRenderer mkBoxFilter
    (defaultCamera 640 480)
-   defaultSurfaceIntegrator
    identity
    defaultMaterial
-   defaultSampler
    Nothing
    []
    []
@@ -57,15 +56,14 @@ jobParser :: JobParser Job
 jobParser = do
    _ <- many object
    eof
-   (PState sx sy f cam i _ _ smp _ ls ps _) <- getState
+   (PState sx sy renderer f cam _ _ _ ls ps _) <- getState
    let scn = mkScene ls ps cam
-   return (MkJob scn i smp f sx sy)
+   return (MkJob scn renderer f sx sy)
 
 object :: JobParser ()
 object = 
        do try pShape
-      <|> try pSurfaceIntegrator
-      <|> try pSampler
+      <|> try pRenderer
       <|> try pCamera
       <|> pFilter
       <|> try pSize

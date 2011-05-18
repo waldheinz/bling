@@ -20,12 +20,14 @@ data DirectLighting = DirectLighting {
 mkDirectLightingIntegrator :: Bool -> DirectLighting
 mkDirectLightingIntegrator = DirectLighting
 
+instance Printable DirectLighting where
+   prettyPrint _ = PP.text "Direct Lighting" 
+
 instance SurfaceIntegrator DirectLighting where
-   pp dl = PP.text "Direct Lighting" 
    li (DirectLighting sa) = directLighting sa
 
 directLighting :: Bool -> Scene -> Ray -> Sampled WeightedSpectrum
-directLighting sa s r@(Ray _ rd _ _) =
+directLighting _ s r@(Ray _ rd _ _) =
    maybe (return (0, black)) ls (s `intersect` r) where
       ls int = do
          ul <- rnd

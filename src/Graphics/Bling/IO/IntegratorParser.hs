@@ -14,11 +14,11 @@ import Graphics.Bling.IO.ParserCore
 defaultSurfaceIntegrator :: AnySurfaceIntegrator
 defaultSurfaceIntegrator = mkAnySurface $ mkPathIntegrator 20
 
-pSurfaceIntegrator :: JobParser ()
+pSurfaceIntegrator :: JobParser AnySurfaceIntegrator
 pSurfaceIntegrator = (flip namedBlock) "integrator" $ do
    t <- many1 alphaNum
    
-   i <- case t of
+   case t of
         "bidir" -> do
            return $ mkAnySurface $ mkBidirPathIntegrator
            
@@ -30,6 +30,3 @@ pSurfaceIntegrator = (flip namedBlock) "integrator" $ do
            return $ mkAnySurface $ mkPathIntegrator md
            
         _ -> fail $ "unknown integrator type " ++ t
-
-   s <- getState
-   setState s { surfaceIntegrator = i }

@@ -13,6 +13,7 @@ module Graphics.Bling.Camera (
 import Text.PrettyPrint
 
 import Graphics.Bling.Math
+import Graphics.Bling.Montecarlo
 import Graphics.Bling.Sampling
 import Graphics.Bling.Transform
 

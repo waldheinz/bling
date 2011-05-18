@@ -72,8 +72,8 @@ intersectAABB (AABB bMin bMax) (Ray o d tmin tmax) = testSlabs allDimensions tmi
       | near > far = Nothing
       | otherwise = testSlabs ds (max near near') (min far far') where
 	 (near', far') = if tNear > tFar then (tFar, tNear) else (tNear, tFar)
-	 tFar = (component bMax dim - oc) * dInv
-	 tNear = (component bMin dim - oc) * dInv
-	 oc = component o dim
-	 dInv = 1 / component d dim
+	 tFar = (bMax .! dim - oc) * dInv
+	 tNear = (bMin .! dim - oc) * dInv
+	 oc = o .! dim
+	 dInv = 1 / d .! dim
    

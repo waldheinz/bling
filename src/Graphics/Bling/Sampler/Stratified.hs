@@ -3,7 +3,6 @@ module Graphics.Bling.Sampler.Stratified (
    StratifiedSampler, mkStratifiedSampler
    ) where
 
-import Debug.Trace
 import Control.Monad (liftM)
 import qualified Data.Vector.Generic as V
 import System.Random

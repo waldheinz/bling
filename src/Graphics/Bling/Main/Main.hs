@@ -1,5 +1,6 @@
 
 import Control.Monad
+import Control.Monad.ST (stToIO)
 import System (getArgs)
 import System.IO
 import Text.Printf
@@ -8,6 +9,7 @@ import Time
 
 import Graphics.Bling.Image
 import Graphics.Bling.Rendering
+import Graphics.Bling.Types
 import Graphics.Bling.IO.RenderJob
 
 prog :: ProgressReporter
@@ -32,10 +34,11 @@ main :: IO ()
 main = do
    args <- getArgs
    let fName = head args
-   job <- fmap parseJob $ readFile fName
+   j <- fmap parseJob $ readFile fName
 
-   putStrLn (PP.render (PP.text "Job Stats" PP.$$ PP.nest 3 (ppJob job)))
-   render job prog
+   putStrLn (PP.render (PP.text "Job Stats" PP.$$ PP.nest 3 (prettyPrint j)))
+   img <- stToIO $ mkImage (jobPixelFilter j) (imageSizeX j) (imageSizeY j)
+   render (jobRenderer j) (jobScene j) img prog
    
 -- | Pretty print the date in '1d 9h 9m 17s' format
 pretty :: TimeDiff -> String

@@ -28,13 +28,15 @@ smps2D = 1
 smp2doff :: Int -> Int
 smp2doff d = smps2D * d
 
+instance Printable PathIntegrator where
+   prettyPrint (PathIntegrator md) =
+      PP.text ("Path Integrator " ++ (show md))
 
 instance SurfaceIntegrator PathIntegrator where
    li (PathIntegrator md) s r =
       nextVertex s 0 True r (s `intersect` r) white black md
       
-   pp (PathIntegrator md) =
-      PP.text ("Path Integrator " ++ (show md))
+   
    
 nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled WeightedSpectrum
 

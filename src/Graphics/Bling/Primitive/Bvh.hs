@@ -87,7 +87,7 @@ bvhIntersect bvh ray = go bvh ray where
    i = intf ray
    go (Leaf p b) r = if i b (rayMax r) then nearest p r else Nothing
    go (Node d lt rt b) r@(Ray _ rd _ tmax) = if i b tmax then near fi oi else Nothing where
-      (fc, oc) = if component rd d >= 0 then (lt, rt) else (rt, lt)
+      (fc, oc) = if rd .! d >= 0 then (lt, rt) else (rt, lt)
       fi = go fc r  -- first intersection
       oi = go oc r' -- other intersection
       r' = maybe r (\i' -> r {rayMax = intDist i'}) fi -- ray clipped against fi
@@ -119,8 +119,8 @@ bvhIntersects bvh ray = go bvh where
 --   in two lists
 splitMidpoint :: [AnyPrim] -> Dimension -> ([AnyPrim], [AnyPrim])
 splitMidpoint ps dim = ([l | l <- ps, toLeft l], [r | r <- ps, not $ toLeft r]) where
-   toLeft p = component (centroid $ worldBounds p) dim < pMid
-   pMid = 0.5 * (component (aabbMin cb) dim + component (aabbMax cb) dim)
+   toLeft p = (centroid $ worldBounds p) .! dim < pMid
+   pMid = 0.5 * ((aabbMin cb) .! dim + (aabbMax cb) .! dim)
    cb = centroidBounds ps
 
 intAABB :: AABB -> Ray -> Vector -> (Int, Int, Int) -> Bool

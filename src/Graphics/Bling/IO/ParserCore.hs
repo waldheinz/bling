@@ -15,12 +15,11 @@ import Text.ParserCombinators.Parsec
 
 import Graphics.Bling.Camera
 import Graphics.Bling.Filter
-import Graphics.Bling.Integrator
 import Graphics.Bling.Light
 import Graphics.Bling.Math
 import Graphics.Bling.Primitive
+import Graphics.Bling.Rendering
 import Graphics.Bling.Reflection
-import Graphics.Bling.Sampling
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Transform
 
@@ -29,12 +28,11 @@ type JobParser a = GenParser Char PState a
 data PState = PState {
    resX :: Int,
    resY :: Int,
+   renderer :: AnyRenderer,
    pxFilter :: Filter, -- ^ the pixel filtering function
    camera :: Camera,
-   surfaceIntegrator :: AnySurfaceIntegrator,
    transform :: Transform,
    material :: Material,
-   sampler :: AnySampler,
    emit :: Maybe Spectrum, -- ^ the emission for the next primitives
    lights :: [Light],
    prims :: [AnyPrim],
