@@ -4,14 +4,11 @@ module Graphics.Bling.IO.RenderJob (
    ) where
 
 import Graphics.Bling.Filter
-import Graphics.Bling.Integrator
 import Graphics.Bling.Rendering
-import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Transform
 import Graphics.Bling.Types
 import Graphics.Bling.IO.CameraParser
-import Graphics.Bling.IO.IntegratorParser
 import Graphics.Bling.IO.LightParser
 import Graphics.Bling.IO.MaterialParser
 import Graphics.Bling.IO.ParserCore
@@ -56,9 +53,9 @@ jobParser :: JobParser Job
 jobParser = do
    _ <- many object
    eof
-   (PState sx sy renderer f cam _ _ _ ls ps _) <- getState
+   (PState sx sy r f cam _ _ _ ls ps _) <- getState
    let scn = mkScene ls ps cam
-   return (MkJob scn renderer f sx sy)
+   return (MkJob scn r f sx sy)
 
 object :: JobParser ()
 object = 
