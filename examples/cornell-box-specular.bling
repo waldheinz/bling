@@ -5,7 +5,7 @@ filter mitchell 3.0 3.0 0.333333 0.333333
 #filter box
 
 sampler { stratified xSamples 5 ySamples 5 }
-# sampler { random samples 1 }
+sampler { random samples 1 }
 
 imageSize 480 480
 
