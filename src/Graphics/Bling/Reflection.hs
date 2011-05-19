@@ -181,7 +181,8 @@ filterBsdf ap (Bsdf bs cs) = Bsdf bs' cs where
 bsdfPdf :: Bsdf -> Vector -> Vector -> Float
 bsdfPdf (Bsdf bs cs) woW wiW
    | V.null bs = 0
-   | otherwise = V.sum $ V.map (\b -> bxdfPdf b wo wi) bs where
+   | otherwise = pdfSum / fromIntegral (V.length bs) where
+      pdfSum = V.sum $ V.map (\b -> bxdfPdf b wo wi) bs
       wo = worldToLocal cs woW
       wi = worldToLocal cs wiW
       
@@ -203,12 +204,11 @@ sampleBsdf (Bsdf bs cs) woW uComp uDir
       
 evalBsdf :: Bsdf -> Vector -> Vector -> Spectrum
 evalBsdf (Bsdf bxdfs sc@(LocalCoordinates _ _ n)) woW wiW =
-   V.foldl' (+) black $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bxdfs
+   V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bxdfs
    where
          flt = if dot woW n * dot wiW n < 0 then isTransmission else isReflection
          wo = worldToLocal sc woW
          wi = worldToLocal sc wiW
-
 
 emptyBsdfSample :: BsdfSample
 emptyBsdfSample = BsdfSample (mkBxdfType [Reflection, Diffuse]) 0 black (Vector 0 1 0)
