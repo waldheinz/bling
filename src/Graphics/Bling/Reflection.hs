@@ -42,11 +42,18 @@ import Graphics.Bling.Spectrum
 
 type Material = DifferentialGeometry -> Bsdf
 
+--
+-- Fresnel incidence effects
+--
+
 type Fresnel = Flt -> Spectrum
 
+-- | a no-or Fresnel implementation, which always returns a fully white
+--   @Spectrum@
 frNoOp :: Fresnel
 frNoOp _ = white
 
+-- | Fresnel incidence effects for dielectrics
 frDielectric :: Flt -> Flt -> Fresnel
 frDielectric etai etat cosi
    | sint >= 1 = white -- total internal reflection
@@ -64,6 +71,7 @@ frDiel' cosi cost etai etat = (rPar * rPar + rPer * rPer) / 2 where
    rPer = (sScale etai cosi - sScale etat cost) /
           (sScale etai cosi + sScale etat cost)
 
+-- | Fresnel incidence effects for conductors
 frConductor :: Spectrum -> Spectrum -> Fresnel
 frConductor eta k cosi = (rPer2 + rPar2) / 2.0 where
    rPer2 = (tmpF - ec2 + sConst (cosi * cosi)) /
@@ -106,7 +114,6 @@ sinPhi v
 sameHemisphere :: Vector -> Vector -> Bool
 sameHemisphere (Vector _ _ z1) (Vector _ _ z2) = z1 * z2 > 0
 
-
 data BxdfProp = Transmission | Reflection | Diffuse | Glossy | Specular deriving (Eq, Enum, Show)
 
 type BxdfType = BitSet BxdfProp
@@ -124,7 +131,6 @@ class Bxdf a where
       wi = toSameHemisphere wo (cosineSampleHemisphere u)
       f = bxdfEval a wo wi
       pdf = bxdfPdf a wo wi
-      
       
    bxdfPdf _ (Vector _ _ woz) (Vector _ _ wiz)
       | woz * wiz > 0 = invPi * abs wiz
