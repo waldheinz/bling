@@ -26,7 +26,11 @@ pRenderer = (flip namedBlock) "renderer" $ do
    tName <- many1 alphaNum
    ws
    r <- case tName of
-             "lightTracer" -> return $ mkAnyRenderer $ mkLightTracer
+             "lightTracer" -> do
+                np <- namedInt "passCount"
+                ppp <- ws >> namedInt "particles"
+                return $ mkAnyRenderer $ mkLightTracer np ppp
+                
              "sampler" -> do
                 sr <- pSamplerRenderer
                 return $ mkAnyRenderer sr

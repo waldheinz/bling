@@ -7,7 +7,7 @@ module Graphics.Bling.Light (
    mkSunSkyLight,
 
    -- * Working with light sources
-   LightSample(..), sample, sample', le, lEmit, pdf
+   LightSample(..), sample, sample', le, lEmit, pdf, power
    ) where
 
 import Graphics.Bling.AABB
@@ -123,6 +123,14 @@ sunThetaMax = sqrt $ max 0 (1 - sint2) where
    sint2 = radius / meanDistance
    radius = 6.955e5 -- km
    meanDistance = 1.496e8 -- 149,60 million km
+
+-- | computes the power of a light source
+power
+   :: Light -- ^ the light to get the power for
+   -> AABB -- ^ the bounds of the area illuminated by this light
+   -> Spectrum -- ^ the light's power in [Watt]
+
+power (AreaLight _ s r _ _) _ = sScale r ((S.area s) * pi)
 
 -- | samples one light source
 sample

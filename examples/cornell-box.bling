@@ -14,19 +14,12 @@ renderer {
 
 imageSize 480 480
 
+renderer { lightTracer passCount 10 particles 20000 }
+
+
 #
 # camera
 #
-
-renderer {
-   sampler
-   sampled {
-      sampler { stratified xSamples 2 ySamples 2 }
-      integrator { path maxDepth 7 }
-   }
-}
-
-renderer { lightTracer }
 
 transform {
    lookAt {

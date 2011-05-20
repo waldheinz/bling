@@ -26,15 +26,18 @@ data Camera
          _cam2world :: Transform,
          _raster2cam :: Transform,
          _world2raster :: Transform,
+         _pixelArea :: Flt, -- the area of a pixel
          _lensRadius :: Flt,
          _focalDistance :: Flt }
       | Environment Transform Flt Flt -- cam2world xres yres
-
+      deriving (Show)
+      
 instance Printable Camera where
-   prettyPrint (ProjectiveCamera _ _ _ lr fd) = vcat [
+   prettyPrint (ProjectiveCamera _ _ _ lr fd ap) = vcat [
       text "Projective",
       text "Lens Radius" <+> float lr,
-      text "Focal Distance" <+>  float fd ]
+      text "Focal Distance" <+>  float fd,
+      text "area of single pixel" <+> float ap ]
 
    prettyPrint (Environment _ _ _) = text "Environment"
 
@@ -45,7 +48,7 @@ instance Printable Camera where
 -- | fires an eye ray from a camera
 fireRay :: Camera -> Sampled Ray
 
-fireRay (ProjectiveCamera c2w r2c _ lr fd) = do
+fireRay (ProjectiveCamera c2w r2c _ lr fd _) = do
    ix <- imageX
    iy <- imageY
    luv <- lensUV
@@ -91,13 +94,13 @@ sampleCam
    -> Rand2D -- ^ for sampling the lens
    -> CameraSample
 
-sampleCam (ProjectiveCamera c2w _ w2r _ _) p _ = smp where
-   smp = CameraSample white pLens px py ray 1000000
+sampleCam (ProjectiveCamera c2w _ w2r _ _ ap) p _ = smp where
+   smp = CameraSample white pLens px py ray (1/ap)
    (Vector px py _) = transPoint w2r p
    pLens = transPoint c2w (mkPoint 0 0 0)
    ray = segmentRay pLens p
    
-sampleCam _ _ _ = error $ "can not sample that camera"
+sampleCam c _ _ = error $ "can not sample " ++ show c
 
 --
 -- creating cameras
@@ -110,9 +113,10 @@ mkProjective
    -> Flt -- ^ focal distance
    -> Flt -- ^ frame size in x
    -> Flt -- ^ frame size in y
+   -> Flt -- ^ focal length
    -> Camera
    
-mkProjective c2w p lr fd sx sy = ProjectiveCamera c2w r2c w2r lr fd where
+mkProjective c2w p lr fd sx sy fl = ProjectiveCamera c2w r2c w2r ap lr fd where
    s2r = t `concatTrans` st2 `concatTrans` st1
    aspect = sx / sy
    (s0, s1, s2, s3) = if aspect > 1
@@ -126,6 +130,9 @@ mkProjective c2w p lr fd sx sy = ProjectiveCamera c2w r2c w2r lr fd where
    w2r = concatTrans w2s s2r -- world to raster
    w2c = inverse c2w
    w2s = concatTrans w2c p  -- world to screen
+   ap = pw * ph -- pixel area
+   pw = fl * (s1 - s0) / 2 / sx
+   ph = fl * (s3 - s2) / 2 / sy
    
 -- | creates a perspective camera using the specified parameters
 mkPerspectiveCamera
@@ -136,8 +143,10 @@ mkPerspectiveCamera
    -> Flt -- ^ frame size in x
    -> Flt -- ^ frame size in y
    -> Camera
-mkPerspectiveCamera c2w lr fd fov sx sy = mkProjective c2w p lr fd sx sy where
-   p = perspective fov 1e-2 1000
+mkPerspectiveCamera c2w lr fd fov sx sy = mkProjective c2w p lr fd sx sy fl
+   where
+      p = perspective fov 1e-2 1000
+      fl = tan (fov / 2) * 2 -- focal length
    
 -- | creates an environmental camera using the specified parameters
 mkEnvironmentCamera
