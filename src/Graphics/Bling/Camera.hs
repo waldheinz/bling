@@ -24,17 +24,14 @@ import Graphics.Bling.Types
 data Camera
       = ProjectiveCamera {
          _cam2world :: Transform,
-         _cam2screen :: Transform,
          _raster2cam :: Transform,
-         _screen2raster :: Transform,
-         _raster2screen :: Transform,
          _world2raster :: Transform,
          _lensRadius :: Flt,
          _focalDistance :: Flt }
       | Environment Transform Flt Flt -- cam2world xres yres
 
 instance Printable Camera where
-   prettyPrint (ProjectiveCamera _ _ _ _ _ _ lr fd) = vcat [
+   prettyPrint (ProjectiveCamera _ _ _ lr fd) = vcat [
       text "Projective",
       text "Lens Radius" <+> float lr,
       text "Focal Distance" <+>  float fd ]
@@ -48,7 +45,7 @@ instance Printable Camera where
 -- | fires an eye ray from a camera
 fireRay :: Camera -> Sampled Ray
 
-fireRay (ProjectiveCamera c2w _ r2c _ _ _ lr fd) = do
+fireRay (ProjectiveCamera c2w r2c _ lr fd) = do
    ix <- imageX
    iy <- imageY
    luv <- lensUV
@@ -94,8 +91,8 @@ sampleCam
    -> Rand2D -- ^ for sampling the lens
    -> CameraSample
 
-sampleCam (ProjectiveCamera c2w _ _ _ _ w2r _ _) p _ = smp where
-   smp = CameraSample white pLens px py ray 1
+sampleCam (ProjectiveCamera c2w _ w2r _ _) p _ = smp where
+   smp = CameraSample white pLens px py ray 1000000
    (Vector px py _) = transPoint w2r p
    pLens = transPoint c2w (mkPoint 0 0 0)
    ray = segmentRay pLens p
@@ -115,7 +112,7 @@ mkProjective
    -> Flt -- ^ frame size in y
    -> Camera
    
-mkProjective c2w p lr fd sx sy = ProjectiveCamera c2w p r2c s2r r2s w2r lr fd where
+mkProjective c2w p lr fd sx sy = ProjectiveCamera c2w r2c w2r lr fd where
    s2r = t `concatTrans` st2 `concatTrans` st1
    aspect = sx / sy
    (s0, s1, s2, s3) = if aspect > 1

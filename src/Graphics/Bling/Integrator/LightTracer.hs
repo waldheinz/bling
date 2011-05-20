@@ -32,7 +32,7 @@ instance Printable LightTracer where
 instance Renderer LightTracer where
    render LightT sc img report = pass 1 where
       pass n = do
-         smps <- runRandIO $ liftM concat $ replicateM 10000 $ oneRay sc
+         smps <- runRandIO $ liftM concat $ replicateM 20000 $ oneRay sc
          stToIO $ mapM_ (splatSample img) smps
          
          cnt <- report $ Progress (PassDone n) img
@@ -61,11 +61,11 @@ nextVertex _ _ Nothing _ _ = return []
 
 nextVertex sc wi (Just int) li pdf = do
    uc <- rnd2D
-   let (CameraSample csf pCam px py cray cpdf) = sampleCam (sceneCam sc) p uc
-   let wr = rayDir cray
-   let f = evalBsdf bsdf wr wi
-   let dCam = len (pCam - p)
-   let smpHere = ImageSample px py (dCam * absDot n wr, f * li)
+   let (CameraSample csf pCam px py cray cPdf) = sampleCam (sceneCam sc) p uc
+   let weye = normalize $ rayDir cray
+   let f = evalBsdf bsdf weye wi
+   let dCam2 = sqLen (pCam - p)
+   let smpHere = ImageSample px py (absDot n weye * cPdf / dCam2, f * li)
    
    ubc <- rnd
    ubd <- rnd2D
@@ -79,5 +79,5 @@ nextVertex sc wi (Just int) li pdf = do
    where
       dg = intGeometry int
       bsdf = intBsdf int
-      n = dgN dg
+      n = normalize $ dgN dg
       p = dgP dg
