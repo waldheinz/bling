@@ -29,10 +29,10 @@ data Job = MkJob {
    
 instance Printable Job where
    prettyPrint (MkJob sc r f sx sy) = PP.vcat [
-      PP.text "Image size is" PP.<+> PP.text ((show sx) ++ "x" ++ (show sy)),
-      PP.text "Pixel filter is" PP.<+> PP.text (show f),
+      PP.text "image size" PP.<+> PP.text ((show sx) ++ "x" ++ (show sy)),
+      PP.text "pixel filter" PP.<+> PP.text (show f),
       PP.text "renderer " PP.<+> prettyPrint r,
-      PP.text "Scene stats" PP.$$ PP.nest 3 (ppScene sc)
+      PP.text "scene" PP.$$ PP.nest 3 (prettyPrint sc)
       ]
    
 startState :: PState

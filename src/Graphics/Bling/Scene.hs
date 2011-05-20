@@ -1,5 +1,5 @@
 module Graphics.Bling.Scene (
-   Scene, mkScene, scenePrim, sceneLights, sceneCam, sampleOneLight, ppScene
+   Scene, mkScene, scenePrim, sceneLights, sceneCam, sampleOneLight
    ) where
 
 import Data.Maybe (mapMaybe, isJust, fromJust)
@@ -23,14 +23,14 @@ data Scene = Scene {
    sceneCam :: Camera
    }
    
-ppScene :: Scene -> Doc
-ppScene (Scene cnt p ls cam) = vcat [
-   text "camera" <+> prettyPrint cam,
-   text "bounds" <+> text (show (worldBounds p)),
-   text "number of lights" <+> int (V.length ls),
-   text "number of primitives" <+> int cnt,
-   text "stats" $$ nest 3 (ppKdTree p)
-   ]
+instance Printable Scene where
+   prettyPrint (Scene cnt p ls cam) = vcat [
+      text "camera" <+> prettyPrint cam,
+      text "bounds" <+> text (show (worldBounds p)),
+      text "number of lights" <+> int (V.length ls),
+      text "number of primitives" <+> int cnt,
+      text "stats" $$ nest 3 (ppKdTree p)
+      ]
    
 mkScene :: (Primitive a) => [Light] -> [a] -> Camera -> Scene
 mkScene l prims cam = Scene cnt (mkKdTree ps) (V.fromList lights) cam where
