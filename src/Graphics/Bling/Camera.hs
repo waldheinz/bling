@@ -7,7 +7,7 @@ module Graphics.Bling.Camera (
    
    -- * Using Cameras
    
-   ppCamera, fireRay
+   fireRay
    ) where
 
 import Text.PrettyPrint
@@ -16,6 +16,7 @@ import Graphics.Bling.Math
 import Graphics.Bling.Montecarlo
 import Graphics.Bling.Sampling
 import Graphics.Bling.Transform
+import Graphics.Bling.Types
 
 -- | a @Camera@
 data Camera
@@ -28,16 +29,14 @@ data Camera
          _lensRadius :: Flt,
          _focalDistance :: Flt }
       | Environment Transform Flt Flt -- cam2world xres yres
-         
 
--- | briefly describes the @Camera@
-ppCamera :: Camera -> Doc
-ppCamera (ProjectiveCamera _ _ _ _ _ lr fd) = vcat [
-   text "Projective",
-   text "Lens Radius" <+> float lr,
-   text "Focal Distance" <+>  float fd ]
+instance Printable Camera where
+   prettyPrint (ProjectiveCamera _ _ _ _ _ lr fd) = vcat [
+      text "Projective",
+      text "Lens Radius" <+> float lr,
+      text "Focal Distance" <+>  float fd ]
 
-ppCamera (Environment _ _ _) = text "Environment"
+   prettyPrint (Environment _ _ _) = text "Environment"
 
 -- | fires an eye ray from a camera
 fireRay :: Camera -> Sampled Ray

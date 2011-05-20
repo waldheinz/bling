@@ -25,7 +25,7 @@ data Scene = Scene {
    
 ppScene :: Scene -> Doc
 ppScene (Scene cnt p ls cam) = vcat [
-   text "camera is" <+> ppCamera cam,
+   text "camera" <+> prettyPrint cam,
    text "bounds" <+> text (show (worldBounds p)),
    text "number of lights" <+> int (V.length ls),
    text "number of primitives" <+> int cnt,
