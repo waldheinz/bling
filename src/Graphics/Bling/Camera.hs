@@ -7,14 +7,16 @@ module Graphics.Bling.Camera (
    
    -- * Using Cameras
    
-   fireRay
+   fireRay, CameraSample(..), sampleCam
    ) where
 
 import Text.PrettyPrint
 
 import Graphics.Bling.Math
 import Graphics.Bling.Montecarlo
+import Graphics.Bling.Random
 import Graphics.Bling.Sampling
+import Graphics.Bling.Spectrum
 import Graphics.Bling.Transform
 import Graphics.Bling.Types
 
@@ -26,22 +28,27 @@ data Camera
          _raster2cam :: Transform,
          _screen2raster :: Transform,
          _raster2screen :: Transform,
+         _world2raster :: Transform,
          _lensRadius :: Flt,
          _focalDistance :: Flt }
       | Environment Transform Flt Flt -- cam2world xres yres
 
 instance Printable Camera where
-   prettyPrint (ProjectiveCamera _ _ _ _ _ lr fd) = vcat [
+   prettyPrint (ProjectiveCamera _ _ _ _ _ _ lr fd) = vcat [
       text "Projective",
       text "Lens Radius" <+> float lr,
       text "Focal Distance" <+>  float fd ]
 
    prettyPrint (Environment _ _ _) = text "Environment"
 
+--
+-- sending eye rays into the scene
+--
+
 -- | fires an eye ray from a camera
 fireRay :: Camera -> Sampled Ray
 
-fireRay (ProjectiveCamera c2w _ r2c _ _ lr fd) = do
+fireRay (ProjectiveCamera c2w _ r2c _ _ _ lr fd) = do
    ix <- imageX
    iy <- imageY
    luv <- lensUV
@@ -68,6 +75,35 @@ fireRay (Environment c2w sx sy) = do
          t = pi * iy / sy
          p = 2 * pi * ix / sx
          
+--
+-- sampling the camera
+--
+
+data CameraSample = CameraSample
+   { csF             :: Spectrum -- ^ transport
+   , csImgX          :: Flt -- ^ pixel pos x
+   , csImgY          :: Flt -- ^ pixel pos y
+   , csTestRay       :: Ray -- ^ for visibility test
+   , csPdf           :: Float
+   }
+
+sampleCam
+   :: Camera -- ^ the camera to sample
+   -> Point -- ^ the point in world space
+   -> Rand2D -- ^ for sampling the lens
+   -> CameraSample
+
+sampleCam (ProjectiveCamera _ _ _ _ _ w2r _ _) p _ = smp where
+   smp = CameraSample white px (-py) ray 1
+   (Vector px py _) = transPoint w2r p
+   ray = segmentRay p p
+   
+sampleCam _ _ _ = error $ "can not sample that camera"
+
+--
+-- creating cameras
+--
+         
 mkProjective
    :: Transform -- ^ camera to world
    -> Transform -- ^ the projection
@@ -77,7 +113,7 @@ mkProjective
    -> Flt -- ^ frame size in y
    -> Camera
    
-mkProjective c2w p lr fd sx sy = ProjectiveCamera c2w p r2c s2r r2s lr fd where
+mkProjective c2w p lr fd sx sy = ProjectiveCamera c2w p r2c s2r r2s w2r lr fd where
    s2r = t `concatTrans` st2 `concatTrans` st1
    aspect = sx / sy
    (s0, s1, s2, s3) = if aspect > 1
@@ -88,6 +124,9 @@ mkProjective c2w p lr fd sx sy = ProjectiveCamera c2w p r2c s2r r2s lr fd where
    t = translate (Vector (-s0) (-s3) 0)
    r2s = inverse s2r
    r2c = r2s `concatTrans` inverse p
+   w2r = concatTrans w2s s2r -- world to raster
+   w2c = inverse c2w
+   w2s = concatTrans w2c p  -- world to screen
    
 -- | creates a perspective camera using the specified parameters
 mkPerspectiveCamera

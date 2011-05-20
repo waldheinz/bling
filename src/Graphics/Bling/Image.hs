@@ -65,7 +65,7 @@ addPixel (Image w h _ p) (x, y, (sw, s))
          
 splatSample :: Image s -> ImageSample -> ST s ()
 splatSample (Image w h _ p) (ImageSample sx sy (sw, ss))
-   | floor sx > w || floor sy > h = trace ("ignore splat at (" ++ 
+   | floor sx > w || floor sy > h || sx < 0 || sy < 0 = trace ("ignore splat at (" ++ 
       show sx ++ ", " ++ show sy ++ ")") $ return ()
    | sNaN ss = trace ("not splatting NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
@@ -93,7 +93,9 @@ addSample img smp@(ImageSample sx sy (_, ss))
 getPixel :: Image s -> Int -> ST s (Float, Float, Float)
 getPixel (Image _ _ _ p) o = do
    (w, (r, g, b), (sr, sg, sb)) <- unsafeRead p o
-   return (sr + r / w, sg + g / w, sb + b / w)
+   return $ if w == 0 
+               then (sr, sg, sb)
+               else (sr + r / w, sg + g / w, sb + b / w)
    
 writeRgbe :: Image RealWorld -> Handle -> IO ()
 writeRgbe img@(Image w h _ _) hnd =

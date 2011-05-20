@@ -12,6 +12,8 @@ renderer {
    }
 }
 
+renderer { lightTracer }
+
 imageSize 480 480
 
 #

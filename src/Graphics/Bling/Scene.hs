@@ -1,5 +1,6 @@
 module Graphics.Bling.Scene (
-   Scene, mkScene, scenePrim, sceneLights, sceneCam, sampleOneLight
+   Scene, mkScene, scenePrim, sceneLights, sceneCam, sampleOneLight,
+   sampleLightRay
    ) where
 
 import Data.Maybe (mapMaybe, isJust, fromJust)
@@ -11,6 +12,7 @@ import Graphics.Bling.Light as L
 import Graphics.Bling.Math
 import Graphics.Bling.Montecarlo
 import Graphics.Bling.Primitive
+import qualified Graphics.Bling.Random as R
 import Graphics.Bling.Reflection
 import Graphics.Bling.Sampling
 import Graphics.Bling.Spectrum
@@ -49,7 +51,6 @@ instance Primitive Scene where
    flatten = flatten.scenePrim
    light = light.scenePrim
    shadingGeometry = shadingGeometry.scenePrim
-   
 
 sampleLightMis :: Scene -> LightSample -> Bsdf -> Vector -> Normal -> Spectrum
 sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n
@@ -112,3 +113,21 @@ sampleOneLight scene@(Scene _ _ lights _) p n wo bsdf ulNum
             ed l = estimateDirect scene l p n wo bsdf
             lc = V.length lights
             ln = min (floor $ ulNum * fromIntegral lc) (lc - 1)
+
+-- | samples an outgoing light ray from a randomly chosen light source
+sampleLightRay
+   :: Scene
+   -> Flt
+   -> R.Rand2D
+   -> R.Rand2D
+   -> (Spectrum, Ray, Normal, Flt)
+
+sampleLightRay sc@(Scene _ _ ls _) uL uO uD
+   | V.null ls = (black, undefined, undefined, 0)
+   | lc == 1 = sample' (V.head ls) (worldBounds sc) uO uD
+   | otherwise = (s, ray, n, pd')
+   where
+      (s, ray, n, pd) = sample' (V.unsafeIndex ls ln) (worldBounds sc) uO uD
+      pd' = pd * fromIntegral lc
+      lc = V.length ls
+      ln = min (floor $ uL * fromIntegral lc) (lc - 1)

@@ -54,7 +54,13 @@ prog ac (Progress (RegionStarted w) _) = do
    SDL.flip s
    lookQuit
 
-prog _ (Progress (PassDone p) img) = do
+prog ac (Progress (PassDone p) img) = do
+   let w = imageWindow img
+   let s = screen ac
+   ps <- stToIO $ rgbPixels img w
+   mapM_ (putPixel s) ps
+   SDL.flip s
+   
    putStrLn $ "\nWriting " ++ fname ++ "..."
    h1 <- openFile (fname ++ ".ppm") WriteMode
    writePpm img h1
@@ -63,8 +69,8 @@ prog _ (Progress (PassDone p) img) = do
    h2 <- openFile (fname ++ ".hdr") WriteMode
    writeRgbe img h2
    hClose h2
-   return True
-
+   lookQuit
+   
    where
          fname = "pass-" ++ printf "%05d" p
 

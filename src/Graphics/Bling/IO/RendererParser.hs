@@ -9,6 +9,7 @@ import Graphics.Bling.Rendering
 import Graphics.Bling.Sampling
 import Graphics.Bling.Sampler.Random
 import Graphics.Bling.Sampler.Stratified
+import Graphics.Bling.Integrator.LightTracer
 import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.IntegratorParser
 
@@ -25,6 +26,7 @@ pRenderer = (flip namedBlock) "renderer" $ do
    tName <- many1 alphaNum
    ws
    r <- case tName of
+             "lightTracer" -> return $ mkAnyRenderer $ mkLightTracer
              "sampler" -> do
                 sr <- pSamplerRenderer
                 return $ mkAnyRenderer sr
