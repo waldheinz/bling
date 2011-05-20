@@ -81,6 +81,7 @@ fireRay (Environment c2w sx sy) = do
 
 data CameraSample = CameraSample
    { csF             :: Spectrum -- ^ transport
+   , csP             :: Point -- ^ point on lens
    , csImgX          :: Flt -- ^ pixel pos x
    , csImgY          :: Flt -- ^ pixel pos y
    , csTestRay       :: Ray -- ^ for visibility test
@@ -93,10 +94,11 @@ sampleCam
    -> Rand2D -- ^ for sampling the lens
    -> CameraSample
 
-sampleCam (ProjectiveCamera _ _ _ _ _ w2r _ _) p _ = smp where
-   smp = CameraSample white px (-py) ray 1
+sampleCam (ProjectiveCamera c2w _ _ _ _ w2r _ _) p _ = smp where
+   smp = CameraSample white pLens px py ray 1
    (Vector px py _) = transPoint w2r p
-   ray = segmentRay p p
+   pLens = transPoint c2w (mkPoint 0 0 0)
+   ray = segmentRay pLens p
    
 sampleCam _ _ _ = error $ "can not sample that camera"
 

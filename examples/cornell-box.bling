@@ -18,10 +18,15 @@ imageSize 480 480
 # camera
 #
 
-integrator {
-   path
-   maxDepth 25
+renderer {
+   sampler
+   sampled {
+      sampler { stratified xSamples 2 ySamples 2 }
+      integrator { path maxDepth 7 }
+   }
 }
+
+renderer { lightTracer }
 
 transform {
    lookAt {
@@ -148,8 +153,8 @@ shape {
 # tall block
 #
 
-material { mirror spd { 1 0.95 } }
-material { glass ior 1.5 r { constant spd { 1 0.95 } } }
+#material { mirror spd { 1 0.95 } }
+#material { glass ior 1.5 r { constant spd { 1 0.95 } } }
 
 shape {
    mesh
