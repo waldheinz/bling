@@ -65,8 +65,7 @@ addPixel (Image w h _ p) (x, y, (sw, s))
          
 splatSample :: Image s -> ImageSample -> ST s ()
 splatSample (Image w h _ p) (ImageSample sx sy (sw, ss))
-   | floor sx > w || floor sy > h || sx < 0 || sy < 0 = trace ("ignore splat at (" ++ 
-      show sx ++ ", " ++ show sy ++ ")") $ return ()
+   | floor sx > w || floor sy > h || sx < 0 || sy < 0 = return ()
    | sNaN ss = trace ("not splatting NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | sInfinite ss = trace ("not splatting infinite sample at ("
