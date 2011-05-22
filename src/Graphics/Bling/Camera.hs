@@ -94,7 +94,7 @@ sampleCam
    -> CameraSample
 
 sampleCam (ProjectiveCamera c2w _ w2r _ _ ap) p _ = smp where
-   smp = CameraSample white pLens px py (1)
+   smp = CameraSample white pLens px py (ap)
    (Vector px py _) = transPoint w2r p
    pLens = transPoint c2w (mkPoint 0 0 0)
    
@@ -126,11 +126,10 @@ mkProjective c2w p lr fd sx sy fl = ProjectiveCamera c2w r2c w2r ap lr fd where
    r2s = inverse s2r
    r2c = r2s `concatTrans` inverse p
    w2r = concatTrans w2s s2r -- world to raster
-   w2c = inverse c2w
-   w2s = concatTrans w2c p  -- world to screen
-   ap = pw * ph -- pixel area
-   pw = fl * (s1 - s0) / 2 / sx
-   ph = fl * (s3 - s2) / 2 / sy
+   w2s = concatTrans (inverse c2w) p  -- world to screen
+   ap = (pw * ph) -- pixel area
+   pw = fl * (s1 - s0) / 2 * sx
+   ph = fl * (s3 - s2) / 2 * sy
    
 -- | creates a perspective camera using the specified parameters
 mkPerspectiveCamera
