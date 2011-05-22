@@ -84,7 +84,6 @@ data CameraSample = CameraSample
    , csP             :: Point -- ^ point on lens
    , csImgX          :: Flt -- ^ pixel pos x
    , csImgY          :: Flt -- ^ pixel pos y
-   , csTestRay       :: Ray -- ^ for visibility test
    , csPdf           :: Float
    }
 
@@ -95,10 +94,9 @@ sampleCam
    -> CameraSample
 
 sampleCam (ProjectiveCamera c2w _ w2r _ _ ap) p _ = smp where
-   smp = CameraSample white pLens px py ray (1/ap)
+   smp = CameraSample white pLens px py (1)
    (Vector px py _) = transPoint w2r p
    pLens = transPoint c2w (mkPoint 0 0 0)
-   ray = segmentRay pLens p
    
 sampleCam c _ _ = error $ "can not sample " ++ show c
 

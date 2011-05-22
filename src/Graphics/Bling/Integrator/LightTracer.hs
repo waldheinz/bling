@@ -8,7 +8,7 @@ module Graphics.Bling.Integrator.LightTracer (
 import Control.Monad
 import Control.Monad.ST
 import Debug.Trace
-import Text.PrettyPrint
+import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Camera
 import Graphics.Bling.Image
@@ -33,10 +33,10 @@ mkLightTracer
 mkLightTracer = LightT
 
 instance Printable LightTracer where
-   prettyPrint (LightT np ppp) = vcat [
-      text "light tracer",
-      int np <+> text "passes",
-      int ppp <+> text "photons per pass" ]
+   prettyPrint (LightT np ppp) = PP.vcat [
+      PP.text "light tracer",
+      PP.int np PP.<+> PP.text "passes",
+      PP.int ppp PP.<+> PP.text "photons per pass" ]
 
 instance Renderer LightTracer where
    render (LightT np ppp) sc img report = pass np where
@@ -46,56 +46,71 @@ instance Renderer LightTracer where
             smps <- runRandIO $ liftM concat $ replicateM ppp $ oneRay sc
             stToIO $ mapM_ ((splatSample img) . sSmp) smps
          
-            cnt <- report $ Progress (PassDone (np - n + 1)) img
-            if cnt
+            cont <- report $ Progress (PassDone (np - n + 1)) img
+            if cont
                then pass (n - 1)
                else return ()
       
       -- | scales an image sample according to total light power in scene
       --   and total number of samples
       sSmp :: ImageSample -> ImageSample
-      sSmp (ImageSample x y (w, s)) = ImageSample x y ((w * p) / cnt, s)
+      sSmp (ImageSample x y (w, s)) = ImageSample x y (w * f, s)
+      f = p / cnt
       cnt = fromIntegral $ np * ppp
-      p = 10000000 * (sY $ lightPower sc)
+      p = 230400 * 10
       
 oneRay :: Scene -> Rand [ImageSample]
 oneRay scene = do
    ul <- rnd
    ulo <- rnd2D
    uld <- rnd2D
-   let (li, ray, nl, pdf) = sampleLightRay scene ul ulo uld
+   let (li, ray, _, pdf) = sampleLightRay scene ul ulo uld
    
-   nextVertex scene (-(rayDir ray)) (intersect scene ray) li pdf
+   nextVertex scene (normalize (-(rayDir ray))) (intersect scene ray) (sScale li (1 / pdf)) 0
    
 nextVertex
    :: Scene
    -> Vector
    -> Maybe Intersection
    -> Spectrum
-   -> Flt
+   -> Int -- ^ depth
    -> Rand [ImageSample]
 -- nothing hit, terminate path   
 nextVertex _ _ Nothing _ _ = return []
 
-nextVertex sc wi (Just int) li pdf = do
+nextVertex sc wi (Just int) li depth
+   | isBlack li = return []
+   | otherwise = do
    uc <- rnd2D
-   let (CameraSample csf pCam px py cray cPdf) = sampleCam (sceneCam sc) p uc
-   let weye = normalize $ rayDir cray
-   let f = evalBsdf bsdf weye wi
-   let dCam2 = sqLen (pCam - p)
-   let smpHere = ImageSample px py (absDot n weye * cPdf / dCam2, f * li)
+   let (CameraSample csf pCam px py cPdf) = sampleCam (sceneCam sc) p uc
+   let dCam = pCam - p
+   let we = normalize $ dCam
+   let f = evalBsdf bsdf we wi
+   let dCam2 = sqLen dCam
+   let smpHere = ImageSample px py (absDot n we / (cPdf * dCam2), f * li * csf)
    
    ubc <- rnd
    ubd <- rnd2D
-   let (BsdfSample smpType spdf bf wo) = sampleBsdf bsdf wi ubc ubd
-   let li' = li * bf
+      
+   let (BsdfSample _ spdf bf wo) = sampleBsdf bsdf wi ubc ubd
+   let li' = sScale (li * bf) (absDot n wo / (spdf * pcont))
    let int' = intersect sc $ Ray p wo epsilon infinity
-   let pdf' = pdf
+   let wi' = -wo
+   let cray = segmentRay pCam p
    
-   (liftM . (:)) smpHere $! nextVertex sc wo int' li' pdf'
+   x <- rnd
+   let rest = if x > pcont
+               then return []
+               else nextVertex sc wi' int' li' (depth + 1)
    
+   if cPdf > 0 && not (isBlack (f * li)) && not (intersects sc cray)
+      then (liftM . (:)) smpHere $! rest
+      else rest
+      
    where
+      pcont = if depth > 3 then 0.5 else 1
       dg = intGeometry int
       bsdf = intBsdf int
       n = normalize $ dgN dg
       p = dgP dg
+      
