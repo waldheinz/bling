@@ -64,9 +64,9 @@ oneRay scene = do
    ul <- rnd
    ulo <- rnd2D
    uld <- rnd2D
-   let (li, ray, _, pdf) = sampleLightRay scene ul ulo uld
-   
-   nextVertex scene (normalize (-(rayDir ray))) (intersect scene ray) (sScale li (1 / pdf)) 0
+   let (li, ray, nl, pdf) = sampleLightRay scene ul ulo uld
+   let wo = normalize $ rayDir ray
+   nextVertex scene (-wo) (intersect scene ray) (sScale li (absDot nl wo / pdf)) 0
    
 nextVertex
    :: Scene
@@ -85,7 +85,7 @@ nextVertex sc wi (Just int) li depth
    let (CameraSample csf pCam px py cPdf) = sampleCam (sceneCam sc) p uc
    let dCam = pCam - p
    let we = normalize $ dCam
-   let f = evalBsdf bsdf we wi
+   let f = evalBsdf bsdf wi we
    let dCam2 = sqLen dCam
    let smpHere = ImageSample px py (absDot n we / (cPdf * dCam2), f * li * csf)
    

@@ -14,7 +14,7 @@ renderer {
 
 imageSize 480 480
 
-renderer { lightTracer passCount 50 particles 20000 }
+renderer { lightTracer passCount 100 particles 40000 }
 
 
 #
