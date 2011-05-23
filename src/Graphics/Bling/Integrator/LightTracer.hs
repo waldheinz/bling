@@ -55,7 +55,7 @@ instance Renderer LightTracer where
       --   and total number of samples
       sSmp :: ImageSample -> ImageSample
       sSmp (ImageSample x y (w, s)) = ImageSample x y (w * f, s)
-      f = 1 / cnt
+      f = 1 -- 10000000 / cnt
       cnt = fromIntegral $ np * ppp
       
 oneRay :: Scene -> Rand [ImageSample]

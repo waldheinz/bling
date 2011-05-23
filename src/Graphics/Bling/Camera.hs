@@ -10,6 +10,7 @@ module Graphics.Bling.Camera (
    fireRay, CameraSample(..), sampleCam
    ) where
 
+import Debug.Trace
 import Text.PrettyPrint
 
 import Graphics.Bling.Math
@@ -93,10 +94,14 @@ sampleCam
    -> Rand2D -- ^ for sampling the lens
    -> CameraSample
 
-sampleCam (ProjectiveCamera c2w _ w2r _ _ ap) p _ = smp where
-   smp = CameraSample white pLens px py (ap)
-   (Vector px py _) = transPoint w2r p
+sampleCam (ProjectiveCamera c2w r2c w2r _ _ ap) p _ = smp where
+   smp = CameraSample white pLens px py (cost3 * ap)
+   pRas@(Vector px py _) = transPoint w2r p
    pLens = transPoint c2w (mkPoint 0 0 0)
+   pRas' = transPoint r2c pRas
+   (Vector _ _ cost') = normalize $ transVector (inverse c2w) (pRas')
+   cost =  cost'
+   cost3 = cost * cost * cost
    
 sampleCam c _ _ = error $ "can not sample " ++ show c
 
@@ -114,7 +119,7 @@ mkProjective
    -> Flt -- ^ focal length
    -> Camera
    
-mkProjective c2w p lr fd sx sy fl = ProjectiveCamera c2w r2c w2r ap lr fd where
+mkProjective c2w p lr fd sx sy fl = trace ("ap=" ++ show ap) $ ProjectiveCamera c2w r2c w2r ap lr fd where
    s2r = t `concatTrans` st2 `concatTrans` st1
    aspect = sx / sy
    (s0, s1, s2, s3) = if aspect > 1
@@ -127,9 +132,9 @@ mkProjective c2w p lr fd sx sy fl = ProjectiveCamera c2w r2c w2r ap lr fd where
    r2c = r2s `concatTrans` inverse p
    w2r = concatTrans w2s s2r -- world to raster
    w2s = concatTrans (inverse c2w) p  -- world to screen
-   ap = (pw * ph) -- pixel area
-   pw = fl * (s1 - s0) / 2 * sx
-   ph = fl * (s3 - s2) / 2 * sy
+   ap = trace ("pw=" ++ show fl ++ ", ph=" ++ show ph) (pw * ph) -- pixel area
+   pw = fl * (s1 - s0) / 2
+   ph = fl * (s3 - s2) / 2
    
 -- | creates a perspective camera using the specified parameters
 mkPerspectiveCamera
@@ -143,7 +148,7 @@ mkPerspectiveCamera
 mkPerspectiveCamera c2w lr fd fov sx sy = mkProjective c2w p lr fd sx sy fl
    where
       p = perspective fov 1e-2 1000
-      fl = tan (fov / 2) * 2 -- focal length
+      fl = 2 * tan (radians fov / 2) -- focal length
    
 -- | creates an environmental camera using the specified parameters
 mkEnvironmentCamera
