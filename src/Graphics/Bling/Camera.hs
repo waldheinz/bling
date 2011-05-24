@@ -146,7 +146,7 @@ mkPerspectiveCamera
 mkPerspectiveCamera c2w lr fd fov sx sy = mkProjective c2w p lr fd sx sy fl
    where
       p = perspective fov 1e-2 1000
-      fl = 2 * tan ((radians fov) / 2) -- focal length
+      fl = tan ((radians fov) / 2) -- focal length
    
 -- | creates an environmental camera using the specified parameters
 mkEnvironmentCamera
