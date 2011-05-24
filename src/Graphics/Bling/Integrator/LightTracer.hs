@@ -7,7 +7,6 @@ module Graphics.Bling.Integrator.LightTracer (
 
 import Control.Monad
 import Control.Monad.ST
-import Debug.Trace
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Camera
@@ -45,7 +44,7 @@ instance Renderer LightTracer where
          | otherwise = do
             smps <- runRandIO $ liftM concat $ replicateM ppp $ oneRay sc
             stToIO $ mapM_ ((splatSample img) . sSmp) smps
-         
+            
             cont <- report $ Progress (PassDone (np - n + 1)) img
             if cont
                then pass (n - 1)
@@ -55,8 +54,7 @@ instance Renderer LightTracer where
       --   and total number of samples
       sSmp :: ImageSample -> ImageSample
       sSmp (ImageSample x y (w, s)) = ImageSample x y (w * f, s)
-      f = 1 -- 10000000 / cnt
-      cnt = fromIntegral $ np * ppp
+      f = 4 / (fromIntegral $ np * ppp) -- TODO: the factor of 4 is, odd
       
 oneRay :: Scene -> Rand [ImageSample]
 oneRay scene = do
@@ -90,7 +88,7 @@ nextVertex sc wi (Just int) li depth
    
    ubc <- rnd
    ubd <- rnd2D
-      
+   
    let (BsdfSample _ spdf bf wo) = sampleBsdf bsdf wi ubc ubd
    let li' = sScale (li * bf) (absDot n wo / (spdf * pcont))
    let int' = intersect sc $ Ray p wo epsilon infinity
