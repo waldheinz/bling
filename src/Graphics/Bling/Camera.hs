@@ -48,7 +48,7 @@ instance Printable Camera where
 -- | fires an eye ray from a camera
 fireRay :: Camera -> Sampled Ray
 
-fireRay (ProjectiveCamera c2w r2c _ lr fd _) = do
+fireRay (ProjectiveCamera c2w r2c _ _ lr fd) = do
    ix <- imageX
    iy <- imageY
    luv <- lensUV

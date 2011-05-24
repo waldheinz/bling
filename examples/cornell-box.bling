@@ -7,14 +7,14 @@ filter box
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 2 ySamples 2 }
+      sampler { stratified xSamples 5 ySamples 5 }
       integrator { path maxDepth 7 }
    }
 }
 
 imageSize 480 480
 
-renderer { lightTracer passCount 10 particles 50000 }
+# renderer { lightTracer passCount 100 particles 50000 }
 
 
 #
