@@ -29,15 +29,20 @@ instance SurfaceIntegrator BidirPath where
    li (BDP) s r = do
       e <- eyePath s r
       l <- lightPath s
-      return $ connect e l
+      return $! aws (contribS0 e) (connect e l)
+
+aws :: Spectrum -> WeightedSpectrum -> WeightedSpectrum
+aws s1 (w, s2) = (w, s1 + s2)
 
 -- | a path vertex
 data Vertex = Vert
-   { _vbsdf     :: Bsdf
-   , _vpoint    :: Point
-   , _vnormal   :: Normal
-   , _vwi       :: Vector
-   , _vwo       :: Vector
+   { _vbsdf    :: Bsdf
+   , _vpoint   :: Point
+   , _vnormal  :: Normal
+   , _vwi      :: Vector
+   , _vwo      :: Vector
+   , _vle      :: Spectrum -- ^ light emitted here
+   , _vtype    :: BxdfType
    }
 
 type Path = [Vertex]
@@ -57,13 +62,16 @@ lightPath s = do
    let (li, ray, nl, pdf) = sampleLightRay s ul ulo uld
    let wo = normalize $ rayDir ray --  (sScale li (absDot nl wo / pdf))
    nextVertex s (-wo) (s `intersect` ray) 0
+
+contribS0 :: Path -> Spectrum
+contribS0 [] = black
+contribS0 ((Vert _ _ _ _ _ l t):vs) = l + rest where
+   rest
+      | Specular `member` t = contribS0 vs
+      | otherwise = black
    
 connect :: Path -> Path -> WeightedSpectrum
-connect ep lp = (1, white)
-
-evalPath :: [Vertex] -> Sampled WeightedSpectrum
-evalPath vs = do
-   return (1, fromRGB (1, 1, 1))
+connect ep lp = (1, black)
 
 nextVertex
    :: Scene
@@ -77,39 +85,22 @@ nextVertex sc wi (Just int) depth = do
    ubc <- rnd -- bsdf component
    ubd <- rnd2D -- bsdf dir
    
-   let (BsdfSample _ spdf bf wo) = sampleBsdf bsdf wi ubc ubd
+   let (BsdfSample t spdf bf wo) = sampleBsdf bsdf wi ubc ubd
    let int' = intersect sc $ Ray p wo epsilon infinity
    let wi' = -wo
-   
+   let l = intLe int wo
    x <- rnd -- russian roulette
    let rest = if x > pcont
                then return []
                else nextVertex sc wi' int' (depth + 1)
    
-   (liftM . (:)) (Vert bsdf p n wi wo) $! rest
+   (liftM . (:)) (Vert bsdf p n wi wo l t) $! rest
    
    where
       pcont = if depth > 3 then 0.5 else 1
       dg = intGeometry int
       bsdf = intBsdf int
+      
       n = normalize $ dgN dg
       p = dgP dg
       
-
-tracePath :: Scene -> Ray -> Sampled Path
-tracePath s r = evalInt s (-(rayDir r)) (s `intersect` r)
-
-evalInt :: Scene -> Vector -> Maybe Intersection -> Sampled Path
-evalInt _ _ Nothing = return []
-evalInt s wo (Just int) = do
-   bsdfDirU <- rnd2D
-   bsdfCompU <- rnd
-   let (BsdfSample smpType spdf f wi) = sampleBsdf bsdf wo bsdfCompU bsdfDirU
-   (liftM . (:)) (Vert bsdf p n wi wo) $ tracePath s (Ray p wi epsilon infinity) where
-      bsdf = intBsdf int
-      dg = intGeometry int
-      p = dgP dg
-      n = dgN dg
-
-directLight :: Scene -> Ray -> Spectrum
-directLight s ray = V.foldl (+) black (V.map (`le` ray) (sceneLights s))
