@@ -1,7 +1,8 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 module Graphics.Bling.Integrator (
-   SurfaceIntegrator(..), mkImageSample,
+   
+   SurfaceIntegrator(..), Contribution, mkContrib,
    
    -- * Existentials
    mkAnySurface, AnySurfaceIntegrator
@@ -13,8 +14,16 @@ import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Spectrum
 
+type Contribution = [ImageSample]
+
+mkContrib :: WeightedSpectrum -> Sampled Contribution
+mkContrib ws = do
+   x <- imageX
+   y <- imageY
+   return $ [ImageSample x y ws]
+   
 class Printable a => SurfaceIntegrator a where
-   li :: a -> Scene -> Ray -> Sampled WeightedSpectrum
+   contrib :: a -> Scene -> Ray -> Sampled Contribution
    
 data AnySurfaceIntegrator =
    forall a . SurfaceIntegrator a => MkAnySurfaceIntegrator a
@@ -26,11 +35,5 @@ instance Printable AnySurfaceIntegrator where
    prettyPrint (MkAnySurfaceIntegrator a) = prettyPrint a
 
 instance SurfaceIntegrator AnySurfaceIntegrator where
-   li (MkAnySurfaceIntegrator a) = li a
-   
-mkImageSample :: WeightedSpectrum -> Sampled ImageSample
-mkImageSample ws = do
-   x <- imageX
-   y <- imageY
-   return $ ImageSample x y ws
+   contrib (MkAnySurfaceIntegrator a) = contrib a
    

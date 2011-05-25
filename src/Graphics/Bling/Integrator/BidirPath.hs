@@ -26,10 +26,11 @@ instance Printable BidirPath where
    prettyPrint (BDP) = PP.text "Bi-Dir Path"
 
 instance SurfaceIntegrator BidirPath where
-   li (BDP) s r = do
+   contrib (BDP) s r = do
       e <- eyePath s r
       l <- lightPath s
-      return $! aws (contribS0 e) (connect e l)
+      
+      mkContrib $ aws (contribS0 e + contribS1 e) (connect e l)
 
 aws :: Spectrum -> WeightedSpectrum -> WeightedSpectrum
 aws s1 (w, s2) = (w, s1 + s2)
@@ -63,12 +64,23 @@ lightPath s = do
    let wo = normalize $ rayDir ray --  (sScale li (absDot nl wo / pdf))
    nextVertex s (-wo) (s `intersect` ray) 0
 
+
+-- | contribution for when the eye subpath randomly intersects a light
+--   source, or for light sources visible through specular reflections
 contribS0 :: Path -> Spectrum
 contribS0 [] = black
-contribS0 ((Vert _ _ _ _ _ l t):vs) = l + rest where
-   rest
-      | Specular `member` t = contribS0 vs
-      | otherwise = black
+contribS0 ((Vert _ _ _ _ _ l t):vs) = go where
+   go
+      | Specular `member` t = l + contribS0 vs
+      | otherwise = l
+   
+contribS1 :: Path -> Spectrum
+contribS1 [] = black
+contribS1 ((Vert _ _ _ _ _ _ _):vs) = black
+   
+contribT1 :: Path -> Sampled ()
+contribT1 _  = return ()
+--contribT1
    
 connect :: Path -> Path -> WeightedSpectrum
 connect ep lp = (1, black)

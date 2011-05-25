@@ -33,11 +33,10 @@ instance Printable PathIntegrator where
       PP.text ("Path Integrator " ++ (show md))
 
 instance SurfaceIntegrator PathIntegrator where
-   li (PathIntegrator md) s r =
-      nextVertex s 0 True r (s `intersect` r) white black md
+   contrib (PathIntegrator md) s r = do
+      li <- nextVertex s 0 True r (s `intersect` r) white black md
+      mkContrib li
       
-   
-   
 nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled WeightedSpectrum
 
 -- nothing hit, specular bounce

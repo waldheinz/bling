@@ -99,7 +99,8 @@ instance Renderer SamplerRenderer where
                      else error "cancelled"
                ws = splitWindow $ imageWindow img
 
-         renderWindow :: SampleWindow -> IO [ImageSample]
+         renderWindow :: SampleWindow -> IO I.Contribution
          renderWindow w = withSystemRandom $ runRandST $ do
             ss <- samples smp w
-            mapM (randToSampled (fireRay cam >>= I.li si scene >>= I.mkImageSample)) ss
+            css <- mapM (randToSampled (fireRay cam >>= I.contrib si scene)) ss
+            return $ concat css

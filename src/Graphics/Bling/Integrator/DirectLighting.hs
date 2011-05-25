@@ -24,7 +24,7 @@ instance Printable DirectLighting where
    prettyPrint _ = PP.text "Direct Lighting" 
 
 instance SurfaceIntegrator DirectLighting where
-   li (DirectLighting sa) = directLighting sa
+   contrib (DirectLighting sa) s r = directLighting sa s r >>= mkContrib
 
 directLighting :: Bool -> Scene -> Ray -> Sampled WeightedSpectrum
 directLighting _ s r@(Ray _ rd _ _) =
