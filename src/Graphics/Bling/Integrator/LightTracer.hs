@@ -78,8 +78,7 @@ nextVertex _ _ Nothing _ _ = return []
 nextVertex sc wi (Just int) li depth
    | isBlack li = return []
    | otherwise = do
-   uc <- rnd2D
-   let (CameraSample csf pCam px py cPdf) = sampleCam (sceneCam sc) p uc
+   let (CameraSample csf pCam px py cPdf) = sampleCam (sceneCam sc) p
    let dCam = pCam - p
    let we = normalize $ dCam
    let f = evalBsdf bsdf wi we

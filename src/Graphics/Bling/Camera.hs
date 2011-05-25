@@ -14,7 +14,6 @@ import Text.PrettyPrint
 
 import Graphics.Bling.Math
 import Graphics.Bling.Montecarlo
-import Graphics.Bling.Random
 import Graphics.Bling.Sampling
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Transform
@@ -90,10 +89,9 @@ data CameraSample = CameraSample
 sampleCam
    :: Camera -- ^ the camera to sample
    -> Point -- ^ the point in world space
-   -> Rand2D -- ^ for sampling the lens
    -> CameraSample
 
-sampleCam (ProjectiveCamera c2w r2c w2r ap _ _) p _ = smp where
+sampleCam (ProjectiveCamera c2w r2c w2r ap _ _) p = smp where
    smp = CameraSample white pLens px py (cost3 * ap)
    pRas@(Vector px py _) = transPoint w2r p
    pLens = transPoint c2w (mkPoint 0 0 0)
@@ -101,7 +99,7 @@ sampleCam (ProjectiveCamera c2w r2c w2r ap _ _) p _ = smp where
    (Vector _ _ cost) = normalize $ transVector (inverse c2w) pRas'
    cost3 = cost * cost * cost
    
-sampleCam c _ _ = error $ "can not sample " ++ show c
+sampleCam c _ = error $ "can not sample " ++ show c
 
 --
 -- creating cameras
