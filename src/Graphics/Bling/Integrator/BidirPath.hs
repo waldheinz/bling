@@ -5,12 +5,10 @@ module Graphics.Bling.Integrator.BidirPath (
 
 import Data.BitSet
 import Control.Monad (liftM)
-import qualified Data.Vector.Generic as V
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Camera
 import Graphics.Bling.Integrator
-import Graphics.Bling.Light
 import Graphics.Bling.Math
 import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
@@ -59,16 +57,16 @@ eyePath s r = nextVertex s wi int 0 where
    wi = normalize $ (-(rayDir r))
    int = s `intersect` r
 
--- | generates the light path
+-- | generates the light path together with the emitted spectrum
 lightPath :: Scene -> Sampled (Path, Spectrum)
 lightPath s = do
    ul <- rnd
    ulo <- rnd2D
    uld <- rnd2D
    let (li, ray, nl, pdf) = sampleLightRay s ul ulo uld
-   let wo = normalize $ rayDir ray --  (sScale li (absDot nl wo / pdf))
-   path <- nextVertex s (-wo) (s `intersect` ray) 0
-   return (path, li)
+   let wo = - (normalize $ rayDir ray)
+   path <- nextVertex s wo (s `intersect` ray) 0
+   return (path, sScale li (absDot nl wo / pdf))
    
 -- | contribution for when the eye subpath randomly intersects a light
 --   source, or for light sources visible through specular reflections
@@ -81,21 +79,22 @@ contribS0 ((Vert _ _ _ _ _ l t f):vs) = go where
       | otherwise = l'
    
 contribS1 :: Path -> Spectrum
-contribS1 [] = black
-contribS1 ((Vert _ _ _ _ _ _ _ _):vs) = black
+contribS1 _ = black
+-- contribS1 ((Vert _ _ _ _ _ _ _ _):vs) = black
 
--- | follow specular paths from the light
+-- | follow specular paths from the light and connect the to the eye
 contribT1 :: Scene -> Path -> Spectrum -> Sampled Contribution
 contribT1 _ [] _ = return []
-contribT1 sc ((Vert bsdf p n wi wo _ t f):vs) li
-   | Specular `member` t = contribT1 sc vs (li * f)
+contribT1 sc ((Vert bsdf p n wi _ _ t f):vs) li
+   | Specular `member` t = contribT1 sc vs (f * li)
    | otherwise = return [smp] 
    where
-      smp = ImageSample px py (absDot n we / (cPdf * dCam2), f * li * csf)
+      le = li * evalBsdf bsdf wi we
+      smp = ImageSample px py (absDot n we / (cPdf * d2), le * csf)
       (CameraSample csf pCam px py cPdf) = sampleCam (sceneCam sc) p
       dCam = pCam - p
       we = normalize $ dCam
-      dCam2 = sqLen dCam
+      d2 = sqLen dCam -- ^ distance squared
 
 connect :: Path -> Path -> WeightedSpectrum
 connect ep lp = (1, black)
