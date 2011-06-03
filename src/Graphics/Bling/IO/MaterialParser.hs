@@ -93,6 +93,8 @@ pScalarTexture = namedBlock $ do
          v <- flt
          return (constant v)
          
+      "perlin" -> return noiseTexture
+      
       _ -> fail ("unknown texture type " ++ tp)
 
 pSpectrumTexture :: String -> JobParser SpectrumTexture

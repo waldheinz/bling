@@ -7,8 +7,13 @@ filter mitchell 3.0 3.0 0.333333 0.333333
 
 imageSize 640 480
 
-sampler { stratified xSamples 3 ySamples 3 }
-# sampler { random samples 9 }
+renderer {
+   sampler
+   sampled {
+      sampler { stratified xSamples 2 ySamples 2 }
+      integrator { path maxDepth 7 }
+   }
+}
 
 transform {
    lookAt {
@@ -21,7 +26,7 @@ transform {
 camera {
    perspective
    fov 70
-   lensRadius 0.3
+   lensRadius 0.2
    focalDistance 10
 }
 
