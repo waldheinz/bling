@@ -5,7 +5,7 @@ module Graphics.Bling.Texture (
    Texture, SpectrumTexture, ScalarTexture,
    
    -- * Creating Textures
-   constant, graphPaper, checkerBoard, noiseTexture
+   constant, graphPaper, checkerBoard, noiseTexture, woodTexture
    ) where
 
 import Data.Bits
@@ -44,6 +44,16 @@ checkerBoard
 checkerBoard (Vector sx sy sz) t1 t2 dg@(DifferentialGeometry (Vector x y z) _)
    | (floor (x * sx) + floor (y * sy) + floor (z * sz) :: Int) `mod` 2 == 0 = t1 dg
    | otherwise = t2 dg
+   
+--
+-- Wood
+--
+
+woodTexture :: SpectrumTexture
+woodTexture dg@(DifferentialGeometry (Vector x y z) _) = wood where
+   g = perlin3d (abs x * 4, abs y * 4, abs z * 4)
+   grain = abs $ g - fromIntegral (floor g)
+   wood = fromRGB (grain, grain, 0.1)
    
 --
 -- Perlin Noise
