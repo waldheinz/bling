@@ -8,7 +8,16 @@ filter triangle 2 2
 
 imageSize 640 480
 
-sampler { stratified xSamples 3 ySamples 3 }
+renderer {
+   sampler
+   sampled {
+      sampler { stratified xSamples 3 ySamples 3 }
+      integrator { path maxDepth 5 }
+   }
+}
+
+
+# sampler { stratified xSamples 3 ySamples 3 }
 # sampler { random samples 1 }
 
 transform {
