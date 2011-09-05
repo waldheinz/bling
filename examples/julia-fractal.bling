@@ -8,12 +8,12 @@ filter box
 
 imageSize 960 640
 
-sampler { stratified xSamples 5 ySamples 5 }
-sampler { random samples 1 }
-
-integrator {
-   path
-   maxDepth 5
+renderer {
+   sampler
+   sampled {
+      sampler { stratified xSamples 5 ySamples 5 }
+      integrator { path maxDepth 5 }
+   }
 }
 
 transform {
