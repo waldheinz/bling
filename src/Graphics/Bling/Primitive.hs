@@ -41,8 +41,6 @@ class Primitive a where
    --   geometry used for shading is the same as for reflection calculations
    shadingGeometry _ _ dg = dg
 
-type Accelerator = [AnyPrim] -> AnyPrim
-
 --
 -- the existential primitive
 --
@@ -91,8 +89,6 @@ mkMesh
    -> Int -- ^ geometry id
    -> [Geometry]
 mkMesh m e t vs gid = map (\s -> mkGeom t False m e s gid) (S.triangulate vs)
-
-instance Eq Geometry where
 
 -- | transforms a @DifferentialGeometry@ to world space
 transDg :: Transform -> DifferentialGeometry -> DifferentialGeometry

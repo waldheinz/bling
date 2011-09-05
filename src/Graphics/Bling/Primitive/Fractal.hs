@@ -16,6 +16,17 @@ import Graphics.Bling.Math
 import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 
+--
+-- Menger Sponge
+--
+
+-- mkMenger :: Transform -> Material -> Int -> [Geometry]
+-- mkMenger trans mat depth = mkGeom trans False Material Nothing shape 
+
+--
+-- Julia Fractal
+--
+
 data Fractal = Julia Quaternion Flt Int
    
 mkJuliaQuat :: Quaternion -> Flt -> Int -> Fractal

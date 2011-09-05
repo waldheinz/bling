@@ -26,6 +26,7 @@ pFractal = flip namedBlock "fractal" $ do
                 e <- ws >> namedFloat "epsilon"
                 i <- ws >> namedInt "iterations"
                 return $ mkJuliaQuat c e i
+                
              _ -> fail $ "unknown fractal type " ++ t
 
    s <- getState

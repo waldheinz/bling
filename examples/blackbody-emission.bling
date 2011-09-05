@@ -5,13 +5,14 @@
 filter triangle 2.0 2.0
 #filter box
 #filter mitchell 3.0 3.0 0.333333 0.333333
-imageSize 1024 768
+imageSize 640 480
 
-sampler { random samples 1 }
-sampler { stratified xSamples 3 ySamples 3 }
-
-integrator {
-   directLighting
+renderer {
+   sampler
+   sampled {
+      sampler { stratified xSamples 1 ySamples 1 }
+      integrator { directLighting }
+   }
 }
 
 transform {
