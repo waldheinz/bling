@@ -39,11 +39,12 @@ data Shape
 mkSphere :: Flt -> Shape
 mkSphere = Sphere
 
+-- | creates a cylinder along the z-axis
 mkCylinder
-   :: Flt
-   -> Flt
-   -> Flt
-   -> Flt
+   :: Flt -- ^ the radius
+   -> Flt -- ^ the minimum z value
+   -> Flt -- ^ the maximum z value
+   -> Flt -- ^ the maximum phi angle [in degrees]
    -> Shape
 mkCylinder r z0 z1 phimax = Cylinder r zmin zmax pm where
    zmin = min z0 z1
