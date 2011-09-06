@@ -51,10 +51,17 @@ pQuaternion = do
 pShape :: JobParser ()
 pShape = (flip namedBlock) "shape" $ do
    t <- many alphaNum
-   ws
+   
    sh <- case t of
+      "cylinder" -> do
+         r <- ws >> namedFloat "radius"
+         zmin <- ws >> namedFloat "zmin"
+         zmax <- ws >> namedFloat "zmax"
+         phiMax <- ws >> namedFloat "phiMax"
+         return [mkCylinder r zmin zmax phiMax]
+         
       "sphere" -> do
-         r <- namedFloat "radius"
+         r <- ws >> namedFloat "radius"
          return [mkSphere r]
          
       "mesh" -> pMesh
@@ -70,9 +77,8 @@ pShape = (flip namedBlock) "shape" $ do
 
 pMesh :: JobParser [Shape]
 pMesh = do
-   vc <- namedInt "vertexCount" <|> fail "vertexCount missing"
-   ws
-   fc <- namedInt "faceCount"  <|> fail "faceCount missing"
+   vc <- ws >> (namedInt "vertexCount" <|> fail "vertexCount missing")
+   fc <- ws >> (namedInt "faceCount"  <|> fail "faceCount missing")
    vertices <- count vc vertex
    let va = V.fromList vertices
    faces <- count fc (face va)

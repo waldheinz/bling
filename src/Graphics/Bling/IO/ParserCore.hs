@@ -108,7 +108,8 @@ namedBlock p n = do
    
 namedFloat :: String -> JobParser Flt
 namedFloat n = do
-   _ <- string n >> ws
+   _ <- string n <|> fail ("expected " ++ n)
+   ws
    flt <|> fail ("cannot parse " ++ n ++ " value")
    
 namedInt :: String -> JobParser Int

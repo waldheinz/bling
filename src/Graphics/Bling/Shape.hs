@@ -7,7 +7,7 @@ module Graphics.Bling.Shape (
    
    -- * Creating shapes
    
-   mkSphere,
+   mkSphere, mkCylinder,
 
    -- * Working with shapes
    
@@ -32,18 +32,68 @@ data Shape
    = Sphere
       {-# UNPACK #-} !Flt -- ^ radius
    | Triangle Vertex Vertex Vertex
+   | Cylinder Flt Flt Flt Flt -- ^ radius zmin zmax phimax
    deriving (Eq, Show)
 
 -- | creates a sphere
 mkSphere :: Flt -> Shape
 mkSphere = Sphere
 
+mkCylinder
+   :: Flt
+   -> Flt
+   -> Flt
+   -> Flt
+   -> Shape
+mkCylinder r z0 z1 phimax = Cylinder r zmin zmax pm where
+   zmin = min z0 z1
+   zmax = max z0 z1
+   pm = radians $ clamp phimax 0 360
+
 triangulate :: [[Vertex]] -> [Shape]
 triangulate vs = concatMap tr' vs where
    tr' (v1:v2:v3:xs) = Triangle v1 v2 v3 : tr' (v1:v3:xs)
    tr' _ = []
+
+atan2' :: Flt -> Flt -> Flt
+atan2' y x
+   | a < 0 = a + twoPi
+   | otherwise = a
+   where
+      a = atan2 y x
    
 intersect :: Shape -> Ray -> Maybe (Flt, DifferentialGeometry)
+
+intersect (Cylinder r zmin zmax phimax) ray@(Ray ro rd tmin tmax) =
+   solveQuadric a b c >>= intersectCylinder >>= \hp -> Just (params hp) where
+      a = (vx rd) * (vx rd) + (vy rd) * (vy rd)
+      b = 2 * ((vx rd) * (vx ro) + (vy rd) * (vy ro))
+      c = (vx ro) * (vx ro) + (vy ro) * (vy ro) - r * r
+      
+      -- hit point and phi
+      intersectCylinder (t0, t1)
+         | t0 > tmax = Nothing
+         | t1 < tmin = Nothing
+         | t > tmax = Nothing
+         | vz pHit0 > zmin && vz pHit0 < zmax && phi0 <= phimax =
+            Just (pHit0, phi0, t0)
+         | t == t1 = Nothing
+         | vz pHit1 > zmin && vz pHit1 < zmax && phi1 <= phimax =
+            Just (pHit1, phi1, t1)
+         | otherwise = Nothing
+         where
+            t = if t0 > tmin then t0 else t1
+            pHit0 = rayAt ray t0
+            pHit1 = rayAt ray t1
+            phi0 = atan2' (vy pHit0) (vx pHit0)
+            phi1 = atan2' (vy pHit1) (vx pHit1)
+            
+      -- parametric representation
+      params (pHit, _phi, t) = (t, DifferentialGeometry pHit n) where
+         n = normalize $ dpdu `cross` dpdv
+         dpdu = mkV (-phimax * (vy pHit), phimax * (vx pHit), 0)
+         dpdv = mkV (0, 0, zmax - zmin)
+
 intersect (Sphere r) ray@(Ray ro rd tmin tmax)
    | isNothing times = Nothing
    | t1 > tmax = Nothing
@@ -82,6 +132,29 @@ intersect (Triangle v1 v2 v3) r@(Ray ro rd tmin tmax)
       p3 = vertexPos v3
 
 intersects :: Shape -> Ray -> Bool
+
+intersects (Cylinder r zmin zmax phimax) ray@(Ray ro rd tmin tmax) =
+   maybe False intersectCylinder (solveQuadric a b c) where
+      a = (vx rd) * (vx rd) + (vy rd) * (vy rd)
+      b = 2 * ((vx rd) * (vx ro) + (vy rd) * (vy ro))
+      c = (vx ro) * (vx ro) + (vy ro) * (vy ro) - r * r
+
+      -- hit point and phi
+      intersectCylinder (t0, t1)
+         | t0 > tmax = False
+         | t1 < tmin = False
+         | t > tmax = False
+         | vz pHit0 > zmin && vz pHit0 < zmax && phi0 <= phimax = True
+         | t == t1 = False
+         | vz pHit1 > zmin && vz pHit1 < zmax && phi1 <= phimax = True
+         | otherwise = False
+         where
+            t = if t0 > tmin then t0 else t1
+            pHit0 = rayAt ray t0
+            pHit1 = rayAt ray t1
+            phi0 = atan2' (vy pHit0) (vx pHit0)
+            phi1 = atan2' (vy pHit1) (vx pHit1)
+
 intersects (Sphere rad) (Ray ro rd tmin tmax) = si where
    si = maybe False cb roots
    cb (t0, t1) -- check with ray bounds
@@ -131,6 +204,10 @@ worldBounds (Triangle v1 v2 v3) t = foldl' extendAABBP emptyAABB pl where
 worldBounds s t = transBox t (objectBounds s)
 
 objectBounds :: Shape -> AABB
+objectBounds (Cylinder r zmin zmax _) = mkAABB p1 p2 where
+   p1 = mkPoint nr nr zmin
+   p2 = mkPoint r r zmax
+   nr = -r
 objectBounds (Sphere r) = mkAABB (mkPoint nr nr nr) (mkPoint r r r) where
    nr = -r
 
