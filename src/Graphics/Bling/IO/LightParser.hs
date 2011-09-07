@@ -14,43 +14,34 @@ pLight :: JobParser ()
 pLight = (flip namedBlock) "light" $ do
    t <- many1 alphaNum
    ws
-   lf <- case t of
+   ls <- case t of
       "directional"  -> pDirectionalLight
       "point"        -> pPointLight
       "sunSky"       -> pSunSkyLight
       _              -> fail $ "unknown light type " ++ t
-      
+
    s <- getState
-   let l = lf (currId s)
-   setState s { lights = l : (lights s), currId = (currId s) + 1 }
+   setState s { lights = ls ++ (lights s) }
 
-type LightFactory = Int -> Light
-
-pSunSkyLight :: JobParser LightFactory
+pSunSkyLight :: JobParser [Light]
 pSunSkyLight = do
    up <- namedVector "up"
    east <- ws >> namedVector "east"
    sunDir <- ws >> namedVector "sunDir"
    turb <- ws >> namedFloat "turbidity"
-   -- we need two ids
-   s <- getState
-   let lid = currId s
-   setState s { currId = (currId s) + 2 }
-   let (l1, l2) = mkSunSkyLight up east sunDir turb lid (lid+1)
-   setState s { lights = l1 : (lights s) }
-   return $ (\_ -> l2)
+   return $ mkSunSkyLight up east sunDir turb
 
-pPointLight :: JobParser LightFactory
+pPointLight :: JobParser [Light]
 pPointLight = do
    r <- namedSpectrum "intensity"
    p <- ws >> namedVector "position"
-   return $ mkPointLight r p
+   return $ [mkPointLight r p]
 
-pDirectionalLight :: JobParser LightFactory
+pDirectionalLight :: JobParser [Light]
 pDirectionalLight = do
    s <- namedSpectrum "intensity"
    n <- ws >> namedVector "normal"
-   return $ mkDirectional s n
+   return $ [mkDirectional s n]
    
 pEmission :: JobParser ()
 pEmission = (flip namedBlock) "emission" $ do

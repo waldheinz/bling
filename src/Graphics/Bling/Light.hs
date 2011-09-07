@@ -27,9 +27,9 @@ data LightSample = LightSample {
    }
 
 data Light
-   = SoftBox ! Int ! Spectrum -- ^ an infinite area light surrounding the whole scene, emitting a constant amount of light from all directions.
-   | Directional ! Int !Spectrum !Normal
-   | PointLight !Int !Spectrum !Point
+   = SoftBox ! Spectrum -- ^ an infinite area light surrounding the whole scene, emitting a constant amount of light from all directions.
+   | Directional !Spectrum !Normal
+   | PointLight !Spectrum !Point
    | AreaLight {
       _alId :: !Int,
       _alShape :: S.Shape,
@@ -38,34 +38,27 @@ data Light
       _w2l :: Transform -- ^ the world-to-light transformation
       }
    | Sky
-      { _ssId :: !Int
-      , _basis :: LocalCoordinates
+      { _basis :: LocalCoordinates
       , _ssd :: SkyData
       }
       -- ^ the Perez sun/sky model
-   | Sun !Int Vector Spectrum
-
+   | Sun Vector Spectrum
+   
 -- two lights are considered equal if they have the same id
 instance Eq Light where
-   l1 == l2 = lightId l1 == lightId l2 where
-      lightId (AreaLight lid _ _ _ _) = lid
-      lightId (Directional lid _ _) = lid
-      lightId (PointLight lid _ _) = lid
-      lightId (SoftBox lid _) = lid
-      lightId (Sky lid _ _) = lid
-      lightId (Sun lid _ _) = lid
+   (AreaLight id0 _ _ _ _) == (AreaLight id1 _ _ _ _) = id0 == id1
+   _ == _ = False
       
 -- | creates a directional light source
-mkDirectional :: Spectrum -> Normal -> Int -> Light
-mkDirectional s n lid = Directional lid s (normalize n)
+mkDirectional :: Spectrum -> Normal -> Light
+mkDirectional s n = Directional s (normalize n)
 
 -- | creates a point light source
 mkPointLight
    :: Spectrum -- ^ intensity
    -> Point -- ^ position
-   -> Int -- ^ light id
    -> Light
-mkPointLight r p lid = PointLight lid r p
+mkPointLight r p = PointLight r p
 
 -- | creates an area @Light@ sources for a gives shape and spectrum
 mkAreaLight
@@ -82,12 +75,10 @@ mkSunSkyLight
    -> Vector -- ^ the east vector
    -> Vector -- ^ the sun direction in world coordinates
    -> Flt -- ^ the sky's turbidity
-   -> Int -- ^ the sky light id
-   -> Int -- ^ the sun light id
-   -> (Light, Light)
-mkSunSkyLight up east sdw turb lid1 lid2 = (sky, sun) where
-   sky = Sky lid1 basis ssd
-   sun = Sun lid2 (normalize sdw) $ sunSpectrum ssd turb
+   -> [Light]
+mkSunSkyLight up east sdw turb = [sky, sun] where
+   sky = Sky basis ssd
+   sun = Sun (normalize sdw) $ sunSpectrum ssd turb
    basis = coordinateSystem' (normalize up) (normalize east)
    ssd = initSky basis sdw turb
 
@@ -107,12 +98,12 @@ le :: Light -> Ray -> Spectrum
 -- area lights must be sampled by intersecting the shape directly and asking
 -- that intersection for le
 le (AreaLight _ _ _ _ _) _ = black
-le (Directional _ _ _) _ = black
-le (PointLight _ _ _) _ = black
-le (SoftBox _ r) _ = r
-le (Sky _ basis ssd) r = skySpectrum ssd d where
+le (Directional _ _) _ = black
+le (PointLight _ _) _ = black
+le (SoftBox r) _ = r
+le (Sky basis ssd) r = skySpectrum ssd d where
    d = normalize $ worldToLocal basis (rayDir r)
-le (Sun _ sd r) ray
+le (Sun sd r) ray
    | (sd `dot` rd) > sunThetaMax = r
    | otherwise = black
    where
@@ -139,9 +130,9 @@ sample
    -> Normal -- ^ the surface normal in world space from where the light is viewed
    -> Rand2D -- ^ the random value for sampling the light
    -> LightSample -- ^ the computed @LightSample@
-sample (SoftBox _ r) p n us = lightSampleSB r p n us
-sample (Directional _ r d) p n _ = lightSampleD r d p n
-sample (PointLight _ r pos) p _ _ = LightSample r' wi ray 1 True where
+sample (SoftBox r) p n us = lightSampleSB r p n us
+sample (Directional r d) p n _ = lightSampleD r d p n
+sample (PointLight r pos) p _ _ = LightSample r' wi ray 1 True where
    r' = sScale r (1 / sqLen (pos - p))
    wi = normalize $ pos - p
    ray = segmentRay p pos
@@ -164,13 +155,13 @@ sample (Sky _ basis ssd) p n us = LightSample r dw ray pd False where
    ray = Ray p dw epsilon infinity
  -}
 
-sample (Sky _ basis ssd) p _ us = LightSample r dw ray pd False where
+sample (Sky basis ssd) p _ us = LightSample r dw ray pd False where
    dw = uniformSampleSphere us
    pd = 1 / (4 * pi)
    r = skySpectrum ssd $ normalize $ worldToLocal basis dw
    ray = Ray p dw epsilon infinity
 
-sample (Sun _ dir r) p n us = LightSample r' d ray pd False where
+sample (Sun dir r) p n us = LightSample r' d ray pd False where
    r' = sScale r (absDot n d)
    d = uniformSampleCone (coordinateSystem dir) sunThetaMax us
    ray = Ray p d epsilon infinity
@@ -196,12 +187,12 @@ pdf :: Light -- ^ the light to compute the pdf for
     -> Point -- ^ the point from which the light is viewed
     -> Vector -- ^ the wi vector
     -> Float -- ^ the computed pdf value
-pdf (SoftBox _ _) _ _ = undefined
-pdf (Directional _ _ _) _ _ = 0 -- zero chance to find the direction by sampling
+pdf (SoftBox _) _ _ = undefined
+pdf (Directional _ _) _ _ = 0 -- zero chance to find the direction by sampling
 pdf (AreaLight _ ss _ _ t) p wi = S.pdf ss (transPoint t p) (transVector t wi)
-pdf (PointLight _ _ _) _ _ = 0
-pdf (Sky _ _ _) _ _ = 1 / (4 * pi) -- invTwoPi
-pdf (Sun _ _ _) _ _ = uniformConePdf sunThetaMax
+pdf (PointLight _ _) _ _ = 0
+pdf (Sky _ _) _ _ = 1 / (4 * pi) -- invTwoPi
+pdf (Sun _ _) _ _ = uniformConePdf sunThetaMax
 
 lightSampleSB :: Spectrum -> Point -> Normal -> Rand2D -> LightSample
 lightSampleSB r pos n us = LightSample r (toWorld lDir) (ray $ toWorld lDir) (p lDir) False

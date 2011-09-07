@@ -34,7 +34,7 @@ instance Printable Scene where
       text "number of primitives" <+> int cnt,
       text "stats" $$ nest 3 (ppKdTree p)
       ]
-   
+
 mkScene :: (Primitive a) => [Light] -> [a] -> Camera -> Scene
 mkScene l prims cam = Scene cnt (mkKdTree ps) (V.fromList lights) cam where
    lights = l ++ gl
