@@ -214,9 +214,17 @@ objectBounds (Sphere r) = mkAABB (mkPoint nr nr nr) (mkPoint r r r) where
 
 objectBounds (Triangle v1 v2 v3) = foldl' extendAABBP emptyAABB pl where
    pl = [vertexPos v1, vertexPos v2, vertexPos v3]
+
+-- | computes the surface area of a @Shape@
+area
+   :: Shape -- ^ the @Shape@ to get the surface area for
+   -> Flt -- ^ the surface area of that @Shape@
+
+area (Cylinder r z0 z1 _) = 2 * pi * r * h where
+   h = z1 - z0
    
-area :: Shape -> Flt
 area (Sphere r) = r * r * 4 * pi
+
 area (Triangle v1 v2 v3) = 0.5 * len (cross (p2 - p1) (p3 - p1)) where
       p1 = vertexPos v1
       p2 = vertexPos v2
