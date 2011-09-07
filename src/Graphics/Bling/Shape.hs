@@ -135,13 +135,12 @@ intersect (Triangle v1 v2 v3) r@(Ray ro rd tmin tmax)
 intersects :: Shape -> Ray -> Bool
 
 intersects (Cylinder r zmin zmax phimax) ray@(Ray ro rd tmin tmax) =
-   maybe False intersectCylinder (solveQuadric a b c) where
+   maybe False intersectsCylinder (solveQuadric a b c) where
       a = (vx rd) * (vx rd) + (vy rd) * (vy rd)
       b = 2 * ((vx rd) * (vx ro) + (vy rd) * (vy ro))
       c = (vx ro) * (vx ro) + (vy ro) * (vy ro) - r * r
-
-      -- hit point and phi
-      intersectCylinder (t0, t1)
+      
+      intersectsCylinder (t0, t1)
          | t0 > tmax = False
          | t1 < tmin = False
          | t > tmax = False
@@ -187,12 +186,10 @@ intersects (Triangle v1 v2 v3) (Ray ro rd tmin tmax)
       p1 = vertexPos v1
       p2 = vertexPos v2
       p3 = vertexPos v3
-   
--- as a general way we can just check if @intersect@ returns something
--- intersects s r = isJust (s `intersect` r)
 
+-- | computes the world-space bounds of a shape
 worldBounds :: Shape -- ^ the shape to get the world bounds for
-            -> Transform
+            -> Transform -- ^ the transform placing the shape into world space
             -> AABB
 
 -- for triangles, transform the vertices to world space and
@@ -204,11 +201,16 @@ worldBounds (Triangle v1 v2 v3) t = foldl' extendAABBP emptyAABB pl where
 -- otherwise just transform the object bounds to world space
 worldBounds s t = transBox t (objectBounds s)
 
-objectBounds :: Shape -> AABB
-objectBounds (Cylinder r zmin zmax _) = mkAABB p1 p2 where
-   p1 = mkPoint nr nr zmin
-   p2 = mkPoint r r zmax
+-- | computes the bounding box of a shape in object space
+objectBounds
+   :: Shape -- ^ the shape to get the bounds for
+   -> AABB -- ^ the bounds of the shape
+
+objectBounds (Cylinder r z0 z1 _) = mkAABB p1 p2 where
+   p1 = mkPoint nr nr z0
+   p2 = mkPoint r r z1
    nr = -r
+   
 objectBounds (Sphere r) = mkAABB (mkPoint nr nr nr) (mkPoint r r r) where
    nr = -r
 
@@ -254,6 +256,7 @@ pdf' s _ = 1 / area s
 -- | returns a random point (along with its normal) on the object, 
 --   which is preferably visible from the specified point
 sample :: Shape -> Point -> Rand2D -> (Point, Normal)
+
 sample sp@(Sphere r) p us
    | insideSphere r p = sample' sp us -- sample full sphere if inside
    | otherwise = (ps, normalize ps) where -- sample only the visible part
@@ -272,6 +275,12 @@ sample'
    :: Shape
    -> Rand2D
    -> (Point, Normal)
+
+sample' (Cylinder r z0 z1 _) (u1, u2) = (p, n) where
+   p = mkPoint (r * cos phi) (r * sin phi) z
+   z = lerp u1 z0 z1
+   phi = lerp u2 0 twoPi
+   n = normalize $ mkV (vx p, vy p, 0)
    
 sample' (Sphere r) us = (p * vpromote r, p) where
    p = uniformSampleSphere us 
