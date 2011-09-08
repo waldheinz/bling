@@ -9,7 +9,7 @@ module Graphics.Bling.Math (
    
    -- * Basic Functions
    
-   lerp, clamp, radians, solveQuadric,
+   lerp, clamp, radians, solveQuadric, atan2',
    
    -- * Vectors
    
@@ -55,8 +55,19 @@ invTwoPi = 1 / (2 * pi)
 twoPi :: Flt
 twoPi = 2.0 * pi
 
-radians :: Flt -> Flt
+-- | converts an angle from degrees to radians
+radians
+   :: Flt -- ^ the angle in degrees
+   -> Flt -- ^ the angle in radions
 radians x = (x / 180 * pi)
+
+-- | like @atan2@, but returns positive values in [0..2pi]
+atan2' :: Flt -> Flt -> Flt
+atan2' y x
+   | a < 0 = a + twoPi
+   | otherwise = a
+   where
+      a = atan2 y x
 
 -- | clamps a value so it is withing a specified range
 clamp

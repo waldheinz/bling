@@ -31,10 +31,12 @@ data Vertex = Vertex {
 data Shape
    = Sphere
       {-# UNPACK #-} !Flt -- ^ radius
-   | Triangle Vertex Vertex Vertex
-   | Cylinder Flt Flt Flt Flt -- ^ radius zmin zmax phimax
+   | Triangle
+      Vertex Vertex Vertex
+   | Cylinder
+      {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt -- ^ radius zmin zmax phimax
    deriving (Eq, Show)
-
+   
 -- | creates a sphere
 mkSphere :: Flt -> Shape
 mkSphere = Sphere
@@ -56,13 +58,6 @@ triangulate vs = concatMap tr' vs where
    tr' (v1:v2:v3:xs) = Triangle v1 v2 v3 : tr' (v1:v3:xs)
    tr' _ = []
 
-atan2' :: Flt -> Flt -> Flt
-atan2' y x
-   | a < 0 = a + twoPi
-   | otherwise = a
-   where
-      a = atan2 y x
-   
 intersect :: Shape -> Ray -> Maybe (Flt, DifferentialGeometry)
 
 intersect (Cylinder r zmin zmax phimax) ray@(Ray ro rd tmin tmax) =
