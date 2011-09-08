@@ -5,7 +5,8 @@ module Graphics.Bling.DifferentialGeometry (
    
    -- * Differential Geometry
 
-   DifferentialGeometry, mkDg', dgP, dgN, dgU, dgV, dgDPDU, dgDPDV, transDg
+   DifferentialGeometry, mkDg, mkDg', dgP, dgN, dgU, dgV, dgDPDU, dgDPDV,
+      transDg
 
    ) where
 
@@ -23,6 +24,16 @@ data DifferentialGeometry = DG {
    dgDPDU :: {-# UNPACK #-} ! Vector,
    dgDPDV :: {-# UNPACK #-} ! Vector
    } deriving (Show)
+
+mkDg
+   :: Point
+   -> Flt
+   -> Flt
+   -> Vector
+   -> Vector
+   -> DifferentialGeometry
+mkDg p u v dpdu dpdv = DG p n u v dpdu dpdv where
+   n = normalize $ dpdu `cross` dpdv
 
 mkDg' :: Point -> Normal -> DifferentialGeometry
 mkDg' p n = DG p n 0 0 dpdu dpdv where
