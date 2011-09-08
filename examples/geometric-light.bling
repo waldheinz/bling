@@ -82,19 +82,16 @@ transform {
 
 emission { rgb 10 4 2 }
 
-transform {
-   identity
-   translate -5 3 0
-}
-
 # shape { sphere radius 2 }
 
 # cylinder light
 
 transform {
-#   translate 0 0 0
-   rotateY 90
-   translate 0 0 -4
+   identity
+ #  translate 0 -4 0
+   rotateX -45
+   translate 0 5 0
 }
 
-shape { cylinder radius 2 zmin -8 zmax 8 phiMax 360 }
+# shape { cylinder radius 2 zmin -8 zmax 8 phiMax 360 }
+shape { disk height 0 radius 6 innerRadius 5 phiMax 360 }

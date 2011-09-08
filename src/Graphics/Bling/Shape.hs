@@ -327,6 +327,12 @@ sample' (Cylinder r z0 z1 _) (u1, u2) = (p, n) where
    z = lerp u1 z0 z1
    phi = lerp u2 0 twoPi
    n = normalize $ mkV (vx p, vy p, 0)
+
+sample' (Disk h rmax rmin phiMax) (u1, u2) = (p, n) where
+   p = mkPoint (r * cos phi) (r * sin phi) h
+   r = lerp u1 rmin rmax
+   phi = lerp u2 0 phiMax
+   n = mkV (0, 0, -1)
    
 sample' (Sphere r) us = (p * vpromote r, p) where
    p = uniformSampleSphere us 
