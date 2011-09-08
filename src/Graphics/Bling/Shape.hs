@@ -7,7 +7,7 @@ module Graphics.Bling.Shape (
    
    -- * Creating shapes
    
-   mkSphere, mkCylinder,
+   mkCylinder, mkDisk, mkSphere, 
 
    -- * Working with shapes
    
@@ -29,18 +29,31 @@ data Vertex = Vertex {
    } deriving (Eq, Show)   
 
 data Shape
-   = Sphere
+   = Cylinder
+      {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt
+       -- ^ radius zmin zmax phimax
+   | Disk
+      {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt
+      -- ^ height, radius, inner radius, phimax
+   | Sphere
       {-# UNPACK #-} !Flt -- ^ radius
    | Triangle
       Vertex Vertex Vertex
-   | Cylinder
-      {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt -- ^ radius zmin zmax phimax
+      
    deriving (Eq, Show)
-   
--- | creates a sphere
-mkSphere :: Flt -> Shape
-mkSphere = Sphere
 
+-- | a disk parallel to the xz - plane
+mkDisk
+   :: Flt -- ^ offset from xz - plane (aka height)
+   -> Flt -- ^ outer radius
+   -> Flt -- ^ inner radius
+   -> Flt -- ^ maximum phi angle in [degrees]
+   -> Shape
+mkDisk h r0 r1 mp = Disk h ro ri mp' where
+   ro = max r0 r1
+   ri = min r0 r1
+   mp' = radians $ clamp mp 0 360
+   
 -- | creates a cylinder along the z-axis
 mkCylinder
    :: Flt -- ^ the radius
@@ -52,6 +65,12 @@ mkCylinder r z0 z1 phimax = Cylinder r zmin zmax pm where
    zmin = min z0 z1
    zmax = max z0 z1
    pm = radians $ clamp phimax 0 360
+
+-- | creates a sphere around the origin
+mkSphere
+   :: Flt -- ^ the sphere radius
+   -> Shape
+mkSphere = Sphere
 
 triangulate :: [[Vertex]] -> [Shape]
 triangulate vs = concatMap tr' vs where
@@ -89,6 +108,20 @@ intersect (Cylinder r zmin zmax phimax) ray@(Ray ro rd tmin tmax) =
          n = normalize $ dpdu `cross` dpdv
          dpdu = mkV (-phimax * (vy pHit), phimax * (vx pHit), 0)
          dpdv = mkV (0, 0, zmax - zmin)
+
+intersect (Disk h rad irad phimax) ray@(Ray ro rd tmin tmax)
+   | abs (vz rd) < 1e-7 = Nothing -- parallel ray ?
+   | t < tmin || t > tmax = Nothing -- distance in ray parameters ?
+   | d2 > rad * rad || d2 < irad * irad = Nothing -- p inside disk radii ?
+   | phi > phimax = Nothing
+   | otherwise = Just (t, DifferentialGeometry p n)
+   where
+      t = (h - vz ro) / vz rd
+      p = rayAt ray t
+      (px, py) = (vx p, vy p)
+      d2 = px * px + py * py
+      phi = atan2' py px
+      n = mkV (0, 0, -1)
 
 intersect (Sphere r) ray@(Ray ro rd tmin tmax)
    | isNothing times = Nothing
@@ -150,6 +183,19 @@ intersects (Cylinder r zmin zmax phimax) ray@(Ray ro rd tmin tmax) =
             phi0 = atan2' (vy pHit0) (vx pHit0)
             phi1 = atan2' (vy pHit1) (vx pHit1)
 
+intersects (Disk h rad irad phimax) ray@(Ray ro rd tmin tmax)
+   | abs (vz rd) < 1e-7 = False -- parallel ray ?
+   | t < tmin || t > tmax = False -- distance in ray parameters ?
+   | d2 > rad * rad || d2 < irad * irad = False -- p inside disk radii ?
+   | phi > phimax = False
+   | otherwise = True
+   where
+      t = (h - vz ro) / vz rd
+      p = rayAt ray t
+      (px, py) = (vx p, vy p)
+      d2 = px * px + py * py
+      phi = atan2' py px
+
 intersects (Sphere rad) (Ray ro rd tmin tmax) = si where
    si = maybe False cb roots
    cb (t0, t1) -- check with ray bounds
@@ -205,7 +251,12 @@ objectBounds (Cylinder r z0 z1 _) = mkAABB p1 p2 where
    p1 = mkPoint nr nr z0
    p2 = mkPoint r r z1
    nr = -r
-   
+
+objectBounds (Disk h r _ _) = mkAABB p1 p2 where
+   p1 = mkPoint nr nr h
+   p2 = mkPoint r r h
+   nr = -r
+
 objectBounds (Sphere r) = mkAABB (mkPoint nr nr nr) (mkPoint r r r) where
    nr = -r
 
@@ -216,12 +267,12 @@ objectBounds (Triangle v1 v2 v3) = foldl' extendAABBP emptyAABB pl where
 area
    :: Shape -- ^ the @Shape@ to get the surface area for
    -> Flt -- ^ the surface area of that @Shape@
-
 area (Cylinder r z0 z1 _) = 2 * pi * r * h where
    h = z1 - z0
-   
+area (Disk _ rmax rmin _) = pi * (rmax2 - rmin2) where
+   rmin2 = rmin * rmin
+   rmax2 = rmax * rmax
 area (Sphere r) = r * r * 4 * pi
-
 area (Triangle v1 v2 v3) = 0.5 * len (cross (p2 - p1) (p3 - p1)) where
       p1 = vertexPos v1
       p2 = vertexPos v2

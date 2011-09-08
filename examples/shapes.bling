@@ -91,3 +91,6 @@ shape { sphere radius 1 }
 transform { translate 3 0 0 }
 
 shape { cylinder radius 1 zmin -1 zmax 1 phiMax 360 }
+
+transform { translate 3 0 0 }
+shape { disk height 0 radius 1 innerRadius 0.5 phiMax 360 }

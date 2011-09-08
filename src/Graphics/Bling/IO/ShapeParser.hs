@@ -59,6 +59,13 @@ pShape = (flip namedBlock) "shape" $ do
          zmax <- ws >> namedFloat "zmax"
          phiMax <- ws >> namedFloat "phiMax"
          return [mkCylinder r zmin zmax phiMax]
+
+      "disk" -> do
+         h <- ws >> namedFloat "height"
+         r <- ws >> namedFloat "radius"
+         ri <- ws >> namedFloat "innerRadius"
+         phiMax <- ws >> namedFloat "phiMax"
+         return [mkDisk h r ri phiMax]
          
       "sphere" -> do
          r <- ws >> namedFloat "radius"
