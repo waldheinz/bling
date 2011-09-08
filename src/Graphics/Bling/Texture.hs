@@ -11,7 +11,7 @@ module Graphics.Bling.Texture (
 import Data.Bits
 import qualified Data.Vector.Unboxed as V
 
-import Graphics.Bling.Math
+import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Spectrum
 
 -- | A @Texture@ transforms a @DifferentialGeomerty@ to some value
@@ -24,10 +24,11 @@ constant :: a -> Texture a
 constant r _ = r
 
 graphPaper :: Flt -> SpectrumTexture -> SpectrumTexture -> SpectrumTexture
-graphPaper lw p l dg@(DifferentialGeometry (Vector x _ z) _)
+graphPaper lw p l dg
    | x' < lo || z' < lo || x' > hi || z' > hi = l dg
    | otherwise = p dg
    where
+         (x, z) = (vx $ dgP dg, vz $ dgP dg)
          x' = abs x''
          z' = abs z''
          (_, x'') = properFraction x :: (Int, Float)
@@ -41,26 +42,29 @@ checkerBoard
    -> Texture a -- ^ second texture
    -> Texture a
    
-checkerBoard (Vector sx sy sz) t1 t2 dg@(DifferentialGeometry (Vector x y z) _)
+checkerBoard (Vector sx sy sz) t1 t2 dg
    | (floor (x * sx) + floor (y * sy) + floor (z * sz) :: Int) `mod` 2 == 0 = t1 dg
    | otherwise = t2 dg
-   
+   where
+      (Vector x y z) = dgP dg
 --
 -- Wood
 --
 
 woodTexture :: SpectrumTexture
-woodTexture dg@(DifferentialGeometry (Vector x y z) _) = wood where
+woodTexture dg = wood where
    g = perlin3d (abs x * 4, abs y * 4, abs z * 4)
-   grain = abs $ g - fromIntegral (floor g)
+   grain = abs $ g - fromIntegral (floor g :: Int)
    wood = fromRGB (grain, grain, 0.1)
+   (Vector x y z) = dgP dg
    
 --
 -- Perlin Noise
 --
 
 noiseTexture :: ScalarTexture
-noiseTexture (DifferentialGeometry (Vector x y z) _) = perlin3d (x, y, z)
+noiseTexture dg = perlin3d (x, y, z) where
+   (Vector x y z) = dgP dg
 
 perlin3d :: (Flt, Flt, Flt) -> Flt
 perlin3d (x, y, z) = lerp wz y0 y1 where

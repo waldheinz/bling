@@ -35,7 +35,7 @@ import Data.BitSet
 import Data.List (foldl')
 import qualified Data.Vector as V
 
-import Graphics.Bling.Math
+import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Montecarlo
 import Graphics.Bling.Random
 import Graphics.Bling.Spectrum

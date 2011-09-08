@@ -12,7 +12,7 @@ module Graphics.Bling.Primitive.Fractal (
 ) where
 
 import Graphics.Bling.AABB
-import Graphics.Bling.Math
+import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 
@@ -51,7 +51,7 @@ instance Primitive FractalPrim where
    
    intersect p@(FP (Julia q e mi) m) r =
       traverseJulia r q mi e >>= \(d, o) ->
-         Just $ Intersection d (mkDg o $ normalJulia o q mi e) (mkAnyPrim p) m
+         Just $ Intersection d (mkDg' o $ normalJulia o q mi e) (mkAnyPrim p) m
 
 prepare :: Ray -> Maybe Flt
 prepare (Ray ro rd rmin rmax)

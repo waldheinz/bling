@@ -42,6 +42,7 @@ Library
    Exposed-Modules:
       Graphics.Bling.AABB,
       Graphics.Bling.Camera,
+      Graphics.Bling.DifferentialGeometry,
       Graphics.Bling.Filter,
       Graphics.Bling.Image,
       Graphics.Bling.Integrator,

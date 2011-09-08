@@ -27,18 +27,13 @@ module Graphics.Bling.Math (
    LocalCoordinates(..), worldToLocal, localToWorld, coordinateSystem,
    coordinateSystem',
    
-   -- * Differential Geometry
-   
-   DifferentialGeometry(..), mkDg
-   
    ) where
 
 import Graphics.Bling.Types
 
-
----
---- basic maths stuff used everywhere
----
+--
+-- Utility functions
+--
 
 infinity :: Flt
 infinity = 1 / 0
@@ -95,6 +90,40 @@ dimZ = 2
 
 allDimensions :: [Dimension]
 allDimensions = [dimX, dimY, dimZ]
+
+lerp :: Flt -> Flt -> Flt -> Flt
+{-# INLINE lerp #-}
+lerp t v1 v2 = (1 - t) * v1 + t * v2
+
+-- | Calculate the roots of the equation a * x^2 + b * x + c = 0
+solveQuadric :: Flt -> Flt -> Flt -> Maybe (Flt, Flt)
+{-# INLINE solveQuadric #-}
+solveQuadric a b c
+   | discrim < 0 = Nothing
+   | otherwise = Just (min t0 t1, max t0 t1)
+   where
+         (t0, t1) = (q / a, c / q)
+         q
+            | b < 0 = -0.5 * (b - rootDiscrim)
+            | otherwise = -0.5 * (b + rootDiscrim)
+         rootDiscrim = sqrt discrim
+         discrim = b * b - 4.0 * a * c
+
+sphericalDirection :: Flt -> Flt -> Flt -> Vector
+{-# INLINE sphericalDirection #-}
+sphericalDirection sint cost phi = Vector (sint * cos phi) (sint * sin phi) cost
+
+sphericalTheta :: Vector -> Float
+{-# INLINE sphericalTheta #-}
+sphericalTheta (Vector _ _ z) = acos $ max (-1) $ min 1 z
+
+sphericalPhi :: Vector -> Float
+{-# INLINE sphericalPhi #-}
+sphericalPhi (Vector x y _)
+   | p' < 0 = p' + 2 * pi
+   | otherwise = p'
+   where
+         p' = atan2 y x
 
 --
 -- Vectors
@@ -241,56 +270,6 @@ normalizeRay (Ray ro rd rmin rmax) = Ray ro rd' rmin' rmax' where
    rmin' = rmin * l
    rmax' = rmax * l
    rd' = rd * vpromote (1 / l)
-
---
--- Differential Geometry
---
-
-data DifferentialGeometry = DifferentialGeometry {
-   dgP :: {-# UNPACK #-} ! Point,
-   dgN :: {-# UNPACK #-} ! Normal
-   } deriving (Show)
-
-mkDg :: Point -> Normal -> DifferentialGeometry
-mkDg = DifferentialGeometry
-
---
--- Utility functions
---
-
-lerp :: Flt -> Flt -> Flt -> Flt
-{-# INLINE lerp #-}
-lerp t v1 v2 = (1 - t) * v1 + t * v2
-
--- | Calculate the roots of the equation a * x^2 + b * x + c = 0
-solveQuadric :: Flt -> Flt -> Flt -> Maybe (Flt, Flt)
-{-# INLINE solveQuadric #-}
-solveQuadric a b c
-   | discrim < 0 = Nothing
-   | otherwise = Just (min t0 t1, max t0 t1)
-   where
-         (t0, t1) = (q / a, c / q)
-         q
-            | b < 0 = -0.5 * (b - rootDiscrim)
-            | otherwise = -0.5 * (b + rootDiscrim)
-         rootDiscrim = sqrt discrim
-         discrim = b * b - 4.0 * a * c
-
-sphericalDirection :: Flt -> Flt -> Flt -> Vector
-{-# INLINE sphericalDirection #-}
-sphericalDirection sint cost phi = Vector (sint * cos phi) (sint * sin phi) cost
-
-sphericalTheta :: Vector -> Float
-{-# INLINE sphericalTheta #-}
-sphericalTheta (Vector _ _ z) = acos $ max (-1) $ min 1 z
-
-sphericalPhi :: Vector -> Float
-{-# INLINE sphericalPhi #-}
-sphericalPhi (Vector x y _)
-   | p' < 0 = p' + 2 * pi
-   | otherwise = p'
-   where
-         p' = atan2 y x
 
 -- | an orthonormal basis
 data LocalCoordinates = LocalCoordinates

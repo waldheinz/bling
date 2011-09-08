@@ -10,15 +10,14 @@ import Control.Monad.ST
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Camera
+import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Image
-import Graphics.Bling.Math
 import Graphics.Bling.Primitive
 import Graphics.Bling.Random
 import Graphics.Bling.Reflection
 import Graphics.Bling.Rendering
 import Graphics.Bling.Scene
 import Graphics.Bling.Spectrum
-import Graphics.Bling.Types
 
 data LightTracer = LightT
    { _passes   :: Int -- ^ number of passes

@@ -8,8 +8,8 @@ import Control.Monad (liftM)
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Camera
+import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Integrator
-import Graphics.Bling.Math
 import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 import Graphics.Bling.Sampling

@@ -15,13 +15,12 @@ module Graphics.Bling.Primitive (
 
 import qualified Data.Vector.Generic as V
    
-import Graphics.Bling.AABB
+import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Light as L
 import Graphics.Bling.Math
 import Graphics.Bling.Reflection
 import qualified Graphics.Bling.Shape as S
 import Graphics.Bling.Spectrum
-import Graphics.Bling.Transform
 
 class Primitive a where
    intersect :: a -> Ray -> Maybe Intersection
@@ -90,12 +89,6 @@ mkMesh
    -> [Geometry]
 mkMesh m e t vs gid = map (\s -> mkGeom t False m e s gid) (S.triangulate vs)
 
--- | transforms a @DifferentialGeometry@ to world space
-transDg :: Transform -> DifferentialGeometry -> DifferentialGeometry
-{-# INLINE transDg #-}
-transDg t (DifferentialGeometry p n) =
-   DifferentialGeometry (transPoint t p) (transNormal t n)
-
 instance Primitive Geometry where
    flatten g = [MkAnyPrim g]
    
@@ -148,8 +141,10 @@ intLe
    -> Normal -- ^ the outgoing direction
    -> Spectrum -- ^ the resulting spectrum
 {-# INLINE intLe #-}
-intLe (Intersection _ (DifferentialGeometry p n) prim _) wo =
-   maybe black (\l -> L.lEmit l p n wo) (light prim)
+intLe (Intersection _ dg prim _) wo =
+   maybe black (\l -> L.lEmit l p n wo) (light prim) where
+      p = dgP dg
+      n = dgN dg
    
 intLight :: Intersection -> Maybe Light
 {-# INLINE intLight #-}

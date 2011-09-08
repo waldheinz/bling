@@ -1,5 +1,8 @@
 
 module Graphics.Bling.Transform (
+      module Graphics.Bling.Math,
+      module Graphics.Bling.AABB,
+      
       Transform, identity, translate, scale, inverse, fromMatrix, rotateX,
       rotateY, rotateZ, lookAt, perspective,
       transPoint, transVector, transBox, transRay, transNormal, concatTrans,

@@ -7,9 +7,9 @@ import Data.BitSet
 import qualified Data.Vector.Generic as V
 import qualified Text.PrettyPrint as PP
 
+import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Integrator
 import Graphics.Bling.Light
-import Graphics.Bling.Math
 import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 import Graphics.Bling.Sampling

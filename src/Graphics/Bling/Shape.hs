@@ -18,11 +18,9 @@ module Graphics.Bling.Shape (
 import Data.List (foldl')
 import Data.Maybe
 
-import Graphics.Bling.AABB
-import Graphics.Bling.Math
+import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Montecarlo
 import Graphics.Bling.Random
-import Graphics.Bling.Transform
 
 data Vertex = Vertex {
    vertexPos :: {-# UNPACK #-} !Point
@@ -104,7 +102,7 @@ intersect (Cylinder r zmin zmax phimax) ray@(Ray ro rd tmin tmax) =
             phi1 = atan2' (vy pHit1) (vx pHit1)
             
       -- parametric representation
-      params (pHit, _phi, t) = (t, DifferentialGeometry pHit n) where
+      params (pHit, _phi, t) = (t, mkDg' pHit n) where
          n = normalize $ dpdu `cross` dpdv
          dpdu = mkV (-phimax * (vy pHit), phimax * (vx pHit), 0)
          dpdv = mkV (0, 0, zmax - zmin)
@@ -114,7 +112,7 @@ intersect (Disk h rad irad phimax) ray@(Ray ro rd tmin tmax)
    | t < tmin || t > tmax = Nothing -- distance in ray parameters ?
    | d2 > rad * rad || d2 < irad * irad = Nothing -- p inside disk radii ?
    | phi > phimax = Nothing
-   | otherwise = Just (t, DifferentialGeometry p n)
+   | otherwise = Just (t, mkDg' p n)
    where
       t = (h - vz ro) / vz rd
       p = rayAt ray t
@@ -127,7 +125,7 @@ intersect (Sphere r) ray@(Ray ro rd tmin tmax)
    | isNothing times = Nothing
    | t1 > tmax = Nothing
    | t2 < tmin = Nothing
-   | otherwise = Just (t, DifferentialGeometry hitPoint normalAt)
+   | otherwise = Just (t, mkDg' hitPoint normalAt)
    where
          a = sqLen rd
          b = 2 * (ro `dot` rd)
@@ -143,7 +141,7 @@ intersect (Triangle v1 v2 v3) r@(Ray ro rd tmin tmax)
    | b1 < 0 || b1 > 1 = Nothing
    | b2 < 0 || b1 + b2 > 1 = Nothing
    | t < tmin || t > tmax = Nothing
-   | otherwise = Just (t, DifferentialGeometry (rayAt r t) n)
+   | otherwise = Just (t, mkDg' (rayAt r t) n)
    where
       n = normalize $ cross e2 e1
       t = dot e2 s2 * invDiv
