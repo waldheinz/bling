@@ -5,7 +5,7 @@ module Graphics.Bling.DifferentialGeometry (
    
    -- * Differential Geometry
 
-   DifferentialGeometry, mkDg', dgP, dgN, transDg
+   DifferentialGeometry, mkDg', dgP, dgN, dgU, dgV, dgDPDU, dgDPDV, transDg
 
    ) where
 
@@ -15,17 +15,25 @@ import Graphics.Bling.Transform
 -- Differential Geometry
 --
 
-data DifferentialGeometry = DifferentialGeometry {
+data DifferentialGeometry = DG {
    dgP :: {-# UNPACK #-} ! Point,
-   dgN :: {-# UNPACK #-} ! Normal
+   dgN :: {-# UNPACK #-} ! Normal,
+   dgU :: {-# UNPACK #-} ! Flt,
+   dgV :: {-# UNPACK #-} ! Flt,
+   dgDPDU :: {-# UNPACK #-} ! Vector,
+   dgDPDV :: {-# UNPACK #-} ! Vector
    } deriving (Show)
 
 mkDg' :: Point -> Normal -> DifferentialGeometry
-mkDg' = DifferentialGeometry
-
--- | transforms a @DifferentialGeometry@ to world space
+mkDg' p n = DG p n 0 0 dpdu dpdv where
+   (LocalCoordinates dpdu dpdv _) = coordinateSystem n
+   
+-- | transforms a @DifferentialGeometry@
 transDg :: Transform -> DifferentialGeometry -> DifferentialGeometry
 {-# INLINE transDg #-}
-transDg t (DifferentialGeometry p n) =
-   DifferentialGeometry (transPoint t p) (transNormal t n)
-
+transDg t (DG p n u v dpdu dpdv) = DG p' n' u v dpdu' dpdv' where
+   p' = transPoint t p
+   n' = transNormal t n
+   dpdu' = transVector t dpdu
+   dpdv' = transVector t dpdv
+   
