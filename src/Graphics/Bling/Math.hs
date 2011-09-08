@@ -145,21 +145,6 @@ type Normal = Vector
 mkNormal :: Flt -> Flt -> Flt -> Normal
 mkNormal = Vector
 
-data Ray = Ray {
-   rayOrigin :: {-# UNPACK #-} ! Point,
-   rayDir :: {-# UNPACK #-} ! Normal,
-   rayMin :: {-# UNPACK #-} ! Flt,
-   rayMax :: {-# UNPACK #-} ! Flt
-   } deriving Show
-
-data DifferentialGeometry = DifferentialGeometry {
-   dgP :: {-# UNPACK #-} ! Point,
-   dgN :: {-# UNPACK #-} ! Normal
-   } deriving (Show)
-
-mkDg :: Point -> Normal -> DifferentialGeometry
-mkDg = DifferentialGeometry
-
 dominant :: Vector -> Dimension
 {-# INLINE dominant #-}
 dominant (Vector x y z)
@@ -174,31 +159,6 @@ dominant (Vector x y z)
 mkV :: (Flt, Flt, Flt) -> Vector
 {-# INLINE mkV #-}
 mkV (x, y, z) = Vector x y z
-
--- | Creates a ray that connects the two specified points.
-segmentRay :: Point -> Point -> Ray
-{-# INLINE segmentRay #-}
-segmentRay p1 p2 = Ray p1 p1p2 epsilon (1 - epsilon) where
-   p1p2 = p2 - p1
-
-rayAt :: Ray -> Flt -> Point
-{-# INLINE rayAt #-}
-rayAt (Ray o d _ _) t = o + (d * vpromote t)
-
--- | decides if a @t@ value is in the ray's bounds
-onRay :: Ray -> Flt -> Bool
-{-# INLINE onRay #-}
-onRay (Ray _ _ tmin tmax) t = t >= tmin && t <= tmax
-
--- | normalizes the direction component of a @Ray@ and adjusts the
--- min/max values accordingly
-normalizeRay :: Ray -> Ray
-{-# INLINE normalizeRay #-}
-normalizeRay (Ray ro rd rmin rmax) = Ray ro rd' rmin' rmax' where
-   l = len rd
-   rmin' = rmin * l
-   rmax' = rmax * l
-   rd' = rd * vpromote (1 / l)
 
 component :: Vector -> Dimension -> Flt
 {-# INLINE component #-}
@@ -244,6 +204,59 @@ normalize :: Vector -> Normal
 normalize v
   | sqLen v /= 0 = v * vpromote (1 / len v)
   | otherwise = Vector 0 1 0
+
+--
+-- Rays
+--
+
+data Ray = Ray {
+   rayOrigin :: {-# UNPACK #-} ! Point,
+   rayDir :: {-# UNPACK #-} ! Normal,
+   rayMin :: {-# UNPACK #-} ! Flt,
+   rayMax :: {-# UNPACK #-} ! Flt
+   } deriving Show
+
+
+-- | Creates a ray that connects the two specified points.
+segmentRay :: Point -> Point -> Ray
+{-# INLINE segmentRay #-}
+segmentRay p1 p2 = Ray p1 p1p2 epsilon (1 - epsilon) where
+   p1p2 = p2 - p1
+
+rayAt :: Ray -> Flt -> Point
+{-# INLINE rayAt #-}
+rayAt (Ray o d _ _) t = o + (d * vpromote t)
+
+-- | decides if a @t@ value is in the ray's bounds
+onRay :: Ray -> Flt -> Bool
+{-# INLINE onRay #-}
+onRay (Ray _ _ tmin tmax) t = t >= tmin && t <= tmax
+
+-- | normalizes the direction component of a @Ray@ and adjusts the
+-- min/max values accordingly
+normalizeRay :: Ray -> Ray
+{-# INLINE normalizeRay #-}
+normalizeRay (Ray ro rd rmin rmax) = Ray ro rd' rmin' rmax' where
+   l = len rd
+   rmin' = rmin * l
+   rmax' = rmax * l
+   rd' = rd * vpromote (1 / l)
+
+--
+-- Differential Geometry
+--
+
+data DifferentialGeometry = DifferentialGeometry {
+   dgP :: {-# UNPACK #-} ! Point,
+   dgN :: {-# UNPACK #-} ! Normal
+   } deriving (Show)
+
+mkDg :: Point -> Normal -> DifferentialGeometry
+mkDg = DifferentialGeometry
+
+--
+-- Utility functions
+--
 
 lerp :: Flt -> Flt -> Flt -> Flt
 {-# INLINE lerp #-}
