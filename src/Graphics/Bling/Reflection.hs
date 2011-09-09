@@ -3,9 +3,9 @@
 module Graphics.Bling.Reflection (
    module Graphics.Bling.DifferentialGeometry,
    
-   -- * Material
+   -- * Materials and Bump Mapping
 
-   Material, blackBodyMaterial,
+   Material, blackBodyMaterial, bumpMapped,
    
    -- * Fresnel Equations
    
@@ -16,7 +16,7 @@ module Graphics.Bling.Reflection (
    Microfacet(..), Distribution(..),
 
    -- * BxDF Functions
-
+   
    AnyBxdf(..), Bxdf(..), BxdfProp(..), BxdfType, mkBxdfType,
    Lambertian(..), mkOrenNayar, OrenNayar,
    
@@ -40,6 +40,7 @@ import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Montecarlo
 import Graphics.Bling.Random
 import Graphics.Bling.Spectrum
+import Graphics.Bling.Texture
 
 -- | a material can turn a geometric DG and a shading DG into a BSDF
 type Material = DifferentialGeometry -> DifferentialGeometry -> Bsdf
@@ -340,3 +341,42 @@ mfDistSample (Blinn e) (u1, u2) wo = (pdf, wi) where
 mfDistD :: Distribution -> Vector -> Float
 mfDistD (Blinn e) wh = (e + 2) * invTwoPi * (costh ** e) where
    costh = abs $ cosTheta wh
+
+--------------------------------------------------------------------------------
+-- Bump Mapping
+--------------------------------------------------------------------------------
+
+bumpMapped :: ScalarTexture -> Material -> Material
+bumpMapped d mat dgg dgs = mat dgg dgBump where
+   dgBump = dgs { dgN = nn }
+   uDisp = d dgeu
+   vDisp = d dgev
+   disp = d dgs
+   
+   vscale = vpromote $ (vDisp - disp) / dv
+   dpdv = (dgDPDV dgs) + vscale * (dgN dgs) + (vpromote disp) * (dgDNDV dgs)
+   
+   uscale = vpromote $ (uDisp - disp) / du
+   dpdu = (dgDPDU dgs) + uscale * (dgN dgs) + (vpromote disp) * (dgDNDU dgs)
+   
+   nn' = normalize $ dpdu `cross` dpdv
+   nn = faceForward nn' $ dgN dgg -- match geometric normal
+   
+   -- shift in u
+   du = 0.1 :: Flt
+   vdu = vpromote du
+   dgeu = dgs {
+      dgP = dgP dgs + vdu * (dgDPDU dgs),
+      dgU = dgU dgs + du,
+      dgN = normalize $ ((dgDPDU dgs) `cross` (dgDPDV dgs) + vdu * (dgDNDU dgs))
+      }
+      
+   -- shift in v
+   dv = 0.1 :: Flt
+   vdv = vpromote dv
+   dgev = dgs {
+      dgP = dgP dgs + vdv * (dgDPDV dgs),
+      dgV = dgV dgs + dv,
+      dgN = normalize $ ((dgDPDU dgs) `cross` (dgDPDV dgs) + vdv * (dgDNDV dgs))
+      }
+      

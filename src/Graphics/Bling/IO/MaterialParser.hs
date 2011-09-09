@@ -24,10 +24,17 @@ defaultMaterial = mkMatte (constant $ fromRGB (0.9, 0.9, 0.9)) (constant 0)
 
 pMaterial :: JobParser ()
 pMaterial = (flip namedBlock) "material" $ do
+   m <- pMaterial'
+   s <- getState
+   setState s { material = m }
+
+pMaterial' :: JobParser Material
+pMaterial' = do
    t <- many alphaNum
    ws
-   m <- case t of
+   case t of
       "blackbody"    -> return blackBodyMaterial
+      "bumpMap"      -> pBumpMap
       "glass"        -> pGlass
       "measured"     -> pMeasuredMaterial
       "metal"        -> pMetalMaterial
@@ -36,9 +43,12 @@ pMaterial = (flip namedBlock) "material" $ do
       "matte"        -> pMatteMaterial
       "mirror"       -> pMirrorMaterial
       _              -> fail ("unknown material type " ++ t)
-   
-   s <- getState
-   setState s { material = m }
+
+pBumpMap :: JobParser Material
+pBumpMap = do
+   d <- pScalarTexture "bump"
+   m <- ws >> pMaterial'
+   return $ bumpMapped d m
 
 pGlass :: JobParser Material
 pGlass = do

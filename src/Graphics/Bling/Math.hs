@@ -17,7 +17,7 @@ module Graphics.Bling.Math (
    len, sqLen,
    Normal, mkNormal, Point, mkPoint,
    Dimension, allDimensions, setComponent, (.!), dominant, dimX, dimY, dimZ,
-   sphericalDirection, sphericalTheta, sphericalPhi,
+   sphericalDirection, sphericalTheta, sphericalPhi, faceForward,
    
    -- * Rays
    
@@ -233,6 +233,11 @@ normalize :: Vector -> Normal
 normalize v
   | sqLen v /= 0 = v * vpromote (1 / len v)
   | otherwise = Vector 0 1 0
+
+faceForward :: Vector -> Vector -> Vector
+faceForward v v2
+   | v `dot` v2 < 0 = -v
+   | otherwise = v
 
 --
 -- Rays

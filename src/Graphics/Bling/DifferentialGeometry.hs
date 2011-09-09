@@ -5,7 +5,8 @@ module Graphics.Bling.DifferentialGeometry (
    
    -- * Differential Geometry
 
-   DifferentialGeometry, mkDg, mkDg', dgP, dgN, dgU, dgV, dgDPDU, dgDPDV,
+   DifferentialGeometry, mkDg, mkDg',
+      dgP, dgN, dgU, dgV, dgDPDU, dgDPDV, dgDNDU, dgDNDV,
       transDg
 
    ) where
@@ -22,29 +23,37 @@ data DifferentialGeometry = DG {
    dgU :: {-# UNPACK #-} ! Flt,
    dgV :: {-# UNPACK #-} ! Flt,
    dgDPDU :: {-# UNPACK #-} ! Vector,
-   dgDPDV :: {-# UNPACK #-} ! Vector
+   dgDPDV :: {-# UNPACK #-} ! Vector,
+   dgDNDU :: {-# UNPACK #-} ! Vector,
+   dgDNDV :: {-# UNPACK #-} ! Vector
    } deriving (Show)
 
 mkDg
-   :: Point
-   -> Flt
-   -> Flt
-   -> Vector
-   -> Vector
+   :: Point -- ^ intersection point
+   -> Flt -- ^ u parameter
+   -> Flt -- ^ v parameter
+   -> Vector -- ^ dpdu
+   -> Vector -- ^ dpdv
+   -> Vector -- ^ dndu
+   -> Vector -- ^ dndv
    -> DifferentialGeometry
-mkDg p u v dpdu dpdv = DG p n u v dpdu dpdv where
+mkDg p u v dpdu dpdv dndu dndv = DG p n u v dpdu dpdv dndu dndv where
    n = normalize $ dpdu `cross` dpdv
 
 mkDg' :: Point -> Normal -> DifferentialGeometry
-mkDg' p n = DG p n 0 0 dpdu dpdv where
+mkDg' p n = DG p n 0 0 dpdu dpdv dn dn where
    (LocalCoordinates dpdu dpdv _) = coordinateSystem n
+   dn = mkV (0, 0, 0)
    
 -- | transforms a @DifferentialGeometry@
 transDg :: Transform -> DifferentialGeometry -> DifferentialGeometry
 {-# INLINE transDg #-}
-transDg t (DG p n u v dpdu dpdv) = DG p' n' u v dpdu' dpdv' where
+transDg t (DG p n u v dpdu dpdv dndu dndv) = dg' where
+   dg' = DG p' n' u v dpdu' dpdv' dndu' dndv'
    p' = transPoint t p
    n' = transNormal t n
    dpdu' = transVector t dpdu
    dpdv' = transVector t dpdv
+   dndu' = transNormal t dndu
+   dndv' = transNormal t dndv
    

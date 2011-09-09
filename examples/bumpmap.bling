@@ -1,0 +1,94 @@
+
+#
+# Sun / Sky Test Scene
+#
+filter mitchell 3 3 0.333333 0.333333
+# filter box
+filter triangle 2 2
+
+imageSize 640 480
+
+renderer {
+   sampler
+   sampled {
+      sampler { stratified xSamples 2 ySamples 2 }
+      integrator { path maxDepth 5 }
+   }
+}
+
+transform {
+   lookAt {
+      pos 0 4 -5
+      look 0.5 0 0
+      up 0 1 0
+   }
+}
+
+camera {
+   perspective
+   fov 90
+   lensRadius 0.1
+   focalDistance 7
+}
+
+transform { identity }
+
+light {
+   sunSky
+   up 0 1 0
+   east 1 0 0
+   sunDir -0.1 0 0
+   turbidity 5
+}
+
+#
+# ground plane
+#
+
+
+material {
+   bumpMap
+   bump { perlin }
+
+   mirror rgb 0.3 0.3 0.3
+}
+
+material {
+   matte
+   kd { constant rgb 0.3 0.3 0.3 }
+   sigma { perlin }
+}
+
+shape {
+   mesh
+   vertexCount 4
+   faceCount 1
+   v  50.0 0.0 -50.0
+   v -50.0 0.0 -50.0
+   v -50.0 0.0  50.0
+   v  50.0 0.0  50.0
+   f 3 2 1 0
+}
+
+#
+# sphere 1
+#
+
+material {
+   matte
+   kd { constant rgb 0.3 0.3 0.3 }
+   sigma { constant 0 }
+}
+
+transform {
+   identity
+   translate -2.5 3 0
+}
+
+#shape { sphere radius 1.0 }
+
+transform { translate 2.5 -2 0 }
+shape { sphere radius 1.0 }
+
+#transform { translate 2.5 -1 0 }
+#shape { sphere radius 1.0 }
