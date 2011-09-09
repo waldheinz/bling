@@ -46,7 +46,7 @@ light {
 
 material {
    bumpMap
-   bump { scale 0.05 texture { perlin } }
+   bump { scale 0.1 texture { perlin } }
    
    metal
    eta {
