@@ -5,7 +5,7 @@ module Graphics.Bling.Texture (
    Texture, SpectrumTexture, ScalarTexture,
    
    -- * Creating Textures
-   constant, graphPaper, checkerBoard, noiseTexture, woodTexture
+   constant, scaleTexture, graphPaper, checkerBoard, noiseTexture, woodTexture
    ) where
 
 import Data.Bits
@@ -22,6 +22,9 @@ type ScalarTexture = Texture Flt
 
 constant :: a -> Texture a
 constant r _ = r
+
+scaleTexture :: (Num a) => a -> Texture a -> Texture a
+scaleTexture s t dg = s * (t dg)
 
 graphPaper :: Flt -> SpectrumTexture -> SpectrumTexture -> SpectrumTexture
 graphPaper lw p l dg
@@ -53,7 +56,7 @@ checkerBoard (Vector sx sy sz) t1 t2 dg
 
 woodTexture :: SpectrumTexture
 woodTexture dg = wood where
-   g = perlin3d (abs x * 4, abs y * 4, abs z * 4)
+   g = perlin3d (x * 4, y * 4, z * 4)
    grain = abs $ g - fromIntegral (floor g :: Int)
    wood = fromRGB (grain, grain, 0.1)
    (Vector x y z) = dgP dg
@@ -70,7 +73,7 @@ perlin3d :: (Flt, Flt, Flt) -> Flt
 perlin3d (x, y, z) = lerp wz y0 y1 where
    -- cell coordinates and offsets
    (ix', iy', iz') = (floor x, floor y, floor z) :: (Int, Int, Int)
-   (dx, dy, dz) = (x - fromIntegral ix, y - fromIntegral iy, z - fromIntegral iz)
+   (dx, dy, dz) = (x - fromIntegral ix', y - fromIntegral iy', z - fromIntegral iz')
    (ix, iy, iz) = (ix' .&. 255, iy' .&. 255, iz' .&. 255)
    
    -- gradient weights
@@ -95,7 +98,7 @@ perlin3d (x, y, z) = lerp wz y0 y1 where
    wz = noiseWeight dz
    
 noiseWeight :: Flt -> Flt
-noiseWeight t = 6 * t4 * t  - 15 * t4 + 10 * t3 where
+noiseWeight t = 6 * t4 * t - 15 * t4 + 10 * t3 where
    t3 = t * t * t
    t4 = t3 * t
    

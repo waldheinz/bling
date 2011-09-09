@@ -102,6 +102,11 @@ pScalarTexture = namedBlock $ do
       "constant" -> do
          v <- flt
          return (constant v)
+      
+      "scale" -> do
+         s <- flt
+         t <- ws >> pScalarTexture "texture"
+         return $ scaleTexture s t
          
       "perlin" -> return noiseTexture
       

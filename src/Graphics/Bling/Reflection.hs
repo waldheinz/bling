@@ -348,7 +348,8 @@ mfDistD (Blinn e) wh = (e + 2) * invTwoPi * (costh ** e) where
 
 bumpMapped :: ScalarTexture -> Material -> Material
 bumpMapped d mat dgg dgs = mat dgg dgBump where
-   dgBump = dgs { dgN = nn }
+   dgBump = dgs { dgN = nn, dgDPDU = dpdu, dgDPDV = dpdv }
+   
    uDisp = d dgeu
    vDisp = d dgev
    disp = d dgs
@@ -363,7 +364,7 @@ bumpMapped d mat dgg dgs = mat dgg dgBump where
    nn = faceForward nn' $ dgN dgg -- match geometric normal
    
    -- shift in u
-   du = 0.1 :: Flt
+   du = 0.01 :: Flt
    vdu = vpromote du
    dgeu = dgs {
       dgP = dgP dgs + vdu * (dgDPDU dgs),
@@ -372,7 +373,7 @@ bumpMapped d mat dgg dgs = mat dgg dgBump where
       }
       
    -- shift in v
-   dv = 0.1 :: Flt
+   dv = 0.01 :: Flt
    vdv = vpromote dv
    dgev = dgs {
       dgP = dgP dgs + vdv * (dgDPDV dgs),
