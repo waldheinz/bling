@@ -21,7 +21,6 @@ import Graphics.Bling.Primitive
 import Graphics.Bling.Rendering
 import Graphics.Bling.Reflection
 import Graphics.Bling.Spectrum
-import Graphics.Bling.Transform
 
 type JobParser a = GenParser Char PState a
 

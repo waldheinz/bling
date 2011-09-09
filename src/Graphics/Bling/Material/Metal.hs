@@ -20,10 +20,9 @@ mkMetal
    -> ScalarTexture -- ^ roughness
    -> Material
 
-mkMetal eta k rough dg = mkBsdf [spec] sc where
-   fr = frConductor (eta dg) (k dg)
-   spec = MkAnyBxdf $ Microfacet (Blinn (1 / rough dg)) fr white
-   sc = shadingCs dg
+mkMetal eta k rough dgg dgs = mkBsdf' [spec] dgg dgs where
+   fr = frConductor (eta dgs) (k dgs)
+   spec = MkAnyBxdf $ Microfacet (Blinn (1 / rough dgs)) fr white
 
 mkShinyMetal
    :: SpectrumTexture -- ^ kr
@@ -31,11 +30,11 @@ mkShinyMetal
    -> ScalarTexture -- ^ roughness
    -> Material
 
-mkShinyMetal kr ks rough dg = mkBsdf [r, s] $ shadingCs dg where
-   r = MkAnyBxdf $ Microfacet (Blinn (1 / rough dg)) frMf white
+mkShinyMetal kr ks rough dgg dgs = mkBsdf' [r, s] dgg dgs where
+   r = MkAnyBxdf $ Microfacet (Blinn (1 / rough dgs)) frMf white
    s = MkAnyBxdf $ mkSpecRefl white frSr
-   frMf = frConductor (approxEta $ ks dg) black
-   frSr = frConductor (approxEta $ kr dg) black
+   frMf = frConductor (approxEta $ ks dgs) black
+   frSr = frConductor (approxEta $ kr dgs) black
 
 approxEta :: Spectrum -> Spectrum
 approxEta r = (white + r') / (white - r') where

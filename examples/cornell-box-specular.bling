@@ -2,15 +2,8 @@
 #filter sinc 4.0 4.0 3.0
 #filter triangle 2.0 2.0
 filter mitchell 3.0 3.0 0.333333 0.333333
-filter box
+#filter box
 
-renderer {
-   sampler
-   sampled {
-      sampler { stratified xSamples 2 ySamples 2 }
-      integrator { path maxDepth 7 }
-   }
-}
 
 renderer { lightTracer passCount 50 particles 20000 }
 
@@ -22,6 +15,14 @@ renderer {
    }
 }
 
+
+renderer {
+   sampler
+   sampled {
+      sampler { stratified xSamples 4 ySamples 4 }
+      integrator { path maxDepth 7 }
+   }
+}
 
 imageSize 480 480
 

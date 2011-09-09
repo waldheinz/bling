@@ -1,7 +1,8 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 module Graphics.Bling.Reflection (
-
+   module Graphics.Bling.DifferentialGeometry,
+   
    -- * Material
 
    Material, blackBodyMaterial,
@@ -22,12 +23,12 @@ module Graphics.Bling.Reflection (
    -- * BSDF
    
    Bsdf, BsdfSample(..),
-   mkBsdf, evalBsdf, sampleBsdf, bsdfPdf,
+   mkBsdf, mkBsdf', evalBsdf, sampleBsdf, bsdfPdf,
    
    -- * Working with Vectors in shading coordinate system
 
    cosTheta, absCosTheta, sinTheta2, sinTheta, cosPhi, sinPhi,
-   sameHemisphere, shadingCs
+   sameHemisphere
    
    ) where
 
@@ -40,7 +41,8 @@ import Graphics.Bling.Montecarlo
 import Graphics.Bling.Random
 import Graphics.Bling.Spectrum
 
-type Material = DifferentialGeometry -> Bsdf
+-- | a material can turn a geometric DG and a shading DG into a BSDF
+type Material = DifferentialGeometry -> DifferentialGeometry -> Bsdf
 
 --
 -- Fresnel incidence effects
@@ -144,9 +146,6 @@ instance Bxdf AnyBxdf where
    bxdfPdf (MkAnyBxdf a) = bxdfPdf a
    bxdfType (MkAnyBxdf a) = bxdfType a
 
-isDiffuse :: (Bxdf b) => b -> Bool
-isDiffuse b = Diffuse `member` bxdfType b
-
 isReflection :: (Bxdf b) => b -> Bool
 isReflection b = Reflection `member` bxdfType b
 
@@ -159,11 +158,34 @@ isSpecular b = Specular `member` bxdfType b
 mkBxdfType :: [BxdfProp] -> BxdfType
 mkBxdfType = foldl' (flip insert) empty
 
-data Bsdf = Bsdf (V.Vector AnyBxdf) LocalCoordinates
+--------------------------------------------------------------------------------
+-- BSDF
+--------------------------------------------------------------------------------
 
-shadingCs :: DifferentialGeometry -> LocalCoordinates
-{-# INLINE shadingCs #-}
-shadingCs dg = coordinateSystem $ dgN dg
+data Bsdf = Bsdf
+   { _bsdfBxdfs :: V.Vector AnyBxdf
+   , _bsdfCs    :: LocalCoordinates
+   , _bsdfNg    :: Normal -- ^ geometric normal
+   }
+
+-- | creates a BSDF
+mkBsdf
+   :: [AnyBxdf] -- ^ the BxDFs that constitute the BSDF
+   -> DifferentialGeometry -- ^ the differential geometry for shading
+   -> Normal -- ^ the normal from the geometry
+   -> Bsdf
+mkBsdf bs dg ng = Bsdf (V.fromList bs) cs ng where
+   cs = LocalCoordinates sn tn nn
+   nn = dgN dg
+   sn = normalize $ dgDPDU dg
+   tn = nn `cross` sn
+
+mkBsdf'
+   :: [AnyBxdf]
+   -> DifferentialGeometry -- ^ the geometric differential geometry
+   -> DifferentialGeometry -- ^ the differential geometry for shading
+   -> Bsdf
+mkBsdf' bs dgg dgs = mkBsdf bs dgs (dgN dgg)
 
 data BsdfSample = BsdfSample {
    bsdfSampleType :: BxdfType,
@@ -174,12 +196,12 @@ data BsdfSample = BsdfSample {
 
 
 -- | filters a Bsdf's components by appearance
-filterBsdf :: BxdfProp -> Bsdf -> Bsdf
-filterBsdf ap (Bsdf bs cs) = Bsdf bs' cs where
-   bs' = V.filter (member ap . bxdfType) bs
+-- filterBsdf :: BxdfProp -> Bsdf -> Bsdf
+-- filterBsdf ap (Bsdf bs cs) = Bsdf bs' cs where
+--    bs' = V.filter (member ap . bxdfType) bs
 
 bsdfPdf :: Bsdf -> Vector -> Vector -> Float
-bsdfPdf (Bsdf bs cs) woW wiW
+bsdfPdf (Bsdf bs cs _) woW wiW
    | V.null bs = 0
    | otherwise = pdfSum / fromIntegral (V.length bs) where
       pdfSum = V.sum $ V.map (\b -> bxdfPdf b wo wi) bs
@@ -187,11 +209,13 @@ bsdfPdf (Bsdf bs cs) woW wiW
       wi = worldToLocal cs wiW
       
 sampleBsdf :: Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
-sampleBsdf (Bsdf bs cs) woW uComp uDir
+sampleBsdf (Bsdf bs cs ng) woW uComp uDir
    | V.null bs || pdf' == 0 = emptyBsdfSample
    | isSpecular bxdf = BsdfSample t pdf' f' wiW
    | otherwise = BsdfSample t pdf f wiW where
-      f = V.foldl' (+) f' $ V.map (\b -> bxdfEval b wo wi) bs'
+      -- value for sampled direction
+      flt = if dot woW ng * dot wiW ng < 0 then isTransmission else isReflection
+      f = V.foldl' (+) f' $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bs'
       pdf = (V.sum $ V.map (\ b -> bxdfPdf b wo wi) bs) / (fromIntegral cnt)
       bs' = V.ifilter (\ i _ -> (i /= sNum)) bs -- filter explicitely sampled
       (f', wi, pdf') = bxdfSample bxdf wo uDir
@@ -203,22 +227,18 @@ sampleBsdf (Bsdf bs cs) woW uComp uDir
       t = bxdfType bxdf
       
 evalBsdf :: Bsdf -> Vector -> Vector -> Spectrum
-evalBsdf (Bsdf bxdfs sc@(LocalCoordinates _ _ n)) woW wiW =
+evalBsdf (Bsdf bxdfs cs ng) woW wiW =
    V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bxdfs
    where
-         flt = if dot woW n * dot wiW n < 0 then isTransmission else isReflection
-         wo = worldToLocal sc woW
-         wi = worldToLocal sc wiW
+      flt = if dot woW ng * dot wiW ng < 0 then isTransmission else isReflection
+      wo = worldToLocal cs woW
+      wi = worldToLocal cs wiW
 
 emptyBsdfSample :: BsdfSample
 emptyBsdfSample = BsdfSample (mkBxdfType [Reflection, Diffuse]) 0 black (Vector 0 1 0)
 
 blackBodyMaterial :: Material
-blackBodyMaterial dg = mkBsdf [] $ shadingCs dg
-
--- | creates a Bsdf from a list of Bxdfs and a shading coordinate system
-mkBsdf :: [AnyBxdf] -> LocalCoordinates -> Bsdf
-mkBsdf bs = Bsdf (V.fromList bs)
+blackBodyMaterial dgg dgs = mkBsdf [] dgs (dgN dgg)
 
 data Lambertian = Lambertian {-# UNPACK #-} !Spectrum
 

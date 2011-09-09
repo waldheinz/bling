@@ -38,7 +38,7 @@ class Primitive a where
    
    -- | the default implementation just returns the provided DG, so the
    --   geometry used for shading is the same as for reflection calculations
-   shadingGeometry _ _ dg = dg
+   shadingGeometry _ _ dgg = dgg
 
 --
 -- the existential primitive
@@ -133,7 +133,9 @@ data Intersection = Intersection {
    }
 
 intBsdf :: Intersection -> Bsdf
-intBsdf int = intMaterial int $ intGeometry int
+intBsdf int = intMaterial int dgg dgs where
+   dgg = intGeometry int
+   dgs = shadingGeometry (intPrimitive int) identity dgg
 
 -- | the light emitted at an @Intersection@
 intLe

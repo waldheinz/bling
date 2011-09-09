@@ -6,7 +6,6 @@ module Graphics.Bling.Material.Matte (
    
    ) where
 
-import Graphics.Bling.Math
 import Graphics.Bling.Reflection
 import Graphics.Bling.Texture
 
@@ -14,13 +13,12 @@ import Graphics.Bling.Texture
 --   an @OrenNayar@ BxDF, depending on the roughness at the intersection
 mkMatte
    :: SpectrumTexture -- ^ the overall color
-   -> Texture Flt -- ^ the sigma (roughness) parameter
+   -> ScalarTexture -- ^ the sigma (roughness) parameter
    -> Material
    
-mkMatte tex ts dg
-   | s == 0 = mkBsdf [MkAnyBxdf $ Lambertian r] sc
-   | otherwise = mkBsdf [MkAnyBxdf $ mkOrenNayar r s] sc
+mkMatte tex ts dgg dgs
+   | s == 0 = mkBsdf' [MkAnyBxdf $ Lambertian r] dgg dgs
+   | otherwise = mkBsdf' [MkAnyBxdf $ mkOrenNayar r s] dgg dgs
    where
-      sc = shadingCs dg
-      s = ts dg
-      r = tex dg
+      s = ts dgs
+      r = tex dgs

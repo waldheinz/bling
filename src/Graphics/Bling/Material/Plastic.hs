@@ -14,11 +14,10 @@ mkPlastic
    -> ScalarTexture
    -> Material
    
-mkPlastic kd ks kr dg = mkBsdf [diff, spec] sc where
+mkPlastic kd ks kr dgg dgs = mkBsdf' [diff, spec] dgg dgs where
    diff = MkAnyBxdf $ Lambertian rd
    spec = MkAnyBxdf $ Microfacet (Blinn (1 / rough)) (frDielectric 1.0 1.5) rs
-   rough = kr dg
-   rd = kd dg
-   rs = ks dg
-   sc = shadingCs dg
+   rough = kr dgs
+   rd = kd dgs
+   rs = ks dgs
    

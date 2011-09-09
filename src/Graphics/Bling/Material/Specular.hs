@@ -18,16 +18,14 @@ import Graphics.Bling.Spectrum
 import Graphics.Bling.Texture
 
 glassMaterial :: Float -> SpectrumTexture -> Material
-glassMaterial ior rt dg = mkBsdf [refl, trans] cs where
+glassMaterial ior rt dgg dgs = mkBsdf' [refl, trans] dgg dgs where
    refl = MkAnyBxdf $ SpecularReflection r $ frDielectric 1 ior
    trans = MkAnyBxdf $ SpecularTransmission r 1 ior
-   cs = shadingCs dg
-   r = rt dg
+   r = rt dgs
 
 mirrorMaterial :: Spectrum -> Material
-mirrorMaterial r dg = mkBsdf [bxdf] cs where
+mirrorMaterial r = mkBsdf' [bxdf] where
    bxdf = MkAnyBxdf $ SpecularReflection r frNoOp
-   cs = shadingCs dg
 
 data SpecularTransmission = SpecularTransmission {
    _specTransT :: {-# UNPACK #-} !Spectrum,

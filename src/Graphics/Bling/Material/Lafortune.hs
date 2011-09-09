@@ -5,7 +5,6 @@ module Graphics.Bling.Material.Lafortune (
    
    ) where
 
-import Graphics.Bling.Math
 import Graphics.Bling.Reflection
 import Graphics.Bling.Spectrum
 
@@ -40,8 +39,7 @@ data Measured
    deriving (Show, Read)
    
 measuredMaterial :: Measured -> Material
-measuredMaterial Primer int = mkBsdf [bxdf] sc where
-      sc = shadingCs int
+measuredMaterial Primer = mkBsdf' [bxdf] where
       bxdf = MkAnyBxdf $ Lafortune (fromRGB (0.118230, 0.121218, 0.133209)) lobes
       
       lobes = [lobe1, lobe2, lobe3]
@@ -61,8 +59,7 @@ measuredMaterial Primer int = mkBsdf [bxdf] sc where
       z3  = fromRGB ( -0.145110,  0.159127,  0.173224 )
       e3  = fromRGB ( 31.899719,  2.372852,  2.636161 )
    
-measuredMaterial Clay int = mkBsdf [bxdf] sc where
-      sc = shadingCs int
+measuredMaterial Clay = mkBsdf' [bxdf] where
       bxdf = MkAnyBxdf $ Lafortune (fromRGB (0.383626, 0.260749, 0.274207)) lobes
       
       lobes = [lobe1, lobe2, lobe3]
@@ -82,8 +79,7 @@ measuredMaterial Clay int = mkBsdf [bxdf] sc where
       z3  = fromRGB (   0.910783,   0.885239,   0.892451 )
       e3  = fromRGB ( 152.912795, 141.937171, 201.046802 )
    
-measuredMaterial Felt int = mkBsdf [bxdf] sc where
-      sc = shadingCs int
+measuredMaterial Felt = mkBsdf' [bxdf] where
       bxdf = MkAnyBxdf $ Lafortune (fromRGB (0.025865, 0.025865, 0.025865)) lobes
       
       lobes = [lobe1, lobe2, lobe3]
@@ -103,8 +99,7 @@ measuredMaterial Felt int = mkBsdf [bxdf] sc where
       z3  = fromRGB (-0.205529, -0.205529, -0.205529)
       e3  = fromRGB (94.117332, 94.117332, 94.117332)
    
-measuredMaterial BluePaint int = mkBsdf [bxdf] sc where
-      sc = shadingCs int
+measuredMaterial BluePaint = mkBsdf' [bxdf] where
       bxdf = MkAnyBxdf $ Lafortune (fromRGB (0.3094, 0.39667, 0.70837)) lobes
       
       lobes = [lobe1, lobe2, lobe3]
@@ -124,8 +119,7 @@ measuredMaterial BluePaint int = mkBsdf [bxdf] sc where
       z3  = fromRGB (0.706734, 0.696530, 0.687715)
       e3  = fromRGB (66.899060, 63.767912, 57.489181)
    
-measuredMaterial BrushedMetal int = mkBsdf [bxdf] sc where
-      sc = shadingCs int
+measuredMaterial BrushedMetal = mkBsdf' [bxdf] where
       bxdf = MkAnyBxdf $ Lafortune black lobes
       
       lobes = [lobe1, lobe2, lobe3]
@@ -144,5 +138,3 @@ measuredMaterial BrushedMetal int = mkBsdf [bxdf] sc where
       xy3 = fromRGB (  -1.01684 ,  -1.01635 ,  -1.01529 )
       z3  = fromRGB (   1.00132 ,   1.00112 ,   1.00108 )
       e3  = fromRGB ( 180.181   , 184.152   , 195.773   )
-      
- 
