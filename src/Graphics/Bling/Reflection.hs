@@ -86,7 +86,7 @@ cosTheta :: Vector -> Flt
 cosTheta = vz
 
 absCosTheta :: Vector -> Flt
-absCosTheta = abs . vz
+absCosTheta = abs . cosTheta
 
 sinTheta2 :: Vector -> Flt
 sinTheta2 v = max 0 (1 - cosTheta v * cosTheta v)
@@ -132,8 +132,8 @@ class Bxdf a where
       f = bxdfEval a wo wi
       pdf = bxdfPdf a wo wi
       
-   bxdfPdf _ (Vector _ _ woz) (Vector _ _ wiz)
-      | woz * wiz > 0 = invPi * abs wiz
+   bxdfPdf _ wo wi
+      | sameHemisphere wo wi = invPi * absCosTheta wi
       | otherwise = 0
 
 data AnyBxdf = forall a. Bxdf a => MkAnyBxdf a
