@@ -10,7 +10,7 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 5 ySamples 5 }
+      sampler { stratified xSamples 2 ySamples 2 }
       integrator { path maxDepth 5 }
    }
 }
@@ -26,8 +26,8 @@ transform {
 camera {
    perspective
    fov 60
-   lensRadius 0
-   focalDistance 7
+   lensRadius 0.2
+   focalDistance 6.4
 }
 
 transform { identity }
@@ -35,8 +35,8 @@ transform { identity }
 light {
    sunSky
    up 0 1 0
-   east 0 0 -1
-   sunDir 1 0.5 -1
+   east 0 0 1
+   sunDir 0.5 1 1
    turbidity 5
 }
 
