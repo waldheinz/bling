@@ -1,0 +1,127 @@
+
+#
+# Balls Race
+# inspired by http://www.luxrender.net/forum/gallery2.php?g2_itemId=17876
+#
+
+
+filter mitchell 3.0 3.0 0.333333 0.333333
+#filter box
+
+# imageSize 960 640
+# imageSize 480 320
+imageSize 640 480
+
+renderer {
+   sampler
+   sampled {
+      sampler { stratified xSamples 5 ySamples 5 }
+      integrator { path maxDepth 7 }
+   }
+}
+
+transform {
+   lookAt {
+      pos 0 5 -8
+      look 0 0 -6
+      up 0 1 0
+   }
+}
+
+camera {
+   perspective
+   fov 95
+   lensRadius 0
+   focalDistance 10
+}
+
+#
+# light source
+#
+
+light {
+   sunSky
+   up 0 1 0
+   east 1 0 0
+   sunDir 1 0.3 0
+   turbidity 5
+}
+
+
+#
+# cylinders
+#
+
+transform {
+   identity
+   translate -13 0 0
+}
+
+# h = 0
+material { plastic kd { constant rgb 0.8 0.04 0.04 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
+shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+
+# h = 26
+transform { translate 2 0 0 }
+material { plastic kd { constant rgb 0.8 0.37 0.04 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
+shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+
+# h = 51
+transform { translate 2 0 0 }
+material { plastic kd { constant rgb 0.8 0.67 0.16 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
+shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+
+# h = 77
+transform { translate 2 0 0 }
+material { plastic kd { constant rgb 0.58 0.80 0.04 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
+shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+
+# h = 103
+transform { translate 2 0 0 }
+material { plastic kd { constant rgb 0.25 0.80 0.04 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
+shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+
+# h = 129
+transform { translate 2 0 0 }
+material { plastic kd { constant rgb 0.04 0.80 0.15 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
+shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+
+# h = 154
+transform { translate 2 0 0 }
+material { plastic kd { constant rgb 0.04 0.80 0.47 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
+shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+
+# h = 180
+transform { translate 2 0 0 }
+material { plastic kd { constant rgb 0.04 0.80 0.80 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
+shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+
+# h = 206
+transform { translate 2 0 0 }
+material { plastic kd { constant rgb 0.04 0.47 0.80 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
+shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+
+# h = 231
+transform { translate 2 0 0 }
+material { plastic kd { constant rgb 0.04 0.15 0.80 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
+shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+
+# h = 257
+transform { translate 2 0 0 }
+material { plastic kd { constant rgb 0.25 0.04 0.80 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
+shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+
+# h = 282
+transform { translate 2 0 0 }
+material { plastic kd { constant rgb 0.57 0.04 0.80 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
+shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+
+# h = 309
+transform { translate 2 0 0 }
+material { plastic kd { constant rgb 0.80 0.04 0.67 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
+shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+
+# h = 334
+transform { translate 2 0 0 }
+material { plastic kd { constant rgb 0.80 0.04 0.37 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
+shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
