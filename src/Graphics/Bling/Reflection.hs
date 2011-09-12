@@ -91,6 +91,8 @@ mkFresnelBlend :: Spectrum -> Spectrum -> Distribution -> FresnelBlend
 mkFresnelBlend = FB
 
 instance Bxdf FresnelBlend where
+   bxdfType _ = mkBxdfType [Reflection, Glossy]
+   
    bxdfEval (FB rd rs d) wo wi
       | vx wh' == 0 && vy wh' == 0 && vz wh' == 0 = black
       | otherwise = diff + spec
@@ -107,8 +109,16 @@ instance Bxdf FresnelBlend where
          cost = wi `dot` wh
          schlick = rs + sScale (white - rs) ((1 - cost) ** 5)
          
-   bxdfType _ = mkBxdfType [Reflection, Glossy]
-
+   bxdfSample fb@(FB _ _ d) wo (u1, u2) = (f, wi, pdf) where
+      pdf = bxdfPdf fb wo wi
+      f = bxdfEval fb wo wi
+      wi = if u1 < 0.5
+              then toSameHemisphere wo $ cosineSampleHemisphere (u1 * 2, u2)
+              else snd $ mfDistSample d (2 * (u1 - 0.5), u2) wo
+              
+   bxdfPdf (FB _ _ d) wo wi
+      | sameHemisphere wo wi = 0.5 * (absCosTheta wi * invPi + mfDistPdf d wo wi)
+      | otherwise = 0
 --------------------------------------------------------------------------------
 -- Helper Functions
 --------------------------------------------------------------------------------
@@ -366,7 +376,7 @@ mkAnisotropic ex ey = Anisotropic ex' ey' where
    
 mfDistPdf :: Distribution -> Vector -> Vector -> Float
 mfDistPdf (Anisotropic ex ey) wo wi
-   | ds > 0 && wo `dot` wh > 0 = d / (4 * wo `dot` wh)
+   | ds > 0 && wo `dot` wh > 0 = d / (4 * (wo `dot` wh))
    | otherwise = 0
    where
       wh = normalize $ wo + wi
@@ -374,15 +384,16 @@ mfDistPdf (Anisotropic ex ey) wo wi
       ds = 1 - costh * costh
       (whx, why) = (vx wh, vy wh)
       e = (ex * whx * whx + ey * why * why) / ds
-      d = sqrt ((ex + 2) * (ey + 2)) * invTwoPi * (costh ** e)
+      d = sqrt ((ex + 1) * (ey + 1)) * invTwoPi * (costh ** e)
+      
 mfDistPdf (Blinn e) wo wi = (e + 2) * (cost ** e) / (2 * pi * 4 * dot wo h) where
    h@(Vector _ _ hz) = normalize $ wo + wi
    cost = abs hz
-
+   
 mfDistSample :: Distribution -> Rand2D -> Vector -> (Float, Vector)
 
 mfDistSample (Anisotropic ex ey) (u1, u2) wo
-   | ds > 0 && wo `dot` wh > 0 = (d / 4 * wo `dot` wh, wi)
+   | ds > 0 && wo `dot` wh > 0 = (d / (4 * wo `dot` wh), wi)
    | otherwise = (0, wi)
    where
       wi = -wo + (wh * (vpromote $ 2 * (wo `dot` wh)))

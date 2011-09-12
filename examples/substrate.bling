@@ -1,0 +1,100 @@
+
+# substrate
+
+filter mitchell 3.0 3.0 0.333333 0.333333
+# filter box
+
+imageSize 640 480
+
+renderer {
+   sampler
+   sampled {
+      sampler { stratified xSamples 5 ySamples 5 }
+      integrator { path maxDepth 7 }
+   }
+}
+
+transform {
+   lookAt {
+      pos 0 6 -8
+      look 0 1 0
+      up 0 1 0
+   }
+}
+
+camera {
+   perspective
+   fov 45
+   lensRadius 0
+   focalDistance 10
+}
+
+transform { identity }
+
+#
+# ground plane
+#
+
+material {
+   matte
+   kd {
+      graphPaper 0.1
+      tex1 { constant rgb 0.8 0.8 0.8 }
+      tex2 { constant rgb 0.05 0.05 0.05 }
+   }
+   sigma { constant 0.005 }
+}
+
+shape {
+   mesh
+   vertexCount 4
+   faceCount 1
+   v  50.0 0.0 -50.0
+   v -50.0 0.0 -50.0
+   v -50.0 0.0  50.0
+   v  50.0 0.0  50.0
+   f 3 2 1 0
+}
+
+#
+# light source
+#
+
+emission { rgb 15 15 15 }
+
+transform {
+   identity
+   scale 5.0 1.0 5.0
+   translate 0.0 5.0 0.0
+}
+
+shape {
+   mesh
+   vertexCount 4
+   faceCount 1
+   v 2.0 15.7 -2.0
+   v 2.0 15.7 2.0
+   v -2.0 15.7 2.0
+   v -2.0 15.7 -2.0
+   f 3 2 1 0
+}
+
+emission { none }
+
+#
+# sphere 1
+#
+
+transform {
+   identity
+   translate 0 2 0
+}
+
+material { substrate
+   kd { constant rgb 0.8 0.2 0.2 }
+   ks { constant rgb 0.8 0.8 0.8 }
+   urough { constant 0.002 }
+   vrough { constant 0.002 }
+}
+
+shape { sphere radius 2 }
