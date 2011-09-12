@@ -78,6 +78,7 @@ Library
       Graphics.Bling.Material.Metal,
       Graphics.Bling.Material.Plastic,
       Graphics.Bling.Material.Specular,
+      Graphics.Bling.Material.Substrate,
       Graphics.Bling.Primitive.Bvh,
       Graphics.Bling.Primitive.Fractal,
       Graphics.Bling.Primitive.KdTree,

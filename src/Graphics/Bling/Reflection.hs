@@ -7,9 +7,9 @@ module Graphics.Bling.Reflection (
 
    Material, blackBodyMaterial, bumpMapped,
    
-   -- * Fresnel Equations
+   -- * Fresnel incidence effects
    
-   Fresnel, frDielectric, frConductor, frNoOp,
+   Fresnel, frDielectric, frConductor, frNoOp, FresnelBlend, mkFresnelBlend,
    
    -- * Microfacet Distribution based BRDF
    
@@ -45,9 +45,9 @@ import Graphics.Bling.Texture
 -- | a material can turn a geometric DG and a shading DG into a BSDF
 type Material = DifferentialGeometry -> DifferentialGeometry -> Bsdf
 
---
+--------------------------------------------------------------------------------
 -- Fresnel incidence effects
---
+--------------------------------------------------------------------------------
 
 type Fresnel = Flt -> Spectrum
 
@@ -84,6 +84,34 @@ frConductor eta k cosi = (rPer2 + rPar2) / 2.0 where
    ec2 = sScale eta (2 * cosi)
    tmp = sScale (eta * eta + k * k) (cosi * cosi)
    tmpF = eta * eta + k * k
+
+data FresnelBlend = FB !Spectrum !Spectrum !Distribution
+
+mkFresnelBlend :: Spectrum -> Spectrum -> Distribution -> FresnelBlend
+mkFresnelBlend = FB
+
+instance Bxdf FresnelBlend where
+   bxdfEval (FB rd rs d) wo wi
+      | vx wh' == 0 && vy wh' == 0 && vz wh' == 0 = black
+      | otherwise = diff + spec
+      where
+         costi = absCosTheta wi
+         costo = absCosTheta wo
+         wh' = wi + wo
+         wh = normalize $ wh'
+         diff = sScale (rd * (white - rs)) $ (28 / 23 * pi) *
+                  (1 - ((1 - 0.5 * costi) ** 5)) *
+                  (1 - ((1 - 0.5 * costo) ** 5))
+
+         spec = sScale schlick $ mfDistD d wh / (4 * wi `absDot` wh) * (max costi costo)
+         cost = wi `dot` wh
+         schlick = rs + sScale (white - rs) ((1 - cost) ** 5)
+         
+   bxdfType _ = mkBxdfType [Reflection, Glossy]
+
+--------------------------------------------------------------------------------
+-- Helper Functions
+--------------------------------------------------------------------------------
 
 cosTheta :: Vector -> Flt
 cosTheta = vz
@@ -195,12 +223,6 @@ data BsdfSample = BsdfSample {
    bsdfSampleWi :: Vector
    } deriving (Show)
 
-
--- | filters a Bsdf's components by appearance
--- filterBsdf :: BxdfProp -> Bsdf -> Bsdf
--- filterBsdf ap (Bsdf bs cs) = Bsdf bs' cs where
---    bs' = V.filter (member ap . bxdfType) bs
-
 bsdfPdf :: Bsdf -> Vector -> Vector -> Float
 bsdfPdf (Bsdf bs cs _) woW wiW
    | V.null bs = 0
@@ -247,9 +269,9 @@ instance Bxdf Lambertian where
    bxdfEval (Lambertian r) _ _ = sScale r invPi
    bxdfType _ = mkBxdfType [Reflection, Diffuse]
 
---
+--------------------------------------------------------------------------------
 -- The Oren Nayar BxDF
---
+--------------------------------------------------------------------------------
 
 data OrenNayar = MkOrenNayar
    Spectrum -- ^ reflectance

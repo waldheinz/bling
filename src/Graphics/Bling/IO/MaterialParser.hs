@@ -14,6 +14,7 @@ import Graphics.Bling.Material.Matte
 import Graphics.Bling.Material.Metal
 import Graphics.Bling.Material.Plastic
 import Graphics.Bling.Material.Specular
+import Graphics.Bling.Material.Substrate
 
 defaultMaterial :: Material
 defaultMaterial = mkMatte (constant $ fromRGB (0.9, 0.9, 0.9)) (constant 0)
@@ -39,6 +40,7 @@ pMaterial' = do
       "measured"     -> pMeasuredMaterial
       "metal"        -> pMetalMaterial
       "shinyMetal"   -> pShinyMetal
+      "substrate"    -> pSubstrateMaterial
       "plastic"      -> pPlasticMaterial
       "matte"        -> pMatteMaterial
       "mirror"       -> pMirrorMaterial
@@ -49,6 +51,14 @@ pBumpMap = do
    d <- pScalarTexture "bump"
    m <- ws >> pMaterial'
    return $ bumpMapped d m
+
+pSubstrateMaterial :: JobParser Material
+pSubstrateMaterial = do
+   kd <- pSpectrumTexture "kd"
+   ks <- ws >> pSpectrumTexture "ks"
+   urough <- ws >> pScalarTexture "urough"
+   vrough <- ws >> pScalarTexture "vrough"
+   return $ mkSubstrate kd ks urough vrough
 
 pGlass :: JobParser Material
 pGlass = do
