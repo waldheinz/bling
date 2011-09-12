@@ -25,8 +25,8 @@ transform {
 camera {
    perspective
    fov 45
-   lensRadius 0
-   focalDistance 10
+   lensRadius 0.1
+   focalDistance 9.43
 }
 
 transform { identity }
@@ -64,7 +64,6 @@ emission { rgb 15 15 15 }
 
 transform {
    identity
-   scale 5.0 1.0 5.0
    translate 0.0 5.0 0.0
 }
 
@@ -72,10 +71,10 @@ shape {
    mesh
    vertexCount 4
    faceCount 1
-   v 2.0 15.7 -2.0
-   v 2.0 15.7 2.0
-   v -2.0 15.7 2.0
-   v -2.0 15.7 -2.0
+   v  4 15 -4
+   v  4 15  4
+   v -4 15  4
+   v -4 15 -4
    f 3 2 1 0
 }
 
