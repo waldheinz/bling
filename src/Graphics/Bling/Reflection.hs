@@ -293,12 +293,17 @@ data Microfacet = Microfacet {
 
 instance Bxdf Microfacet where
    bxdfType _ = mkBxdfType [Reflection, Glossy]
-   bxdfEval (Microfacet d fr r) wo wi = sScale (r * fr costh) x where
-      x = mfDistD d wh * mfG wo wi wh / (4 * costi * costo)
-      costo = abs $ cosTheta wo
-      costi = abs $ cosTheta wi
-      wh = normalize $ wi + wo
-      costh = dot wi wh
+   bxdfEval (Microfacet d fr r) wo wi
+      | costi == 0 || costo == 0 = black
+      | vx wh' == 0 && vy wh' == 0 && vz wh' == 0 = black
+      | otherwise = sScale (r * fr costh) x
+      where
+         x = mfDistD d wh * mfG wo wi wh / (4 * costi * costo)
+         costo = absCosTheta wo
+         costi = absCosTheta wi
+         wh' = wi + wo
+         wh = normalize $ wh'
+         costh = wi `dot` wh
 
    bxdfSample mf wo dirU = bxdfSample' dirU mf wo
 
