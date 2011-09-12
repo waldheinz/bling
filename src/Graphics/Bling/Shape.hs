@@ -125,17 +125,59 @@ intersect (Sphere r) ray@(Ray ro rd tmin tmax)
    | isNothing times = Nothing
    | t1 > tmax = Nothing
    | t2 < tmin = Nothing
-   | otherwise = Just (t, mkDg' hitPoint normalAt)
+   | otherwise = Just (t, dg)
    where
-         a = sqLen rd
-         b = 2 * (ro `dot` rd)
-         c = sqLen ro - (r * r)
-         t = if t1 > tmin then t1 else t2
-         (t1, t2) = fromJust times
-         times = solveQuadric a b c
-         hitPoint = rayAt ray t
-         normalAt = normalize hitPoint
+      -- find hit point
+      a = sqLen rd
+      b = 2 * (ro `dot` rd)
+      c = sqLen ro - (r * r)
+      t = if t1 > tmin then t1 else t2
+      (t1, t2) = fromJust times
+      times = solveQuadric a b c
+      
+      -- find parametric representation of hit point
+      thetaMin = pi
+      thetaMax = 0
+      phiMax = twoPi
 
+      -- find dpdu and dpdv
+      dg = mkDg p u v dpdu dpdv dndu dndv
+      p@(Vector px py pz) = rayAt ray t
+      phi = atan2' py px
+      u = phi / phiMax
+      theta = acos $ clamp (pz / r) (-1) 1
+      v = (theta - thetaMin) / (thetaMax - thetaMin)
+      zradius = sqrt $ px * px + py * py
+      invzradius = 1 / zradius
+      cosphi = px * invzradius
+      sinphi = py * invzradius
+      dpdu = mkV (-phiMax * py, phiMax * px, 0)
+      dpdv = mkV (pz * cosphi, pz * sinphi, -r * sin theta) *
+            (vpromote $ thetaMax - thetaMin)
+
+      -- find dndu and dndv
+
+      d2Pduu = vpromote (-phiMax * phiMax) * mkV (px, py, 0)
+      d2Pduv = vpromote ((thetaMax - thetaMin) * pz * phiMax) *
+                    mkV (-sinphi, cosphi, 0)
+      d2Pdvv = vpromote (-(thetaMax - thetaMin) * (thetaMax - thetaMin)) *
+                    mkV (px, py, pz);
+
+      -- coefficients for fundamental forms
+      e' = dpdu `dot` dpdu
+      f' = dpdu `dot` dpdv
+      g' = dpdv `dot` dpdv
+      n' = normalize $ dpdu `cross` dpdv
+      e = n' `dot` d2Pduu
+      f = n' `dot` d2Pduv
+      g = n' `dot` d2Pdvv
+      invEGF2 = 1 / (e' * g' - f' * f')
+      
+      dndu = vpromote ((f*f' - e*g') * invEGF2) * dpdu +
+             vpromote ((e*f' - f*e') * invEGF2) * dpdv
+      dndv = vpromote ((g*f' - f*g') * invEGF2) * dpdu +
+             vpromote ((f*f' - g*e') * invEGF2) * dpdv
+      
 intersect (Triangle v1 v2 v3) r@(Ray ro rd tmin tmax)
    | divisor == 0 = Nothing
    | b1 < 0 || b1 > 1 = Nothing
