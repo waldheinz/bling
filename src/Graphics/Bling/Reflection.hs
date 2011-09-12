@@ -11,9 +11,9 @@ module Graphics.Bling.Reflection (
    
    Fresnel, frDielectric, frConductor, frNoOp,
    
-   -- * Microfacet Distributions
+   -- * Microfacet Distribution based BRDF
    
-   Microfacet(..), Distribution(..),
+   Microfacet(..), Distribution, mkBlinn, mkAnisotropic,
 
    -- * BxDF Functions
    
@@ -285,6 +285,10 @@ instance Bxdf OrenNayar where
             in max 0 dcos
          | otherwise = 0
 
+--------------------------------------------------------------------------------
+-- Microfacet Distributions
+--------------------------------------------------------------------------------
+
 data Microfacet = Microfacet {
    distribution :: Distribution,
    fresnel :: Fresnel,
@@ -327,14 +331,60 @@ mfG wo wi wh = min 1 $ min (2 * nDotWh * nDotWo / woDotWh) (2 * nDotWh * nDotWi 
    woDotWh = absDot wo wh
 
 data Distribution
-   = Blinn Float
+   = Blinn {-# UNPACK #-} !Flt -- ^ e
+   | Anisotropic {-# UNPACK #-} !Flt {-# UNPACK #-} !Flt -- ^ ex and ey
 
+mkBlinn :: Flt -> Distribution
+mkBlinn = Blinn
+
+mkAnisotropic :: Flt -> Flt -> Distribution
+mkAnisotropic ex ey = Anisotropic ex' ey' where
+   ex' = if ex > 10000 || isNaN ex then 10000 else ex
+   ey' = if ey > 10000 || isNaN ey then 10000 else ey
+   
 mfDistPdf :: Distribution -> Vector -> Vector -> Float
+mfDistPdf (Anisotropic ex ey) wo wi
+   | ds > 0 && wo `dot` wh > 0 = d / (4 * wo `dot` wh)
+   | otherwise = 0
+   where
+      wh = normalize $ wo + wi
+      costh = absCosTheta wh
+      ds = 1 - costh * costh
+      (whx, why) = (vx wh, vy wh)
+      e = (ex * whx * whx + ey * why * why) / ds
+      d = sqrt ((ex + 2) * (ey + 2)) * invTwoPi * (costh ** e)
 mfDistPdf (Blinn e) wo wi = (e + 2) * (cost ** e) / (2 * pi * 4 * dot wo h) where
    h@(Vector _ _ hz) = normalize $ wo + wi
    cost = abs hz
 
 mfDistSample :: Distribution -> Rand2D -> Vector -> (Float, Vector)
+
+mfDistSample (Anisotropic ex ey) (u1, u2) wo
+   | ds > 0 && wo `dot` wh > 0 = (d / 4 * wo `dot` wh, wi)
+   | otherwise = (0, wi)
+   where
+      wi = -wo + (wh * (vpromote $ 2 * (wo `dot` wh)))
+      wh' = sphericalDirection sint cost phi
+      wh = if sameHemisphere wo wh' then wh' else -wh'
+      sint = sqrt $ max 0 (1 - cost * cost)
+      ds = 1 - cost * cost
+      d = sqrt ((ex + 1) * (ey + 1)) * invTwoPi * (cost ** e)
+      (whx, why) = (vx wh, vy wh)
+      e = (ex * whx * whx + ey * why * why) / ds
+      
+      (phi, cost)
+         | u1 < 0.25 = smpFirstQuadrand (4 * u1) id
+         | u1 < 0.50 = smpFirstQuadrand (4 * (0.5 - u1)) (\x -> pi - x)
+         | u1 < 0.75 = smpFirstQuadrand (4 * (u1 - 0.5)) (\x -> x + pi)
+         | otherwise = smpFirstQuadrand (4 * (1 - u1)) (\x -> twoPi - x)
+         
+      smpFirstQuadrand u1' rsmp = (rsmp p, c) where
+         p = if ex == ey
+                then pi * u1' * 0.5
+                else atan $ (sqrt $ (ex + 1) / (ey + 1)) * tan (pi * u1' * 0.5)
+         (cp, sp) = (cos p, sin p)
+         c = u2 ** (1 / (ex * cp * cp + ey * sp * sp + 1))
+      
 mfDistSample (Blinn e) (u1, u2) wo = (pdf, wi) where
    pdf = (e + 2) * (cost ** e) / (2 * pi * 4 * dot wo h) -- possible divide by zero?
    wi = (-wo) + (h * vpromote (2 * dot h wo))
@@ -344,8 +394,16 @@ mfDistSample (Blinn e) (u1, u2) wo = (pdf, wi) where
    phi = u2 * 2 * pi
 
 mfDistD :: Distribution -> Vector -> Float
+mfDistD (Anisotropic ex ey) wh
+   | d == 0 = 0
+   | otherwise = sqrt ((ex + 2) * (ey + 2)) * invTwoPi * (costh ** e)
+   where
+      costh = absCosTheta wh
+      d = 1 - costh * costh
+      (whx, why) = (vx wh, vy wh)
+      e = (ex * whx * whx + ey * why * why) / d
 mfDistD (Blinn e) wh = (e + 2) * invTwoPi * (costh ** e) where
-   costh = abs $ cosTheta wh
+   costh = absCosTheta wh
 
 --------------------------------------------------------------------------------
 -- Bump Mapping
