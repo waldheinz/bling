@@ -1,0 +1,80 @@
+
+#
+# Bump Mapping
+#
+
+filter mitchell 3 3 0.333333 0.333333
+
+imageSize 640 480
+
+renderer {
+   sampler
+   sampled {
+      sampler { stratified xSamples 2 ySamples 2 }
+      integrator { path maxDepth 5 }
+   }
+}
+
+transform {
+   lookAt {
+      pos 0 4 -5
+      look 0.5 0 0
+      up 0 1 0
+   }
+}
+
+camera {
+   perspective
+   fov 60
+   lensRadius 0.2
+   focalDistance 6.4
+}
+
+transform { identity }
+
+light {
+   sunSky
+   up 0 1 0
+   east 0 0 1
+   sunDir 0.5 1 1
+   turbidity 5
+}
+
+#
+# ground plane
+#
+
+shape {
+   mesh
+   vertexCount 4
+   faceCount 1
+   v  50.0 0.0 -50.0
+   v -50.0 0.0 -50.0
+   v -50.0 0.0  50.0
+   v  50.0 0.0  50.0
+   f 3 2 1 0
+}
+
+material {
+   matte
+   kd { constant rgb 0.8 0.8 0.8 }
+   sigma { constant 0.3 }
+}
+
+transform {
+   identity
+   translate 0 1.5 0
+}
+
+shape {
+   bezier
+   subdivs 4
+   p { 10.0000,  2.00000,  0.00000, 10.0000,  2.00000,  0.00000,
+       14.0000,  2.00000,  0.00000, 14.0000,  2.00000,  0.00000,
+       10.0000,  2.00000,  0.00000, 10.2277,  2.22776, -0.91104,
+       13.7722,  2.22776, -0.91104, 14.0000,  2.00000,  0.00000,
+       10.0000,  6.00000,  0.00000, 10.2277,  5.77223, -0.91104,
+       13.7722,  5.77224, -0.91104, 14.0000,  6.00000,  0.00000,
+       10.0000,  6.00000,  0.00000, 10.0000,  6.00000,  0.00000,
+       14.0000,  6.00000,  0.00000, 14.0000,  6.00000,  0.00000}
+}

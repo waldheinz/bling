@@ -77,14 +77,15 @@ frDiel' cosi cost etai etat = (rPar * rPar + rPer * rPer) / 2 where
 -- | Fresnel incidence effects for conductors
 frConductor :: Spectrum -> Spectrum -> Fresnel
 frConductor eta k cosi = (rPer2 + rPar2) / 2 where
-   rPer2 = (tmpF - ec2 + sConst (cosi * cosi)) /
-           (tmpF + ec2 + sConst (cosi * cosi))
+   rPer2 = (tmpF - ec2 + sConst (acosi * acosi)) /
+           (tmpF + ec2 + sConst (acosi * acosi))
    rPar2 = (tmp - ec2 + white) /
            (tmp + ec2 + white)
-   ec2 = sScale eta (2 * cosi)
-   tmp = sScale (eta * eta + k * k) (cosi * cosi)
+   ec2 = sScale eta (2 * acosi)
+   tmp = sScale (eta * eta + k * k) (acosi * acosi)
    tmpF = eta * eta + k * k
-
+   acosi = abs cosi
+   
 data FresnelBlend = FB !Spectrum !Spectrum !Distribution
 
 mkFresnelBlend :: Spectrum -> Spectrum -> Distribution -> FresnelBlend

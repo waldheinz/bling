@@ -11,6 +11,7 @@ import Text.ParserCombinators.Parsec
 import Graphics.Bling.Primitive
 import Graphics.Bling.Shape
 import Graphics.Bling.IO.ParserCore
+import Graphics.Bling.Primitive.Bezier
 import Graphics.Bling.Primitive.Fractal
 
 --
@@ -49,10 +50,16 @@ pQuaternion = do
 --
 
 pShape :: JobParser ()
-pShape = (flip namedBlock) "shape" $ do
+pShape = pBlock $ do
    t <- many alphaNum
    
    sh <- case t of
+      "bezier" -> do
+         subdivs <- ws >> namedInt "subdivs"
+         patches <- many1 (try pBezierPatch)
+         optional ws
+         return $ tesselateBezierMesh subdivs $ mkBezierMesh patches
+         
       "cylinder" -> do
          r <- ws >> namedFloat "radius"
          zmin <- ws >> namedFloat "zmin"
@@ -81,6 +88,15 @@ pShape = (flip namedBlock) "shape" $ do
       return $ mkGeom (transform s) False (material s) (emit s) shp sid
       
    setState s {prims = map MkAnyPrim p ++ (prims s), currId = (currId s) + 1 }
+
+pBezierPatch :: JobParser Patch
+pBezierPatch = (flip namedBlock) "p" $ do
+   xs <- flt `sepBy` (optional ws >> char ',' >> optional ws)
+   optional ws
+   
+   case mkPatch xs of
+        (Right p) -> return p
+        (Left err) -> fail $ "error parsing bezier patch: " ++ err
 
 pMesh :: JobParser [Shape]
 pMesh = do

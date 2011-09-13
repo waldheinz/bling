@@ -6,8 +6,8 @@ module Graphics.Bling.IO.ParserCore (
    JobParser, PState(..), nextId,
    
    -- * Core Parsing Primitives
-   flt, ws, pVec, pSpectrum, namedBlock, namedInt, namedFloat,
-   namedVector, namedSpectrum, integ
+   flt, ws, pVec, pSpectrum, pBlock, namedBlock, namedInt, namedFloat,
+   namedVector, namedSpectrum, integ, pString
    
    ) where
 
@@ -44,6 +44,9 @@ nextId = do
    let nid = currId s
    setState s { currId = nid + 1 }
    return $ nid
+
+pString :: JobParser String
+pString = many1 alphaNum
 
 comment :: JobParser ()
 comment = do
@@ -99,10 +102,13 @@ pSpectrumSpd = do
    return (fromSpd (mkSpd spd)) where
       ss = sepBy1 s (char ',' >> optional ws)
       s = do l <- flt; v <- ws >> flt; optional ws; return (l, v)
+
+pBlock :: JobParser a -> JobParser a
+pBlock = between (char '{' >> optional ws) (optional ws >> char '}')
       
 namedBlock :: JobParser a -> String -> JobParser a
 namedBlock p n = do
-   string n >> optional ws
+   optional ws >> string n >> optional ws
    between (char '{' >> optional ws) (optional ws >> char '}') p
    
 namedFloat :: String -> JobParser Flt

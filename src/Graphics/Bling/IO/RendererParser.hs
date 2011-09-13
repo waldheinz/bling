@@ -22,8 +22,8 @@ defaultSampler :: AnySampler
 defaultSampler = mkAnySampler $ mkStratifiedSampler 2 2
 
 pRenderer :: JobParser ()
-pRenderer = (flip namedBlock) "renderer" $ do
-   tName <- many1 alphaNum
+pRenderer = pBlock $ do
+   tName <- pString
    ws
    r <- case tName of
              "lightTracer" -> do

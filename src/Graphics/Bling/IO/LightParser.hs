@@ -11,7 +11,7 @@ import Graphics.Bling.IO.ParserCore
 --
 
 pLight :: JobParser ()
-pLight = (flip namedBlock) "light" $ do
+pLight = pBlock $ do
    t <- many1 alphaNum
    ws
    ls <- case t of

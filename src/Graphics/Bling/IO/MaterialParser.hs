@@ -24,14 +24,14 @@ defaultMaterial = mkMatte (constant $ fromRGB (0.9, 0.9, 0.9)) (constant 0)
 --
 
 pMaterial :: JobParser ()
-pMaterial = (flip namedBlock) "material" $ do
+pMaterial = pBlock $ do
    m <- pMaterial'
    s <- getState
    setState s { material = m }
 
 pMaterial' :: JobParser Material
 pMaterial' = do
-   t <- many alphaNum
+   t <- pString
    ws
    case t of
       "blackbody"    -> return blackBodyMaterial

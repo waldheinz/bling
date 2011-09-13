@@ -52,12 +52,27 @@ parseJob s = either (error . show) (id) pr where
 jobParser :: JobParser Job
 jobParser = do
    _ <- many object
-   eof
+   optional ws >> eof
    (PState sx sy r f cam _ _ _ ls ps _) <- getState
    let scn = mkScene ls ps cam
    return (MkJob scn r f sx sy)
 
 object :: JobParser ()
+object = do
+   objName <- try $ optional ws >> pString
+   ws
+   
+   case objName of
+        "shape" -> pShape
+        "filter" -> pFilter
+        "imageSize" -> pSize
+        "renderer" -> pRenderer
+        "transform" -> pTransform
+        "camera" -> pCamera
+        "light" -> pLight
+        "material" -> pMaterial
+        _ -> fail $ "unknwon object type " ++ objName
+{- 
 object = 
        do try pShape
       <|> try pRenderer
@@ -70,12 +85,10 @@ object =
       <|> pTransform
       <|> pFractal
       <|> ws
-
+      -}
 --  | parses the image size
 pSize :: JobParser ()
 pSize = do
-   _ <- string "imageSize"
-   _ <- spaces
    sx <- integ
    _ <- spaces
    sy <- integ
@@ -85,9 +98,7 @@ pSize = do
 -- | parses the pixel filtering function
 pFilter :: JobParser ()
 pFilter = do
-   _ <- try (string "filter") >> ws
-   
-   t <- many1 alphaNum
+   t <- pString
    _ <- ws
    f <- case t of
       "box" -> return mkBoxFilter

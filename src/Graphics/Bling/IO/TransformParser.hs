@@ -14,16 +14,15 @@ import Graphics.Bling.IO.ParserCore
 --
 
 pTransform :: JobParser ()
-pTransform = (namedBlock (many1 ts) "transform") >> return () where
-   ts = choice [
+pTransform = pBlock (many1 ts) >> return () where
+   ts = choice [ ws,
       tIdentity, try tRotX,
       try tRotY,
       tRotZ,
       tScale,
       tTrans,
       tMatrix,
-      tLookAt,
-      ws]
+      tLookAt ]
 
 tLookAt :: JobParser ()
 tLookAt = (flip namedBlock) "lookAt" $ do
