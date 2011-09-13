@@ -2,7 +2,7 @@
 #filter sinc 4.0 4.0 3.0
 #filter triangle 2.0 2.0
 filter mitchell 3.0 3.0 0.333333 0.333333
-#filter box
+filter box
 
 
 renderer { lightTracer passCount 50 particles 20000 }
@@ -19,7 +19,7 @@ renderer {
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 4 ySamples 4 }
+      sampler { stratified xSamples 1 ySamples 1 }
       integrator { path maxDepth 7 }
    }
 }
@@ -118,7 +118,12 @@ shape {
 # glass sphere
 #
 
-material { glass ior 1.5 r { constant spd { 1 0.95 } } }
+material { glass
+   ior { constant 1.5 }
+   kr { constant rgb 1 1 1 }
+   kt { constant rgb 1 1 1 }
+}
+
 transform { identity translate 400 100 200 }
 shape { sphere radius 100 }
 

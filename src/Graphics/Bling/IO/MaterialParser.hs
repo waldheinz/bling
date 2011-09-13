@@ -62,9 +62,10 @@ pSubstrateMaterial = do
 
 pGlass :: JobParser Material
 pGlass = do
-   ior <- namedFloat "ior"
-   s <- ws >> pSpectrumTexture "r"
-   return $ glassMaterial ior s
+   ior <- pScalarTexture "ior"
+   rt <- ws >> pSpectrumTexture "kr"
+   tt <- ws >> pSpectrumTexture "kt"
+   return $ glassMaterial ior rt tt
 
 pMetalMaterial :: JobParser Material
 pMetalMaterial = do
@@ -80,11 +81,10 @@ pShinyMetal = do
    rough <- ws >> pScalarTexture "rough"
    return $ mkShinyMetal kr ks rough
 
-
 pMirrorMaterial :: JobParser Material
 pMirrorMaterial = do
-   r <- pSpectrum
-   return (mirrorMaterial r)
+   kr <- pSpectrumTexture "kr"
+   return $ mirrorMaterial kr
 
 pMatteMaterial :: JobParser Material
 pMatteMaterial = do

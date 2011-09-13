@@ -3,10 +3,10 @@ module Graphics.Bling.Material.Specular (
    
    -- * Specular materials
    
-   mirrorMaterial, glassMaterial,
+   glassMaterial, mirrorMaterial,
 
    -- * Specular BxDFs
-
+   
    SpecularReflection, SpecularTransmission,
    mkSpecRefl
    
@@ -17,15 +17,25 @@ import Graphics.Bling.Reflection
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Texture
 
-glassMaterial :: Float -> SpectrumTexture -> Material
-glassMaterial ior rt dgg dgs = mkBsdf' [refl, trans] dgg dgs where
+-- | a glass material
+glassMaterial
+   :: ScalarTexture -- ^ index of refraction
+   -> SpectrumTexture -- ^ reflection color
+   -> SpectrumTexture -- ^ transmission color
+   -> Material
+glassMaterial iort rt tt dgg dgs = mkBsdf' [refl, trans] dgg dgs where
    refl = MkAnyBxdf $ SpecularReflection r $ frDielectric 1 ior
-   trans = MkAnyBxdf $ SpecularTransmission r 1 ior
+   trans = MkAnyBxdf $ SpecularTransmission t 1 ior
    r = rt dgs
-
-mirrorMaterial :: Spectrum -> Material
-mirrorMaterial r = mkBsdf' [bxdf] where
+   t = tt dgs
+   ior = iort dgs
+   
+mirrorMaterial
+   :: SpectrumTexture -- ^ reflection color
+   -> Material
+mirrorMaterial rt dgg dgs = mkBsdf' [bxdf] dgg dgs where
    bxdf = MkAnyBxdf $ SpecularReflection r frNoOp
+   r = sClamp 0 1 $ rt dgs
 
 data SpecularTransmission = SpecularTransmission {
    _specTransT :: {-# UNPACK #-} !Spectrum,
