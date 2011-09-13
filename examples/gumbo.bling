@@ -11,7 +11,7 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 5 ySamples 5 }
+      sampler { stratified xSamples 3 ySamples 3 }
       integrator { path maxDepth 5 }
    }
 }
@@ -33,7 +33,7 @@ camera {
 
 transform { identity }
 
-light { sunSky up 0 0 1 east 1 0 0 sunDir -1 0 0.2 turbidity 5 }
+light { sunSky up 0 0 1 east 1 0 0 sunDir -1 0 0.8 turbidity 8 }
 #light { directional intensity rgb 1 1 1 normal 0 0 1 }
 
 #
@@ -103,7 +103,7 @@ material {
 
 shape {
    bezier
-   subdivs 15
+   subdivs 20
    p { 10.0000,  2.00000,  0.00000, 10.0000,  2.00000,  0.00000,
        14.0000,  2.00000,  0.00000, 14.0000,  2.00000,  0.00000,
        10.0000,  2.00000,  0.00000, 10.2277,  2.22776, -0.91104,
