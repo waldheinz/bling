@@ -44,7 +44,7 @@ pDirectionalLight = do
    return $ [mkDirectional s n]
    
 pEmission :: JobParser ()
-pEmission = (flip namedBlock) "emission" $ do
+pEmission = pBlock $ do
    spec <- do
       try (string "none" >> return Nothing)
       <|> (pSpectrum >>= (\s -> return (Just s)))

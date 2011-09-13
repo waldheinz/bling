@@ -71,6 +71,7 @@ object = do
         "camera" -> pCamera
         "light" -> pLight
         "material" -> pMaterial
+        "emission" -> pEmission
         _ -> fail $ "unknwon object type " ++ objName
 {- 
 object = 

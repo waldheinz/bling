@@ -58,7 +58,7 @@ pShape = pBlock $ do
          subdivs <- ws >> namedInt "subdivs"
          patches <- many1 (try pBezierPatch)
          optional ws
-         return $ tesselateBezierMesh subdivs $ mkBezierMesh patches
+         return $ tesselateBezierMesh subdivs patches
          
       "cylinder" -> do
          r <- ws >> namedFloat "radius"

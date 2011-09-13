@@ -7,7 +7,7 @@ module Graphics.Bling.Shape (
    
    -- * Creating shapes
    
-   mkCylinder, mkDisk, mkSphere, 
+   mkCylinder, mkDisk, mkSphere, mkTriangle,
 
    -- * Working with shapes
    
@@ -69,6 +69,11 @@ mkSphere
    :: Flt -- ^ the sphere radius
    -> Shape
 mkSphere = Sphere
+
+mkTriangle
+   :: (Vertex, Vertex, Vertex)
+   -> Shape
+mkTriangle (v1, v2, v3) = Triangle v1 v2 v3
 
 triangulate :: [[Vertex]] -> [Shape]
 triangulate vs = concatMap tr' vs where
