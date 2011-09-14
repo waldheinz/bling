@@ -244,13 +244,13 @@ bsdfPdf (Bsdf bs cs _) woW wiW
 
 sampleBsdf :: Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
 sampleBsdf (Bsdf bs cs ng) woW uComp uDir
-   | V.null bs || pdf' == 0 = emptyBsdfSample
-   | isSpecular bxdf = BsdfSample t pdf' f' wiW
+   | V.null bs || pdf' == 0 = {-# SCC "sampleBsdfEmpty" #-} emptyBsdfSample
+   | isSpecular bxdf = {-# SCC "sampleBsdfSpecular" #-} BsdfSample t pdf' f' wiW
    | otherwise = BsdfSample t pdf f wiW where
-      (f', wi, pdf') = bxdfSample bxdf wo uDir
+      (f', wi, pdf') = {-# SCC "sampleBsdfBxdf" #-} bxdfSample bxdf wo uDir
       flt = if woW `dot` ng * wiW `dot` ng < 0 then isTransmission else isReflection
-      f = f' + (V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bs')
-      pdf = (pdf' + (V.sum $ V.map (\b -> bxdfPdf b wo wi) bs')) / (fromIntegral cnt)
+      f = {-# SCC "sampleBsdf_f" #-}f' + (V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bs')
+      pdf = {-# SCC "sampleBsdf_pdf" #-}(pdf' + (V.sum $ V.map (\b -> bxdfPdf b wo wi) bs')) / (fromIntegral cnt)
       bs' = V.ifilter (\i _ -> (i /= sNum)) bs -- filter explicitely sampled
       wiW = localToWorld cs wi
       wo = worldToLocal cs woW
