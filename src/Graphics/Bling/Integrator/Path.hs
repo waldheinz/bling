@@ -27,15 +27,24 @@ sampleDepth = 3
 smps2D :: Int
 smps2D = 3
 
+smps1D :: Int
+smps1D = 3
+
 smp2doff :: Int -> Int
-smp2doff d = smps2D * d * sampleDepth
+smp2doff d = smps2D * d
+
+smp1doff :: Int -> Int
+smp1doff d = smps1D * d
 
 instance Printable PathIntegrator where
    prettyPrint (PathIntegrator md) =
       PP.text ("Path Integrator " ++ (show md))
 
 instance SurfaceIntegrator PathIntegrator where
+   sampleCount1D _ = smps1D * sampleDepth
+   
    sampleCount2D _ = smps2D * sampleDepth
+   
    contrib (PathIntegrator md) s r = do
       li <- nextVertex s 0 True r (s `intersect` r) white black md
       mkContrib li
@@ -54,14 +63,14 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) t l md
    | isBlack t || depth == md = return (1, l)
    | otherwise = do
       -- for bsdf sampling
-      bsdfCompU <- rnd
-      bsdfDirU <- rnd2D' $ smp2doff depth
+      bsdfCompU <- rnd' $ 0 + smp1doff depth
+      bsdfDirU <- rnd2D' $ 0 + smp2doff depth
 
       -- for light sampling
-      lNumU <- rnd
-      lDirU <- rnd2D' $ 2 + smp2doff depth
-      lBsdfCompU <- rnd
-      lBsdfDirU <- rnd2D' $ 1 + smp2doff depth
+      lNumU <- rnd' $ 1 + smp1doff depth
+      lDirU <- rnd2D' $ 1 + smp2doff depth
+      lBsdfCompU <- rnd' $ 2 + smp1doff depth
+      lBsdfDirU <- rnd2D' $ 2 + smp2doff depth
       
       let (BsdfSample smpType spdf f wi) = sampleBsdf bsdf wo bsdfCompU bsdfDirU
       let lHere = sampleOneLight scene p n wo bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU

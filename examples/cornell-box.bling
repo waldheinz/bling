@@ -7,12 +7,12 @@ filter box
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 3 ySamples 3 }
+      sampler { stratified xSamples 5 ySamples 5 }
       integrator { path maxDepth 5 }
    }
 }
 
-renderer { sampler sampled { sampler { random samples 9 } integrator { path maxDepth 5 } } }
+renderer { sampler sampled { sampler { random samples 25 } integrator { path maxDepth 5 } } }
 
 imageSize 480 480
 

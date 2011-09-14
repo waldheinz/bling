@@ -4,7 +4,7 @@ module Graphics.Bling.Sampler.Stratified (
    ) where
 
 import Control.Monad (liftM, replicateM)
-import Data.List (transpose)
+import Data.List (transpose, zipWith4)
 import qualified Data.Vector.Unboxed as V
 import System.Random
 import qualified System.Random.Shuffle as S
@@ -26,20 +26,22 @@ instance Sampler StratifiedSampler where
 
 -- | creates stratified samples for one pixel
 pixel :: Int -> Int -> Int -> Int -> (Int, Int) -> Rand [Sample]
-pixel nu nv _ n2d (px, py) = do
+pixel nu nv n1d n2d (px, py) = do
    lens <- stratified2D nu nv >>= shuffle (nu*nv)
    ps <- stratified2D nu nv
+   r1d <- mk1D (nu*nv) n1d
    r2d <- mk2D nu nv n2d
    
-   return $ mkSamples (shiftToPixel px py ps) lens r2d 
+   return $ mkSamples (shiftToPixel px py ps) lens r1d r2d 
 
 mkSamples
    :: [(Flt, Flt)] -- ^ pixel coordinates
    -> [Rand2D] -- ^ lens coordinates
+   -> [V.Vector Flt] -- ^ 1d samples
    -> [V.Vector Rand2D] -- ^ 2d samples
    -> [Sample]
-mkSamples = zipWith3 go where
-   go (px, py) lens r2d = Sample px py lens V.empty r2d
+mkSamples = zipWith4 go where
+   go (px, py) lens r1d r2d = Sample px py lens r1d r2d
 
 -- | shuffles a list
 shuffle
@@ -53,6 +55,11 @@ shuffle xl xs = do
 vectorize :: (V.Unbox a) => [[a]] -> [V.Vector a]
 vectorize xs = map V.fromList $ transpose xs
 
+mk1D :: Int -> Int -> Rand [V.Vector Flt]
+mk1D nu n = do
+   vals <- replicateM n $ (stratified1D nu) >>= shuffle nu
+   return $ vectorize vals
+
 mk2D :: Int -> Int -> Int -> Rand [V.Vector Rand2D]
 mk2D nu nv n = do
    vals <- replicateM n $ (stratified2D nu nv) >>= shuffle (nu*nv)
@@ -61,6 +68,16 @@ mk2D nu nv n = do
 almostOne :: Float
 almostOne = 0.9999999403953552 -- 0x1.fffffep-1
 
+stratified1D
+   :: Int
+   -> Rand [Flt]
+stratified1D n = do
+   js <- rndList n
+   return $ Prelude.zipWith j us js where
+      du = 1 / fromIntegral n
+      j u ju = min almostOne ((u+ju)*du)
+      us = [fromIntegral u | u <- [0..(n-1)]]
+      
 -- | generates stratified samples in two dimensions
 stratified2D
    :: Int -- ^ number of samples in first dimension
