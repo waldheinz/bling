@@ -199,12 +199,12 @@ mkBxdfType :: [BxdfProp] -> BxdfType
 mkBxdfType = foldl' (flip insert) empty
 
 --------------------------------------------------------------------------------
--- BSDF
+-- The BSDF (bidirectional scattering distribution function)
 --------------------------------------------------------------------------------
 
 data Bsdf = Bsdf
-   { _bsdfBxdfs :: V.Vector AnyBxdf
-   , _bsdfCs    :: LocalCoordinates
+   { _bsdfBxdfs :: V.Vector AnyBxdf -- ^ the BxDFs the BSDF is composed of
+   , _bsdfCs    :: LocalCoordinates -- ^ the shading coordinate system
    , _bsdfNg    :: Normal -- ^ geometric normal
    }
 
@@ -249,8 +249,8 @@ sampleBsdf (Bsdf bs cs ng) woW uComp uDir
    | otherwise = BsdfSample t pdf f wiW where
       -- value for sampled direction
       flt = if dot woW ng * dot wiW ng < 0 then isTransmission else isReflection
-      f = V.foldl' (+) f' $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bs'
-      pdf = (V.sum $ V.map (\ b -> bxdfPdf b wo wi) bs) / (fromIntegral cnt)
+      f = f' + (V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bs')
+      pdf = (pdf' + (V.sum $ V.map (\b -> bxdfPdf b wo wi) bs)) / (fromIntegral cnt)
       bs' = V.ifilter (\ i _ -> (i /= sNum)) bs -- filter explicitely sampled
       (f', wi, pdf') = bxdfSample bxdf wo uDir
       wiW = localToWorld cs wi
