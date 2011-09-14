@@ -3,10 +3,11 @@ module Graphics.Bling.Sampler.Stratified (
    StratifiedSampler, mkStratifiedSampler
    ) where
 
-import Control.Monad (liftM)
-import qualified Data.Vector.Generic as V
+import Control.Monad (liftM, replicateM)
+import Data.List (transpose)
+import qualified Data.Vector.Unboxed as V
 import System.Random
-import System.Random.Shuffle
+import qualified System.Random.Shuffle as S
 
 import Graphics.Bling.Math
 import Graphics.Bling.Random
@@ -21,29 +22,46 @@ mkStratifiedSampler :: Int -> Int -> StratifiedSampler
 mkStratifiedSampler = SS
 
 instance Sampler StratifiedSampler where
-   samples (SS nu nv) w = concat `liftM` mapM (pixel nu nv) (coverWindow w)
+   samples (SS nu nv) w n1d n2d = concat `liftM` mapM (pixel nu nv n1d n2d) (coverWindow w)
 
-pixel :: Int -> Int -> (Int, Int) -> Rand [Sample]
-pixel nu nv (px, py) = do
-   ls <- stratified2D nu nv
-   sls <- rndInt
+-- | creates stratified samples for one pixel
+pixel :: Int -> Int -> Int -> Int -> (Int, Int) -> Rand [Sample]
+pixel nu nv _ n2d (px, py) = do
+   lens <- stratified2D nu nv >>= shuffle (nu*nv)
    ps <- stratified2D nu nv
-   r2d <- stratified2D nu nv
-   s2d <- rndInt
+   r2d <- mk2D nu nv n2d
    
-   return $ mkSamples
-      (shuffle' ls (nu*nv) $ mkStdGen sls)
-      (shuffle' r2d (nu*nv) $ mkStdGen s2d)
-      (shiftToPixel px py ps)
+   return $ mkSamples (shiftToPixel px py ps) lens r2d 
 
-mkSamples :: [Rand2D] -> [Rand2D] -> [(Flt, Flt)] -> [Sample]
+mkSamples
+   :: [(Flt, Flt)] -- ^ pixel coordinates
+   -> [Rand2D] -- ^ lens coordinates
+   -> [V.Vector Rand2D] -- ^ 2d samples
+   -> [Sample]
 mkSamples = zipWith3 go where
-   go n2d lens (px, py) = Sample px py lens (V.singleton n2d) V.empty
+   go (px, py) lens r2d = Sample px py lens V.empty r2d
+
+-- | shuffles a list
+shuffle
+   :: Int -- ^ the length of the list
+   -> [a] -- ^ the list to shuffle
+   -> Rand [a]
+shuffle xl xs = do
+   seed <- rndInt
+   return $ S.shuffle' xs xl $ mkStdGen seed
+
+vectorize :: (V.Unbox a) => [[a]] -> [V.Vector a]
+vectorize xs = map V.fromList $ transpose xs
+
+mk2D :: Int -> Int -> Int -> Rand [V.Vector Rand2D]
+mk2D nu nv n = do
+   vals <- replicateM n $ (stratified2D nu nv) >>= shuffle (nu*nv)
+   return $ vectorize vals
 
 almostOne :: Float
 almostOne = 0.9999999403953552 -- 0x1.fffffep-1
 
--- | generates startified samples in two dimensions
+-- | generates stratified samples in two dimensions
 stratified2D
    :: Int -- ^ number of samples in first dimension
    -> Int -- ^ number of samples in second dimension

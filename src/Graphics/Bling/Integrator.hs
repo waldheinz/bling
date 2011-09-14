@@ -24,6 +24,8 @@ mkContrib ws = do
    
 class Printable a => SurfaceIntegrator a where
    contrib :: a -> Scene -> Ray -> Sampled Contribution
+   sampleCount1D :: a -> Int
+   sampleCount2D :: a -> Int
    
 data AnySurfaceIntegrator =
    forall a . SurfaceIntegrator a => MkAnySurfaceIntegrator a
@@ -36,4 +38,6 @@ instance Printable AnySurfaceIntegrator where
 
 instance SurfaceIntegrator AnySurfaceIntegrator where
    contrib (MkAnySurfaceIntegrator a) = contrib a
+   sampleCount1D (MkAnySurfaceIntegrator a) = sampleCount1D a
+   sampleCount2D (MkAnySurfaceIntegrator a) = sampleCount2D a
    

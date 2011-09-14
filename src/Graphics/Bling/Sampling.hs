@@ -41,8 +41,8 @@ data Sample = Sample {
    smpImageX :: ! Float,
    smpImageY :: ! Float,
    smpLens :: ! R.Rand2D,
-   smpRnd2D :: ! (V.Vector R.Rand2D),
-   smpRnd1D :: ! (V.Vector Float)
+   smpRnd1D :: ! (V.Vector Float),
+   smpRnd2D :: ! (V.Vector R.Rand2D)
    } deriving (Show)
 
 coverWindow :: SampleWindow -> [(Int, Int)]
@@ -62,7 +62,7 @@ shiftToPixel px py = Prelude.map (s (fromIntegral px) (fromIntegral py)) where
    s fx fy (u, v) = (u + fx, v + fy)
    
 class Sampler a where
-   samples :: a -> SampleWindow -> R.Rand [Sample]
+   samples :: a -> SampleWindow -> Int -> Int -> R.Rand [Sample]
 
 data AnySampler = forall a . Sampler a => MkAnySampler a
 

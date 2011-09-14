@@ -12,7 +12,7 @@ import Graphics.Bling.Integrator.Path
 import Graphics.Bling.IO.ParserCore
 
 defaultSurfaceIntegrator :: AnySurfaceIntegrator
-defaultSurfaceIntegrator = mkAnySurface $ mkPathIntegrator 20
+defaultSurfaceIntegrator = mkAnySurface $ mkPathIntegrator 5
 
 pSurfaceIntegrator :: JobParser AnySurfaceIntegrator
 pSurfaceIntegrator = (flip namedBlock) "integrator" $ do

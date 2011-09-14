@@ -21,18 +21,21 @@ data PathIntegrator = PathIntegrator {-# UNPACK #-} !Int
 mkPathIntegrator :: Int -> PathIntegrator
 mkPathIntegrator = PathIntegrator
 
+sampleDepth :: Int
+sampleDepth = 3
 
 smps2D :: Int
 smps2D = 1
 
 smp2doff :: Int -> Int
-smp2doff d = smps2D * d
+smp2doff d = smps2D * d * sampleDepth
 
 instance Printable PathIntegrator where
    prettyPrint (PathIntegrator md) =
       PP.text ("Path Integrator " ++ (show md))
 
 instance SurfaceIntegrator PathIntegrator where
+   sampleCount2D _ = smps2D * sampleDepth
    contrib (PathIntegrator md) s r = do
       li <- nextVertex s 0 True r (s `intersect` r) white black md
       mkContrib li

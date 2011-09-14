@@ -32,8 +32,10 @@ instance Monad Rand where
 
 -- | Lets a computation run in the Rand Monad
 runRand :: Int -> Rand a -> a
-runRand seed (Rand c) = runST (do gen <- initialize $ singleton $ fromIntegral seed
-                                  c gen)
+runRand seed (Rand c) = runST $ do
+   gen <- mkRndGen seed
+   c gen
+   
 runRand' :: Seed -> Rand a -> a
 runRand' seed (Rand c) = runST $ do
    gen <- restore seed

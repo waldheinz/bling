@@ -21,7 +21,7 @@ mkRandomSampler = RS
 
 instance Sampler RandomSampler where
    
-   samples (RS spp) w = Prelude.mapM smp ws where
+   samples (RS spp) w _ _ = Prelude.mapM smp ws where
       ws = Prelude.concatMap (Prelude.replicate spp) (coverWindow w)
       smp :: (Int, Int) -> R.Rand Sample
       smp (ix, iy) = do
