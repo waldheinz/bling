@@ -241,7 +241,7 @@ bsdfPdf (Bsdf bs cs _) woW wiW
       pdfSum = V.sum $ V.map (\b -> bxdfPdf b wo wi) bs
       wo = worldToLocal cs woW
       wi = worldToLocal cs wiW
-      
+
 sampleBsdf :: Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
 sampleBsdf (Bsdf bs cs ng) woW uComp uDir
    | V.null bs || pdf' == 0 = emptyBsdfSample

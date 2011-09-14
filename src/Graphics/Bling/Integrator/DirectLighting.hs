@@ -31,8 +31,11 @@ directLighting :: Bool -> Scene -> Ray -> Sampled WeightedSpectrum
 directLighting _ s r@(Ray _ rd _ _) =
    maybe (return (0, black)) ls (s `intersect` r) where
       ls int = do
-         ul <- rnd
-         l <- sampleOneLight s p n wo bsdf ul
+         uln <- rnd
+         uld <- rnd2D
+         ubc <- rnd
+         ubd <- rnd2D
+         let l = sampleOneLight s p n wo bsdf $ RLS uln uld ubc ubd 
          return (1, l + intLe int wo) where
             dg = intGeometry int
             bsdf = intBsdf int

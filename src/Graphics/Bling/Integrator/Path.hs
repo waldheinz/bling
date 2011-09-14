@@ -25,7 +25,7 @@ sampleDepth :: Int
 sampleDepth = 3
 
 smps2D :: Int
-smps2D = 1
+smps2D = 3
 
 smp2doff :: Int -> Int
 smp2doff d = smps2D * d * sampleDepth
@@ -53,11 +53,18 @@ nextVertex _ _ False _ Nothing _ l _ =
 nextVertex scene depth spec (Ray _ rd _ _) (Just int) t l md
    | isBlack t || depth == md = return (1, l)
    | otherwise = do
-      bsdfDirU <- rnd2D' $ smp2doff depth
+      -- for bsdf sampling
       bsdfCompU <- rnd
+      bsdfDirU <- rnd2D' $ smp2doff depth
+
+      -- for light sampling
+      lNumU <- rnd
+      lDirU <- rnd2D' $ 2 + smp2doff depth
+      lBsdfCompU <- rnd
+      lBsdfDirU <- rnd2D' $ 1 + smp2doff depth
+      
       let (BsdfSample smpType spdf f wi) = sampleBsdf bsdf wo bsdfCompU bsdfDirU
-      ulNum <- rnd
-      lHere <- sampleOneLight scene p n wo bsdf ulNum
+      let lHere = sampleOneLight scene p n wo bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU
       let l' = l + (t * (lHere + intl))
       
       rnd >>= \x -> if x > pc || (spdf == 0) || isBlack f

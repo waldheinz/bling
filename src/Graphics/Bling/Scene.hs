@@ -1,6 +1,7 @@
 module Graphics.Bling.Scene (
    Scene, mkScene, scenePrim, sceneLights, sceneCam, sampleOneLight,
-   sampleLightRay, lightPower
+   sampleLightRay, lightPower,
+      RandLightSample(..)
    ) where
 
 import Data.Maybe (mapMaybe, isJust, fromJust)
@@ -14,7 +15,6 @@ import Graphics.Bling.Montecarlo
 import Graphics.Bling.Primitive
 import qualified Graphics.Bling.Random as R
 import Graphics.Bling.Reflection
-import Graphics.Bling.Sampling
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Primitive.KdTree
 
@@ -57,6 +57,10 @@ instance Primitive Scene where
 lightPower :: Scene -> Spectrum
 lightPower s = V.sum $ V.map (\l -> L.power l (worldBounds s)) (sceneLights s)
 
+--------------------------------------------------------------------------------
+-- Sampling Scene Light Sources
+--------------------------------------------------------------------------------
+
 sampleLightMis :: Scene -> LightSample -> Bsdf -> Vector -> Normal -> Spectrum
 sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n
    | lpdf == 0 || isBlack li || isBlack f || occluded scene ray = black
@@ -70,12 +74,12 @@ sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Spectrum
 sampleBsdfMis (Scene _ sp _ _) l (BsdfSample _ bPdf f wi) n p
    | isBlack f || bPdf == 0 = black
    | isJust lint = maybe black ff $ intLight (fromJust lint)
-   | otherwise = scale (le l ray)
+   | otherwise = sc (le l ray)
    where
-         ff l' = if l' == l then scale $ intLe (fromJust lint) (-wi) else black
+         ff l' = if l' == l then sc $ intLe (fromJust lint) (-wi) else black
          lPdf = pdf l p wi
          weight = powerHeuristic (1, bPdf) (1, lPdf)
-         scale li = sScale (f * li) (absDot wi n * weight / bPdf)
+         sc li = sScale (f * li) (absDot wi n * weight / bPdf)
          ray = Ray p wi epsilon infinity
          lint = sp `intersect` ray
 
@@ -86,38 +90,33 @@ estimateDirect
    -> Normal
    -> Vector
    -> Bsdf
-   -> Sampled Spectrum
+   -> RandLightSample
+   -> Spectrum
 {-# INLINE estimateDirect #-}
-{-
-estimateDirect s l p n wo bsdf = do
-   ul <- rnd2D
-   let (LightSample li wi ray lpdf _) = sample l p n ul
-   let f = (evalBsdf bsdf wo wi)
-   if lpdf == 0 || isBlack li || isBlack f || occluded s ray
-      then return black
-      else return $ sScale (f * li) (absDot wi n / lpdf)
-   -}
-
-estimateDirect s l p n wo bsdf = do
-   uL <- rnd2D
-   uBC <- rnd
-   uBD <- rnd2D
-   let ls = sampleLightMis s (sample l p n uL) bsdf wo n
-   let bs = sampleBsdfMis s l (sampleBsdf bsdf wo uBC uBD) n p
-   return $ ls + bs
+estimateDirect s l p n wo bsdf smp = ls + bs where
+   ls = sampleLightMis s (sample l p n $ ulDir smp) bsdf wo n
+   bs = sampleBsdfMis s l (sampleBsdf bsdf wo uBC uBD) n p
+   uBC = uBsdfComp smp
+   uBD = uBsdfDir smp
+   
+-- | the random values needed to sample a light source in the scene
+data RandLightSample = RLS
+   { ulNum ::  {-# UNPACK #-} ! Flt
+   , ulDir :: {-# UNPACK #-} ! R.Rand2D
+   , uBsdfComp :: {-# UNPACK #-} ! Flt
+   , uBsdfDir :: {-# UNPACK #-} ! R.Rand2D
+   }
    
 -- | samples one randomly chosen light source
-sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> Float -> Sampled Spectrum
-sampleOneLight scene@(Scene _ _ lights _) p n wo bsdf ulNum
-   | lc == 0 = return black
+sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> RandLightSample -> Spectrum
+sampleOneLight scene@(Scene _ _ lights _) p n wo bsdf smp
+   | lc == 0 = black
    | lc == 1 = ed (V.head lights)
-   | otherwise = do
-      ld <- ed $ V.unsafeIndex lights ln
-      return $ sScale ld (fromIntegral lc)
-      where
-            ed l = estimateDirect scene l p n wo bsdf
+   | otherwise = sScale ld (fromIntegral lc) where     
+            ld = ed $ V.unsafeIndex lights ln
+            ed l = estimateDirect scene l p n wo bsdf smp
             lc = V.length lights
-            ln = min (floor $ ulNum * fromIntegral lc) (lc - 1)
+            ln = min (floor $ (ulNum smp) * fromIntegral lc) (lc - 1)
 
 -- | samples an outgoing light ray from a randomly chosen light source
 sampleLightRay
