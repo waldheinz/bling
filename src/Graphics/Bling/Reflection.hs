@@ -247,12 +247,11 @@ sampleBsdf (Bsdf bs cs ng) woW uComp uDir
    | V.null bs || pdf' == 0 = emptyBsdfSample
    | isSpecular bxdf = BsdfSample t pdf' f' wiW
    | otherwise = BsdfSample t pdf f wiW where
-      -- value for sampled direction
-      flt = if dot woW ng * dot wiW ng < 0 then isTransmission else isReflection
-      f = f' + (V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bs')
-      pdf = (pdf' + (V.sum $ V.map (\b -> bxdfPdf b wo wi) bs)) / (fromIntegral cnt)
-      bs' = V.ifilter (\ i _ -> (i /= sNum)) bs -- filter explicitely sampled
       (f', wi, pdf') = bxdfSample bxdf wo uDir
+      flt = if woW `dot` ng * wiW `dot` ng < 0 then isTransmission else isReflection
+      f = f' + (V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bs')
+      pdf = (pdf' + (V.sum $ V.map (\b -> bxdfPdf b wo wi) bs')) / (fromIntegral cnt)
+      bs' = V.ifilter (\i _ -> (i /= sNum)) bs -- filter explicitely sampled
       wiW = localToWorld cs wi
       wo = worldToLocal cs woW
       bxdf = V.unsafeIndex bs sNum
@@ -305,9 +304,9 @@ instance Bxdf OrenNayar where
    
    bxdfEval (MkOrenNayar r a b) wo wi = r' where
       r' = sScale r (invPi * (a + b * maxcos * sina * tanb))
-      (sina, tanb)
-         | absCosTheta wi > absCosTheta wo = (sinto, sinti / absCosTheta wi)
-         | otherwise = (sinti, sinto / absCosTheta wo)
+      (sina, tanb) = if absCosTheta wi > absCosTheta wo
+                        then (sinto, sinti / absCosTheta wi)
+                        else (sinti, sinto / absCosTheta wo)
       (sinti, sinto) = (sinTheta wi, sinTheta wo)
       maxcos
          | sinti > 1e-4 && sinto > 1e-4 =
@@ -330,10 +329,10 @@ data Microfacet = Microfacet {
 
 instance Bxdf Microfacet where
    bxdfType _ = mkBxdfType [Reflection, Glossy]
-   bxdfEval (Microfacet d fr r) wo wi
+   bxdfEval (Microfacet d fresn r) wo wi
       | costi == 0 || costo == 0 = black
       | vx wh' == 0 && vy wh' == 0 && vz wh' == 0 = black
-      | otherwise = sScale (r * fr costh) x
+      | otherwise = sScale (r * fresn costh) x
       where
          x = mfDistD d wh * mfG wo wi wh / (4 * costi * costo)
          costo = absCosTheta wo
@@ -342,14 +341,14 @@ instance Bxdf Microfacet where
          wh = normalize $ wh'
          costh = wi `dot` wh
 
-   bxdfSample mf wo dirU = bxdfSample' dirU mf wo
+   bxdfSample mf wo dirU = mfSample dirU mf wo
 
    bxdfPdf (Microfacet d _ _) wo wi
       | sameHemisphere wo wi = mfDistPdf d wo wi
       | otherwise = 0
 
-bxdfSample' :: Rand2D -> Microfacet -> Vector -> (Spectrum, Vector, Float)
-bxdfSample' dirU mf@(Microfacet d _ _) wo
+mfSample :: Rand2D -> Microfacet -> Vector -> (Spectrum, Vector, Float)
+mfSample dirU mf@(Microfacet d _ _) wo
    | sameHemisphere wo wi = (f, wi, pdf)
    | otherwise = (black, wo, 0)
    where
@@ -357,24 +356,31 @@ bxdfSample' dirU mf@(Microfacet d _ _) wo
          (pdf, wi) = mfDistSample d dirU wo
 
 mfG :: Vector -> Vector -> Vector -> Float
-mfG wo wi wh = min 1 $ min (2 * nDotWh * nDotWo / woDotWh) (2 * nDotWh * nDotWi / woDotWh) where
-   nDotWh = abs $ cosTheta wh
-   nDotWo = abs $ cosTheta wo
-   nDotWi = abs $ cosTheta wi
-   woDotWh = absDot wo wh
+mfG wo wi wh = min 1 $ min
+      (2 * nDotWh * nDotWo / woDotWh)
+      (2 * nDotWh * nDotWi / woDotWh) where
+         nDotWh = absCosTheta wh
+         nDotWo = absCosTheta wo
+         nDotWi = absCosTheta wi
+         woDotWh = wo `absDot` wh
 
 data Distribution
    = Blinn {-# UNPACK #-} !Flt -- ^ e
    | Anisotropic {-# UNPACK #-} !Flt {-# UNPACK #-} !Flt -- ^ ex and ey
 
-mkBlinn :: Flt -> Distribution
-mkBlinn = Blinn
+-- | fixes the exponent for microfacet distribution to a usable range
+fixExponent :: Flt -> Flt
+fixExponent e = if e > 10000 || isNaN e then 10000 else e
+
+-- | create a Blinn microfacet distribution
+mkBlinn
+   :: Flt -- ^ the exponent in [0..10000]
+   -> Distribution
+mkBlinn e = Blinn $ fixExponent e
 
 mkAnisotropic :: Flt -> Flt -> Distribution
-mkAnisotropic ex ey = Anisotropic ex' ey' where
-   ex' = if ex > 10000 || isNaN ex then 10000 else ex
-   ey' = if ey > 10000 || isNaN ey then 10000 else ey
-   
+mkAnisotropic ex ey = Anisotropic (fixExponent ex) (fixExponent ey)
+
 mfDistPdf :: Distribution -> Vector -> Vector -> Float
 mfDistPdf (Anisotropic ex ey) wo wi
    | ds > 0 && wo `dot` wh > 0 = d / (4 * (wo `dot` wh))
