@@ -20,9 +20,8 @@ type Contribution = [ImageSample]
 
 mkContrib :: PrimMonad m => WeightedSpectrum -> Sampled m Contribution
 mkContrib ws = do
-   x <- imageX
-   y <- imageY
-   return $ [ImageSample x y ws]
+   cs <- cameraSample
+   return $ [ImageSample (imageX cs) (imageY cs) ws]
    
 class Printable a => SurfaceIntegrator a where
    contrib :: (PrimMonad m) => a -> Scene -> Ray -> Sampled m Contribution

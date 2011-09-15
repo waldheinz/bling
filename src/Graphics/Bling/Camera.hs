@@ -7,9 +7,10 @@ module Graphics.Bling.Camera (
    
    -- * Using Cameras
    
-   fireRay, CameraSample(..), sampleCam
+   fireRay, CameraSampleResult(..), sampleCam
    ) where
 
+import Control.Monad (liftM)
 import Control.Monad.Primitive
 import Text.PrettyPrint
 
@@ -49,9 +50,10 @@ instance Printable Camera where
 fireRay :: PrimMonad m => Camera -> Sampled m Ray
 
 fireRay (ProjectiveCamera c2w r2c _ _ lr fd) = do
-   ix <- imageX
-   iy <- imageY
-   luv <- lensUV
+   cs <- cameraSample
+   let ix = imageX cs
+   let iy = imageY cs
+   let luv = lensUV cs
    return $ transRay c2w (r ix iy luv) where
       r ix iy luv = if lr > 0 then ray' else ray where
          
@@ -68,8 +70,8 @@ fireRay (ProjectiveCamera c2w r2c _ _ lr fd) = do
          pFocus = rayAt ray (fd / vz (rayDir ray))
 
 fireRay (Environment c2w sx sy) = do
-   ix <- imageX
-   iy <- imageY
+   ix <- imageX `liftM` cameraSample
+   iy <- imageY `liftM` cameraSample
    return $ transRay c2w $ Ray (mkPoint 0 0 0) (dir ix iy) 0 infinity where
       dir ix iy = mkV (sin t * cos p, cos t, sin t * sin p) where
          t = pi * iy / sy
@@ -79,7 +81,7 @@ fireRay (Environment c2w sx sy) = do
 -- sampling the camera
 --
 
-data CameraSample = CameraSample
+data CameraSampleResult = CameraSampleResult
    { csF             :: Spectrum -- ^ transport
    , csP             :: Point -- ^ point on lens
    , csImgX          :: Flt -- ^ pixel pos x
@@ -90,10 +92,10 @@ data CameraSample = CameraSample
 sampleCam
    :: Camera -- ^ the camera to sample
    -> Point -- ^ the point in world space
-   -> CameraSample
+   -> CameraSampleResult
 
 sampleCam (ProjectiveCamera c2w r2c w2r ap _ _) p = smp where
-   smp = CameraSample white pLens px py (cost3 * ap)
+   smp = CameraSampleResult white pLens px py (cost3 * ap)
    pRas@(Vector px py _) = transPoint w2r p
    pLens = transPoint c2w (mkPoint 0 0 0)
    pRas' = transPoint r2c pRas

@@ -1,22 +1,20 @@
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Graphics.Bling.Random (
 
    -- * managing the random number generator
    
-   Rand, Rand2D, runRand, runRandIO, runWithSeed, {- runRandST, runRandIO, mkRndGen, -}
+   Rand, Rand2D, runRand, runRandIO, runWithSeed,
       
    -- * generating random values
    
-   rnd2D, rnd, rndList, rndList2D, rndInt, rndIntList
+   rnd2D, rnd, rndList, rndList2D, rndInt, rndIntR, rndIntList, shuffle
    ) where
 
 import Control.Monad (forM_, replicateM)
 import Control.Monad.Primitive
-import Control.Monad.ST
-import Data.Vector.Unboxed hiding (forM_, replicateM, create)
-import qualified Data.Vector.Unboxed.Mutable as MV
+import qualified Data.Vector.Generic.Mutable as MV
 import qualified System.Random.MWC as MWC
 
 type Rand2D = (Float, Float)
@@ -33,20 +31,6 @@ instance PrimMonad m => Monad (Rand m) where
    {-# INLINE return #-}
    {-# INLINE (>>=)  #-}
 
-toRand :: PrimMonad m => (MWC.Gen (PrimState m) -> m a) -> Rand m a
-toRand = Rand
-   
--- | Lets a computation run in the Rand Monad
---runRand :: Int -> Rand a -> a
---runRand seed (Rand c) = runST $ do
---   gen <- mkRndGen seed
---   c gen
-   
---runRand' :: Seed -> Rand a -> a
---runRand' seed (Rand c) = runST $ do
---   gen <- restore seed
---   c gen
-
 -- | Run monad using seed
 runWithSeed :: PrimMonad m => MWC.Seed -> Rand m a -> m a
 runWithSeed seed m = runRand m =<< MWC.restore seed
@@ -56,19 +40,14 @@ runRandIO :: Rand IO a -> IO a
 runRandIO = MWC.withSystemRandom . runRand
 {-# INLINE runRandIO #-}
 
---mkRndGen :: Int -> ST s (Gen s)
---mkRndGen seed = initialize $ singleton $ fromIntegral seed
-
---runRandST :: forall s t. Rand t -> Gen s -> ST s t
---runRandST (Rand c) gen  = c gen
-
--- shuffle' :: (PrimMonad m, MV.MVector v a) => v (PrimState m) a -> Rand ()
-shuffle' v = do
+shuffle :: (PrimMonad m, PrimMonad (Rand m), MV.MVector v a) => v (PrimState (Rand m)) a -> Rand m ()
+shuffle v = do
    forM_ [0..n-1] $ \i -> do
-      other <- rndInt --  uniformR (i, n - i - 1) gen
+      other <- rndIntR (i, n - i - 1)
       MV.swap v i other
    where
       n = MV.length v
+{-# INLINE shuffle #-}
 
 -- | Provides a random @Float@ in @[0..1)@
 rnd :: PrimMonad m => Rand m Float
@@ -78,7 +57,13 @@ rnd = do
    return $ u - 2**(-33)
 
 rndInt :: PrimMonad m => Rand m Int
+{-# INLINE rndInt #-}
 rndInt = Rand MWC.uniform
+
+rndIntR :: PrimMonad m => (Int, Int) -> Rand m Int
+{-# INLINE rndIntR #-}
+rndIntR r = Rand $ MWC.uniformR r
+
 
 rndIntList
    :: PrimMonad m
@@ -92,6 +77,7 @@ rndList
    => Int -- ^ the length of the list to generate
    -> Rand m [Float]
 rndList n = replicateM n $ rnd
+{-# INLINE rndList #-}
 
 -- | generates a list of given length containing tuples of random numbers
 rndList2D
@@ -102,6 +88,7 @@ rndList2D n = do
    us <- rndList n
    vs <- rndList n
    return $ Prelude.zip us vs
+{-# INLINE rndList2D #-}
 
 rnd2D :: PrimMonad m => Rand m Rand2D
 {-# INLINE rnd2D #-}

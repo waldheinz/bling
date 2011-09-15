@@ -92,7 +92,7 @@ contribT1 sc ((Vert bsdf p n wi _ _ t f):vs) li
    where
       le = li * evalBsdf bsdf wi we
       smp = ImageSample px py (absDot n we / (cPdf * d2), le * csf)
-      (CameraSample csf pCam px py cPdf) = sampleCam (sceneCam sc) p
+      (CameraSampleResult csf pCam px py cPdf) = sampleCam (sceneCam sc) p
       dCam = pCam - p
       we = normalize $ dCam
       d2 = sqLen dCam -- ^ distance squared
