@@ -9,6 +9,8 @@ module Graphics.Bling.Integrator (
    
    ) where
 
+import Control.Monad.Primitive
+
 import Graphics.Bling.Math
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
@@ -16,14 +18,14 @@ import Graphics.Bling.Spectrum
 
 type Contribution = [ImageSample]
 
-mkContrib :: WeightedSpectrum -> Sampled Contribution
+mkContrib :: PrimMonad m => WeightedSpectrum -> Sampled m Contribution
 mkContrib ws = do
    x <- imageX
    y <- imageY
    return $ [ImageSample x y ws]
    
 class Printable a => SurfaceIntegrator a where
-   contrib :: a -> Scene -> Ray -> Sampled Contribution
+   contrib :: (PrimMonad m) => a -> Scene -> Ray -> Sampled m Contribution
    sampleCount1D :: a -> Int
    sampleCount2D :: a -> Int
    

@@ -3,15 +3,15 @@ module Graphics.Bling.Sampler.Random (
 
    -- * Creating a @RandomSampler@
    
-   mkRandomSampler
+ --  mkRandomSampler
    
    ) where
 
-import Data.Vector.Generic
+-- import Data.Vector.Generic
 
-import Graphics.Bling.Random as R
-import Graphics.Bling.Sampling
-
+-- import Graphics.Bling.Random as R
+-- import Graphics.Bling.Sampling
+{-
 data RandomSampler = RS {
    _spp :: Int
    }
@@ -23,7 +23,7 @@ instance Sampler RandomSampler where
    
    samples (RS spp) w _ _ = Prelude.mapM smp ws where
       ws = Prelude.concatMap (Prelude.replicate spp) (coverWindow w)
-      smp :: (Int, Int) -> R.Rand Sample
+  --    smp :: (Int, Int) -> R.Rand Sample
       smp (ix, iy) = do
          ox <- R.rnd
          oy <- R.rnd
@@ -33,4 +33,4 @@ instance Sampler RandomSampler where
             ((fromIntegral iy) + oy)
             luv
             empty empty
-      
+            -}

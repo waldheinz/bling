@@ -29,6 +29,7 @@ Library
       parsec,
       parallel,
       pretty,
+      primitive == 0.4.*,
       deepseq >= 1.1 && < 1.2,
       random >= 1.0 && < 1.1,
       random-shuffle == 0.0.2

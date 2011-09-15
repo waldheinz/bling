@@ -3,6 +3,7 @@ module Graphics.Bling.Integrator.DirectLighting (
    DirectLighting, mkDirectLightingIntegrator
    ) where
 
+import Control.Monad.Primitive
 import qualified Text.PrettyPrint as PP
 
 
@@ -27,7 +28,7 @@ instance Printable DirectLighting where
 instance SurfaceIntegrator DirectLighting where
    contrib (DirectLighting sa) s r = directLighting sa s r >>= mkContrib
 
-directLighting :: Bool -> Scene -> Ray -> Sampled WeightedSpectrum
+directLighting :: PrimMonad m => Bool -> Scene -> Ray -> Sampled m WeightedSpectrum
 directLighting _ s r@(Ray _ rd _ _) =
    maybe (return (0, black)) ls (s `intersect` r) where
       ls int = do

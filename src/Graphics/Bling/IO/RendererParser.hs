@@ -7,8 +7,6 @@ import Text.ParserCombinators.Parsec
 
 import Graphics.Bling.Rendering
 import Graphics.Bling.Sampling
-import Graphics.Bling.Sampler.Random
-import Graphics.Bling.Sampler.Stratified
 import Graphics.Bling.Integrator.LightTracer
 import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.IntegratorParser
@@ -17,9 +15,9 @@ defaultRenderer :: AnyRenderer
 defaultRenderer = mkAnyRenderer r where
    r = mkSamplerRenderer defaultSampler defaultSurfaceIntegrator
    
-defaultSampler :: AnySampler
+defaultSampler :: Sampler
 -- defaultSampler = mkAnySampler $ mkRandomSampler 2
-defaultSampler = mkAnySampler $ mkStratifiedSampler 2 2
+defaultSampler = mkStratifiedSampler 2 2
 
 pRenderer :: JobParser ()
 pRenderer = pBlock $ do
@@ -46,7 +44,7 @@ pSamplerRenderer = (flip namedBlock) "sampled" $ do
    i <- ws >> pSurfaceIntegrator
    return $ mkSamplerRenderer s i
    
-pSampler :: JobParser AnySampler
+pSampler :: JobParser Sampler
 pSampler = (flip namedBlock) "sampler" $ do
    t <- many1 alphaNum
    
@@ -54,11 +52,11 @@ pSampler = (flip namedBlock) "sampler" $ do
              "stratified" -> do
                 nx <- ws >> namedInt "xSamples"
                 ny <- ws >> namedInt "ySamples"
-                return $ mkAnySampler $ mkStratifiedSampler nx ny
+                return $ mkStratifiedSampler nx ny
                 
              "random" -> do
                 ns <- ws >> namedInt "samples"
-                return $ mkAnySampler $ mkRandomSampler ns
+                return $ mkRandomSampler ns
                 
              _ -> fail $ "unknown sampler type " ++ t
    

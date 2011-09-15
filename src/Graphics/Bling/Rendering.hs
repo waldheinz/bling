@@ -13,7 +13,6 @@ module Graphics.Bling.Rendering (
    ) where
 
 import Control.Monad.ST
-import System.Random.MWC
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Image
@@ -63,10 +62,10 @@ instance Renderer AnyRenderer where render (AR a) = render a
 --
 
 data SamplerRenderer =
-   SR AnySampler I.AnySurfaceIntegrator
+   SR Sampler I.AnySurfaceIntegrator
 
 mkSamplerRenderer
-   :: AnySampler
+   :: Sampler
    -> I.AnySurfaceIntegrator
    -> SamplerRenderer
 mkSamplerRenderer = SR
@@ -99,8 +98,8 @@ instance Renderer SamplerRenderer where
                      else error "cancelled"
                ws = splitWindow $ imageWindow img
 
-         renderWindow :: SampleWindow -> IO I.Contribution
-         renderWindow w = withSystemRandom $ runRandST $ do
+      --   renderWindow :: SampleWindow -> IO I.Contribution
+         renderWindow w = runRandIO $ do
             ss <- samples smp w (I.sampleCount1D si) (I.sampleCount2D si)
             css <- mapM (randToSampled (fireRay cam >>= I.contrib si scene)) ss
             return $ concat css

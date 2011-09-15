@@ -6,6 +6,7 @@ module Graphics.Bling.Integrator.LightTracer (
    ) where
 
 import Control.Monad
+import Control.Monad.Primitive
 import Control.Monad.ST
 import qualified Text.PrettyPrint as PP
 
@@ -55,7 +56,7 @@ instance Renderer LightTracer where
       sSmp (ImageSample x y (w, s)) = ImageSample x y (w * f, s)
       f = 1 / (fromIntegral $ np * ppp) -- TODO: the factor of 4 is, odd
       
-oneRay :: Scene -> Rand [ImageSample]
+oneRay :: PrimMonad m => Scene -> Rand m [ImageSample]
 oneRay scene = do
    ul <- rnd
    ulo <- rnd2D
@@ -65,12 +66,13 @@ oneRay scene = do
    nextVertex scene (-wo) (intersect scene ray) (sScale li (absDot nl wo / pdf)) 0
    
 nextVertex
-   :: Scene
+   :: PrimMonad m
+   => Scene
    -> Vector
    -> Maybe Intersection
    -> Spectrum
    -> Int -- ^ depth
-   -> Rand [ImageSample]
+   -> Rand m [ImageSample]
 -- nothing hit, terminate path   
 nextVertex _ _ Nothing _ _ = return []
 

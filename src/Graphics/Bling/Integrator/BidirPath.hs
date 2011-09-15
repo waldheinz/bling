@@ -5,6 +5,7 @@ module Graphics.Bling.Integrator.BidirPath (
 
 import Data.BitSet
 import Control.Monad (liftM)
+import Control.Monad.Primitive
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Camera
@@ -52,13 +53,13 @@ data Vertex = Vert
 type Path = [Vertex]
 
 -- | generates the eye path
-eyePath :: Scene -> Ray -> Sampled Path
+eyePath :: PrimMonad m =>  Scene -> Ray -> Sampled m Path
 eyePath s r = nextVertex s wi int 0 where
    wi = normalize $ (-(rayDir r))
    int = s `intersect` r
 
 -- | generates the light path together with the emitted spectrum
-lightPath :: Scene -> Sampled (Path, Spectrum)
+lightPath :: PrimMonad m => Scene -> Sampled m (Path, Spectrum)
 lightPath s = do
    ul <- rnd
    ulo <- rnd2D
@@ -83,7 +84,7 @@ contribS1 _ = black
 -- contribS1 ((Vert _ _ _ _ _ _ _ _):vs) = black
 
 -- | follow specular paths from the light and connect the to the eye
-contribT1 :: Scene -> Path -> Spectrum -> Sampled Contribution
+contribT1 :: PrimMonad m => Scene -> Path -> Spectrum -> Sampled m Contribution
 contribT1 _ [] _ = return []
 contribT1 sc ((Vert bsdf p n wi _ _ t f):vs) li
    | Specular `member` t = contribT1 sc vs (f * li)
@@ -100,11 +101,12 @@ connect :: Path -> Path -> WeightedSpectrum
 connect ep lp = (1, black)
 
 nextVertex
-   :: Scene
+   :: PrimMonad m
+   => Scene
    -> Vector
    -> Maybe Intersection
    -> Int -- ^ depth
-   -> Sampled Path
+   -> Sampled m Path
 -- nothing hit, terminate path
 nextVertex _ _ Nothing _ = return []
 nextVertex sc wi (Just int) depth = do

@@ -12,7 +12,7 @@ renderer {
    }
 }
 
-renderer { sampler sampled { sampler { random samples 25 } integrator { path maxDepth 5 } } }
+# renderer { sampler sampled { sampler { random samples 25 } integrator { path maxDepth 5 } } }
 
 imageSize 480 480
 

@@ -3,6 +3,7 @@ module Graphics.Bling.Integrator.Path (
    mkPathIntegrator, PathIntegrator
    ) where
 
+import Control.Monad.Primitive
 import Data.BitSet
 import qualified Data.Vector.Generic as V
 import qualified Text.PrettyPrint as PP
@@ -49,7 +50,7 @@ instance SurfaceIntegrator PathIntegrator where
       li <- nextVertex s 0 True r (s `intersect` r) white black md
       mkContrib li
       
-nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled WeightedSpectrum
+nextVertex :: PrimMonad m => Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled m WeightedSpectrum
 
 -- nothing hit, specular bounce
 nextVertex s _ True ray Nothing t l _ = 

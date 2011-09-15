@@ -2,17 +2,20 @@
 module Graphics.Bling.Sampler.Stratified (
    StratifiedSampler, mkStratifiedSampler
    ) where
-
-import Control.Monad (liftM, replicateM)
+{-
+import Control.Monad (liftM, replicateM, forM_)
+import Control.Monad.Primitive
 import Data.List (transpose, zipWith4)
 import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Unboxed.Mutable as MV
 import System.Random
 import qualified System.Random.Shuffle as S
+import System.Random.MWC
 
 import Graphics.Bling.Math
 import Graphics.Bling.Random
 import Graphics.Bling.Sampling
-
+-}
 data StratifiedSampler = SS
    { _nu :: Int
    , _nv :: Int
@@ -20,7 +23,7 @@ data StratifiedSampler = SS
    
 mkStratifiedSampler :: Int -> Int -> StratifiedSampler
 mkStratifiedSampler = SS
-
+{-
 instance Sampler StratifiedSampler where
    samples (SS nu nv) w n1d n2d = concat `liftM` mapM (pixel nu nv n1d n2d) (coverWindow w)
 
@@ -50,8 +53,9 @@ shuffle
    -> Rand [a]
 shuffle xl xs = do
    seed <- rndInt
-   return $ S.shuffle' xs xl $ mkStdGen seed
+   return $ {-# SCC "shuffle'" #-} S.shuffle' xs xl $ mkStdGen seed
 
+   
 vectorize :: (V.Unbox a) => [[a]] -> [V.Vector a]
 vectorize xs = map V.fromList $ transpose xs
 
@@ -90,3 +94,4 @@ stratified2D nu nv = do
       (du, dv) = (1 / fromIntegral nu, 1 / fromIntegral nv)
       j (u, v) (ju, jv) = (min almostOne ((u+ju)*du), min almostOne ((v+jv)*dv))
       uvs = [(fromIntegral u, fromIntegral v) | u <- [0..(nu-1)], v <- [0..(nv-1)]]
+         -}
