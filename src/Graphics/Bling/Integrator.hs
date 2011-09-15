@@ -1,4 +1,5 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE RankNTypes #-}
 
 module Graphics.Bling.Integrator (
    
@@ -18,13 +19,15 @@ import Graphics.Bling.Spectrum
 
 type Contribution = [ImageSample]
 
-mkContrib :: PrimMonad m => WeightedSpectrum -> Sampled m Contribution
+mkContrib :: PrimMonad m => WeightedSpectrum -> Sampled m ImageSample
 mkContrib ws = do
    cs <- cameraSample
-   return $ [ImageSample (imageX cs) (imageY cs) ws]
+   return $ ImageSample (imageX cs) (imageY cs) ws
+   
+type Consumer m a = (PrimMonad m) => a -> m ()
    
 class Printable a => SurfaceIntegrator a where
-   contrib :: (PrimMonad m) => a -> Scene -> Ray -> Sampled m Contribution
+   contrib :: (PrimMonad m) => a -> Scene -> Ray -> Consumer m a -> Sampled m ()
    sampleCount1D :: a -> Int
    sampleCount2D :: a -> Int
    

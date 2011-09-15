@@ -101,7 +101,6 @@ instance Renderer SamplerRenderer where
       --   renderWindow :: SampleWindow -> IO I.Contribution
          renderWindow w = runRandIO $ do
             let comp = fireRay cam >>= I.contrib si scene
-         --   ss <- samples smp w (I.sampleCount1D si) (I.sampleCount2D si)
-         --   css <- mapM (randToSampled ()) ss
-            css <- sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp
-            return $ concat css
+            sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp (addSample img)
+            
+            

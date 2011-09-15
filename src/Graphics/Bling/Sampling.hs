@@ -83,24 +83,27 @@ mkRandomSampler = Random
 mkStratifiedSampler :: Int -> Int -> Sampler
 mkStratifiedSampler = Stratified
 
-sample :: (PrimMonad m) => Sampler -> SampleWindow -> Int -> Int -> Sampled m a -> R.Rand m [a]
-sample (Random spp) wnd _ _ c = do
+--type Consumer a = a -> 
+
+sample :: (PrimMonad m) => Sampler -> SampleWindow -> Int -> Int
+   -> Sampled m a -> (a -> R.Rand m ()) -> R.Rand m ()
+sample (Random spp) wnd _ _ c consume = do
       
-   x <- CM.forM (coverWindow wnd) $ \ (ix, iy) -> CM.replicateM spp $ do
+   CM.forM_ (coverWindow wnd) $ \ (ix, iy) -> CM.replicateM spp $ do
       ox <- R.rnd
       oy <- R.rnd
       luv <- R.rnd2D
-      randToSampled c $ SamplingState (CameraSample
+      x <- randToSampled c $ SamplingState (CameraSample
             ((fromIntegral ix) + ox)
             ((fromIntegral iy) + oy)
             luv) f1d f2d
-
-   return $ Prelude.concat x
+      consume x
+      
    where
       f1d _ = R.rnd
       f2d _ = R.rnd2D
       
-sample _ _ _ _ _ = error "sample not implemented for sampler"
+sample _ _ _ _ _ _ = error "sample not implemented for sampler"
 
 {-
 samples :: (PrimMonad m) => Sampler -> SampleWindow -> Int -> Int -> R.Rand m [Sample]
