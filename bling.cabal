@@ -83,9 +83,7 @@ Library
       Graphics.Bling.Primitive.Bezier,
       Graphics.Bling.Primitive.Bvh,
       Graphics.Bling.Primitive.Fractal,
-      Graphics.Bling.Primitive.KdTree,
-      Graphics.Bling.Sampler.Random,
-      Graphics.Bling.Sampler.Stratified
+      Graphics.Bling.Primitive.KdTree
 
 Executable bling
    hs-source-dirs:   src/Graphics/Bling/Main
