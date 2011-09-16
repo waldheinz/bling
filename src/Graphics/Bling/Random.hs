@@ -41,6 +41,7 @@ runRandIO = MWC.withSystemRandom . runRand
 {-# INLINE runRandIO #-}
 
 liftRand :: PrimMonad m => m a -> Rand m a
+{-# INLINE liftRand #-}
 liftRand m = Rand $ const m
 
 shuffle :: (PrimMonad m, PrimMonad (Rand m), MV.MVector v a) => v (PrimState (Rand m)) a -> Rand m ()
@@ -66,7 +67,6 @@ rndInt = Rand MWC.uniform
 rndIntR :: PrimMonad m => (Int, Int) -> Rand m Int
 {-# INLINE rndIntR #-}
 rndIntR r = Rand $ MWC.uniformR r
-
 
 rndIntList
    :: PrimMonad m

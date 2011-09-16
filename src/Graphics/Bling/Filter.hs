@@ -28,7 +28,7 @@ data Filter
       _yw :: Float,
       _tau :: Float
       }
-   | Mitchell Float Float Float Float
+   | Mitchell {-# UNPACK #-} !Float {-# UNPACK #-} !Float {-# UNPACK #-} !Float {-# UNPACK #-} !Float
    | Triangle Float Float
    | Table {-# UNPACK #-} !Float {-# UNPACK #-} !Float !(Vector Float) String
 
@@ -61,7 +61,6 @@ mkTriangleFilter
    -> Filter -- ^ the filter function
 
 mkTriangleFilter = Triangle
-
 
 -- | creates a mitchell filter
 mkMitchellFilter

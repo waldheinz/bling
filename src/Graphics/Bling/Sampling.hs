@@ -180,6 +180,7 @@ randToSampled
 randToSampled = runReaderT . runSampled
 
 liftSampled :: (PrimMonad m) => m a -> Sampled m a
+{-# INLINE liftSampled #-}
 liftSampled m = Sampled $ lift $ R.liftRand m
 
 rnd :: (PrimMonad m) => Sampled m Float

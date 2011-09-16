@@ -91,9 +91,6 @@ instance Renderer SamplerRenderer where
                      then return ()
                      else error "cancelled"
                ws = splitWindow $ imageWindow img
-
---         renderWindow :: SampleWindow -> IO ()
-
                renderWindow w  = do
                   let comp = fireRay cam >>= I.contrib si scene (addSample img)
                   sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp

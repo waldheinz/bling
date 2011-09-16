@@ -1,10 +1,10 @@
 
-import Control.Monad
+--import Control.Monad
 import System (getArgs)
 import System.IO
 import Text.Printf
 import qualified Text.PrettyPrint as PP
-import Time
+--import Time
 
 import Graphics.Bling.Image
 import Graphics.Bling.Rendering
@@ -38,7 +38,8 @@ main = do
    putStrLn (PP.render (PP.text "Job Stats" PP.$$ PP.nest 3 (prettyPrint j)))
    img <- mkImage (jobPixelFilter j) (imageSizeX j) (imageSizeY j)
    render (jobRenderer j) (jobScene j) img $ prog img
-   
+
+{-
 -- | Pretty print the date in '1d 9h 9m 17s' format
 pretty :: TimeDiff -> String
 pretty td = join . filter (not . null) . map f $
@@ -51,3 +52,6 @@ pretty td = join . filter (not . null) . map f $
     months  = days   `div` 28 ; years  = months `div` 12
     f (i,s) | i == 0    = []
             | otherwise = show i ++ s
+
+  -}
+  

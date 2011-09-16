@@ -10,6 +10,7 @@ module Graphics.Bling.Image (
 
 import Control.Monad
 import Control.Monad.Primitive
+import Control.Monad.ST
 import Debug.Trace
 import Data.Vector.Unboxed.Mutable as V
 import qualified Data.ByteString as BS
@@ -80,12 +81,14 @@ splatSample (Image w h _ p) (ImageSample sx sy (sw, ss))
          
 -- | adds a sample to the specified image
 addSample :: (PrimMonad m) => Image m -> ImageSample -> m ()
+{-# SPECIALIZE addSample :: Image IO -> ImageSample -> IO () #-}
+{-# SPECIALIZE addSample :: Image (ST s) -> ImageSample -> ST s () #-}
 addSample img smp@(ImageSample sx sy (_, ss))
    | sNaN ss = trace ("skipping NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | sInfinite ss = trace ("skipping infinite sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
-   | otherwise = mapM_ (addPixel img) pixels
+   | otherwise = forM_ pixels (addPixel img)
    where
          pixels = filterSample (imageFilter img) smp
 
