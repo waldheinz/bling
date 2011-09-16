@@ -106,6 +106,7 @@ instance Primitive Geometry where
       ro = transRay (w2o g) rw -- ray in object space
    
 near :: (Primitive a) => (Ray, Maybe Intersection) -> a -> (Ray, Maybe Intersection)
+{-# INLINE near #-}
 near o@(r, _) p = maybe o go $ intersect p r where
    go i = (r { rayMax = intDist i }, Just i)
 
