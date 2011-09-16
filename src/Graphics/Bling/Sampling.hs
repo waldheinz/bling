@@ -13,7 +13,7 @@ module Graphics.Bling.Sampling (
 
    -- * Running Sampled Computations
    
-   runSampled, randToSampled, sample,
+   runSampled, randToSampled, sample, liftSampled,
    
    -- * Accessing Camera Samples
 
@@ -83,27 +83,22 @@ mkRandomSampler = Random
 mkStratifiedSampler :: Int -> Int -> Sampler
 mkStratifiedSampler = Stratified
 
---type Consumer a = a -> 
-
-sample :: (PrimMonad m) => Sampler -> SampleWindow -> Int -> Int
-   -> Sampled m a -> (a -> R.Rand m ()) -> R.Rand m ()
-sample (Random spp) wnd _ _ c consume = do
-      
+sample :: (PrimMonad m) => Sampler -> SampleWindow -> Int -> Int -> Sampled m a -> R.Rand m ()
+sample (Random spp) wnd _ _ c = do
    CM.forM_ (coverWindow wnd) $ \ (ix, iy) -> CM.replicateM spp $ do
       ox <- R.rnd
       oy <- R.rnd
       luv <- R.rnd2D
-      x <- randToSampled c $ SamplingState (CameraSample
+      randToSampled c $ SamplingState (CameraSample
             ((fromIntegral ix) + ox)
             ((fromIntegral iy) + oy)
             luv) f1d f2d
-      consume x
       
    where
       f1d _ = R.rnd
       f2d _ = R.rnd2D
       
-sample _ _ _ _ _ _ = error "sample not implemented for sampler"
+sample _ _ _ _ _ = error "sample not implemented for sampler"
 
 {-
 samples :: (PrimMonad m) => Sampler -> SampleWindow -> Int -> Int -> R.Rand m [Sample]
@@ -191,9 +186,12 @@ newtype Sampled m a = Sampled {
 randToSampled
    :: (PrimMonad m)
    => Sampled m a -- ^ the sampled computation
-   -> SamplingState m -- ^ the sampler to use
+   -> SamplingState m -- ^ the sampler state
    -> R.Rand m a
 randToSampled = runReaderT . runSampled
+
+liftSampled :: (PrimMonad m) => m a -> Sampled m a
+liftSampled m = Sampled $ lift $ R.liftRand m
 
 rnd :: (PrimMonad m) => Sampled m Float
 rnd = Sampled (lift R.rnd)

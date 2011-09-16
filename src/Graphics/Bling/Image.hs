@@ -9,7 +9,7 @@ module Graphics.Bling.Image (
    ) where
 
 import Control.Monad
-import Control.Monad.ST
+import Control.Monad.Primitive
 import Debug.Trace
 import Data.Vector.Unboxed.Mutable as V
 import qualified Data.ByteString as BS
@@ -24,31 +24,32 @@ import Graphics.Bling.Spectrum
 type Pixel = (Float, (Float, Float, Float), (Float, Float, Float))
 
 -- | an image has a width, a height and some pixels 
-data Image s = Image {
+data (PrimMonad m) => Image m = Image {
    imageWidth :: Int,
    imageHeight :: Int,
    imageFilter :: Filter,
-   _imagePixels :: MVector s Pixel
+   _imagePixels :: V.MVector (PrimState m) Pixel
    }
 
 -- | creates a new image where all pixels are initialized to black
 mkImage
-   :: Filter -- ^ the pixel filter function to use when adding samples
+   :: PrimMonad m
+   => Filter -- ^ the pixel filter function to use when adding samples
    -> Int -- ^ the image width
    -> Int -- ^ the image height
-   -> ST s (Image s)
+   -> m (Image m)
 mkImage flt w h = do
    pixels <- V.replicate (w * h) (0, (0, 0, 0), (0, 0, 0))
    return $ Image w h flt pixels
 
-imageWindow :: Image s -> SampleWindow
+imageWindow :: PrimMonad m => Image m -> SampleWindow
 imageWindow (Image w h f _) = SampleWindow x0 x1 y0 y1 where
    x0 = floor (0.5 - filterWidth f)
    x1 = floor (0.5 + (fromIntegral w) + filterWidth f)
    y0 = floor (0.5 - filterHeight f)
    y1 = floor (0.5 + (fromIntegral h) + filterHeight f)
 
-addPixel :: Image s -> (Int, Int, WeightedSpectrum) -> ST s ()
+addPixel :: PrimMonad m => Image m -> (Int, Int, WeightedSpectrum) -> m ()
 {-# INLINE addPixel #-}
 addPixel (Image w h _ p) (x, y, (sw, s))
    | x < 0 || y < 0 = return ()
@@ -63,7 +64,7 @@ addPixel (Image w h _ p) (x, y, (sw, s))
               (w1+w2, (r1+r2, g1+g2, b1+b2), splat)
          o = (x + y*w)
          
-splatSample :: Image s -> ImageSample -> ST s ()
+splatSample :: PrimMonad m => Image m -> ImageSample -> m ()
 splatSample (Image w h _ p) (ImageSample sx sy (sw, ss))
    | floor sx > w || floor sy > h || sx < 0 || sy < 0 = return ()
    | sNaN ss = trace ("not splatting NaN sample at ("
@@ -78,7 +79,7 @@ splatSample (Image w h _ p) (ImageSample sx sy (sw, ss))
          (dx, dy, dz) = (\(x, y, z) -> (x * sw, y * sw, z * sw)) $ toRGB ss
          
 -- | adds a sample to the specified image
-addSample :: forall s. Image s -> ImageSample -> ST s ()
+addSample :: (PrimMonad m) => Image m -> ImageSample -> m ()
 addSample img smp@(ImageSample sx sy (_, ss))
    | sNaN ss = trace ("skipping NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
@@ -89,17 +90,18 @@ addSample img smp@(ImageSample sx sy (_, ss))
          pixels = filterSample (imageFilter img) smp
 
 -- | extracts the pixel at the specified offset from an Image
-getPixel :: Image s -> Int -> ST s (Float, Float, Float)
+getPixel :: PrimMonad m => Image m -> Int -> m (Float, Float, Float)
 getPixel (Image _ _ _ p) o = do
    (w, (r, g, b), (sr, sg, sb)) <- unsafeRead p o
    return $ if w == 0 
                then (sr, sg, sb)
                else (sr + r / w, sg + g / w, sb + b / w)
-   
-writeRgbe :: Image RealWorld -> Handle -> IO ()
+
+writeRgbe :: Image IO -> Handle -> IO ()
 writeRgbe img@(Image w h _ _) hnd =
    let header = "#?RGBE\nFORMAT=32-bit_rgbe\n\n-Y " ++ show h ++ " +X " ++ show w ++ "\n"
-       pixel p = stToIO $ liftM toRgbe $ getPixel img p
+       pixel :: Int -> IO BS.ByteString
+       pixel p = liftM toRgbe $ getPixel img p
    in do
       hPutStr hnd header
       mapM_ (\p -> pixel p >>= BS.hPutStr hnd) [0..(w*h-1)]
@@ -124,11 +126,11 @@ frexp x
          | otherwise = (s, e)
 
 -- | writes an image in ppm format
-writePpm :: Image RealWorld -> Handle -> IO ()
+writePpm :: Image IO -> Handle -> IO ()
 writePpm img@(Image w h _ _) handle =
    let
        header = "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n"
-       pixel p = stToIO $ liftM ppmPixel $ getPixel img p
+       pixel p = liftM ppmPixel $ getPixel img p
    in do
       hPutStr handle header
       mapM_ (\p -> pixel p >>= hPutStr handle) [0..(w*h-1)]
@@ -142,7 +144,7 @@ gamma x (r, g, b) = (r ** x', g ** x', b ** x') where
 clamp :: Float -> Int
 clamp v = round ( min 1 (max 0 v) * 255 )
 
-rgbPixels :: Image s -> SampleWindow -> ST s [((Int, Int), (Int, Int, Int))]
+rgbPixels :: PrimMonad m => Image m -> SampleWindow -> m [((Int, Int), (Int, Int, Int))]
 rgbPixels img w = do
    ps <- mapM (getPixel img) os
    let rgbs = map (gamma 2.2) ps

@@ -1,6 +1,6 @@
 
 import Control.Monad
-import Control.Monad.ST (stToIO)
+import Control.Monad.ST
 import System (getArgs)
 import System.IO
 import Text.Printf
@@ -12,11 +12,11 @@ import Graphics.Bling.Rendering
 import Graphics.Bling.Types
 import Graphics.Bling.IO.RenderJob
 
-prog :: ProgressReporter
-prog (Progress (PassDone p) img) = do
+prog :: Image IO -> ProgressReporter
+prog img (PassDone p) = do
    putStrLn $ "\nWriting " ++ fname ++ "..."
    h1 <- openFile (fname ++ ".ppm") WriteMode
-   writePpm img h1
+  -- stToIO $ writePpm img h1
    hClose h1
    
    h2 <- openFile (fname ++ ".hdr") WriteMode
@@ -27,8 +27,8 @@ prog (Progress (PassDone p) img) = do
    where
          fname = "pass-" ++ printf "%05d" p
 
-prog (Progress (SamplesAdded _) _) = putStr "." >> hFlush stdout >> return True
-prog _ = return True
+prog img (SamplesAdded _) = putStr "." >> hFlush stdout >> return True
+prog _ _ = return True
 
 main :: IO ()
 main = do
@@ -37,8 +37,8 @@ main = do
    j <- fmap parseJob $ readFile fName
 
    putStrLn (PP.render (PP.text "Job Stats" PP.$$ PP.nest 3 (prettyPrint j)))
-   img <- stToIO $ mkImage (jobPixelFilter j) (imageSizeX j) (imageSizeY j)
-   render (jobRenderer j) (jobScene j) img prog
+   img <- mkImage (jobPixelFilter j) (imageSizeX j) (imageSizeY j)
+   render (jobRenderer j) (jobScene j) img $ prog img
    
 -- | Pretty print the date in '1d 9h 9m 17s' format
 pretty :: TimeDiff -> String

@@ -46,9 +46,9 @@ instance SurfaceIntegrator PathIntegrator where
    
    sampleCount2D _ = smps2D * sampleDepth
    
-   contrib (PathIntegrator md) s r = do
-      li <- nextVertex s 0 True r (s `intersect` r) white black md
-      mkContrib li
+   contrib (PathIntegrator md) s addSample r = do
+      li <- nextVertex s 0 True r (s `intersect` r) white black md >>= mkContrib
+      liftSampled $ addSample $ li
       
 nextVertex :: PrimMonad m => Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled m WeightedSpectrum
 

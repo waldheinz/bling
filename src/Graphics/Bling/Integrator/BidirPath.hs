@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 
 module Graphics.Bling.Integrator.BidirPath (
    BidirPath, mkBidirPathIntegrator
@@ -26,15 +27,15 @@ instance Printable BidirPath where
    prettyPrint (BDP) = PP.text "Bi-Dir Path"
 
 instance SurfaceIntegrator BidirPath where
-   contrib (BDP) s r = do
+   contrib (BDP) s consume r = do
       ep <- eyePath s r
       (lp, li) <- lightPath s
       
-      cEye <- mkContrib $ aws (contribS0 ep + contribS1 ep) (connect ep lp)
-      ct1 <- contribT1 s lp li
+      cws <- (mkContrib $ aws (contribS0 ep + contribS1 ep) (connect ep lp))
+   --   consume cws
+   --   contribT1 s lp li consume
+      return ()
       
-      return $ cEye ++ ct1
-
 aws :: Spectrum -> WeightedSpectrum -> WeightedSpectrum
 aws s1 (w, s2) = (w, s1 + s2)
 
@@ -84,11 +85,11 @@ contribS1 _ = black
 -- contribS1 ((Vert _ _ _ _ _ _ _ _):vs) = black
 
 -- | follow specular paths from the light and connect the to the eye
-contribT1 :: PrimMonad m => Scene -> Path -> Spectrum -> Sampled m Contribution
-contribT1 _ [] _ = return []
-contribT1 sc ((Vert bsdf p n wi _ _ t f):vs) li
-   | Specular `member` t = contribT1 sc vs (f * li)
-   | otherwise = return [smp] 
+contribT1 :: PrimMonad m => Scene -> Path -> Spectrum -> Consumer m -> m ()
+contribT1 _ [] _ _ = return ()
+contribT1 sc ((Vert bsdf p n wi _ _ t f):vs) li addSample
+   | Specular `member` t = contribT1 sc vs (f * li) addSample
+   | otherwise = addSample smp
    where
       le = li * evalBsdf bsdf wi we
       smp = ImageSample px py (absDot n we / (cPdf * d2), le * csf)

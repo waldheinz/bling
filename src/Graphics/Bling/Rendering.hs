@@ -9,9 +9,10 @@ module Graphics.Bling.Rendering (
   
   -- * Progress Report
    
-   Progress(..), ProgressType(..), ProgressReporter 
+   Progress(..), ProgressReporter
    ) where
 
+import Control.Monad.Primitive
 import Control.Monad.ST
 import qualified Text.PrettyPrint as PP
 
@@ -23,12 +24,7 @@ import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Types
 
-data Progress = Progress
-   { progType :: ProgressType
-   , progImage :: Image RealWorld
-   }
-
-data ProgressType
+data Progress
    = Started
    | SamplesAdded {
       progRegion :: SampleWindow
@@ -43,7 +39,7 @@ data ProgressType
 type ProgressReporter = Progress -> IO Bool
 
 class Printable a => Renderer a where
-   render :: a -> Scene -> Image RealWorld -> ProgressReporter -> IO ()
+   render :: a -> Scene -> Image IO -> ProgressReporter -> IO ()
    
 --
 -- the existential renderer
@@ -82,25 +78,25 @@ instance Renderer SamplerRenderer where
          render' :: Int -> IO ()
          render' p = do
             mapM_ tile ws
-            cnt <- report $ Progress (PassDone p) img
+            cnt <- report $ PassDone p
             if cnt
                then render' (p + 1)
                else return ()
-         
+            
             where
                tile w = do
-                  _ <- report $ Progress (RegionStarted w) img
-                  is <- renderWindow w
-                  stToIO $ mapM_ (addSample img) is
-                  cnt <- report $ Progress (SamplesAdded w) img
+                  _ <- report $ RegionStarted w
+                  runRandIO $ renderWindow w cam si scene img smp
+                  -- stToIO $ mapM_ (addSample img) is
+                  cnt <- report $ SamplesAdded w
                   if cnt
                      then return ()
                      else error "cancelled"
                ws = splitWindow $ imageWindow img
 
-      --   renderWindow :: SampleWindow -> IO I.Contribution
-         renderWindow w = runRandIO $ do
-            let comp = fireRay cam >>= I.contrib si scene
-            sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp (addSample img)
-            
-            
+--         renderWindow :: SampleWindow -> IO ()
+
+renderWindow w cam si scene img smp = do
+   let comp = fireRay cam >>= I.contrib si scene (addSample img)
+   sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp
+   

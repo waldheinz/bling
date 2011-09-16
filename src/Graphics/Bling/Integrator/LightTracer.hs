@@ -43,9 +43,9 @@ instance Renderer LightTracer where
          | n == 0 = return ()
          | otherwise = do
             smps <- runRandIO $ liftM concat $ replicateM ppp $ oneRay sc
-            stToIO $ mapM_ ((splatSample img) . sSmp) smps
+    --        stToIO $ mapM_ ((splatSample img) . sSmp) smps
             
-            cont <- report $ Progress (PassDone (np - n + 1)) img
+            cont <- report $ (PassDone (np - n + 1))
             if cont
                then pass (n - 1)
                else return ()

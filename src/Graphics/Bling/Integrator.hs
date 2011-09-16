@@ -3,7 +3,7 @@
 
 module Graphics.Bling.Integrator (
    
-   SurfaceIntegrator(..), Contribution, mkContrib,
+   SurfaceIntegrator(..), Contribution, Consumer, mkContrib,
    
    -- * Existentials
    mkAnySurface, AnySurfaceIntegrator
@@ -24,10 +24,10 @@ mkContrib ws = do
    cs <- cameraSample
    return $ ImageSample (imageX cs) (imageY cs) ws
    
-type Consumer m a = (PrimMonad m) => a -> m ()
-   
+type Consumer m = (PrimMonad m) => ImageSample -> m ()
+
 class Printable a => SurfaceIntegrator a where
-   contrib :: (PrimMonad m) => a -> Scene -> Ray -> Consumer m a -> Sampled m ()
+   contrib :: (PrimMonad m) => a -> Scene -> Consumer m -> Ray -> Sampled m ()
    sampleCount1D :: a -> Int
    sampleCount2D :: a -> Int
    
