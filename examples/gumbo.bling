@@ -15,6 +15,7 @@ renderer {
       integrator { path maxDepth 5 }
    }
 }
+# renderer { sampler sampled { sampler { random samples 9 } integrator { path maxDepth 5 } } }
 
 transform {
    lookAt {
@@ -103,7 +104,7 @@ material {
 
 shape {
    bezier
-   subdivs 20
+   subdivs 10
    p { 10.0000,  2.00000,  0.00000, 10.0000,  2.00000,  0.00000,
        14.0000,  2.00000,  0.00000, 14.0000,  2.00000,  0.00000,
        10.0000,  2.00000,  0.00000, 10.2277,  2.22776, -0.91104,

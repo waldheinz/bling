@@ -1,6 +1,5 @@
 
 import Control.Monad
-import Control.Monad.ST
 import System (getArgs)
 import System.IO
 import Text.Printf
@@ -16,7 +15,7 @@ prog :: Image IO -> ProgressReporter
 prog img (PassDone p) = do
    putStrLn $ "\nWriting " ++ fname ++ "..."
    h1 <- openFile (fname ++ ".ppm") WriteMode
-  -- stToIO $ writePpm img h1
+   writePpm img h1
    hClose h1
    
    h2 <- openFile (fname ++ ".hdr") WriteMode
@@ -27,7 +26,7 @@ prog img (PassDone p) = do
    where
          fname = "pass-" ++ printf "%05d" p
 
-prog img (SamplesAdded _) = putStr "." >> hFlush stdout >> return True
+prog _ (SamplesAdded _) = putStr "." >> hFlush stdout >> return True
 prog _ _ = return True
 
 main :: IO ()

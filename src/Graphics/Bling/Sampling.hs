@@ -24,12 +24,9 @@ module Graphics.Bling.Sampling (
 import Control.Monad.Primitive
 import Control.Monad.Reader
 import Control.Monad as CM
-import Control.Monad.ST
-import Data.List (transpose, zipWith4)
-import Data.STRef
-import Data.Vector.Unboxed as V
-import System.Random
-import qualified System.Random.Shuffle as S
+--import Data.List (transpose, zipWith4)
+--import System.Random
+--import qualified System.Random.Shuffle as S
 
 import Graphics.Bling.Math
 import qualified Graphics.Bling.Random as R
@@ -84,16 +81,20 @@ mkStratifiedSampler :: Int -> Int -> Sampler
 mkStratifiedSampler = Stratified
 
 sample :: (PrimMonad m) => Sampler -> SampleWindow -> Int -> Int -> Sampled m a -> R.Rand m ()
+{-# INLINE sample #-}
 sample (Random spp) wnd _ _ c = do
-   CM.forM_ (coverWindow wnd) $ \ (ix, iy) -> CM.replicateM spp $ do
-      ox <- R.rnd
-      oy <- R.rnd
-      luv <- R.rnd2D
-      randToSampled c $ SamplingState (CameraSample
-            ((fromIntegral ix) + ox)
-            ((fromIntegral iy) + oy)
+   {-# SCC "sample.forM_" #-} CM.forM_ (coverWindow wnd) $ \ (ix, iy) -> do
+      let (fx, fy) = {-# SCC "sample.fromIntegral" #-} (fromIntegral ix, fromIntegral iy)
+      {-# SCC "sample.replicateM" #-} CM.replicateM_ spp $ do
+         ox <- {-# SCC "sample.rnd1" #-} R.rnd
+         oy <- {-# SCC "sample.rnd1" #-} R.rnd
+         luv <- {-# SCC "sample.rnd2D" #-} R.rnd2D
+         
+         {-# SCC "sample.randToSampled" #-} randToSampled c $ SamplingState (CameraSample
+            (fx + ox)
+            (fy + oy)
             luv) f1d f2d
-      
+            
    where
       f1d _ = R.rnd
       f2d _ = R.rnd2D
@@ -102,18 +103,6 @@ sample _ _ _ _ _ = error "sample not implemented for sampler"
 
 {-
 samples :: (PrimMonad m) => Sampler -> SampleWindow -> Int -> Int -> R.Rand m [Sample]
-samples (Random spp) w _ _ = Prelude.mapM smp ws where
-      ws = Prelude.concatMap (Prelude.replicate spp) (coverWindow w)
-      smp (ix, iy) = do
-         ox <- R.rnd
-         oy <- R.rnd
-         luv <- R.rnd2D
-         return $ Sample
-            ((fromIntegral ix) + ox)
-            ((fromIntegral iy) + oy)
-            luv
-            empty empty
-      
 
 samples (Stratified nu nv) w n1d n2d = Prelude.concat `liftM` CM.mapM (pixel nu nv n1d n2d) (coverWindow w)
 

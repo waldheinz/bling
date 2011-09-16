@@ -12,8 +12,6 @@ module Graphics.Bling.Rendering (
    Progress(..), ProgressReporter
    ) where
 
-import Control.Monad.Primitive
-import Control.Monad.ST
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Image
@@ -86,7 +84,7 @@ instance Renderer SamplerRenderer where
             where
                tile w = do
                   _ <- report $ RegionStarted w
-                  runRandIO $ renderWindow w cam si scene img smp
+                  runRandIO $ renderWindow w 
                   -- stToIO $ mapM_ (addSample img) is
                   cnt <- report $ SamplesAdded w
                   if cnt
@@ -96,7 +94,7 @@ instance Renderer SamplerRenderer where
 
 --         renderWindow :: SampleWindow -> IO ()
 
-renderWindow w cam si scene img smp = do
-   let comp = fireRay cam >>= I.contrib si scene (addSample img)
-   sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp
+               renderWindow w  = do
+                  let comp = fireRay cam >>= I.contrib si scene (addSample img)
+                  sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp
    

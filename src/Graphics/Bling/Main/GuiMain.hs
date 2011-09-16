@@ -1,5 +1,4 @@
 
-import Control.Monad.ST
 import Control.Monad
 import Foreign
 import Graphics.UI.SDL as SDL
