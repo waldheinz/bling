@@ -94,8 +94,8 @@ estimateDirect
    -> Spectrum
 {-# INLINE estimateDirect #-}
 estimateDirect s l p n wo bsdf smp = ls + bs where
-   ls = sampleLightMis s (sample l p n $ ulDir smp) bsdf wo n
-   bs = sampleBsdfMis s l (sampleBsdf bsdf wo uBC uBD) n p
+   ls = {-# SCC "estimateDirect.light" #-} sampleLightMis s (sample l p n $ ulDir smp) bsdf wo n
+   bs = {-# SCC "estimateDirect.bsdf"  #-} sampleBsdfMis s l (sampleBsdf bsdf wo uBC uBD) n p
    uBC = uBsdfComp smp
    uBD = uBsdfDir smp
    
@@ -114,7 +114,7 @@ sampleOneLight scene@(Scene _ _ lights _) p n wo bsdf smp
    | lc == 1 = ed (V.head lights)
    | otherwise = sScale ld (fromIntegral lc) where     
             ld = ed $ V.unsafeIndex lights ln
-            ed l = estimateDirect scene l p n wo bsdf smp
+            ed l = {-# SCC "sampleOneLight.estimate" #-} estimateDirect scene l p n wo bsdf smp
             lc = V.length lights
             ln = min (floor $ (ulNum smp) * fromIntegral lc) (lc - 1)
 

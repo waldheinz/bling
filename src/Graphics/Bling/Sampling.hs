@@ -81,7 +81,7 @@ mkStratifiedSampler :: Int -> Int -> Sampler
 mkStratifiedSampler = Stratified
 
 sample :: (PrimMonad m) => Sampler -> SampleWindow -> Int -> Int -> Sampled m a -> R.Rand m ()
-{-# INLINE sample #-}
+{-# SPECIALIZE sample :: Sampler -> SampleWindow -> Int -> Int -> Sampled IO a -> R.Rand IO () #-}
 sample (Random spp) wnd _ _ c = do
    {-# SCC "sample.forM_" #-} CM.forM_ (coverWindow wnd) $ \ (ix, iy) -> do
       let (fx, fy) = {-# SCC "sample.fromIntegral" #-} (fromIntegral ix, fromIntegral iy)
@@ -89,12 +89,8 @@ sample (Random spp) wnd _ _ c = do
          ox <- {-# SCC "sample.rnd1" #-} R.rnd
          oy <- {-# SCC "sample.rnd1" #-} R.rnd
          luv <- {-# SCC "sample.rnd2D" #-} R.rnd2D
-         
-         {-# SCC "sample.randToSampled" #-} randToSampled c $ SamplingState (CameraSample
-            (fx + ox)
-            (fy + oy)
-            luv) f1d f2d
-            
+         let s = SamplingState (CameraSample (fx + ox) (fy + oy) luv) f1d f2d
+         {-# SCC "sample.randToSampled" #-} randToSampled c s
    where
       f1d _ = R.rnd
       f2d _ = R.rnd2D

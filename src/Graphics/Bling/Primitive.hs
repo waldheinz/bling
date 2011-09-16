@@ -48,11 +48,20 @@ data AnyPrim = forall a . Primitive a => MkAnyPrim a
 
 instance Primitive AnyPrim where
    intersect (MkAnyPrim p) = intersect p
+   {-# INLINE intersect #-}
+   
    intersects (MkAnyPrim p) = intersects p
+   {-# INLINE intersects #-}
+   
    worldBounds (MkAnyPrim p) = worldBounds p
+   {-# INLINE worldBounds #-}
+   
    flatten (MkAnyPrim p) = flatten p
+   {-# INLINE flatten #-}
+   
    light (MkAnyPrim p) = light p
-
+   {-# INLINE light #-}
+   
 mkAnyPrim :: (Primitive a) => a -> AnyPrim
 mkAnyPrim = MkAnyPrim
 

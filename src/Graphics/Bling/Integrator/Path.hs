@@ -1,9 +1,12 @@
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Graphics.Bling.Integrator.Path (
    mkPathIntegrator, PathIntegrator
    ) where
 
 import Control.Monad.Primitive
+import Control.Monad.ST
 import Data.BitSet
 import qualified Data.Vector.Generic as V
 import qualified Text.PrettyPrint as PP
@@ -46,15 +49,18 @@ instance SurfaceIntegrator PathIntegrator where
    
    sampleCount2D _ = smps2D * sampleDepth
    
-   contrib (PathIntegrator md) s addSample r = do
+   {-# SPECIALIZE contrib :: PathIntegrator -> Scene -> Consumer IO -> Ray -> Sampled IO () #-}
+   {-# SPECIALIZE contrib :: PathIntegrator -> Scene -> Consumer (ST s) -> Ray -> Sampled (ST s) () #-}
+   contrib (PathIntegrator md) s addSample r = {-# SCC "pathContrib" #-} do
       li <- nextVertex s 0 True r (s `intersect` r) white black md >>= mkContrib
       liftSampled $ addSample $ li
       
 nextVertex :: PrimMonad m => Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled m WeightedSpectrum
-
+{-# SPECIALIZE INLINE nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled IO WeightedSpectrum #-}
+{-# SPECIALIZE INLINE nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled (ST s) WeightedSpectrum #-}
 -- nothing hit, specular bounce
 nextVertex s _ True ray Nothing t l _ = 
-   return (1, l + t * V.sum (V.map (`le` ray) (sceneLights s)))
+   {-# SCC "nextVertex.termSpec" #-} return (1, l + t * V.sum (V.map (`le` ray) (sceneLights s)))
    
 -- nothing hit, non-specular bounce
 nextVertex _ _ False _ Nothing _ l _ = 
@@ -73,8 +79,8 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) t l md
       lBsdfCompU <- rnd' $ 2 + smp1doff depth
       lBsdfDirU <- rnd2D' $ 2 + smp2doff depth
       
-      let (BsdfSample smpType spdf f wi) = sampleBsdf bsdf wo bsdfCompU bsdfDirU
-      let lHere = sampleOneLight scene p n wo bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU
+      let (BsdfSample smpType spdf f wi) = {-# SCC "nextVertex.sampleBsdf" #-} sampleBsdf bsdf wo bsdfCompU bsdfDirU
+      let lHere = {-# SCC "nextVertex.sampleOneLight" #-} sampleOneLight scene p n wo bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU
       let l' = l + (t * (lHere + intl))
       
       rnd >>= \x -> if x > pc || (spdf == 0) || isBlack f
@@ -83,7 +89,7 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) t l md
                  t' = t * sScale f (absDot wi n / (spdf * pc))
                  spec' = Specular `member` smpType
                  ray' = (Ray p wi epsilon infinity)
-                 int' = intersect (scenePrim scene) ray'
+                 int' = {-# SCC "nextVertex.intersect" #-} intersect (scenePrim scene) ray'
                  depth' = depth + 1
               in nextVertex scene depth' spec' ray' int' t' l' md
       

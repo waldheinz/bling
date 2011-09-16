@@ -32,10 +32,10 @@ data Light
    | PointLight !Spectrum !Point
    | AreaLight {
       _alId :: !Int,
-      _alShape :: S.Shape,
-      _areaRadiance :: Spectrum,
-      _l2w :: Transform, -- ^ the light-to-world transformation
-      _w2l :: Transform -- ^ the world-to-light transformation
+      _alShape :: !S.Shape,
+      _areaRadiance :: !Spectrum,
+      _l2w :: !Transform, -- ^ the light-to-world transformation
+      _w2l :: !Transform -- ^ the world-to-light transformation
       }
    | Sky
       { _basis :: LocalCoordinates

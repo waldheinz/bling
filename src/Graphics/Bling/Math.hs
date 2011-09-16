@@ -80,12 +80,16 @@ clamp v lo hi
 type Dimension = Int
 
 dimX :: Dimension
-dimX = 0
 
+dimX = 0
+{-# INLINE dimX #-}
 dimY :: Dimension
+
 dimY = 1
+{-# INLINE dimY #-}
 
 dimZ :: Dimension
+{-# INLINE dimZ #-}
 dimZ = 2
 
 allDimensions :: [Dimension]
@@ -167,11 +171,13 @@ instance Fractional Vector where
 type Point = Vector
 
 mkPoint :: Flt -> Flt -> Flt -> Point
+{-# INLINE mkPoint #-}
 mkPoint = Vector
 
 type Normal = Vector
 
 mkNormal :: Flt -> Flt -> Flt -> Normal
+{-# INLINE mkNormal #-}
 mkNormal = Vector
 
 dominant :: Vector -> Dimension
@@ -235,6 +241,7 @@ normalize v
   | otherwise = Vector 0 1 0
 
 faceForward :: Vector -> Vector -> Vector
+{-# INLINE faceForward #-}
 faceForward v v2
    | v `dot` v2 < 0 = -v
    | otherwise = v
