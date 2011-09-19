@@ -35,7 +35,7 @@ Library
       random-shuffle == 0.0.2
 
    Ghc-Options:
-      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -threaded
+      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -threaded -optc-O3 -optc-march=native -optc-msse4
 
    Ghc-Prof-Options:
       -O -fexcess-precision -prof -auto-all

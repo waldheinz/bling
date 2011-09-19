@@ -12,6 +12,10 @@ module Graphics.Bling.Rendering (
    Progress(..), ProgressReporter
    ) where
 
+import Control.Monad
+import Control.Monad.Primitive
+import Control.Monad.ST
+import qualified System.Random.MWC as MWC
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Image
@@ -75,23 +79,33 @@ instance Renderer SamplerRenderer where
          cam = sceneCam scene
          render' :: Int -> IO ()
          render' p = do
-            mapM_ tile ws
-            cnt <- report $ PassDone p
-            if cnt
-               then render' (p + 1)
-               else return ()
+            forM_ (splitWindow $ imageWindow img) $ \w -> do
+               t <- tile w
+               mergeImage img t w
+               
+            report (PassDone p) >>= \ cnt ->
+               if cnt
+                  then render' (p + 1)
+                  else return ()
             
             where
+            --   tile :: SampleWindow -> IO (Image (ST RealWorld))
                tile w = do
                   _ <- report $ RegionStarted w
-                  runRandIO $ renderWindow w 
-                  -- stToIO $ mapM_ (addSample img) is
-                  cnt <- report $ SamplesAdded w
-                  if cnt
-                     then return ()
-                     else error "cancelled"
-               ws = splitWindow $ imageWindow img
-               renderWindow w  = do
-                  let comp = fireRay cam >>= I.contrib si scene (addSample img)
-                  sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp
+                  
+                  seed <- MWC.withSystemRandom $ do
+                     s' <- MWC.save :: MWC.Gen (PrimState IO) -> IO MWC.Seed
+                     return s'
+                  
+                  img' <- stToIO $ do
+                     sub <- subImage img w
+                     runWithSeed seed $ do
+                        let comp = fireRay cam >>= I.contrib si scene (addSample sub)
+                        sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp
+                     return sub
+                     
+                  report (SamplesAdded w) >>= \cnt -> if cnt
+                                                         then return img'
+                                                         else error "cancelled"
+
    

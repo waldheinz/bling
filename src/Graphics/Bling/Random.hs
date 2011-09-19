@@ -5,7 +5,7 @@ module Graphics.Bling.Random (
 
    -- * managing the random number generator
    
-   Rand, liftRand, Rand2D, runRand, runRandIO, runWithSeed,
+   Rand, liftR, Rand2D, runRand, runRandIO, runWithSeed,
       
    -- * generating random values
    
@@ -40,9 +40,9 @@ runRandIO :: Rand IO a -> IO a
 runRandIO = MWC.withSystemRandom . runRand
 {-# INLINE runRandIO #-}
 
-liftRand :: PrimMonad m => m a -> Rand m a
-{-# INLINE liftRand #-}
-liftRand m = Rand $ const m
+liftR :: PrimMonad m => m a -> Rand m a
+{-# INLINE liftR #-}
+liftR m = Rand $ const m
 
 shuffle :: (PrimMonad m, PrimMonad (Rand m), MV.MVector v a) => v (PrimState (Rand m)) a -> Rand m ()
 shuffle v = do

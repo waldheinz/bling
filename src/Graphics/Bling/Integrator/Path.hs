@@ -56,8 +56,9 @@ instance SurfaceIntegrator PathIntegrator where
       liftSampled $ addSample $ li
       
 nextVertex :: PrimMonad m => Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled m WeightedSpectrum
-{-# SPECIALIZE INLINE nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled IO WeightedSpectrum #-}
-{-# SPECIALIZE INLINE nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled (ST s) WeightedSpectrum #-}
+{-# INLINE nextVertex #-}
+-- {-# SPECIALIZE INLINE nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled IO WeightedSpectrum #-}
+-- {-# SPECIALIZE INLINE nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled (ST s) WeightedSpectrum #-}
 -- nothing hit, specular bounce
 nextVertex s _ True ray Nothing t l _ = 
    {-# SCC "nextVertex.termSpec" #-} return (1, l + t * V.sum (V.map (`le` ray) (sceneLights s)))
