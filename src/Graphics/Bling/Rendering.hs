@@ -14,6 +14,7 @@ module Graphics.Bling.Rendering (
 
 import Control.Monad
 import Control.Monad.Primitive
+import Control.Monad.ST
 import qualified System.Random.MWC as MWC
 import qualified Text.PrettyPrint as PP
 
@@ -40,7 +41,7 @@ data Progress
 type ProgressReporter = Progress -> IO Bool
 
 class Printable a => Renderer a where
-   render :: a -> Scene -> Image IO -> ProgressReporter -> IO ()
+   render :: a -> Scene -> Image -> ProgressReporter -> IO ()
    
 --
 -- the existential renderer
@@ -72,34 +73,42 @@ instance Printable SamplerRenderer where
 
 instance Renderer SamplerRenderer where
    
-   render (SR smp si) scene img report = do
-      render' 1
+   render (SR smp si) scene img' report = do
+      render' img' 1 >> return ()
       where
          cam = sceneCam scene
-         render' :: Int -> IO ()
-         render' p = do
-            forM_ (splitWindow $ imageWindow img) tile
+         render' :: Image -> Int -> IO Image
+         render' img' p = do
+            
+            seed <- MWC.withSystemRandom $ do
+               s' <- MWC.save :: MWC.Gen (PrimState IO) -> IO MWC.Seed
+               return s'
+                  
+            i <- stToIO $ do
+               img <- thaw img'
+               forM_ (splitWindow $ imageWindow img) $ \w -> do
                
+             --  _ <- report $ RegionStarted w
+                  runWithSeed seed $ tile scene smp si img w
+               img' <- freeze img
+               return img'
+                  
+           --    report (SamplesAdded w) >>= \cnt ->
+           --       if cnt
+           --          then return ()
+           --          else error "cancelled"
+            
             report (PassDone p) >>= \ cnt ->
                if cnt
-                  then render' (p + 1)
-                  else return ()
+                  then render' i (p + 1)
+                  else return i
             
-            where
-            --   tile :: SampleWindow -> IO (Image (ST RealWorld))
-               tile w = do
-                  _ <- report $ RegionStarted w
+--tile :: MImage s -> SampleWindow -> MImage s -> ST s ()
+tile scene smp si img w = do   
                   
-                  seed <- MWC.withSystemRandom $ do
-                     s' <- MWC.save :: MWC.Gen (PrimState IO) -> IO MWC.Seed
-                     return s'
                   
-                  runWithSeed seed $ do
                      let comp = fireRay cam >>= I.contrib si scene (addSample img)
                      sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp
+                     where
+                        cam = sceneCam scene
                      
-                  report (SamplesAdded w) >>= \cnt -> if cnt
-                                                         then return ()
-                                                         else error "cancelled"
-
-   

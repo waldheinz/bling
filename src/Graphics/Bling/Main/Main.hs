@@ -11,7 +11,7 @@ import Graphics.Bling.Rendering
 import Graphics.Bling.Types
 import Graphics.Bling.IO.RenderJob
 
-prog :: Image IO -> ProgressReporter
+prog :: Image -> ProgressReporter
 prog img (PassDone p) = do
    putStrLn $ "\nWriting " ++ fname ++ "..."
    h1 <- openFile (fname ++ ".ppm") WriteMode
@@ -36,7 +36,7 @@ main = do
    j <- fmap parseJob $ readFile fName
 
    putStrLn (PP.render (PP.text "Job Stats" PP.$$ PP.nest 3 (prettyPrint j)))
-   img <- mkImage (jobPixelFilter j) (imageSizeX j) (imageSizeY j)
+   let img = mkImage (jobPixelFilter j) (imageSizeX j) (imageSizeY j)
    render (jobRenderer j) (jobScene j) img $ prog img
 
 {-

@@ -1,18 +1,24 @@
 {-# LANGUAGE RankNTypes #-}
 
 module Graphics.Bling.Image (
-   Image, ImageSample(..),
+   Image, ImageSample(..), mkImage,
    
-   mkImage, addSample, splatSample,
+   MImage,
    
-   imageWidth, imageHeight, imageWindow, writePpm, writeRgbe, rgbPixels
+   mkMImage, addSample, splatSample,
+   
+   imageWidth, imageHeight, imageWindow, writePpm, writeRgbe,
+   
+   thaw, freeze
    ) where
 
 import Control.Monad
 import Control.Monad.Primitive
 import Control.Monad.ST
 import Debug.Trace
-import Data.Vector.Unboxed.Mutable as V
+import qualified Data.Vector.Generic as GV
+import qualified Data.Vector.Unboxed as V 
+import Data.Vector.Unboxed.Mutable as MV
 import qualified Data.ByteString as BS
 import System.IO
 
@@ -24,35 +30,64 @@ import Graphics.Bling.Spectrum
 --   and the XYZ value of the splatted samples
 type Pixel = (Float, (Float, Float, Float), (Float, Float, Float))
 
--- | an image has a width, a height and some pixels 
-data (PrimMonad m) => Image m = Image {
+-- | an mutable image has a width, a height and some pixels 
+data MImage s = MImage {
    imageWidth :: Int,
    imageHeight :: Int,
    imageFilter :: Filter,
-   _imagePixels :: V.MVector (PrimState m) Pixel
+   _imagePixels :: MV.MVector (PrimState (ST s)) Pixel
+   }
+
+   
+   
+-- | creates a new image where all pixels are initialized to black
+mkMImage
+   :: Filter -- ^ the pixel filter function to use when adding samples
+   -> Int -- ^ the image width
+   -> Int -- ^ the image height
+   -> ST s (MImage s)
+mkMImage flt w h = do
+   pixels <- MV.replicate (w * h) (0, (0, 0, 0), (0, 0, 0))
+   return $ MImage w h flt pixels
+
+-- | an immutable image
+data Image = Img
+   { _imgW :: Int
+   , _imgH :: Int
+   , _imgF :: Filter
+   , _imgP :: V.Vector Pixel
    }
 
 -- | creates a new image where all pixels are initialized to black
 mkImage
-   :: PrimMonad m
-   => Filter -- ^ the pixel filter function to use when adding samples
+   :: Filter -- ^ the pixel filter function to use when adding samples
    -> Int -- ^ the image width
    -> Int -- ^ the image height
-   -> m (Image m)
-mkImage flt w h = do
-   pixels <- V.replicate (w * h) (0, (0, 0, 0), (0, 0, 0))
-   return $ Image w h flt pixels
-
-imageWindow :: PrimMonad m => Image m -> SampleWindow
-imageWindow (Image w h f _) = SampleWindow x0 x1 y0 y1 where
+   -> Image
+mkImage flt w h = Img w h flt pixels where
+   pixels = V.replicate (w * h) (0, (0, 0, 0), (0, 0, 0))
+   
+thaw :: Image -> ST s (MImage s)
+thaw (Img w h f p) = do
+   p' <- GV.thaw p
+   return $ MImage w h f p'
+ 
+freeze :: MImage s -> ST s Image
+freeze (MImage w h f p) = do
+   p' <- GV.freeze p
+   return $ Img w h f p'
+ 
+   
+imageWindow :: MImage s -> SampleWindow
+imageWindow (MImage w h f _) = SampleWindow x0 x1 y0 y1 where
    x0 = floor (0.5 - filterWidth f)
    x1 = floor (0.5 + (fromIntegral w) + filterWidth f)
    y0 = floor (0.5 - filterHeight f)
    y1 = floor (0.5 + (fromIntegral h) + filterHeight f)
 
-addPixel :: PrimMonad m => Image m -> (Int, Int, WeightedSpectrum) -> m ()
+addPixel :: MImage s -> (Int, Int, WeightedSpectrum) -> ST s ()
 {-# INLINE addPixel #-}
-addPixel (Image w h _ p) (x, y, (sw, s))
+addPixel (MImage w h _ p) (x, y, (sw, s))
    | x < 0 || y < 0 = return ()
    | x >= w || y >= h = return ()
    | otherwise = do
@@ -65,8 +100,8 @@ addPixel (Image w h _ p) (x, y, (sw, s))
               (w1+w2, (r1+r2, g1+g2, b1+b2), splat)
          o = (x + y*w)
          
-splatSample :: PrimMonad m => Image m -> ImageSample -> m ()
-splatSample (Image w h _ p) (ImageSample sx sy (sw, ss))
+splatSample :: MImage s -> ImageSample -> ST s ()
+splatSample (MImage w h _ p) (ImageSample sx sy (sw, ss))
    | floor sx > w || floor sy > h || sx < 0 || sy < 0 = return ()
    | sNaN ss = trace ("not splatting NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
@@ -80,9 +115,7 @@ splatSample (Image w h _ p) (ImageSample sx sy (sw, ss))
          (dx, dy, dz) = (\(x, y, z) -> (x * sw, y * sw, z * sw)) $ toRGB ss
          
 -- | adds a sample to the specified image
-addSample :: (PrimMonad m) => Image m -> ImageSample -> m ()
-{-# SPECIALIZE addSample :: Image IO -> ImageSample -> IO () #-}
-{-# SPECIALIZE addSample :: Image (ST s) -> ImageSample -> ST s () #-}
+addSample :: MImage s -> ImageSample -> ST s ()
 addSample img smp@(ImageSample sx sy (_, ss))
    | sNaN ss = trace ("skipping NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
@@ -93,18 +126,18 @@ addSample img smp@(ImageSample sx sy (_, ss))
          pixels = filterSample (imageFilter img) smp
 
 -- | extracts the pixel at the specified offset from an Image
-getPixel :: PrimMonad m => Image m -> Int -> m (Float, Float, Float)
-getPixel (Image _ _ _ p) o = do
-   (w, (r, g, b), (sr, sg, sb)) <- unsafeRead p o
-   return $ if w == 0 
-               then (sr, sg, sb)
-               else (sr + r / w, sg + g / w, sb + b / w)
-
-writeRgbe :: Image IO -> Handle -> IO ()
-writeRgbe img@(Image w h _ _) hnd =
+getPixel :: Image -> Int -> (Float, Float, Float)
+getPixel (Img _ _ _ p) o
+   | w == 0 = (sr, sg, sb)
+   | otherwise = (sr + r / w, sg + g / w, sb + b / w)
+   where
+      (w, (r, g, b), (sr, sg, sb)) = V.unsafeIndex p o
+      
+writeRgbe :: Image -> Handle -> IO ()
+writeRgbe img@(Img w h _ _) hnd =
    let header = "#?RGBE\nFORMAT=32-bit_rgbe\n\n-Y " ++ show h ++ " +X " ++ show w ++ "\n"
        pixel :: Int -> IO BS.ByteString
-       pixel p = liftM toRgbe $ getPixel img p
+       pixel p = return $ toRgbe $ getPixel img p
    in do
       hPutStr hnd header
       mapM_ (\p -> pixel p >>= BS.hPutStr hnd) [0..(w*h-1)]
@@ -129,11 +162,11 @@ frexp x
          | otherwise = (s, e)
 
 -- | writes an image in ppm format
-writePpm :: Image IO -> Handle -> IO ()
-writePpm img@(Image w h _ _) handle =
+writePpm :: Image -> Handle -> IO ()
+writePpm img@(Img w h _ _) handle =
    let
        header = "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n"
-       pixel p = liftM ppmPixel $ getPixel img p
+       pixel p = return $ ppmPixel $ getPixel img p
    in do
       hPutStr handle header
       mapM_ (\p -> pixel p >>= hPutStr handle) [0..(w*h-1)]
@@ -146,17 +179,17 @@ gamma x (r, g, b) = (r ** x', g ** x', b ** x') where
 -- | converts a Float in [0..1] to an Int in [0..255], clamping values outside [0..1]
 clamp :: Float -> Int
 clamp v = round ( min 1 (max 0 v) * 255 )
-
-rgbPixels :: PrimMonad m => Image m -> SampleWindow -> m [((Int, Int), (Int, Int, Int))]
+{-
+rgbPixels :: Image -> SampleWindow -> [((Int, Int), (Int, Int, Int))]
 rgbPixels img w = do
-   ps <- mapM (getPixel img) os
+   let ps = map (getPixel img) os
    let rgbs = map (gamma 2.2) ps
    let clamped = map (\(r,g,b) -> (clamp r, clamp g, clamp b)) rgbs
-   return $ Prelude.zip xs $ clamped
+   return $ Prelude.zip xs clamped
    where
          xs = coverWindow w
-         os = map (\(x,y) -> (y * (imageWidth img)) + x) xs
-      
+         os = map (\(x,y) -> (y * (imgW img)) + x) xs
+  -}    
 -- | converts a @WeightedSpectrum@ into what's expected to be found in a ppm file
 ppmPixel :: (Float, Float, Float) -> String
 ppmPixel ws = (toString . gamma 2.2) ws

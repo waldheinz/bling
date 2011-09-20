@@ -11,7 +11,6 @@ module Graphics.Bling.Camera (
    ) where
 
 import Control.Monad (liftM)
-import Control.Monad.Primitive
 import Text.PrettyPrint
 
 import Graphics.Bling.Math
@@ -47,7 +46,7 @@ instance Printable Camera where
 --
 
 -- | fires an eye ray from a camera
-fireRay :: PrimMonad m => Camera -> Sampled m Ray
+fireRay :: Camera -> Sampled m Ray
 
 fireRay (ProjectiveCamera c2w r2c _ _ lr fd) = do
    cs <- cameraSample

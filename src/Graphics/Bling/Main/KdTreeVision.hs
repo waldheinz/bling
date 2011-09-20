@@ -15,7 +15,7 @@ import Graphics.Bling.Types
 import Graphics.Bling.IO.RenderJob
 import Graphics.Bling.Primitive.KdTree
 
-prog :: Image IO -> ProgressReporter
+prog :: Image -> ProgressReporter
 prog img (PassDone p) = do
    putStrLn $ "\nWriting " ++ fname ++ "..."
 
@@ -37,7 +37,7 @@ main = do
    j <- fmap parseJob $ readFile fName
    
    putStrLn (PP.render (PP.text "Job Stats" PP.$$ PP.nest 3 (prettyPrint j)))
-   img <- mkImage (jobPixelFilter j) (imageSizeX j) (imageSizeY j)
+   let img = mkImage (jobPixelFilter j) (imageSizeX j) (imageSizeY j)
    let integ = mkAnySurface $ KdTreeVis $ scenePrim $ jobScene j
    let renderer = mkSamplerRenderer (mkRandomSampler 1) integ
    render renderer (jobScene j) img $ prog img

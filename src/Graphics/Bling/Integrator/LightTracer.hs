@@ -56,7 +56,7 @@ instance Renderer LightTracer where
       sSmp (ImageSample x y (w, s)) = ImageSample x y (w * f, s)
       f = 1 / (fromIntegral $ np * ppp) -- TODO: the factor of 4 is, odd
       
-oneRay :: PrimMonad m => Scene -> Rand m [ImageSample]
+oneRay :: Scene -> Rand m [ImageSample]
 oneRay scene = do
    ul <- rnd
    ulo <- rnd2D
@@ -66,8 +66,7 @@ oneRay scene = do
    nextVertex scene (-wo) (intersect scene ray) (sScale li (absDot nl wo / pdf)) 0
    
 nextVertex
-   :: PrimMonad m
-   => Scene
+   :: Scene
    -> Vector
    -> Maybe Intersection
    -> Spectrum

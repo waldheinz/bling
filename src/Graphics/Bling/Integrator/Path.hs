@@ -5,8 +5,6 @@ module Graphics.Bling.Integrator.Path (
    mkPathIntegrator, PathIntegrator
    ) where
 
-import Control.Monad.Primitive
-import Control.Monad.ST
 import Data.BitSet
 import qualified Data.Vector.Generic as V
 import qualified Text.PrettyPrint as PP
@@ -49,14 +47,14 @@ instance SurfaceIntegrator PathIntegrator where
    
    sampleCount2D _ = smps2D * sampleDepth
    
-   {-# SPECIALIZE contrib :: PathIntegrator -> Scene -> Consumer IO -> Ray -> Sampled IO () #-}
-   {-# SPECIALIZE contrib :: PathIntegrator -> Scene -> Consumer (ST s) -> Ray -> Sampled (ST s) () #-}
+ --  {-# SPECIALIZE contrib :: PathIntegrator -> Scene -> Consumer IO -> Ray -> Sampled IO () #-}
+ --  {-# SPECIALIZE contrib :: PathIntegrator -> Scene -> Consumer (ST s) -> Ray -> Sampled (ST s) () #-}
    contrib (PathIntegrator md) s addSample r = {-# SCC "pathContrib" #-} do
       li <- nextVertex s 0 True r (s `intersect` r) white black md >>= mkContrib
       liftSampled $ addSample $ li
       
-nextVertex :: PrimMonad m => Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled m WeightedSpectrum
-{-# SPECIALIZE nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled IO WeightedSpectrum #-}
+nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled m WeightedSpectrum
+-- {-# SPECIALIZE nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled IO WeightedSpectrum #-}
 -- {-# INLINE nextVertex #-}
 -- {-# SPECIALIZE INLINE nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled IO WeightedSpectrum #-}
 -- {-# SPECIALIZE INLINE nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled (ST s) WeightedSpectrum #-}

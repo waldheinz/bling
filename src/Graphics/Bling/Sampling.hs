@@ -24,6 +24,7 @@ module Graphics.Bling.Sampling (
 
 import Control.Monad.Primitive
 import Control.Monad.Reader
+import Control.Monad.ST
 import Control.Monad as CM
 import qualified Data.Vector.Unboxed.Mutable as V
 import System.Random
@@ -66,9 +67,9 @@ shiftToPixel px py = Prelude.map (s (fromIntegral px) (fromIntegral py)) where
 -- Samplers
 --------------------------------------------------------------------------------
 
-data (PrimMonad m) => Sample m
+data Sample s
    = RandomSample {-# UNPACK #-} ! CameraSample
-   | PrecomSample {-# UNPACK #-} ! CameraSample !(V.MVector (PrimState m) Flt) !(V.MVector (PrimState m) R.Rand2D)
+   | PrecomSample {-# UNPACK #-} ! CameraSample !(V.MVector (PrimState (ST s)) Flt) !(V.MVector (PrimState (ST s)) R.Rand2D)
 
 data Sampler = Random !Int | Stratified !Int !Int
 
@@ -78,7 +79,7 @@ mkRandomSampler = Random
 mkStratifiedSampler :: Int -> Int -> Sampler
 mkStratifiedSampler = Stratified
 
-sample :: Sampler -> SampleWindow -> Int -> Int -> Sampled IO a -> R.Rand IO ()
+sample :: Sampler -> SampleWindow -> Int -> Int -> Sampled s a -> R.Rand s ()
 sample (Random spp) wnd _ _ c = do
    {-# SCC "sample.forM_" #-} CM.forM_ (coverWindow wnd) $ \ (ix, iy) -> do
       let (fx, fy) = (fromIntegral ix, fromIntegral iy)
@@ -108,15 +109,14 @@ sample (Stratified nu nv) wnd n1d n2d c = do
 
 -- | shuffles a list
 shuffle
-   :: PrimMonad m
-   => Int -- ^ the length of the list
+   :: Int -- ^ the length of the list
    -> [a] -- ^ the list to shuffle
    -> R.Rand m [a]
 shuffle xl xs = do
    seed <- R.rndInt
    return $ {-# SCC "shuffle'" #-} S.shuffle' xs xl $ mkStdGen seed
 
-fill :: (V.Unbox a, PrimMonad m) => Int -> V.MVector (PrimState m) a -> (R.Rand m [a]) -> R.Rand m ()
+fill :: (V.Unbox a) => Int -> V.MVector (PrimState (ST m)) a -> (R.Rand m [a]) -> R.Rand m ()
 fill n v gen = do
    forM_ [0..n-1] $ \off -> do
       rs <- gen
@@ -127,8 +127,7 @@ almostOne :: Float
 almostOne = 0.9999999403953552 -- 0x1.fffffep-1
 
 stratified1D
-   :: (PrimMonad m)
-   => Int
+   :: Int
    -> R.Rand m [Flt]
 stratified1D n = do
    js <- R.rndList n
@@ -139,8 +138,7 @@ stratified1D n = do
          
 -- | generates stratified samples in two dimensions
 stratified2D
-   :: (PrimMonad m)
-   => Int -- ^ number of samples in first dimension
+   :: Int -- ^ number of samples in first dimension
    -> Int -- ^ number of samples in second dimension
    -> R.Rand m [R.Rand2D]
 
@@ -157,34 +155,32 @@ newtype Sampled m a = Sampled {
 
 -- | upgrades from @Rand@ to @Sampled@
 randToSampled
-   :: (PrimMonad m)
-   => Sampled m a -- ^ the sampled computation
+   :: Sampled m a -- ^ the sampled computation
    -> Sample m -- ^ the sample
    -> R.Rand m a
 randToSampled = runReaderT . runSampled
 {-# INLINE randToSampled #-}
 
-liftSampled :: (PrimMonad m) => m a -> Sampled m a
+liftSampled :: ST s a -> Sampled s a
 {-# INLINE liftSampled #-}
 liftSampled m = Sampled $ lift $ R.liftR m
 
-rnd :: (PrimMonad m) => Sampled m Float
+rnd :: Sampled m Float
 rnd = Sampled (lift R.rnd)
 {-# INLINE rnd #-}
 
-rnd2D :: (PrimMonad m) => Sampled m R.Rand2D
+rnd2D :: Sampled m R.Rand2D
 rnd2D = Sampled (lift R.rnd2D)
 {-# INLINE rnd2D #-}
 
-cameraSample :: (PrimMonad m) => Sampled m CameraSample
+cameraSample :: Sampled m CameraSample
 cameraSample = ask >>= \s -> case s of
                                   (RandomSample cs) -> return cs
                                   (PrecomSample cs _ _) -> return cs
 {-# INLINE cameraSample #-}
 
-rnd' :: (PrimMonad m) => Int -> Sampled m Float
+rnd' :: Int -> Sampled m Float
 --{-# INLINE rnd' #-}
-{-# SPECIALIZE rnd' :: Int -> Sampled IO Float #-}
 rnd' n = do
    s <- ask
    case s of
@@ -193,9 +189,8 @@ rnd' n = do
                                    then liftSampled $ V.unsafeRead v n
                                    else rnd
 
-rnd2D' :: (PrimMonad m) => Int -> Sampled m R.Rand2D
+rnd2D' :: Int -> Sampled s R.Rand2D
 {-# INLINE rnd2D' #-}
--- {-# SPECIALIZE rnd2D' :: Int -> Sampled IO R.Rand2D #-}
 rnd2D' n = do
    s <- ask
    case s of

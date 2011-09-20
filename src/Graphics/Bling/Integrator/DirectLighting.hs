@@ -32,7 +32,7 @@ instance SurfaceIntegrator DirectLighting where
       c <- directLighting sa s r >>= mkContrib
       liftSampled $ addSample c
 
-directLighting :: PrimMonad m => Bool -> Scene -> Ray -> Sampled m WeightedSpectrum
+directLighting :: Bool -> Scene -> Ray -> Sampled m WeightedSpectrum
 directLighting _ s r@(Ray _ rd _ _) =
    maybe (return (0, black)) ls (s `intersect` r) where
       ls int = do
