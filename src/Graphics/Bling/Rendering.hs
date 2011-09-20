@@ -14,7 +14,6 @@ module Graphics.Bling.Rendering (
 
 import Control.Monad
 import Control.Monad.Primitive
-import Control.Monad.ST
 import qualified System.Random.MWC as MWC
 import qualified Text.PrettyPrint as PP
 
@@ -95,13 +94,12 @@ instance Renderer SamplerRenderer where
                      s' <- MWC.save :: MWC.Gen (PrimState IO) -> IO MWC.Seed
                      return s'
                   
-                  img' <- do
-                     runWithSeed seed $ do
-                        let comp = fireRay cam >>= I.contrib si scene (addSample img)
-                        sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp
+                  runWithSeed seed $ do
+                     let comp = fireRay cam >>= I.contrib si scene (addSample img)
+                     sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp
                      
                   report (SamplesAdded w) >>= \cnt -> if cnt
-                                                         then return img'
+                                                         then return ()
                                                          else error "cancelled"
 
    

@@ -122,6 +122,11 @@ power
    -> Spectrum -- ^ the light's power in [Watt]
 
 power (AreaLight _ s r _ _) _ = sScale r ((S.area s) * pi)
+power (Directional r _) b = sScale r $ pi * radius * radius where
+   (_, radius) = boundingSphere b
+power (PointLight r _) _ = sScale r $ 4 * pi
+power (SoftBox r) b = sScale r $ pi * wr * wr where
+   (_, wr) = boundingSphere b
 
 -- | samples one light source
 sample

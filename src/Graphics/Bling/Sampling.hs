@@ -68,7 +68,7 @@ shiftToPixel px py = Prelude.map (s (fromIntegral px) (fromIntegral py)) where
 
 data (PrimMonad m) => Sample m
    = RandomSample {-# UNPACK #-} ! CameraSample
-   | PrecomSample {-# UNPACK #-} ! CameraSample (V.MVector (PrimState m) Flt) (V.MVector (PrimState m) R.Rand2D)
+   | PrecomSample {-# UNPACK #-} ! CameraSample !(V.MVector (PrimState m) Flt) !(V.MVector (PrimState m) R.Rand2D)
 
 data Sampler = Random !Int | Stratified !Int !Int
 
@@ -79,7 +79,6 @@ mkStratifiedSampler :: Int -> Int -> Sampler
 mkStratifiedSampler = Stratified
 
 sample :: Sampler -> SampleWindow -> Int -> Int -> Sampled IO a -> R.Rand IO ()
--- {-# SPECIALIZE sample :: Sampler -> SampleWindow -> Int -> Int -> Sampled IO a -> R.Rand IO () #-}
 sample (Random spp) wnd _ _ c = do
    {-# SCC "sample.forM_" #-} CM.forM_ (coverWindow wnd) $ \ (ix, iy) -> do
       let (fx, fy) = (fromIntegral ix, fromIntegral iy)
@@ -184,7 +183,8 @@ cameraSample = ask >>= \s -> case s of
 {-# INLINE cameraSample #-}
 
 rnd' :: (PrimMonad m) => Int -> Sampled m Float
-{-# INLINE rnd' #-}
+--{-# INLINE rnd' #-}
+{-# SPECIALIZE rnd' :: Int -> Sampled IO Float #-}
 rnd' n = do
    s <- ask
    case s of
@@ -195,8 +195,7 @@ rnd' n = do
 
 rnd2D' :: (PrimMonad m) => Int -> Sampled m R.Rand2D
 {-# INLINE rnd2D' #-}
---rnd2D' n = ask >>= \s -> Sampled $ (lift $ func2D s n)
-
+-- {-# SPECIALIZE rnd2D' :: Int -> Sampled IO R.Rand2D #-}
 rnd2D' n = do
    s <- ask
    case s of

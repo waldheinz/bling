@@ -2,7 +2,7 @@
 module Graphics.Bling.AABB (
    AABB(..), mkAABB,
    emptyAABB, extendAABB, extendAABBP, maximumExtent, centroid, surfaceArea,
-   intersectAABB, splitAABB
+   intersectAABB, splitAABB, boundingSphere
 ) where
 
 import Graphics.Bling.Math
@@ -49,6 +49,13 @@ maximumExtent (AABB pmin pmax) = dominant $ pmax - pmin
 centroid :: AABB -> Point
 {-# INLINE centroid #-}
 centroid (AABB pmin pmax) = pmin + (pmax - pmin) * 0.5 
+
+-- | finds the bounding sphere of an @AABB@
+boundingSphere
+   :: AABB -- ^ the box to get the bounding sphere for
+   -> (Point, Flt) -- ^ (center, radius) of the bounding shpere
+boundingSphere b@(AABB _ pmax) = (c, len $ pmax - c) where
+   c = centroid b
 
 surfaceArea :: AABB -> Flt
 {-# INLINE surfaceArea #-}

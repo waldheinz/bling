@@ -56,7 +56,8 @@ instance SurfaceIntegrator PathIntegrator where
       liftSampled $ addSample $ li
       
 nextVertex :: PrimMonad m => Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled m WeightedSpectrum
-{-# INLINE nextVertex #-}
+{-# SPECIALIZE nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled IO WeightedSpectrum #-}
+-- {-# INLINE nextVertex #-}
 -- {-# SPECIALIZE INLINE nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled IO WeightedSpectrum #-}
 -- {-# SPECIALIZE INLINE nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled (ST s) WeightedSpectrum #-}
 -- nothing hit, specular bounce
@@ -80,8 +81,8 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) t l md
       lBsdfCompU <- rnd' $ 2 + smp1doff depth
       lBsdfDirU <- rnd2D' $ 2 + smp2doff depth
       
-      let (BsdfSample smpType spdf f wi) = {-# SCC "nextVertex.sampleBsdf" #-} sampleBsdf bsdf wo bsdfCompU bsdfDirU
-      let lHere = {-# SCC "nextVertex.sampleOneLight" #-} sampleOneLight scene p n wo bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU
+      let (BsdfSample smpType spdf f wi) = sampleBsdf bsdf wo bsdfCompU bsdfDirU
+      let lHere = sampleOneLight scene p n wo bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU
       let l' = l + (t * (lHere + intl))
       
       rnd >>= \x -> if x > pc || (spdf == 0) || isBlack f
