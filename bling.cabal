@@ -92,6 +92,13 @@ Executable bling
    ghc-options:      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -rtsopts -threaded
    ghc-prof-options: -O2 -fexcess-precision -prof -auto-all -rtsopts
 
+Executable bling-treevis
+   hs-source-dirs:   src/Graphics/Bling/Main
+   Main-is:          KdTreeVision.hs
+   Build-Depends:    bling, base, haskell98, pretty, random, mwc-random
+   ghc-options:      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -rtsopts -threaded
+   ghc-prof-options: -O2 -fexcess-precision -prof -auto-all -rtsopts
+
 Executable bling-gui
    if flag(Gui)
       Buildable:     True

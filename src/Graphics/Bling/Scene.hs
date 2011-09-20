@@ -26,11 +26,10 @@ data Scene = Scene {
    }
    
 instance Printable Scene where
-   prettyPrint s@(Scene cnt p ls cam) = vcat [
+   prettyPrint (Scene cnt p ls cam) = vcat [
       text "camera" <+> prettyPrint cam,
       text "bounds" <+> text (show (worldBounds p)),
       text "number of lights" <+> int (V.length ls),
-      text "total emission" <+> text (show (lightPower s)),
       text "number of primitives" <+> int cnt,
       text "stats" $$ nest 3 (ppKdTree p)
       ]

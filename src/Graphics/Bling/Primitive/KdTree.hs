@@ -1,6 +1,12 @@
 
 module Graphics.Bling.Primitive.KdTree (
-   KdTree, mkKdTree, ppKdTree
+   
+   -- * Kd - Trees
+   KdTree, mkKdTree,
+
+   -- * Debugging 
+
+   ppKdTree, dbgTraverse, TraversalStats(..)
    ) where
 
 import Control.Parallel
@@ -223,3 +229,37 @@ instance Primitive KdTree where
       tr = traverse' r invDir t
       invDir = mkV (1 / d .! 0, 1 / d .! 1, 1 / d .! 2)
       
+--------------------------------------------------------------------------------
+-- Kd - Tree Vision
+--------------------------------------------------------------------------------
+
+data TraversalStats = TraversalStats
+   { nodesTraversed :: Int
+   , intersections :: Int
+   }
+
+deeper :: TraversalStats -> TraversalStats
+deeper ts = ts { nodesTraversed = nodesTraversed ts + 1 }
+
+dbgTraverse :: KdTree -> Ray -> TraversalStats
+dbgTraverse (KdTree b t) r@(Ray _ d _ _) = maybe stats t' (intersectAABB b r) where
+   t' ts = let (_, _, x) = trav ts
+          in x
+   trav ts = dbgTraverse' (r, Nothing, stats) invDir t ts
+   invDir = mkV (1 / d .! 0, 1 / d .! 1, 1 / d .! 2)
+   stats = TraversalStats 0 0
+
+-- | traversal function for @Primitive.intersect@
+dbgTraverse' :: (Ray, Maybe Intersection, TraversalStats) -> Vector -> KdTreeNode -> (Flt, Flt) -> (Ray, Maybe Intersection, TraversalStats)
+dbgTraverse' (r, mi, ts) _ (Leaf ps) _ = let (r', mi') = nearest' ps (r, mi)
+                                         in (r', mi', deeper $ ts { intersections = (intersections ts + V.length ps) })
+dbgTraverse' ri@(r, mi, ts) inv (Interior left right sp axis) mima@(tmin, tmax)
+   | rayMax r < tmin = ri
+   | tp > tmax || tp <= 0 = dbgTraverse' (r, mi, deeper ts) inv fc mima
+   | tp < tmin = dbgTraverse' (r, mi, deeper ts) inv sc mima
+   | otherwise = dbgTraverse' (dbgTraverse' ri inv fc (tmin, tp)) inv sc (tp, tmax)
+   where
+         (ro, rd) = (rayOrigin r, rayDir r)
+         tp = (sp - ro .! axis) * inv .! axis
+         (fc, sc) = if lf then (left, right) else (right, left)
+         lf = (ro .! axis < sp) || (ro .! axis == sp && rd .! axis <= 0)
