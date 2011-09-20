@@ -3,7 +3,7 @@
 module Graphics.Bling.Image (
    Image, ImageSample(..),
    
-   mkImage, subImage, mergeImage, addSample, splatSample,
+   mkImage, addSample, splatSample,
    
    imageWidth, imageHeight, imageWindow, writePpm, writeRgbe, rgbPixels
    ) where
@@ -42,21 +42,6 @@ mkImage
 mkImage flt w h = do
    pixels <- V.replicate (w * h) (0, (0, 0, 0), (0, 0, 0))
    return $ Image w h flt pixels
-
-subImage
-   :: (PrimMonad m0, PrimMonad m1)
-   => Image m1
-   -> SampleWindow
-   -> m0 (Image m0)
-{-# INLINE subImage #-}
-subImage (Image _ _ f _) (SampleWindow x0 x1 y0 y1) =
-   mkImage f (x1 - x0) (y1 - y0)
-
-mergeImage :: Image IO -> Image (ST RealWorld) -> SampleWindow -> IO ()
-{-# INLINE mergeImage #-}
-mergeImage img sub wnd = do
-   
-   return ()
 
 imageWindow :: PrimMonad m => Image m -> SampleWindow
 imageWindow (Image w h f _) = SampleWindow x0 x1 y0 y1 where
