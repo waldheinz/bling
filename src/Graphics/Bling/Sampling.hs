@@ -25,10 +25,7 @@ module Graphics.Bling.Sampling (
 import Control.Monad.Primitive
 import Control.Monad.Reader
 import Control.Monad as CM
-import Control.Monad.ST
 import qualified Data.Vector.Unboxed.Mutable as V
-import Data.List (transpose)
-import Data.STRef
 import System.Random
 import qualified System.Random.Shuffle as S
 
@@ -71,7 +68,7 @@ shiftToPixel px py = Prelude.map (s (fromIntegral px) (fromIntegral py)) where
 
 data (PrimMonad m) => Sample m
    = RandomSample {-# UNPACK #-} ! CameraSample
-   | PrecomSample {-# UNPACK #-} ! CameraSample !(V.MVector (PrimState m) Flt)
+   | PrecomSample {-# UNPACK #-} ! CameraSample (V.MVector (PrimState m) Flt) (V.MVector (PrimState m) R.Rand2D)
 
 data Sampler = Random !Int | Stratified !Int !Int
 
@@ -81,45 +78,35 @@ mkRandomSampler = Random
 mkStratifiedSampler :: Int -> Int -> Sampler
 mkStratifiedSampler = Stratified
 
-sample :: Sampler -> SampleWindow -> Int -> Int -> Sampled (ST s) a -> R.Rand (ST s) ()
+sample :: Sampler -> SampleWindow -> Int -> Int -> Sampled IO a -> R.Rand IO ()
 -- {-# SPECIALIZE sample :: Sampler -> SampleWindow -> Int -> Int -> Sampled IO a -> R.Rand IO () #-}
 sample (Random spp) wnd _ _ c = do
    {-# SCC "sample.forM_" #-} CM.forM_ (coverWindow wnd) $ \ (ix, iy) -> do
-      let (fx, fy) = {-# SCC "sample.fromIntegral" #-} (fromIntegral ix, fromIntegral iy)
-      {-# SCC "sample.replicateM" #-} CM.replicateM_ spp $ do
-         ox <- {-# SCC "sample.rnd1" #-} R.rnd
-         oy <- {-# SCC "sample.rnd1" #-} R.rnd
-         luv <- {-# SCC "sample.rnd2D" #-} R.rnd2D
+      let (fx, fy) = (fromIntegral ix, fromIntegral iy)
+      CM.replicateM spp $ do
+         ox <- R.rnd
+         oy <- R.rnd
+         luv <- R.rnd2D
          let s = RandomSample (CameraSample (fx + ox) (fy + oy) luv)
-         {-# SCC "sample.randToSampled" #-} randToSampled c s
+         randToSampled c s
          
 sample (Stratified nu nv) wnd n1d n2d c = do
    v1d <- R.liftR $ V.replicate (nu * nv * n1d) (0 :: Flt)
-   xx <- R.liftR $ newSTRef (1::Int)
+   v2d <- R.liftR $ V.replicate (nu * nv * n2d) ((0,0) :: R.Rand2D)
+   
    CM.forM_ (coverWindow wnd) $ \ (ix, iy) -> do
       ps <- stratified2D nu nv -- pixel samples
       lens <- stratified2D nu nv >>= shuffle (nu*nv) -- lens samples
-      let (fx, fy) = {-# SCC "sample.fromIntegral" #-} (fromIntegral ix, fromIntegral iy)
-      CM.forM_ (zip ps lens) $ \((ox, oy), luv) -> do
-         let s = RandomSample (CameraSample (fx + ox) (fy + oy) luv)
-         {-# SCC "sample.randToSampled" #-} randToSampled c s
-sample _ _ _ _ _ = error "sample not implemented for sampler"
+      let (fx, fy) = (fromIntegral ix, fromIntegral iy)
 
-{-
-samples :: (PrimMonad m) => Sampler -> SampleWindow -> Int -> Int -> R.Rand m [Sample]
+      fill n1d v1d (stratified1D n1d >>= shuffle n1d)
+      fill n2d v2d (stratified2D nu nv >>= shuffle (nu * nv))
+      
+      CM.forM_ (zip3 ps lens [0..]) $ \((ox, oy), luv, n) -> do
+         let cs = CameraSample (fx + ox) (fy + oy) luv
+         let s = PrecomSample cs (V.slice (n*n1d) n1d v1d) (V.slice (n*n2d) n2d v2d)
+         randToSampled c s
 
-samples (Stratified nu nv) w n1d n2d = Prelude.concat `liftM` CM.mapM (pixel nu nv n1d n2d) (coverWindow w)
-
--- | creates stratified samples for one pixel
-pixel :: PrimMonad m => Int -> Int -> Int -> Int -> (Int, Int) -> R.Rand m [Sample]
-pixel nu nv n1d n2d (px, py) = do
-   lens <- stratified2D nu nv >>= shuffle (nu*nv)
-   ps <- stratified2D nu nv
-   r1d <- mk1D (nu*nv) n1d
-   r2d <- mk2D nu nv n2d
-
-   return $ mkSamples (shiftToPixel px py ps) lens r1d r2d
-   -}
 -- | shuffles a list
 shuffle
    :: PrimMonad m
@@ -130,19 +117,13 @@ shuffle xl xs = do
    seed <- R.rndInt
    return $ {-# SCC "shuffle'" #-} S.shuffle' xs xl $ mkStdGen seed
 
---vectorize :: (V.Unbox a) => [[a]] -> [V.Vector a]
---vectorize xs = Prelude.map V.fromList $ transpose xs
-{-
-mk1D :: PrimMonad m => Int -> Int -> R.Rand m [V.Vector Flt]
-mk1D nu n = do
-   vals <- CM.replicateM n $ (stratified1D nu)
-   return $ vectorize vals
+fill :: (V.Unbox a, PrimMonad m) => Int -> V.MVector (PrimState m) a -> (R.Rand m [a]) -> R.Rand m ()
+fill n v gen = do
+   forM_ [0..n-1] $ \off -> do
+      rs <- gen
+      forM_ (zip rs [0..]) $ \ (val, idx) -> do
+         R.liftR $ V.write v (idx * n + off) val
 
-mk2D :: PrimMonad m => Int -> Int -> Int -> R.Rand m [V.Vector R.Rand2D]
-mk2D nu nv n = do
-   vals <- CM.replicateM n $ (stratified2D nu nv)
-   return $ vectorize vals
-   -}
 almostOne :: Float
 almostOne = 0.9999999403953552 -- 0x1.fffffep-1
 
@@ -198,17 +179,19 @@ rnd2D = Sampled (lift R.rnd2D)
 
 cameraSample :: (PrimMonad m) => Sampled m CameraSample
 cameraSample = ask >>= \s -> case s of
-                                  (RandomSample cs) -> return $ cs
+                                  (RandomSample cs) -> return cs
+                                  (PrecomSample cs _ _) -> return cs
 {-# INLINE cameraSample #-}
 
 rnd' :: (PrimMonad m) => Int -> Sampled m Float
 {-# INLINE rnd' #-}
--- rnd' n = ask >>= \s -> Sampled $ (lift $ func1D s n)
-
 rnd' n = do
    s <- ask
    case s of
         (RandomSample _) -> rnd
+        (PrecomSample _ v _) -> if (V.length v > n)
+                                   then liftSampled $ V.unsafeRead v n
+                                   else rnd
 
 rnd2D' :: (PrimMonad m) => Int -> Sampled m R.Rand2D
 {-# INLINE rnd2D' #-}
@@ -218,3 +201,6 @@ rnd2D' n = do
    s <- ask
    case s of
         (RandomSample _) -> rnd2D
+        (PrecomSample _ _ v) -> if (V.length v > n)
+                                   then liftSampled $ V.unsafeRead v n
+                                   else rnd2D

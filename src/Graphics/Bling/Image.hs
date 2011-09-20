@@ -55,6 +55,7 @@ subImage (Image _ _ f _) (SampleWindow x0 x1 y0 y1) =
 mergeImage :: Image IO -> Image (ST RealWorld) -> SampleWindow -> IO ()
 {-# INLINE mergeImage #-}
 mergeImage img sub wnd = do
+   
    return ()
 
 imageWindow :: PrimMonad m => Image m -> SampleWindow

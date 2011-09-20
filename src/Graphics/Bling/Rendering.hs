@@ -79,9 +79,7 @@ instance Renderer SamplerRenderer where
          cam = sceneCam scene
          render' :: Int -> IO ()
          render' p = do
-            forM_ (splitWindow $ imageWindow img) $ \w -> do
-               t <- tile w
-               mergeImage img t w
+            forM_ (splitWindow $ imageWindow img) tile
                
             report (PassDone p) >>= \ cnt ->
                if cnt
@@ -97,12 +95,10 @@ instance Renderer SamplerRenderer where
                      s' <- MWC.save :: MWC.Gen (PrimState IO) -> IO MWC.Seed
                      return s'
                   
-                  img' <- stToIO $ do
-                     sub <- subImage img w
+                  img' <- do
                      runWithSeed seed $ do
-                        let comp = fireRay cam >>= I.contrib si scene (addSample sub)
+                        let comp = fireRay cam >>= I.contrib si scene (addSample img)
                         sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp
-                     return sub
                      
                   report (SamplesAdded w) >>= \cnt -> if cnt
                                                          then return img'
