@@ -15,7 +15,7 @@ renderer {
    }
 }
 
-renderer { sampler sampled { sampler { stratified xSamples 64 ySamples 64 } integrator { path maxDepth 5 } } }
+# renderer { sampler sampled { sampler { stratified xSamples 64 ySamples 64 } integrator { path maxDepth 5 } } }
 # renderer { sampler sampled { sampler { random samples 1 } integrator { path maxDepth 5 } } }
 
 imageSize 480 480

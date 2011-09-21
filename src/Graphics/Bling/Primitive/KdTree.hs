@@ -20,8 +20,8 @@ import Graphics.Bling.AABB
 import Graphics.Bling.Math
 import Graphics.Bling.Primitive
 
-data KdTree = KdTree AABB KdTreeNode deriving (Show)
-   
+data KdTree = KdTree !AABB !KdTreeNode deriving (Show)
+
 data KdTreeNode
    = Interior !KdTreeNode !KdTreeNode {-# UNPACK #-} !Flt {-# UNPACK #-} !Dimension
    | Leaf {-# UNPACK #-} !(V.Vector AnyPrim)
