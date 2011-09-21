@@ -92,18 +92,18 @@ sample (Random spp) wnd _ _ c = do
          randToSampled c s
 
 sample (Stratified nu nv) wnd n1d n2d c = do
-   v1d <- R.liftR $ V.replicate (nu * nv * n1d) (0 :: Flt)
-   v2d <- R.liftR $ V.replicate (nu * nv * n2d) ((0,0) :: R.Rand2D)
+   v1d <- R.liftR $ V.new (nu * nv * n1d)
+   v2d <- R.liftR $ V.new (nu * nv * n2d)
    
-   CM.forM_ (coverWindow wnd) $ \ (ix, iy) -> do
+   forM_ (coverWindow wnd) $ \ (ix, iy) -> do
       ps <- stratified2D nu nv -- pixel samples
       lens <- stratified2D nu nv >>= shuffle (nu*nv) -- lens samples
       let (fx, fy) = (fromIntegral ix, fromIntegral iy)
       
       fill v1d n1d (nu*nv) (stratified1D (nu*nv))
-      fill v2d n2d (nu*nv)(stratified2D nu nv)
+      fill v2d n2d (nu*nv) (stratified2D nu nv)
       
-      CM.forM_ (zip3 ps lens [0..]) $ \((ox, oy), luv, n) -> do
+      forM_ (zip3 ps lens [0..]) $ \((ox, oy), luv, n) -> do
          let cs = CameraSample (fx + ox) (fy + oy) luv
          let s = PrecomSample cs (V.slice (n*n1d) n1d v1d) (V.slice (n*n2d) n2d v2d)
          randToSampled c s

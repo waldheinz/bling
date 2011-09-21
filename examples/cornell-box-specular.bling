@@ -2,7 +2,7 @@
 #filter sinc 4.0 4.0 3.0
 #filter triangle 2.0 2.0
 filter mitchell 3.0 3.0 0.333333 0.333333
-filter box
+#filter box
 
 
 renderer { lightTracer passCount 50 particles 20000 }
@@ -19,7 +19,7 @@ renderer {
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 8 ySamples 8 }
+      sampler { stratified xSamples 16 ySamples 16 }
       integrator { path maxDepth 7 }
    }
 }

@@ -88,7 +88,7 @@ instance Renderer SamplerRenderer where
                   img <- thaw img'
                   runWithSeed seed $ tile scene smp si img w
                   freeze img
-
+               
                writeIORef lastImg i'
                
                report (SamplesAdded w i') >>= \cnt ->
