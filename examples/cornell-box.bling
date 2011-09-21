@@ -13,7 +13,7 @@ renderer {
 }
 
 # renderer { sampler sampled { sampler { random samples 256 } integrator { path maxDepth 5 } } }
-# renderer { lightTracer passCount 10 particles 5000 }
+renderer { lightTracer passCount 10 particles 500000 }
 
 imageSize 480 480
 

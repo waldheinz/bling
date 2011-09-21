@@ -45,8 +45,7 @@ instance Renderer LightTracer where
 
             img' <- stToIO $ do
                mimg <- thaw i
-               smps <- runWithSeed seed $ liftM concat $ replicateM ppp $ oneRay sc
-               mapM_ ((splatSample mimg) . sSmp) smps
+               runWithSeed seed $ replicateM_ ppp $ oneRay sc (liftR . (splatSample mimg) . sSmp)
                freeze mimg
                
             cont <- report $ (PassDone (np - n + 1) img')
@@ -60,14 +59,14 @@ instance Renderer LightTracer where
       sSmp (ImageSample x y (w, s)) = ImageSample x y (w * f, s)
       f = 1 / (fromIntegral $ np * ppp) -- TODO: the factor of 4 is, odd
       
-oneRay :: Scene -> Rand m [ImageSample]
-oneRay scene = do
+oneRay :: Scene -> (ImageSample -> Rand m ()) -> Rand m ()
+oneRay scene splat = do
    ul <- rnd
    ulo <- rnd2D
    uld <- rnd2D
    let (li, ray, nl, pdf) = sampleLightRay scene ul ulo uld
    let wo = normalize $ rayDir ray
-   nextVertex scene (-wo) (intersect scene ray) (sScale li (absDot nl wo / pdf)) 0
+   nextVertex scene (-wo) (intersect scene ray) (sScale li (absDot nl wo / pdf)) 0 splat
    
 nextVertex
    :: Scene
@@ -75,12 +74,13 @@ nextVertex
    -> Maybe Intersection
    -> Spectrum
    -> Int -- ^ depth
-   -> Rand m [ImageSample]
+   -> (ImageSample -> Rand m ())
+   -> Rand m () 
 -- nothing hit, terminate path   
-nextVertex _ _ Nothing _ _ = return []
+nextVertex _ _ Nothing _ _ _ = return ()
 
-nextVertex sc wi (Just int) li depth
-   | isBlack li = return []
+nextVertex sc wi (Just int) li depth splat
+   | isBlack li = return ()
    | otherwise = do
    let (CameraSampleResult csf pCam px py cPdf) = sampleCam (sceneCam sc) p
    let dCam = pCam - p
@@ -100,11 +100,11 @@ nextVertex sc wi (Just int) li depth
    
    x <- rnd
    let rest = if x > pcont
-               then return []
-               else nextVertex sc wi' int' li' (depth + 1)
+               then return ()
+	       else nextVertex sc wi' int' li' (depth + 1) splat
    
    if cPdf > 0 && not (isBlack (f * li)) && not (intersects sc cray)
-      then (liftM . (:)) smpHere $! rest
+      then splat smpHere >> rest
       else rest
       
    where
