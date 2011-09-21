@@ -16,7 +16,7 @@ import Graphics.Bling.IO.RenderJob
 import Graphics.Bling.Primitive.KdTree
 
 prog :: Image -> ProgressReporter
-prog img (PassDone p) = do
+prog _ (PassDone p img) = do
    putStrLn $ "\nWriting " ++ fname ++ "..."
 
    h2 <- openFile (fname ++ ".hdr") WriteMode

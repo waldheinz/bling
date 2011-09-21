@@ -45,7 +45,7 @@ instance Renderer LightTracer where
             smps <- runRandIO $ liftM concat $ replicateM ppp $ oneRay sc
     --        stToIO $ mapM_ ((splatSample img) . sSmp) smps
             
-            cont <- report $ (PassDone (np - n + 1))
+            cont <- report $ (PassDone (np - n + 1) undefined)
             if cont
                then pass (n - 1)
                else return ()

@@ -1,7 +1,7 @@
 {-# LANGUAGE RankNTypes #-}
 
 module Graphics.Bling.Image (
-   Image, ImageSample(..), mkImage,
+   Image, ImageSample(..), mkImage, rgbPixels, imageWindow', imgW, imgH,
    
    MImage,
    
@@ -52,8 +52,8 @@ mkMImage flt w h = do
 
 -- | an immutable image
 data Image = Img
-   { _imgW :: Int
-   , _imgH :: Int
+   { imgW :: Int
+   , imgH :: Int
    , _imgF :: Filter
    , _imgP :: V.Vector Pixel
    }
@@ -76,14 +76,21 @@ freeze :: MImage s -> ST s Image
 freeze (MImage w h f p) = do
    p' <- GV.freeze p
    return $ Img w h f p'
- 
-   
+
 imageWindow :: MImage s -> SampleWindow
 imageWindow (MImage w h f _) = SampleWindow x0 x1 y0 y1 where
    x0 = floor (0.5 - filterWidth f)
    x1 = floor (0.5 + (fromIntegral w) + filterWidth f)
    y0 = floor (0.5 - filterHeight f)
    y1 = floor (0.5 + (fromIntegral h) + filterHeight f)
+
+imageWindow' :: Image -> SampleWindow
+imageWindow' (Img w h f _) = SampleWindow x0 x1 y0 y1 where
+   x0 = floor (0.5 - filterWidth f)
+   x1 = floor (0.5 + (fromIntegral w) + filterWidth f)
+   y0 = floor (0.5 - filterHeight f)
+   y1 = floor (0.5 + (fromIntegral h) + filterHeight f)
+
 
 addPixel :: MImage s -> (Int, Int, WeightedSpectrum) -> ST s ()
 {-# INLINE addPixel #-}
@@ -179,17 +186,15 @@ gamma x (r, g, b) = (r ** x', g ** x', b ** x') where
 -- | converts a Float in [0..1] to an Int in [0..255], clamping values outside [0..1]
 clamp :: Float -> Int
 clamp v = round ( min 1 (max 0 v) * 255 )
-{-
+
 rgbPixels :: Image -> SampleWindow -> [((Int, Int), (Int, Int, Int))]
-rgbPixels img w = do
-   let ps = map (getPixel img) os
-   let rgbs = map (gamma 2.2) ps
-   let clamped = map (\(r,g,b) -> (clamp r, clamp g, clamp b)) rgbs
-   return $ Prelude.zip xs clamped
-   where
-         xs = coverWindow w
-         os = map (\(x,y) -> (y * (imgW img)) + x) xs
-  -}    
+rgbPixels img w = Prelude.zip xs clamped where
+   ps = map (getPixel img) os
+   rgbs = map (gamma 2.2) ps
+   clamped = map (\(r,g,b) -> (clamp r, clamp g, clamp b)) rgbs
+   xs = coverWindow w
+   os = map (\(x,y) -> (y * (imgW img)) + x) xs
+         
 -- | converts a @WeightedSpectrum@ into what's expected to be found in a ppm file
 ppmPixel :: (Float, Float, Float) -> String
 ppmPixel ws = (toString . gamma 2.2) ws

@@ -11,20 +11,20 @@ import Graphics.Bling.Rendering
 import Graphics.Bling.Sampling
 import Graphics.Bling.IO.RenderJob
 
-data AppConfig = AppConfig {
-    screen :: Surface,
-    _buff :: Surface,
-   appImg :: Image IO
+data AppConfig = AppConfig
+    { screen :: Surface
+    , _buff :: Surface
+--   appImg :: Image IO
 }
 
-initEnv :: Image IO -> IO AppConfig
+initEnv :: Image -> IO AppConfig
 initEnv img = do
-   let w = imageWidth img
-   let h = imageHeight img
+   let w = imgW img
+   let h = imgH img
    
    s <- setVideoMode w h 32 [SWSurface]
    b <- createRGBSurfaceEndian [] w h 32
-   return $ AppConfig s b img
+   return $ AppConfig s b
 
 waitQuit :: IO ()
 waitQuit = waitEvent >>= \evt -> case evt of
@@ -42,9 +42,9 @@ lookQuit = do
 prog :: AppConfig -> ProgressReporter
 prog ac (SamplesAdded w) = do
    let s = screen ac
-   ps <- rgbPixels (appImg ac) w
-   mapM_ (putPixel s) ps
-   SDL.flip s
+--   ps <- rgbPixels (appImg ac) w
+--   mapM_ (putPixel s) ps
+--   SDL.flip s
    lookQuit
 
 prog ac (RegionStarted w) = do
@@ -54,11 +54,10 @@ prog ac (RegionStarted w) = do
    SDL.flip s
    lookQuit
 
-prog ac (PassDone p) = do
-   let img = appImg ac
-   let w = imageWindow img
+prog ac (PassDone p img) = do
+   let w = imageWindow' img
    let s = screen ac
-   ps <- rgbPixels img w
+   let ps = rgbPixels img w
    mapM_ (putPixel s) ps
    SDL.flip s
    
@@ -66,7 +65,7 @@ prog ac (PassDone p) = do
    h1 <- openFile (fname ++ ".ppm") WriteMode
    writePpm img h1
    hClose h1
-
+   
    h2 <- openFile (fname ++ ".hdr") WriteMode
    writeRgbe img h2
    hClose h2
@@ -90,7 +89,7 @@ main :: IO ()
 main = SDL.withInit [InitEverything] $ do
    fName <- fmap head getArgs
    j <- fmap parseJob $ readFile fName
-   img <- mkImage (jobPixelFilter j) (imageSizeX j) (imageSizeY j)
+   let img = mkImage (jobPixelFilter j) (imageSizeX j) (imageSizeY j)
    env <- initEnv img
    
    render (jobRenderer j) (jobScene j) img (prog env)

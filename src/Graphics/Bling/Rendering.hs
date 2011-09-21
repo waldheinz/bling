@@ -12,6 +12,7 @@ module Graphics.Bling.Rendering (
    Progress(..), ProgressReporter
    ) where
 
+import Debug.Trace
 import Control.Monad
 import Control.Monad.Primitive
 import Control.Monad.ST
@@ -34,8 +35,9 @@ data Progress
    | RegionStarted {
       progRegStart :: SampleWindow
       }
-   | PassDone {
-      progPassNum :: Int
+   | PassDone
+      { progPassNum :: Int
+      , currImg :: Image
       }
 
 type ProgressReporter = Progress -> IO Bool
@@ -54,7 +56,7 @@ mkAnyRenderer = AR
 
 instance Printable AnyRenderer where prettyPrint (AR a) = prettyPrint a
 instance Renderer AnyRenderer where render (AR a) = render a
-   
+
 --
 -- the sampler renderer
 --
@@ -73,10 +75,9 @@ instance Printable SamplerRenderer where
 
 instance Renderer SamplerRenderer where
    
-   render (SR smp si) scene img' report = do
-      render' img' 1 >> return ()
+   render (SR smp si) scene img'' report = do
+      render' img'' 1 >> return ()
       where
-         cam = sceneCam scene
          render' :: Image -> Int -> IO Image
          render' img' p = do
             
@@ -89,26 +90,24 @@ instance Renderer SamplerRenderer where
                forM_ (splitWindow $ imageWindow img) $ \w -> do
                
              --  _ <- report $ RegionStarted w
-                  runWithSeed seed $ tile scene smp si img w
-               img' <- freeze img
-               return img'
-                  
-           --    report (SamplesAdded w) >>= \cnt ->
-           --       if cnt
-           --          then return ()
-           --          else error "cancelled"
+                  trace (show w) $ runWithSeed seed $ tile scene smp si img w
+               freeze img
+               
+          --     report (SamplesAdded w) >>= \cnt ->
+          --        if cnt
+          --           then return ()
+          --           else error "cancelled"
             
-            report (PassDone p) >>= \ cnt ->
+            report (PassDone p i) >>= \ cnt ->
                if cnt
                   then render' i (p + 1)
                   else return i
             
---tile :: MImage s -> SampleWindow -> MImage s -> ST s ()
-tile scene smp si img w = do   
-                  
-                  
-                     let comp = fireRay cam >>= I.contrib si scene (addSample img)
-                     sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp
-                     where
-                        cam = sceneCam scene
+tile :: I.SurfaceIntegrator a =>
+   Scene -> Sampler -> a -> MImage s -> SampleWindow -> Rand s ()
+tile scene smp si img w = do
+   let comp = fireRay cam >>= I.contrib si scene (addSample img)
+   sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp
+   where
+      cam = sceneCam scene
                      

@@ -12,7 +12,7 @@ import Graphics.Bling.Types
 import Graphics.Bling.IO.RenderJob
 
 prog :: Image -> ProgressReporter
-prog img (PassDone p) = do
+prog _ (PassDone p img) = do
    putStrLn $ "\nWriting " ++ fname ++ "..."
    h1 <- openFile (fname ++ ".ppm") WriteMode
    writePpm img h1
