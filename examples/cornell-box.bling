@@ -7,13 +7,13 @@ filter mitchell 3.0 3.0 0.333333 0.333333
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 16 ySamples 16 }
+      sampler { stratified xSamples 32 ySamples 32 }
       integrator { path maxDepth 5 }
    }
 }
 
 # renderer { sampler sampled { sampler { random samples 256 } integrator { path maxDepth 5 } } }
-renderer { lightTracer passCount 10 particles 500000 }
+# renderer { lightTracer passCount 10 particles 500000 }
 
 imageSize 480 480
 

@@ -6,7 +6,6 @@ module Graphics.Bling.Integrator.BidirPath (
 
 import Data.BitSet
 import Control.Monad (liftM)
-import Control.Monad.ST
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Camera
@@ -27,13 +26,17 @@ instance Printable BidirPath where
    prettyPrint (BDP) = PP.text "Bi-Dir Path"
 
 instance SurfaceIntegrator BidirPath where
+   sampleCount1D _ = 0
+   sampleCount2D _ = 0
+   
    contrib (BDP) s consume r = do
       ep <- eyePath s r
       (lp, li) <- lightPath s
       
       cws <- (mkContrib $ aws (contribS0 ep + contribS1 ep) (connect ep lp))
-   --   consume cws
-   --   contribT1 s lp li consume
+      liftSampled $ consume cws
+      
+      contribT1 s lp li (consume )
       return ()
       
 aws :: Spectrum -> WeightedSpectrum -> WeightedSpectrum
@@ -70,7 +73,7 @@ lightPath s = do
    path <- nextVertex s wo (s `intersect` ray) 0
    return (path, sScale li (absDot nl wo / pdf))
    
--- | contribution for when the eye subpath randomly intersects a light
+-- | contribution for the eye subpath randomly intersecting a light
 --   source, or for light sources visible through specular reflections
 contribS0 :: Path -> Spectrum
 contribS0 [] = black
@@ -85,11 +88,11 @@ contribS1 _ = black
 -- contribS1 ((Vert _ _ _ _ _ _ _ _):vs) = black
 
 -- | follow specular paths from the light and connect the to the eye
-contribT1 :: Scene -> Path -> Spectrum -> Consumer m -> ST m ()
+contribT1 :: Scene -> Path -> Spectrum -> Consumer m -> Sampled m ()
 contribT1 _ [] _ _ = return ()
 contribT1 sc ((Vert bsdf p n wi _ _ t f):vs) li addSample
    | Specular `member` t = contribT1 sc vs (f * li) addSample
-   | otherwise = addSample smp
+   | otherwise = liftSampled $ addSample smp
    where
       le = li * evalBsdf bsdf wi we
       smp = ImageSample px py (absDot n we / (cPdf * d2), le * csf)
