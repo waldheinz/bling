@@ -78,16 +78,19 @@ instance Renderer SamplerRenderer where
       render' img'' 1 >> return ()
       where
          render' img' p = do
-            lastImg <- newIORef undefined
+            lastImg <- newIORef img'
             
             forM_ (splitWindow $ imageWindow' img'') $ \w -> do
                _ <- report $ RegionStarted w
                seed <- ioSeed
                
-               i' <- stToIO $ do
-                  img <- thaw img'
-                  runWithSeed seed $ tile scene smp si img w
-                  freeze img
+               i' <- do
+		  img <- readIORef lastImg
+
+		  stToIO $ do
+		     mimg <- thaw img
+		     runWithSeed seed $ tile scene smp si mimg w
+		     freeze mimg
                
                writeIORef lastImg i'
                
