@@ -25,6 +25,7 @@ module Graphics.Bling.Sampling (
 import Control.Monad.Primitive
 import Control.Monad.Reader
 import Control.Monad.ST
+import Data.STRef
 import Control.Monad as CM
 import qualified Data.Vector.Unboxed.Mutable as V
 import System.Random
@@ -99,8 +100,8 @@ sample (Stratified nu nv) wnd n1d n2d c = do
       lens <- stratified2D nu nv >>= shuffle (nu*nv) -- lens samples
       let (fx, fy) = (fromIntegral ix, fromIntegral iy)
       
-      fill n1d v1d (stratified1D (nu*nv) >>= shuffle (nu*nv))
-      fill n2d v2d (stratified2D nu nv >>= shuffle (nu * nv))
+      fill v1d n1d (nu*nv) (stratified1D (nu*nv))
+      fill v2d n2d (nu*nv)(stratified2D nu nv)
       
       CM.forM_ (zip3 ps lens [0..]) $ \((ox, oy), luv, n) -> do
          let cs = CameraSample (fx + ox) (fy + oy) luv
@@ -116,12 +117,22 @@ shuffle xl xs = do
    seed <- R.rndInt
    return $ {-# SCC "shuffle'" #-} S.shuffle' xs xl $ mkStdGen seed
 
-fill :: (V.Unbox a) => Int -> V.MVector (PrimState (ST m)) a -> (R.Rand m [a]) -> R.Rand m ()
-fill n v gen = do
+fill :: (V.Unbox a) => V.MVector (PrimState (ST m)) a -> Int -> Int -> (R.Rand m [a]) -> R.Rand m ()
+fill v n n' gen = do
    forM_ [0..n-1] $ \off -> do
-      rs <- gen
-      forM_ (zip rs [0..]) $ \ (val, idx) -> do
-         R.liftR $ V.write v (idx * n + off) val
+      rs <- do
+         vv <- R.liftR $ V.new n'
+         xs <- gen
+         forM_ (zip xs [0..]) $ \(val, i) -> do
+            R.liftR $ V.write vv i val
+         return vv
+            
+      idx <- R.liftR $ newSTRef 0
+      R.liftR $ forM_ [0..n'-1] $ \ vidx -> do
+         i <- readSTRef idx
+         val <- V.read rs vidx
+         modifySTRef idx (+1)
+         V.write v (i * n + off) val
 
 almostOne :: Float
 almostOne = 0.9999999403953552 -- 0x1.fffffep-1
