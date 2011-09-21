@@ -19,10 +19,12 @@ renderer {
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 1 ySamples 1 }
+      sampler { stratified xSamples 8 ySamples 8 }
       integrator { path maxDepth 7 }
    }
 }
+
+# renderer { sampler sampled { sampler { random samples 8 } integrator { path maxDepth 5 } } }
 
 imageSize 480 480
 
@@ -132,7 +134,7 @@ shape { sphere radius 100 }
 # mirror sphere
 #
 
-material { mirror spd { 1 0.95 } }
+material { mirror kr { constant spd { 1 0.95 } } }
 transform { identity translate 150 100 300 }
 shape { sphere radius 100 }
 transform { identity }
