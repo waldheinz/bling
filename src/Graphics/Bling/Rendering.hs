@@ -13,9 +13,8 @@ module Graphics.Bling.Rendering (
    ) where
 
 import Control.Monad
-import Control.Monad.Primitive
 import Control.Monad.ST
-import qualified System.Random.MWC as MWC
+import Data.IORef
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Image
@@ -79,21 +78,25 @@ instance Renderer SamplerRenderer where
       render' img'' 1 >> return ()
       where
          render' img' p = do
+            lastImg <- newIORef undefined
+            
             forM_ (splitWindow $ imageWindow' img'') $ \w -> do
                _ <- report $ RegionStarted w
-               seed <- newSeed
+               seed <- ioSeed
                
                i' <- stToIO $ do
                   img <- thaw img'
                   runWithSeed seed $ tile scene smp si img w
                   freeze img
-                  
+
+               writeIORef lastImg i'
+               
                report (SamplesAdded w i') >>= \cnt ->
                   if cnt
                      then return i'
                      else error "cancelled"
 
-            let i = undefined
+            i <- readIORef lastImg
             
             report (PassDone p i) >>= \ cnt ->
                if cnt
@@ -107,8 +110,3 @@ tile scene smp si img w = do
    sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp
    where
       cam = sceneCam scene
-
-newSeed :: IO MWC.Seed
-newSeed = MWC.withSystemRandom $ do
-   s' <- MWC.save :: MWC.Gen (PrimState IO) -> IO MWC.Seed
-   return s'

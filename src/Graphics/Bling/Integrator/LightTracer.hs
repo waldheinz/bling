@@ -6,7 +6,6 @@ module Graphics.Bling.Integrator.LightTracer (
    ) where
 
 import Control.Monad
-import Control.Monad.Primitive
 import Control.Monad.ST
 import qualified Text.PrettyPrint as PP
 
@@ -38,16 +37,21 @@ instance Printable LightTracer where
       PP.int ppp PP.<+> PP.text "photons per pass" ]
 
 instance Renderer LightTracer where
-   render (LightT np ppp) sc img report = pass np where
-      pass n
+   render (LightT np ppp) sc img report = pass np img where
+      pass n i
          | n == 0 = return ()
          | otherwise = do
-            smps <- runRandIO $ liftM concat $ replicateM ppp $ oneRay sc
-    --        stToIO $ mapM_ ((splatSample img) . sSmp) smps
-            
-            cont <- report $ (PassDone (np - n + 1) undefined)
+            seed <- ioSeed
+
+            img' <- stToIO $ do
+               mimg <- thaw i
+               smps <- runWithSeed seed $ liftM concat $ replicateM ppp $ oneRay sc
+               mapM_ ((splatSample mimg) . sSmp) smps
+               freeze mimg
+               
+            cont <- report $ (PassDone (np - n + 1) img')
             if cont
-               then pass (n - 1)
+               then pass (n - 1) img'
                else return ()
       
       -- | scales an image sample according to total light power in scene

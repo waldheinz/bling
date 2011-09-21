@@ -5,7 +5,7 @@ module Graphics.Bling.Random (
 
    -- * managing the random number generator
    
-   Rand, liftR, Rand2D, runRand, runRandIO, runWithSeed,
+   Rand, liftR, Rand2D, runRand, runRandIO, runWithSeed, ioSeed,
       
    -- * generating random values
    
@@ -36,6 +36,12 @@ instance Monad (Rand s) where
 runWithSeed :: MWC.Seed -> Rand s a -> ST s a
 runWithSeed seed m = runRand m =<< MWC.restore seed
 {-# INLINE runWithSeed #-}
+
+-- | create a new seed using the system's random source
+ioSeed :: IO MWC.Seed
+ioSeed = MWC.withSystemRandom $ do
+   s' <- MWC.save :: MWC.Gen (PrimState IO) -> IO MWC.Seed
+   return s'
 
 runRandIO :: Rand RealWorld a -> IO a
 runRandIO = MWC.withSystemRandom . runRand
