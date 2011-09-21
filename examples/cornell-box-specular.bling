@@ -15,9 +15,8 @@ renderer {
    }
 }
 
-
-# renderer { sampler sampled { sampler { stratified xSamples 16 ySamples 16 } integrator { path maxDepth 7 } } }
-# renderer { sampler sampled { sampler { random samples 8 } integrator { path maxDepth 5 } } }
+renderer { sampler sampled { sampler { stratified xSamples 64 ySamples 64 } integrator { path maxDepth 5 } } }
+# renderer { sampler sampled { sampler { random samples 1 } integrator { path maxDepth 5 } } }
 
 imageSize 480 480
 
@@ -115,13 +114,12 @@ shape {
 
 material { glass
    ior { constant 1.5 }
-   kr { constant rgb 1 1 1 }
-   kt { constant rgb 1 1 1 }
+   kr { constant spd { 1 0.95 } }
+   kt { constant rgb 0.6 0.6 0.9 }
 }
 
-transform { identity translate 400 100 200 }
-shape { sphere radius 100 }
-
+transform { identity translate 400 130 200 }
+shape { sphere radius 130 }
 
 #
 # mirror sphere
