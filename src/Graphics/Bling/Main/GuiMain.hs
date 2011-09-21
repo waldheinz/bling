@@ -40,11 +40,10 @@ lookQuit = do
         _ -> lookQuit
 
 prog :: AppConfig -> ProgressReporter
-prog ac (SamplesAdded w) = do
+prog ac (SamplesAdded w img) = do
    let s = screen ac
---   ps <- rgbPixels (appImg ac) w
---   mapM_ (putPixel s) ps
---   SDL.flip s
+   forM_ (rgbPixels img w) $ putPixel s
+   SDL.flip s
    lookQuit
 
 prog ac (RegionStarted w) = do

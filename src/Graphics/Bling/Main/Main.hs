@@ -26,7 +26,7 @@ prog _ (PassDone p img) = do
    where
          fname = "pass-" ++ printf "%05d" p
 
-prog _ (SamplesAdded _) = putStr "." >> hFlush stdout >> return True
+prog _ (SamplesAdded _ _) = putStr "." >> hFlush stdout >> return True
 prog _ _ = return True
 
 main :: IO ()

@@ -12,7 +12,6 @@ module Graphics.Bling.Rendering (
    Progress(..), ProgressReporter
    ) where
 
-import Debug.Trace
 import Control.Monad
 import Control.Monad.Primitive
 import Control.Monad.ST
@@ -30,14 +29,15 @@ import Graphics.Bling.Types
 data Progress
    = Started
    | SamplesAdded {
-      progRegion :: SampleWindow
+      progRegion :: SampleWindow,
+      currImg :: Image
       }
    | RegionStarted {
       progRegStart :: SampleWindow
       }
    | PassDone
       { progPassNum :: Int
-      , currImg :: Image
+      , finalImg :: Image
       }
 
 type ProgressReporter = Progress -> IO Bool
@@ -78,25 +78,22 @@ instance Renderer SamplerRenderer where
    render (SR smp si) scene img'' report = do
       render' img'' 1 >> return ()
       where
-         render' :: Image -> Int -> IO Image
          render' img' p = do
-            
-            seed <- MWC.withSystemRandom $ do
-               s' <- MWC.save :: MWC.Gen (PrimState IO) -> IO MWC.Seed
-               return s'
+            forM_ (splitWindow $ imageWindow' img'') $ \w -> do
+               _ <- report $ RegionStarted w
+               seed <- newSeed
+               
+               i' <- stToIO $ do
+                  img <- thaw img'
+                  runWithSeed seed $ tile scene smp si img w
+                  freeze img
                   
-            i <- stToIO $ do
-               img <- thaw img'
-               forM_ (splitWindow $ imageWindow img) $ \w -> do
-               
-             --  _ <- report $ RegionStarted w
-                  trace (show w) $ runWithSeed seed $ tile scene smp si img w
-               freeze img
-               
-          --     report (SamplesAdded w) >>= \cnt ->
-          --        if cnt
-          --           then return ()
-          --           else error "cancelled"
+               report (SamplesAdded w i') >>= \cnt ->
+                  if cnt
+                     then return i'
+                     else error "cancelled"
+
+            let i = undefined
             
             report (PassDone p i) >>= \ cnt ->
                if cnt
@@ -110,4 +107,8 @@ tile scene smp si img w = do
    sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp
    where
       cam = sceneCam scene
-                     
+
+newSeed :: IO MWC.Seed
+newSeed = MWC.withSystemRandom $ do
+   s' <- MWC.save :: MWC.Gen (PrimState IO) -> IO MWC.Seed
+   return s'

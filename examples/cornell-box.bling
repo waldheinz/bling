@@ -7,12 +7,12 @@ filter mitchell 3.0 3.0 0.333333 0.333333
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 5 ySamples 5 }
+      sampler { stratified xSamples 16 ySamples 16 }
       integrator { path maxDepth 5 }
    }
 }
 
-renderer { sampler sampled { sampler { random samples 25 } integrator { path maxDepth 5 } } }
+# renderer { sampler sampled { sampler { random samples 25 } integrator { path maxDepth 5 } } }
 
 imageSize 480 480
 
