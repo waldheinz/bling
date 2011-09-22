@@ -3,9 +3,6 @@ module Graphics.Bling.Integrator.DirectLighting (
    DirectLighting, mkDirectLightingIntegrator
    ) where
 
-import Control.Monad
-import Control.Monad.Primitive
---import Control.Monad.Trans.Class
 import qualified Text.PrettyPrint as PP
 
 
@@ -28,6 +25,9 @@ instance Printable DirectLighting where
    prettyPrint _ = PP.text "Direct Lighting" 
 
 instance SurfaceIntegrator DirectLighting where
+   sampleCount1D _ = 0
+   sampleCount2D _ = 0
+   
    contrib (DirectLighting sa) s addSample r = do
       c <- directLighting sa s r >>= mkContrib
       liftSampled $ addSample c
