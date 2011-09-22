@@ -12,10 +12,10 @@ renderer {
    sampler
    sampled {
       sampler { stratified xSamples 5 ySamples 5 }
-      integrator { path maxDepth 7 }
+      integrator { path maxDepth 7 sampleDepth 3 }
    }
 }
-
+renderer { metropolis  passCount 10 mutations 500000 bootstrap 30000}
 transform {
    lookAt {
       pos 9 15 -9
