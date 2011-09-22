@@ -8,6 +8,7 @@ import Text.ParserCombinators.Parsec
 import Graphics.Bling.Rendering
 import Graphics.Bling.Sampling
 import Graphics.Bling.Integrator.LightTracer
+import Graphics.Bling.Integrator.Metropolis
 import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.IntegratorParser
 
@@ -28,6 +29,9 @@ pRenderer = pBlock $ do
                 np <- namedInt "passCount"
                 ppp <- ws >> namedInt "particles"
                 return $ mkAnyRenderer $ mkLightTracer np ppp
+
+             "metropolis" -> do
+                return $ mkAnyRenderer $ mkMLT
                 
              "sampler" -> do
                 sr <- pSamplerRenderer

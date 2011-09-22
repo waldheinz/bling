@@ -7,14 +7,15 @@ filter mitchell 3.0 3.0 0.333333 0.333333
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 1 ySamples 1 }
+      sampler { stratified xSamples 3 ySamples 3 }
       integrator { bidir }
    }
 }
 
-renderer { sampler sampled { sampler { stratified xSamples 5 ySamples 5 } integrator { path maxDepth 25 } } }
+# renderer { sampler sampled { sampler { stratified xSamples 16 ySamples 16 } integrator { path maxDepth 25 } } }
 # renderer { sampler sampled { sampler { random samples 1 } integrator { path maxDepth 7 } } }
-renderer { lightTracer passCount 10 particles 100000 }
+# renderer { lightTracer passCount 5 particles 100000 }
+renderer { metropolis }
 
 imageSize 480 480
 
@@ -95,15 +96,9 @@ shape {
 # glass sphere
 #
 
-material { glass
-   ior { constant 1.5 }
-   kr { constant spd { 1 0.95 } }
-   kt { constant rgb 0.6 0.6 0.9 }
-}
-
+material { glass ior { constant 2 } kr { constant spd { 1 0.95 } } kt { constant rgb 0.6 0.6 0.9 } }
 transform { identity translate 360 130 200 }
 shape { sphere radius 130 }
-
 
 #
 # water
@@ -113,7 +108,7 @@ transform { identity }
 
 material {
    bumpMap
-   bump { scale 3 texture { perlin } }
+   bump { scale 10 texture { perlin } }
    
    glass
    ior { constant 1.33 }

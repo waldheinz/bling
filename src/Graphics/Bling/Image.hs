@@ -40,8 +40,6 @@ data MImage s = MImage {
    _imagePixels :: MV.MVector (PrimState (ST s)) Pixel
    }
 
-   
-   
 -- | creates a new image where all pixels are initialized to black
 mkMImage
    :: Filter -- ^ the pixel filter function to use when adding samples

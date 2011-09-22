@@ -9,9 +9,9 @@ module Graphics.Bling.Sampling (
    SampleWindow(..), Sampler, Sampled, mkRandomSampler, mkStratifiedSampler,
 
    -- * Sampling
-
+   Sample, STVector, mkPrecompSample,
    rnd, rnd2D, rnd', rnd2D', coverWindow, splitWindow, shiftToPixel,
-
+   
    -- * Running Sampled Computations
    
    runSampled, randToSampled, sample, liftSampled,
@@ -68,11 +68,18 @@ shiftToPixel px py = Prelude.map (s (fromIntegral px) (fromIntegral py)) where
 -- Samplers
 --------------------------------------------------------------------------------
 
+type STVector s a = V.MVector (PrimState (ST s)) a
+
 data Sample s
    = RandomSample {-# UNPACK #-} ! CameraSample
-   | PrecomSample {-# UNPACK #-} ! CameraSample !(V.MVector (PrimState (ST s)) Flt) !(V.MVector (PrimState (ST s)) R.Rand2D)
+   | PrecomSample {-# UNPACK #-} ! CameraSample !(STVector s Flt) !(STVector s R.Rand2D)
 
-data Sampler = Random !Int | Stratified !Int !Int
+mkPrecompSample :: CameraSample -> (STVector s Flt) -> (STVector s R.Rand2D) -> (Sample s)
+mkPrecompSample = PrecomSample
+
+data Sampler
+   = Random !Int
+   | Stratified !Int !Int
 
 mkRandomSampler :: Int -> Sampler
 mkRandomSampler = Random
