@@ -62,7 +62,7 @@ instance Renderer Metropolis where
          | p == 0 = return ()
          | otherwise = do
             seed <- ioSeed
-
+            
             img' <- stToIO $ do
                mimg <- thaw i
                
@@ -82,12 +82,12 @@ instance Renderer Metropolis where
                      -- record samples
                      if iCurr > 0 && not (isInfinite (1 / iCurr))
                         then do
-                           lc <- readRandRef lCurr
-                           liftR (splatSample mimg $ sSmp ((1 - a) * b / iCurr) lc)
+                           lcs <- readRandRef lCurr
+                           liftR $ mapM_ (\lc -> splatSample mimg $ sSmp ((1 - a) * b / iCurr) lc) lcs
                         else return ()
                      
                      if iProp > 0 && not (isInfinite (1 / iProp))
-                        then liftR (splatSample mimg $ sSmp (a * b / iProp) lProp)
+                        then liftR $ mapM_ (\l -> splatSample mimg $ sSmp (a * b / iProp) l) lProp
                         else return ()
    
                      R.rnd >>= \r -> if r < a
@@ -198,14 +198,14 @@ jitter v vmin vmax
          | x < x0 = x1 - (x0 - x)
          | otherwise = x
 
-evalI :: ImageSample -> Flt
-evalI (ImageSample _ _ (_, ss)) = sY ss
+evalI :: [ImageSample] -> Flt
+evalI smps = sum $ map (\(ImageSample _ _ (_, ss)) -> sY ss) smps
 
-evalSample :: (SurfaceIntegrator i) => Scene -> i -> Sample s -> Rand s ImageSample
+evalSample :: (SurfaceIntegrator i) => Scene -> i -> Sample s -> Rand s [ImageSample]
 evalSample scn si smp = do
    smps <- liftR $ newSTRef []
    (flip randToSampled) smp $ do
       ray <- (fireRay (sceneCam scn))
       contrib si scn (\is -> modifySTRef smps (is :)) ray
-   liftR $ head `liftM` readSTRef smps
+   liftR $ readSTRef smps
    

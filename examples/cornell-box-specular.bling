@@ -15,7 +15,7 @@ renderer {
 renderer { sampler sampled { sampler { stratified xSamples 32 ySamples 32 } integrator { path maxDepth 7 sampleDepth 5 } } }
 # renderer { sampler sampled { sampler { random samples 1 } integrator { path maxDepth 7 } } }
 # renderer { lightTracer passCount 5 particles 300000 }
-renderer { metropolis  passCount 10 mutations 100000 bootstrap 10000}
+renderer { metropolis  passCount 50 mutations 50000 bootstrap 10000}
 
 imageSize 480 480
 
@@ -116,7 +116,7 @@ material {
    kt { constant spd { 1 0.98 } }
 }
 
-# shape { mesh vertexCount 4 faceCount 1 v 570 550 -10 v -10 550 -10 v -10 550 570 v 570 550 570 f 3 2 1 0 }
+shape { mesh vertexCount 4 faceCount 1 v 570 550 -10 v -10 550 -10 v -10 550 570 v 570 550 570 f 3 2 1 0 }
 
 
 #
