@@ -17,14 +17,14 @@ data AppConfig = AppConfig
 --   appImg :: Image IO
 }
 
-initEnv :: Image -> IO AppConfig
-initEnv img = do
-   let w = imgW img
-   let h = imgH img
-   
+initEnv :: RenderJob -> IO AppConfig
+initEnv j = do
    s <- setVideoMode w h 32 [SWSurface]
    b <- createRGBSurfaceEndian [] w h 32
    return $ AppConfig s b
+   where
+      w = imageSizeX j
+      h = imageSizeY j
 
 waitQuit :: IO ()
 waitQuit = waitEvent >>= \evt -> case evt of
@@ -87,10 +87,9 @@ putPixel s ((x, y), (r,g,b))
 main :: IO ()
 main = SDL.withInit [InitEverything] $ do
    fName <- fmap head getArgs
-   j <- fmap parseJob $ readFile fName
-   let img = mkImage (jobPixelFilter j) (imageSizeX j) (imageSizeY j)
-   env <- initEnv img
+   (j, r) <- fmap parseJob $ readFile fName
+   env <- initEnv j
    
-   render (jobRenderer j) (jobScene j) img (prog env)
+   render r j $ prog env
    waitQuit
    

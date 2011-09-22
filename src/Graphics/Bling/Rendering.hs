@@ -1,15 +1,17 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 module Graphics.Bling.Rendering (
+
+   -- * Rendering
+
+   RenderJob, mkJob, mkJobImage, jobScene, imageSizeX, imageSizeY,
+   Progress(..), ProgressReporter,
   
-  -- * Renderers
+   -- * Renderers
   
-  Renderer(..), AnyRenderer, mkAnyRenderer,
-  SamplerRenderer, mkSamplerRenderer,
-  
-  -- * Progress Report
+   Renderer(..), AnyRenderer, mkAnyRenderer,
+   SamplerRenderer, mkSamplerRenderer,
    
-   Progress(..), ProgressReporter
    ) where
 
 import Control.Monad
@@ -24,6 +26,34 @@ import Graphics.Bling.Random
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Types
+
+--------------------------------------------------------------------------------
+-- Render Jobs
+--------------------------------------------------------------------------------
+
+data RenderJob = MkJob {
+   jobScene :: Scene,
+   jobPixelFilter :: Filter,
+   imageSizeX :: Int,
+   imageSizeY :: Int
+   }
+
+mkJob :: Scene -> Filter -> Int -> Int -> RenderJob
+mkJob = MkJob
+
+mkJobImage :: RenderJob -> Image
+mkJobImage j = mkImage (jobPixelFilter j) (imageSizeX j) (imageSizeY j)
+
+instance Printable RenderJob where
+   prettyPrint (MkJob sc f sx sy) = PP.vcat [
+      PP.text "image size" PP.<+> PP.text ((show sx) ++ "x" ++ (show sy)),
+      PP.text "pixel filter" PP.<+> PP.text (show f),
+      PP.text "scene" PP.$$ PP.nest 3 (prettyPrint sc)
+      ]
+
+--------------------------------------------------------------------------------
+-- Rendering Progress
+--------------------------------------------------------------------------------
 
 data Progress
    = Started
@@ -42,7 +72,7 @@ data Progress
 type ProgressReporter = Progress -> IO Bool
 
 class Printable a => Renderer a where
-   render :: a -> Scene -> Image -> ProgressReporter -> IO ()
+   render :: a -> RenderJob -> ProgressReporter -> IO ()
    
 --
 -- the existential renderer
@@ -74,23 +104,24 @@ instance Printable SamplerRenderer where
 
 instance Renderer SamplerRenderer where
    
-   render (SR smp si) scene img'' report = do
-      render' img'' 1 >> return ()
-      where
+   render (SR smp si) job report = render' startImg 1 >> return () where
+         scene = jobScene job
+         startImg = mkJobImage job
+         
          render' img' p = do
             lastImg <- newIORef img'
             
-            forM_ (splitWindow $ imageWindow' img'') $ \w -> do
+            forM_ (splitWindow $ imageWindow' img') $ \w -> do
                _ <- report $ RegionStarted w
                seed <- ioSeed
                
                i' <- do
-		  img <- readIORef lastImg
+                  img <- readIORef lastImg
 
-		  stToIO $ do
-		     mimg <- thaw img
-		     runWithSeed seed $ tile scene smp si mimg w
-		     freeze mimg
+                  stToIO $ do
+                     mimg <- thaw img
+                     runWithSeed seed $ tile scene smp si mimg w
+                     freeze mimg
                
                writeIORef lastImg i'
                

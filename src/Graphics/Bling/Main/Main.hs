@@ -11,8 +11,8 @@ import Graphics.Bling.Rendering
 import Graphics.Bling.Types
 import Graphics.Bling.IO.RenderJob
 
-prog :: Image -> ProgressReporter
-prog _ (PassDone p img) = do
+prog :: ProgressReporter
+prog (PassDone p img) = do
    putStrLn $ "\nWriting " ++ fname ++ "..."
    h1 <- openFile (fname ++ ".ppm") WriteMode
    writePpm img h1
@@ -26,18 +26,17 @@ prog _ (PassDone p img) = do
    where
          fname = "pass-" ++ printf "%05d" p
 
-prog _ (SamplesAdded _ _) = putStr "." >> hFlush stdout >> return True
-prog _ _ = return True
+prog (SamplesAdded _ _) = putStr "." >> hFlush stdout >> return True
+prog _ = return True
 
 main :: IO ()
 main = do
    args <- getArgs
    let fName = head args
-   j <- fmap parseJob $ readFile fName
+   (job, renderer) <- fmap parseJob $ readFile fName
 
-   putStrLn (PP.render (PP.text "Job Stats" PP.$$ PP.nest 3 (prettyPrint j)))
-   let img = mkImage (jobPixelFilter j) (imageSizeX j) (imageSizeY j)
-   render (jobRenderer j) (jobScene j) img $ prog img
+   putStrLn (PP.render (PP.text "Job Stats" PP.$$ PP.nest 3 (prettyPrint job)))
+   render renderer job $ prog
 
 {-
 -- | Pretty print the date in '1d 9h 9m 17s' format

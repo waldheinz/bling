@@ -1,6 +1,8 @@
 {-# LANGUAGE RankNTypes #-}
 
 module Graphics.Bling.Image (
+   module Graphics.Bling.Filter,
+   
    Image, ImageSample(..), mkImage, rgbPixels, imageWindow', imgW, imgH,
    
    MImage,

@@ -37,7 +37,9 @@ instance Printable LightTracer where
       PP.int ppp PP.<+> PP.text "photons per pass" ]
 
 instance Renderer LightTracer where
-   render (LightT np ppp) sc img report = pass np img where
+   render (LightT np ppp) job report = pass np img where
+      sc = jobScene job
+      img = mkJobImage job
       pass n i
          | n == 0 = return ()
          | otherwise = do
