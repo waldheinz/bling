@@ -33,7 +33,7 @@ data Camera
       deriving (Show)
       
 instance Printable Camera where
-   prettyPrint (ProjectiveCamera _ _ _ lr fd ap) = vcat [
+   prettyPrint (ProjectiveCamera _ _ _ ap lr fd) = vcat [
       text "Projective",
       text "Lens Radius" <+> float lr,
       text "Focal Distance" <+>  float fd,
