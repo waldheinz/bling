@@ -25,27 +25,30 @@ import Graphics.Bling.Spectrum
 
 data Metropolis = MLT
    { _integrator :: PathIntegrator
-   , _ppp      :: Int -- ^ particles per pass
+   , _ppp      :: Int -- ^ mutations per pass
+   , _passCount :: Int
    }
 
 maxDepth :: Int
 maxDepth = 7
 
-mkMLT :: Metropolis
-mkMLT = MLT (mkPathIntegrator maxDepth) 10000
+mkMLT :: Int -> Int -> Metropolis
+mkMLT pc mpp = MLT (mkPathIntegrator maxDepth maxDepth) mpp pc
 
 instance Printable Metropolis where
-   prettyPrint (MLT integ ppp) = PP.vcat [
+   prettyPrint (MLT integ mpp pc) = PP.vcat [
       PP.text "metropolis light transport",
       PP.text "integrator" PP.<+> prettyPrint integ,
-      PP.int ppp PP.<+> PP.text "photons per pass" ]
+      PP.int mpp PP.<+> PP.text "mutations per pass",
+      PP.int pc PP.<+> PP.text "passes"]
 
 instance Renderer Metropolis where
-   render (MLT integ ppp) job report = pass img where
+   render (MLT integ mpp pc) job report = pass img where
       scene = jobScene job
       img = mkJobImage job
       sSmp :: Flt -> ImageSample -> ImageSample
       sSmp f (ImageSample x y (w, s)) = ImageSample x y (w * f, s)
+   --   wt = 1 / fromIntegral (mpp * pc)
       pass i = do
             seed <- ioSeed
 
@@ -56,7 +59,7 @@ instance Renderer Metropolis where
                   x <- initialSample >>= newRandRef
                   x' <- readRandRef x >>= evalSample scene integ >>= newRandRef
                   
-                  replicateM_ ppp $ do
+                  replicateM_ mpp $ do
                      y <- readRandRef x >>= mutate
                      y' <- evalSample scene integ y
                      
@@ -64,10 +67,9 @@ instance Renderer Metropolis where
                      iCurr <-  evalI `liftM` (readRandRef x')
                      let a = min 1 (iProp / iCurr)
                      
-
                      -- record samples
                      if iCurr > 0 && not (isInfinite (1 / iCurr))
-                        then readRandRef x' >>= \s -> liftR (splatSample mimg $ sSmp (1-a) s)
+                        then readRandRef x' >>= \s -> liftR (splatSample mimg $ sSmp (1 - a) s)
                         else return ()
                      
                      if iProp > 0 && not (isInfinite (1 / iProp))

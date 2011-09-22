@@ -31,7 +31,9 @@ pRenderer = pBlock $ do
                 return $ mkAnyRenderer $ mkLightTracer np ppp
 
              "metropolis" -> do
-                return $ mkAnyRenderer $ mkMLT
+                np <- namedInt "passCount"
+                mpp <- ws >> namedInt "mutations"
+                return $ mkAnyRenderer $ mkMLT np mpp
                 
              "sampler" -> do
                 sr <- pSamplerRenderer

@@ -13,7 +13,7 @@ import Graphics.Bling.Integrator.Path
 import Graphics.Bling.IO.ParserCore
 
 defaultSurfaceIntegrator :: AnySurfaceIntegrator
-defaultSurfaceIntegrator = mkAnySurface $ mkPathIntegrator 5
+defaultSurfaceIntegrator = mkAnySurface $ mkPathIntegrator 7 3
 
 pSurfaceIntegrator :: JobParser AnySurfaceIntegrator
 pSurfaceIntegrator = (flip namedBlock) "integrator" $ do
@@ -32,6 +32,7 @@ pSurfaceIntegrator = (flip namedBlock) "integrator" $ do
         
         "path" -> do
            md <- ws >> namedInt "maxDepth"
-           return $ mkAnySurface $ mkPathIntegrator md
+           sd <- ws >> namedInt "sampleDepth"
+           return $ mkAnySurface $ mkPathIntegrator md sd
            
         _ -> fail $ "unknown integrator type " ++ t

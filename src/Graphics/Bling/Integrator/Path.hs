@@ -18,13 +18,13 @@ import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Spectrum
 
-data PathIntegrator = PathIntegrator {-# UNPACK #-} !Int
+data PathIntegrator = PathIntegrator {-# UNPACK #-} !Int {-# UNPACK #-} !Int  
 
-mkPathIntegrator :: Int -> PathIntegrator
-mkPathIntegrator = PathIntegrator
-
-sampleDepth :: Int
-sampleDepth = 3
+mkPathIntegrator
+   :: Int -- ^ maximum depth
+   -> Int -- ^ sample depth
+   -> PathIntegrator
+mkPathIntegrator m s = PathIntegrator m (min m s)
 
 smps2D :: Int
 smps2D = 3
@@ -39,17 +39,17 @@ smp1doff :: Int -> Int
 smp1doff d = smps1D * d
 
 instance Printable PathIntegrator where
-   prettyPrint (PathIntegrator md) =
-      PP.text ("Path Integrator " ++ (show md))
+   prettyPrint (PathIntegrator md sd) =
+      PP.text ("Path Integrator " ++ (show md) ++ " " ++ (show sd))
 
 instance SurfaceIntegrator PathIntegrator where
-   sampleCount1D _ = smps1D * sampleDepth
+   sampleCount1D (PathIntegrator _ sd) = smps1D * sd
    
-   sampleCount2D _ = smps2D * sampleDepth
+   sampleCount2D (PathIntegrator _ sd) = smps2D * sd
    
  --  {-# SPECIALIZE contrib :: PathIntegrator -> Scene -> Consumer IO -> Ray -> Sampled IO () #-}
  --  {-# SPECIALIZE contrib :: PathIntegrator -> Scene -> Consumer (ST s) -> Ray -> Sampled (ST s) () #-}
-   contrib (PathIntegrator md) s addSample r = {-# SCC "pathContrib" #-} do
+   contrib (PathIntegrator md _) s addSample r = {-# SCC "pathContrib" #-} do
       li <- nextVertex s 0 True r (s `intersect` r) white black md >>= mkContrib
       liftSampled $ addSample $ li
       
