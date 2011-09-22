@@ -34,7 +34,8 @@ pRenderer = pBlock $ do
                 np <- namedInt "passCount"
                 mpp <- ws >> namedInt "mutations"
                 nboot <- ws >> namedInt "bootstrap"
-                return $ mkAnyRenderer $ mkMLT np mpp nboot
+                plarge <- ws >> namedFloat "plarge"
+                return $ mkAnyRenderer $ mkMLT np mpp nboot plarge
                 
              "sampler" -> do
                 sr <- pSamplerRenderer

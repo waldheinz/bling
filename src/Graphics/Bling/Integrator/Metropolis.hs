@@ -18,6 +18,7 @@ import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Image
 import Graphics.Bling.Integrator
 import Graphics.Bling.Integrator.Path
+import Graphics.Bling.Montecarlo
 import Graphics.Bling.Random as R
 import Graphics.Bling.Reflection
 import Graphics.Bling.Rendering
@@ -30,6 +31,7 @@ data Metropolis = MLT
    , _ppp      :: Int -- ^ mutations per pass
    , _passCount :: Int
    , _nbootstrap :: Int
+   , _plarge :: Flt
    }
 
 maxDepth :: Int
@@ -39,18 +41,20 @@ mkMLT
    :: Int
    -> Int
    -> Int
+   -> Flt -- ^ plarge
    -> Metropolis
-mkMLT pc mpp nboot = MLT (mkPathIntegrator maxDepth maxDepth) mpp pc nboot
+mkMLT pc mpp nboot pl =
+   MLT (mkPathIntegrator maxDepth maxDepth) mpp pc nboot pl
 
 instance Printable Metropolis where
-   prettyPrint (MLT integ mpp pc _) = PP.vcat [
+   prettyPrint (MLT integ mpp pc _ _) = PP.vcat [
       PP.text "metropolis light transport",
       PP.text "integrator" PP.<+> prettyPrint integ,
       PP.int mpp PP.<+> PP.text "mutations per pass",
       PP.int pc PP.<+> PP.text "passes"]
 
 instance Renderer Metropolis where
-   render (MLT integ mpp pc nboot) job report = pass img pc where
+   render (MLT integ mpp pc nboot plarge) job report = pass img pc where
       scene = jobScene job
       img = mkJobImage job
       sSmp :: Flt -> ImageSample -> ImageSample
@@ -68,12 +72,12 @@ instance Renderer Metropolis where
                mimg <- thaw i
                
                runWithSeed seed $ do
-                  (b, _) <- bootstrap scene nboot integ imgSize nd
-                  sCurr <- trace ("b=" ++ show b) initialSample imgSize nd >>= newRandRef
+                  (b, initial) <- bootstrap scene nboot integ imgSize nd
+                  sCurr <- trace ("b=" ++ show b) newRandRef initial
                   lCurr <- readRandRef sCurr >>= evalSample scene integ >>= newRandRef
                   
                   replicateM_ mpp $ do
-                     sProp <- readRandRef sCurr >>= mutate imgSize nd
+                     sProp <- readRandRef sCurr >>= mutate imgSize nd plarge
                      lProp <- evalSample scene integ sProp
                      
                      let iProp = evalI lProp
@@ -107,26 +111,28 @@ instance Renderer Metropolis where
 bootstrap :: (SurfaceIntegrator i)
    => Scene
    -> Int -- ^ number of bootstrap samples
-   -> i
-   -> (Flt, Flt)
-   -> (Int, Int)
+   -> i -- ^ integrator to use
+   -> (Flt, Flt) -- ^ image size
+   -> (Int, Int) -- ^ (n1d, n2d) sampling needs (redundant to integ)
    -> Rand s (Flt, Sample s) -- ^ (b)
 bootstrap scene n integ imgSize nd = do
    smps <- liftR $ MV.new n
-   is <- liftR $ V.new n
+   is <- newRandRef []
    
    -- take initial set of samples to compute b
    sumI <- liftM sum $ forM [0..n-1] $ \i -> do
       smp <- initialSample imgSize nd
       l <- evalSample scene integ smp
-      liftR $ MV.write smps i smp
-      liftR $ V.write is i $ evalI l
+      liftR $ MV.write smps (n - i - 1) smp
+      modifyRandRef is (evalI l :)
       return $ evalI l
 
    -- select initial sample from bootstrap samples
- --  contribOffset <- R.rnd >>= \x -> return $ x * sumI
+   smpDist <- mkDist1D `liftM` readRandRef is
+   smpOff <- (sampleDiscrete smpDist) `liftM` R.rnd
+   smp <- liftR $ MV.read smps $ fst smpOff
    
-   return (sumI / fromIntegral n, undefined)
+   return (sumI / fromIntegral n, smp)
 
 initialSample :: (Flt, Flt) -> (Int, Int) -> Rand s (Sample s)
 initialSample (sx, sy) (n1d, n2d) = do
@@ -148,9 +154,9 @@ initialSample (sx, sy) (n1d, n2d) = do
    
    return $ mkPrecompSample cs v1d v2d
 
-mutate :: (Flt, Flt) -> (Int, Int) -> Sample s -> Rand s (Sample s)
-mutate imgSize nd@(n1d, n2d) (PrecomSample cs v1d v2d) = do
-   R.rnd >>= \x -> if x < 0.25
+mutate :: (Flt, Flt) -> (Int, Int) -> Flt -> Sample s -> Rand s (Sample s)
+mutate imgSize nd@(n1d, n2d) plarge (PrecomSample cs v1d v2d) = do
+   R.rnd >>= \x -> if x < plarge
       then initialSample imgSize nd
       else do
 
@@ -167,7 +173,7 @@ mutate imgSize nd@(n1d, n2d) (PrecomSample cs v1d v2d) = do
          
          cs' <- mutateCamaraSample imgSize cs
          return $ PrecomSample cs' v1d v2d
-mutate _ _ _ = error "mutate not precomputed sample"
+mutate _ _ _ _ = error "mutate not precomputed sample"
 
 mutateCamaraSample :: (Flt, Flt) -> CameraSample -> Rand s CameraSample
 mutateCamaraSample (sx, sy) (CameraSample x y (lu, lv)) = do
@@ -190,7 +196,7 @@ jitter v vmin vmax
          where
             delta = (vmax - vmin) * b * exp (logRat * u1)
       a = 1 / 1024
-      b = 1 / 64
+      b = 1 / 128 -- 64
       logRat = -log (b / a)
       wrapAround x0 x1 x
          | x >= x1 = x0 + (x - x1)

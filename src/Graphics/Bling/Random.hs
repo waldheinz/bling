@@ -13,7 +13,7 @@ module Graphics.Bling.Random (
 
    -- * State in the Rand Monad
 
-   newRandRef, readRandRef, writeRandRef
+   newRandRef, readRandRef, writeRandRef, modifyRandRef
    ) where
 
 import Control.Monad (forM_, replicateM)
@@ -123,4 +123,8 @@ readRandRef = liftR . readSTRef
 writeRandRef :: STRef s a -> a -> Rand s ()
 {-# INLINE writeRandRef #-}
 writeRandRef r a = liftR $ writeSTRef r a
+
+modifyRandRef :: STRef s a -> (a -> a) -> Rand s ()
+{-# INLINE modifyRandRef #-}
+modifyRandRef r f = liftR $ modifySTRef r f
 
