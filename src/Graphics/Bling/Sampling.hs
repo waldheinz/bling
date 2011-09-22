@@ -9,7 +9,7 @@ module Graphics.Bling.Sampling (
    SampleWindow(..), Sampler, Sampled, mkRandomSampler, mkStratifiedSampler,
 
    -- * Sampling
-   Sample, STVector, mkPrecompSample,
+   Sample(..), STVector, mkPrecompSample,
    rnd, rnd2D, rnd', rnd2D', coverWindow, splitWindow, shiftToPixel,
    
    -- * Running Sampled Computations
@@ -43,9 +43,9 @@ data SampleWindow = SampleWindow {
    } deriving (Show)
 
 data CameraSample = CameraSample {
-   imageX :: ! Float,
-   imageY :: ! Float,
-   lensUV :: ! R.Rand2D
+   imageX :: {-# UNPACK #-} ! Float,
+   imageY :: {-# UNPACK #-} ! Float,
+   lensUV :: {-# UNPACK #-} ! R.Rand2D
    } deriving (Show)
 
 coverWindow :: SampleWindow -> [(Int, Int)]
