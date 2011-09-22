@@ -67,7 +67,7 @@ woodTexture dg = wood where
 
 noiseTexture :: ScalarTexture
 noiseTexture dg = perlin3d (x, y, z) where
-   (Vector x y z) = dgP dg
+   (Vector x y z) = vpromote (1/50) * dgP dg
 
 perlin3d :: (Flt, Flt, Flt) -> Flt
 perlin3d (x, y, z) = lerp wz y0 y1 where

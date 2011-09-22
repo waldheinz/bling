@@ -4,9 +4,6 @@
 filter mitchell 3.0 3.0 0.333333 0.333333
 #filter box
 
-
-renderer { lightTracer passCount 50 particles 20000 }
-
 renderer {
    sampler
    sampled {
@@ -15,8 +12,9 @@ renderer {
    }
 }
 
-renderer { sampler sampled { sampler { stratified xSamples 8 ySamples 8 } integrator { path maxDepth 25 } } }
-# renderer { sampler sampled { sampler { random samples 1 } integrator { path maxDepth 5 } } }
+renderer { sampler sampled { sampler { stratified xSamples 5 ySamples 5 } integrator { path maxDepth 25 } } }
+# renderer { sampler sampled { sampler { random samples 1 } integrator { path maxDepth 7 } } }
+renderer { lightTracer passCount 10 particles 100000 }
 
 imageSize 480 480
 
@@ -79,21 +77,6 @@ shape {
 }
 
 #
-# ceiling
-#
-
-shape {
-   mesh
-   vertexCount 4
-   faceCount 1
-   v 556.0 548.8 0.0
-   v 556.0 548.8 559.2
-   v   0.0 548.8 559.2
-   v   0.0 548.8   0.0
-   f 3 2 1 0
-}
-
-#
 # back wall
 #
 
@@ -101,10 +84,10 @@ shape {
    mesh
    vertexCount 4
    faceCount 1
-   v 549.6   0.0 559.2
-   v   0.0   0.0 559.2
-   v   0.0 548.8 559.2
-   v 556.0 548.8 559.2
+   v 549.6   0 559.2
+   v   0.0   0 559.2
+   v   0.0 1000 559.2
+   v 556.0 1000 559.2
    f 3 2 1 0
 }
 
@@ -118,8 +101,37 @@ material { glass
    kt { constant rgb 0.6 0.6 0.9 }
 }
 
-transform { identity translate 400 130 200 }
+transform { identity translate 360 130 200 }
 shape { sphere radius 130 }
+
+
+#
+# water
+#
+
+transform { identity }
+
+material {
+   bumpMap
+   bump { scale 3 texture { perlin } }
+   
+   glass
+   ior { constant 1.33 }
+   kr { constant spd { 1 0.98 } }
+   kt { constant spd { 1 0.98 } }
+}
+
+shape {
+   mesh
+   vertexCount 4
+   faceCount 1
+   v 570 550 -10
+   v -10 550 -10
+   v -10 550 570
+   v 570 550 570
+   f 3 2 1 0
+}
+
 
 #
 # mirror sphere
@@ -158,10 +170,10 @@ shape {
    mesh
    vertexCount 4
    faceCount 1
-   v 0.0   0.0 559.2
-   v 0.0   0.0   0.0
-   v 0.0 548.8   0.0
-   v 0.0 548.8 559.2
+   v 0.0    0 559.2
+   v 0.0    0   0.0
+   v 0.0 1000   0.0
+   v 0.0 1000 559.2
    f 3 2 1 0
 }
 
@@ -193,10 +205,10 @@ shape {
    mesh
    vertexCount 4
    faceCount 1
-   v 552.8   0.0   0.0
-   v 549.6   0.0 559.2
-   v 556.0 548.8 559.2
-   v 556.0 548.8   0.0
+   v 552.8    0   0.0
+   v 549.6    0 559.2
+   v 556.0 1000 559.2
+   v 556.0 1000   0.0
    f 3 2 1 0
 }
 
@@ -211,16 +223,18 @@ material {
 }
 
 emission {
-   spd { 400.0 0.0, 500.0 8.0, 600.0 15.6, 700.0 18.4 }
+   spd { 400.0 0, 500.0 160.0, 600.0 312, 700.0 386 }
 }
+
+# transform { identity scale 0.01 1 0.01 }
 
 shape {
    mesh
    vertexCount 4
    faceCount 1
-   v 343.0 548.7 227.0
-   v 343.0 548.7 332.0
-   v 213.0 548.7 332.0
-   v 213.0 548.7 227.0
+   v 290.0 600 270.0
+   v 290.0 600 290.0
+   v 270.0 600 290.0
+   v 270.0 600 270.0
    f 3 2 1 0
 }

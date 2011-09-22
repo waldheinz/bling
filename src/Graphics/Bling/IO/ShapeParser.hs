@@ -104,14 +104,17 @@ pMesh = do
    fc <- ws >> (namedInt "faceCount"  <|> fail "faceCount missing")
    vertices <- count vc vertex
    let va = V.fromList vertices
-   faces <- count fc (face va)
+   faces <- (count fc (face va) <|> fail "error parsing faces")
    return (triangulate faces)
    
 face :: (V.Vector Vertex) -> JobParser [Vertex]
 face vs = do
    _ <- ws >> char 'f'
-   is <- many1 (try (do ws; integ))
-   return (map (vs V.!) is)
+   many1 $ try $ do
+      idx <- ws >> integ
+      if idx >= V.length vs
+         then fail $ "vertex index " ++ show idx ++ " out of bounds (" ++ show (V.length vs - 1) ++ ")"
+         else return $ V.unsafeIndex vs idx
 
 vertex :: JobParser Vertex
 vertex = do
