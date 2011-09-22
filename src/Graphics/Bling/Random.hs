@@ -9,12 +9,17 @@ module Graphics.Bling.Random (
       
    -- * generating random values
    
-   rnd2D, rnd, rndList, rndList2D, rndInt, rndIntR, rndIntList, shuffle
+   rnd2D, rnd, rndList, rndList2D, rndInt, rndIntR, rndIntList, shuffle,
+
+   -- * State in the Rand Monad
+
+   newRandRef, readRandRef, writeRandRef
    ) where
 
 import Control.Monad (forM_, replicateM)
 import Control.Monad.Primitive
 import Control.Monad.ST
+import Data.STRef
 import qualified Data.Vector.Generic.Mutable as MV
 import qualified System.Random.MWC as MWC
 
@@ -58,7 +63,6 @@ shuffle v = do
       MV.swap v i other
    where
       n = MV.length v
-{-# INLINE shuffle #-}
 
 -- | Provides a random @Float@ in @[0..1)@
 rnd :: Rand s Float
@@ -103,3 +107,20 @@ rnd2D = do
    u1 <- rnd
    u2 <- rnd
    return (u1, u2)
+
+--------------------------------
+-- STRefs in Rand
+------------------------------------
+
+newRandRef :: a -> Rand s (STRef s a)
+{-# INLINE newRandRef #-}
+newRandRef x = liftR $ newSTRef x
+
+readRandRef :: STRef s a -> Rand s a
+{-# INLINE readRandRef #-}
+readRandRef = liftR . readSTRef
+
+writeRandRef :: STRef s a -> a -> Rand s ()
+{-# INLINE writeRandRef #-}
+writeRandRef r a = liftR $ writeSTRef r a
+

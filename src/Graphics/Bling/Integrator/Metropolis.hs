@@ -44,6 +44,8 @@ instance Renderer Metropolis where
    render (MLT integ ppp) job report = pass img where
       scene = jobScene job
       img = mkJobImage job
+      sSmp :: Flt -> ImageSample -> ImageSample
+      sSmp f (ImageSample x y (w, s)) = ImageSample x y (w * f, s)
       pass i = do
             seed <- ioSeed
 
@@ -51,27 +53,33 @@ instance Renderer Metropolis where
                mimg <- thaw i
                
                runWithSeed seed $ do
-                  s <- initialSample
-                  x <- liftR $ newSTRef s
-                  x' <- evalSample scene integ s
+                  x <- initialSample >>= newRandRef
+                  x' <- readRandRef x >>= evalSample scene integ >>= newRandRef
                   
                   replicateM_ ppp $ do
-                     s' <- liftR $ readSTRef x
-                     smp' <- mutate s'
-                     x'' <- evalSample scene integ smp'
-                     let iProp = evalI x''
-                     let iCurr = evalI x'
+                     y <- readRandRef x >>= mutate
+                     y' <- evalSample scene integ y
+                     
+                     let iProp = evalI y'
+                     iCurr <-  evalI `liftM` (readRandRef x')
                      let a = min 1 (iProp / iCurr)
                      
-                     R.rnd >>= \r -> if r < a
-                        then liftR $ writeSTRef x (smp')
-                        else return ()
 
-                     -- record sample
-                     sr <- liftR $ readSTRef x
-                     sr' <- evalSample scene integ sr
-                     liftR $ splatSample mimg sr'
-                  
+                     -- record samples
+                     if iCurr > 0 && not (isInfinite (1 / iCurr))
+                        then readRandRef x' >>= \s -> liftR (splatSample mimg $ sSmp (1-a) s)
+                        else return ()
+                     
+                     if iProp > 0 && not (isInfinite (1 / iProp))
+                        then liftR (splatSample mimg $ sSmp a y')
+                        else return ()
+   
+                     R.rnd >>= \r -> if r < a
+                        then do
+                           writeRandRef x y
+                           writeRandRef x' y'
+                        else return ()
+                     
                freeze mimg
 
             cont <- report $ (PassDone 1 img')
