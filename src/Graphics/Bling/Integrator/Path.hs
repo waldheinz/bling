@@ -30,7 +30,7 @@ smps2D :: Int
 smps2D = 3
 
 smps1D :: Int
-smps1D = 3
+smps1D = 4
 
 smp2doff :: Int -> Int
 smp2doff d = smps2D * d
@@ -47,17 +47,12 @@ instance SurfaceIntegrator PathIntegrator where
    
    sampleCount2D (PathIntegrator _ sd) = smps2D * sd
    
- --  {-# SPECIALIZE contrib :: PathIntegrator -> Scene -> Consumer IO -> Ray -> Sampled IO () #-}
- --  {-# SPECIALIZE contrib :: PathIntegrator -> Scene -> Consumer (ST s) -> Ray -> Sampled (ST s) () #-}
    contrib (PathIntegrator md _) s addSample r = {-# SCC "pathContrib" #-} do
       li <- nextVertex s 0 True r (s `intersect` r) white black md >>= mkContrib
       liftSampled $ addSample $ li
       
 nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled m WeightedSpectrum
--- {-# SPECIALIZE nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled IO WeightedSpectrum #-}
--- {-# INLINE nextVertex #-}
--- {-# SPECIALIZE INLINE nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled IO WeightedSpectrum #-}
--- {-# SPECIALIZE INLINE nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled (ST s) WeightedSpectrum #-}
+
 -- nothing hit, specular bounce
 nextVertex s _ True ray Nothing t l _ = 
    {-# SCC "nextVertex.termSpec" #-} return (1, l + t * V.sum (V.map (`le` ray) (sceneLights s)))
@@ -83,7 +78,7 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) t l md
       let lHere = sampleOneLight scene p n wo bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU
       let l' = l + (t * (lHere + intl))
       
-      rnd >>= \x -> if x > pc || (spdf == 0) || isBlack f
+      rnd' (3 + smp1doff depth) >>= \x -> if x > pc || (spdf == 0) || isBlack f
          then return $! (1.0, l')
          else let
                  t' = t * sScale f (absDot wi n / (spdf * pc))
@@ -101,4 +96,3 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) t l md
          bsdf = intBsdf int
          n = dgN dg
          p = dgP dg
-

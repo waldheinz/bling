@@ -15,7 +15,7 @@ renderer {
 renderer { sampler sampled { sampler { stratified xSamples 32 ySamples 32 } integrator { path maxDepth 7 sampleDepth 5 } } }
 # renderer { sampler sampled { sampler { random samples 1 } integrator { path maxDepth 7 } } }
 # renderer { lightTracer passCount 5 particles 300000 }
-renderer { metropolis  passCount 50 mutations 50000 bootstrap 10000}
+renderer { metropolis  passCount 50 mutations 200000 bootstrap 20000}
 
 imageSize 480 480
 
@@ -96,7 +96,7 @@ shape {
 # glass sphere
 #
 
-material { glass ior { constant 2 } kr { constant spd { 1 0.95 } } kt { constant rgb 0.6 0.6 0.9 } }
+material { glass ior { constant 1.5 } kr { constant spd { 1 0.95 } } kt { constant rgb 0.6 0.6 0.9 } }
 transform { identity translate 360 130 200 }
 shape { sphere radius 130 }
 
