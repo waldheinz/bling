@@ -33,7 +33,8 @@ pRenderer = pBlock $ do
              "metropolis" -> do
                 np <- namedInt "passCount"
                 mpp <- ws >> namedInt "mutations"
-                return $ mkAnyRenderer $ mkMLT np mpp
+                nboot <- ws >> namedInt "bootstrap"
+                return $ mkAnyRenderer $ mkMLT np mpp nboot
                 
              "sampler" -> do
                 sr <- pSamplerRenderer

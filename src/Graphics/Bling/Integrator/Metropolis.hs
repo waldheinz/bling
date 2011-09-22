@@ -29,37 +29,44 @@ data Metropolis = MLT
    { _integrator :: PathIntegrator
    , _ppp      :: Int -- ^ mutations per pass
    , _passCount :: Int
+   , _nbootstrap :: Int
    }
 
 maxDepth :: Int
 maxDepth = 7
 
-mkMLT :: Int -> Int -> Metropolis
-mkMLT pc mpp = MLT (mkPathIntegrator maxDepth maxDepth) mpp pc
+mkMLT
+   :: Int
+   -> Int
+   -> Int
+   -> Metropolis
+mkMLT pc mpp nboot = MLT (mkPathIntegrator maxDepth maxDepth) mpp pc nboot
 
 instance Printable Metropolis where
-   prettyPrint (MLT integ mpp pc) = PP.vcat [
+   prettyPrint (MLT integ mpp pc _) = PP.vcat [
       PP.text "metropolis light transport",
       PP.text "integrator" PP.<+> prettyPrint integ,
       PP.int mpp PP.<+> PP.text "mutations per pass",
       PP.int pc PP.<+> PP.text "passes"]
 
 instance Renderer Metropolis where
-   render (MLT integ mpp pc) job report = pass img where
+   render (MLT integ mpp pc nboot) job report = pass img pc where
       scene = jobScene job
       img = mkJobImage job
       sSmp :: Flt -> ImageSample -> ImageSample
       sSmp f (ImageSample x y (w, s)) = ImageSample x y (w * f * wt, s)
       nPixels = fromIntegral $ imgW img * imgH img
       wt = nPixels / fromIntegral (mpp * pc)
-      pass i = do
+      pass i p
+         | p == 0 = return ()
+         | otherwise = do
             seed <- ioSeed
 
             img' <- stToIO $ do
                mimg <- thaw i
                
                runWithSeed seed $ do
-                  (b, _) <- bootstrap scene 10000 integ
+                  (b, _) <- bootstrap scene nboot integ
                   sCurr <- trace ("b=" ++ show b) initialSample >>= newRandRef
                   lCurr <- readRandRef sCurr >>= evalSample scene integ >>= newRandRef
                   
@@ -90,9 +97,9 @@ instance Renderer Metropolis where
                      
                freeze mimg
 
-            cont <- report $ (PassDone 1 img')
+            cont <- report $ (PassDone (pc - p + 1) img')
             if cont
-               then pass img'
+               then pass img' (p-1)
                else return ()
 
 bootstrap :: (SurfaceIntegrator i)
