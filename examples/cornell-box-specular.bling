@@ -12,10 +12,10 @@ renderer {
    }
 }
 
-# renderer { sampler sampled { sampler { stratified xSamples 16 ySamples 16 } integrator { path maxDepth 25 } } }
+renderer { sampler sampled { sampler { stratified xSamples 32 ySamples 32 } integrator { path maxDepth 7 sampleDepth 5 } } }
 # renderer { sampler sampled { sampler { random samples 1 } integrator { path maxDepth 7 } } }
-# renderer { lightTracer passCount 5 particles 100000 }
-renderer { metropolis  passCount 5 mutations 50000 }
+# renderer { lightTracer passCount 5 particles 300000 }
+renderer { metropolis  passCount 5 mutations 10000 }
 
 imageSize 480 480
 
@@ -212,15 +212,13 @@ emission {
    spd { 400.0 0, 500.0 160.0, 600.0 312, 700.0 386 }
 }
 
-# transform { identity scale 0.01 1 0.01 }
-
 shape {
    mesh
    vertexCount 4
    faceCount 1
-   v 310.0 600 250.0
-   v 310.0 600 310.0
-   v 250.0 600 310.0
-   v 250.0 600 250.0
+   v 290.0 700 270.0
+   v 290.0 700 290.0
+   v 270.0 700 290.0
+   v 270.0 700 270.0
    f 3 2 1 0
 }

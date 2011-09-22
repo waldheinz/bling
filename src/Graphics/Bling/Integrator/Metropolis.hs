@@ -8,7 +8,9 @@ module Graphics.Bling.Integrator.Metropolis (
 import Control.Monad
 import Control.Monad.ST
 import Data.STRef
+import Debug.Trace
 import qualified Data.Vector.Unboxed.Mutable as V
+import qualified Data.Vector.Mutable as MV
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Camera
@@ -47,8 +49,9 @@ instance Renderer Metropolis where
       scene = jobScene job
       img = mkJobImage job
       sSmp :: Flt -> ImageSample -> ImageSample
-      sSmp f (ImageSample x y (w, s)) = ImageSample x y (w * f, s)
-   --   wt = 1 / fromIntegral (mpp * pc)
+      sSmp f (ImageSample x y (w, s)) = ImageSample x y (w * f * wt, s)
+      nPixels = fromIntegral $ imgW img * imgH img
+      wt = nPixels / fromIntegral (mpp * pc)
       pass i = do
             seed <- ioSeed
 
@@ -56,30 +59,33 @@ instance Renderer Metropolis where
                mimg <- thaw i
                
                runWithSeed seed $ do
-                  x <- initialSample >>= newRandRef
-                  x' <- readRandRef x >>= evalSample scene integ >>= newRandRef
+                  (b, _) <- bootstrap scene 10000 integ
+                  sCurr <- trace ("b=" ++ show b) initialSample >>= newRandRef
+                  lCurr <- readRandRef sCurr >>= evalSample scene integ >>= newRandRef
                   
                   replicateM_ mpp $ do
-                     y <- readRandRef x >>= mutate
-                     y' <- evalSample scene integ y
+                     sProp <- readRandRef sCurr >>= mutate
+                     lProp <- evalSample scene integ sProp
                      
-                     let iProp = evalI y'
-                     iCurr <-  evalI `liftM` (readRandRef x')
+                     let iProp = evalI lProp
+                     iCurr <- evalI `liftM` (readRandRef lCurr)
                      let a = min 1 (iProp / iCurr)
                      
                      -- record samples
                      if iCurr > 0 && not (isInfinite (1 / iCurr))
-                        then readRandRef x' >>= \s -> liftR (splatSample mimg $ sSmp (1 - a) s)
+                        then do
+                           lc <- readRandRef lCurr
+                           liftR (splatSample mimg $ sSmp ((1 - a) * b / iCurr) lc)
                         else return ()
                      
                      if iProp > 0 && not (isInfinite (1 / iProp))
-                        then liftR (splatSample mimg $ sSmp a y')
+                        then liftR (splatSample mimg $ sSmp (a * b / iProp) lProp)
                         else return ()
    
                      R.rnd >>= \r -> if r < a
                         then do
-                           writeRandRef x y
-                           writeRandRef x' y'
+                           writeRandRef sCurr sProp
+                           writeRandRef lCurr lProp
                         else return ()
                      
                freeze mimg
@@ -88,6 +94,28 @@ instance Renderer Metropolis where
             if cont
                then pass img'
                else return ()
+
+bootstrap :: (SurfaceIntegrator i)
+   => Scene
+   -> Int -- ^ number of bootstrap samples
+   -> i
+   -> Rand s (Flt, Sample s) -- ^ (b)
+bootstrap scene n integ = do
+   smps <- liftR $ MV.new n
+   is <- liftR $ V.new n
+   
+   -- take initial set of samples to compute b
+   sumI <- liftM sum $ forM [0..n-1] $ \i -> do
+      smp <- initialSample
+      l <- evalSample scene integ smp
+      liftR $ MV.write smps i smp
+      liftR $ V.write is i $ evalI l
+      return $ evalI l
+
+   -- select initial sample from bootstrap samples
+ --  contribOffset <- R.rnd >>= \x -> return $ x * sumI
+   
+   return (sumI / fromIntegral n, undefined)
 
 initialSample :: Rand s (Sample s)
 initialSample = do
