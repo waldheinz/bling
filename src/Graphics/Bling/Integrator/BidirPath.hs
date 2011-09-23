@@ -1,11 +1,14 @@
-{-# LANGUAGE RankNTypes #-}
 
 module Graphics.Bling.Integrator.BidirPath (
    BidirPath, mkBidirPathIntegrator
    ) where
 
+
+
+import Debug.Trace
 import Data.BitSet
 import Control.Monad (liftM)
+import Control.Exception (assert)
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Camera
@@ -29,16 +32,17 @@ instance SurfaceIntegrator BidirPath where
    sampleCount1D _ = 0
    sampleCount2D _ = 0
    
-   contrib (BDP) s consume r = do
+   contrib (BDP) s addContrib' r = do
       ep <- eyePath s r
-      (lp, li) <- lightPath s
+      lp <- lightPath s
       
-      cws <- (mkContrib $ aws (contribS0 ep + contribS1 ep) (connect ep lp))
-      liftSampled $ consume cws
+   --   cws <- (mkContrib $ aws (contribS0 ep + contribS1 ep) (connect ep lp))
       
-      contribT1 s lp li (consume )
-      return ()
+      contribS0 ep >>= addContrib
       
+      where
+         addContrib = liftSampled . addContrib'
+         
 aws :: Spectrum -> WeightedSpectrum -> WeightedSpectrum
 aws s1 (w, s2) = (w, s1 + s2)
 
@@ -51,48 +55,90 @@ data Vertex = Vert
    , _vwo      :: Vector
    , _vle      :: Spectrum -- ^ light emitted here
    , _vtype    :: BxdfType
-   , _vf       :: Spectrum -- ^ sampled transport from wo to wi
+   , _valpha   :: Spectrum
    }
 
 type Path = [Vertex]
 
+--------------------------------------------------------------------------------
+-- Path Generation
+--------------------------------------------------------------------------------
+
 -- | generates the eye path
 eyePath :: Scene -> Ray -> Sampled m Path
-eyePath s r = nextVertex s wi int 0 where
+eyePath s r = nextVertex s wi int white 0 where
    wi = normalize $ (-(rayDir r))
    int = s `intersect` r
 
--- | generates the light path together with the emitted spectrum
-lightPath :: Scene -> Sampled m (Path, Spectrum)
+-- | generates the light path
+lightPath :: Scene -> Sampled m Path
 lightPath s = do
    ul <- rnd
    ulo <- rnd2D
    uld <- rnd2D
    let (li, ray, nl, pdf) = sampleLightRay s ul ulo uld
    let wo = - (normalize $ rayDir ray)
-   path <- nextVertex s wo (s `intersect` ray) 0
-   return (path, sScale li (absDot nl wo / pdf))
+   nextVertex s wo (s `intersect` ray) (sScale li (absDot nl wo / pdf)) 0
+   
+nextVertex
+   :: Scene
+   -> Vector
+   -> Maybe Intersection
+   -> Spectrum -- ^ alpha
+   -> Int -- ^ depth
+   -> Sampled m Path
+-- nothing hit, terminate path
+nextVertex _ _ Nothing _ _ = return []
+nextVertex sc wi (Just int) alpha depth = do
+   ubc <- rnd -- bsdf component
+   ubd <- rnd2D -- bsdf dir
+
+   let (BsdfSample t spdf f wo) = sampleBsdf bsdf wi ubc ubd
+   let int' = intersect sc $ Ray p wo epsilon infinity
+   let wi' = -wo
+   let l = intLe int wo
+   let pathScale = sScale f $ absDot wo (bsdfShadingNormal bsdf) / spdf
+   let alpha' = pathScale * alpha
+   x <- rnd -- russian roulette
+   let rest = if x > pcont
+               then return []
+               else nextVertex sc wi' int' alpha' (depth + 1)
+
+   if isBlack f || spdf == 0
+      then return []
+      else (liftM . (:)) (Vert bsdf p n wi wo l t alpha) $! rest
+
+   where
+      pcont = if depth > 3 then 0.5 else 1
+      dg = intGeometry int
+      bsdf = intBsdf int
+
+      n = normalize $ dgN dg
+      p = dgP dg
+
+--------------------------------------------------------------------------------
+-- Path Evaluation
+--------------------------------------------------------------------------------
    
 -- | contribution for the eye subpath randomly intersecting a light
 --   source, or for light sources visible through specular reflections
-contribS0 :: Path -> Spectrum
-contribS0 [] = black
-contribS0 ((Vert _ _ _ _ _ l t f):vs) = go where
-   l' = f * l
-   go
-      | Specular `member` t = l' + contribS0 vs
-      | otherwise = l'
+contribS0 :: Path -> Sampled s Contribution
+contribS0 p = mkContrib (1, s0 p) False where
+   s0 [] = black
+   s0 ((Vert _ _ _ _ _ l t f) : vs)
+      | Specular `member` t = f * l + s0 vs
+      | otherwise = f * l
    
-contribS1 :: Path -> Spectrum
-contribS1 _ = black
+contribS1 :: Path -> Sampled s Contribution
+contribS1 _ = mkContrib (1, black) False
 -- contribS1 ((Vert _ _ _ _ _ _ _ _):vs) = black
 
 -- | follow specular paths from the light and connect the to the eye
 contribT1 :: Scene -> Path -> Spectrum -> Consumer m -> Sampled m ()
 contribT1 _ [] _ _ = return ()
-contribT1 sc ((Vert bsdf p n wi _ _ t f):vs) li addSample
-   | Specular `member` t = contribT1 sc vs (f * li) addSample
-   | otherwise = liftSampled $ addSample smp
+contribT1 sc ((Vert bsdf p n wi _ _ t f):vs) li tell
+   | Specular `member` t = contribT1 sc vs (f * li) tell
+   | otherwise = liftSampled $ tell (True, smp)
    where
       le = li * evalBsdf bsdf wi we
       smp = ImageSample px py (absDot n we / (cPdf * d2), le * csf)
@@ -103,35 +149,3 @@ contribT1 sc ((Vert bsdf p n wi _ _ t f):vs) li addSample
 
 connect :: Path -> Path -> WeightedSpectrum
 connect ep lp = (1, black)
-
-nextVertex
-   :: Scene
-   -> Vector
-   -> Maybe Intersection
-   -> Int -- ^ depth
-   -> Sampled m Path
--- nothing hit, terminate path
-nextVertex _ _ Nothing _ = return []
-nextVertex sc wi (Just int) depth = do
-   ubc <- rnd -- bsdf component
-   ubd <- rnd2D -- bsdf dir
-   
-   let (BsdfSample t spdf f wo) = sampleBsdf bsdf wi ubc ubd
-   let int' = intersect sc $ Ray p wo epsilon infinity
-   let wi' = -wo
-   let l = intLe int wo
-   x <- rnd -- russian roulette
-   let rest = if x > pcont
-               then return []
-               else nextVertex sc wi' int' (depth + 1)
-   
-   (liftM . (:)) (Vert bsdf p n wi wo l t f) $! rest
-   
-   where
-      pcont = if depth > 3 then 0.5 else 1
-      dg = intGeometry int
-      bsdf = intBsdf int
-      
-      n = normalize $ dgN dg
-      p = dgP dg
-      

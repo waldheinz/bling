@@ -29,7 +29,7 @@ instance SurfaceIntegrator DirectLighting where
    sampleCount2D _ = 0
    
    contrib (DirectLighting sa) s addSample r = do
-      c <- directLighting sa s r >>= mkContrib
+      c <- directLighting sa s r >>= \is -> mkContrib is False
       liftSampled $ addSample c
 
 directLighting :: Bool -> Scene -> Ray -> Sampled m WeightedSpectrum

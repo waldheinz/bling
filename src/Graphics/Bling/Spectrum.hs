@@ -1,6 +1,6 @@
 
 module Graphics.Bling.Spectrum (
-   Spectrum, WeightedSpectrum, ImageSample(..),
+   Spectrum, WeightedSpectrum, ImageSample(..), Contribution,
    white, black, 
    
    -- * Working with SPDs
@@ -36,6 +36,9 @@ data ImageSample = ImageSample {
    samplePosY :: {-# UNPACK #-} ! Float,
    sampleSpectrum :: {-# UNPACK #-} ! WeightedSpectrum
    } deriving Show
+
+type Contribution = (Bool, ImageSample)
+
 
 -- | A "black" @Spectrum@ (no transmittance or emission) at all wavelengths
 black :: Spectrum

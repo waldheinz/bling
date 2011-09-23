@@ -22,7 +22,7 @@ module Graphics.Bling.Reflection (
    
    -- * BSDF
    
-   Bsdf, BsdfSample(..),
+   Bsdf, BsdfSample(..), bsdfShadingNormal,
    mkBsdf, mkBsdf', evalBsdf, sampleBsdf, bsdfPdf,
    
    -- * Working with Vectors in shading coordinate system
@@ -154,6 +154,7 @@ sinPhi v
 -- | decides if two vectors in shading coordinate system lie within the
 --   same hemisphere
 sameHemisphere :: Vector -> Vector -> Bool
+{-# INLINE sameHemisphere #-}
 sameHemisphere (Vector _ _ z1) (Vector _ _ z2) = z1 * z2 > 0
 
 data BxdfProp = Transmission | Reflection | Diffuse | Glossy | Specular deriving (Eq, Enum, Show)
@@ -161,6 +162,7 @@ data BxdfProp = Transmission | Reflection | Diffuse | Glossy | Specular deriving
 type BxdfType = BitSet BxdfProp
 
 toSameHemisphere :: Vector -> Vector -> Vector
+{-# INLINE toSameHemisphere #-}
 toSameHemisphere wo wi = if vz wo < 0 then wi {vz = -(vz wi)} else wi
 
 class Bxdf a where
@@ -227,13 +229,12 @@ mkBsdf'
    -> Bsdf
 mkBsdf' bs dgg dgs = mkBsdf bs dgs (dgN dgg)
 
-data BsdfSample = BsdfSample {
-   bsdfSampleType :: BxdfType,
-   bsdfSamplePdf :: Float,
-   bsdfSampleTransport :: Spectrum,
-   bsdfSampleWi :: Vector
-   } deriving (Show)
-
+-- | extracts the effective shading normal from a BSDF
+bsdfShadingNormal :: Bsdf -> Normal
+{-# INLINE bsdfShadingNormal #-}
+bsdfShadingNormal bsdf = n where
+   (LocalCoordinates _ _ n) = _bsdfCs bsdf
+   
 bsdfPdf :: Bsdf -> Vector -> Vector -> Float
 bsdfPdf (Bsdf bs cs _) woW wiW
    | V.null bs = 0
@@ -241,6 +242,13 @@ bsdfPdf (Bsdf bs cs _) woW wiW
       pdfSum = V.sum $ V.map (\b -> bxdfPdf b wo wi) bs
       wo = worldToLocal cs woW
       wi = worldToLocal cs wiW
+
+data BsdfSample = BsdfSample {
+   bsdfSampleType :: BxdfType,
+   bsdfSamplePdf :: Float,
+   bsdfSampleTransport :: Spectrum,
+   bsdfSampleWi :: Vector
+   } deriving (Show)
 
 sampleBsdf :: Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
 sampleBsdf (Bsdf bs cs ng) woW uComp uDir

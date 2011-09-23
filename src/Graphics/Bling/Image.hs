@@ -7,7 +7,7 @@ module Graphics.Bling.Image (
    
    MImage,
    
-   mkMImage, addSample, splatSample,
+   mkMImage, addSample, splatSample, addContrib,
    
    imageWidth, imageHeight, imageWindow, writePpm, writeRgbe,
    
@@ -123,7 +123,8 @@ splatSample (MImage w h _ p) (ImageSample sx sy (sw, ss))
          
 -- | adds a sample to the specified image
 addSample :: MImage s -> ImageSample -> ST s ()
-addSample img smp@(ImageSample sx sy (_, ss))
+addSample img smp@(ImageSample sx sy (sw, ss))
+   | sw == 0 = return ()
    | sNaN ss = trace ("skipping NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | sInfinite ss = trace ("skipping infinite sample at ("
@@ -131,6 +132,11 @@ addSample img smp@(ImageSample sx sy (_, ss))
    | otherwise = forM_ pixels (addPixel img)
    where
          pixels = filterSample (imageFilter img) smp
+
+addContrib :: MImage s -> Contribution -> ST s ()
+addContrib img (splat, is)
+   | splat = splatSample img is
+   | otherwise = addSample img is
 
 -- | extracts the pixel at the specified offset from an Image
 getPixel :: Image -> Int -> (Float, Float, Float)

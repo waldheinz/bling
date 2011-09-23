@@ -140,7 +140,7 @@ instance Renderer SamplerRenderer where
 tile :: I.SurfaceIntegrator a =>
    Scene -> Sampler -> a -> MImage s -> SampleWindow -> Rand s ()
 tile scene smp si img w = do
-   let comp = fireRay cam >>= I.contrib si scene (addSample img)
+   let comp = fireRay cam >>= I.contrib si scene (addContrib img)
    sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp
    where
       cam = sceneCam scene

@@ -48,7 +48,7 @@ instance SurfaceIntegrator PathIntegrator where
    sampleCount2D (PathIntegrator _ sd) = smps2D * sd
    
    contrib (PathIntegrator md _) s addSample r = {-# SCC "pathContrib" #-} do
-      li <- nextVertex s 0 True r (s `intersect` r) white black md >>= mkContrib
+      li <- nextVertex s 0 True r (s `intersect` r) white black md >>= \is -> mkContrib is False
       liftSampled $ addSample $ li
       
 nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled m WeightedSpectrum

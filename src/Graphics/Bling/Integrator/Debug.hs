@@ -34,7 +34,7 @@ instance SurfaceIntegrator DebugIntegrator where
    contrib KdTreeVis scene tell r = do
       let stats = dbgTraverse t r
       let ints = fromIntegral $ intersections stats
-      li <- mkContrib (1, fromRGB (fromIntegral $ nodesTraversed stats, ints, 0))
+      li <- mkContrib (1, fromRGB (fromIntegral $ nodesTraversed stats, ints, 0)) False
       liftSampled $ tell $ li
       where
          t = scenePrim scene

@@ -35,7 +35,7 @@ Library
       random-shuffle == 0.0.2
 
    Ghc-Options:
-      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -threaded -optc-O3 -optc-march=native -optc-msse4
+      -Wall -O -fexcess-precision -fspec-constr-count=64 -threaded -optc-O3 -optc-march=native -optc-msse4
 
    Ghc-Prof-Options:
       -O -fexcess-precision -prof -auto-all
@@ -104,7 +104,7 @@ Executable bling-gui
    hs-source-dirs:   src/Graphics/Bling/Main
    Main-is:          GuiMain.hs
    
-   ghc-options:      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -rtsopts -threaded
+   ghc-options:      -Wall -fexcess-precision -fspec-constr-count=64 -rtsopts -threaded
    ghc-prof-options: -O2 -fexcess-precision -prof -auto-all -rtsopts
 
 Executable bling-test

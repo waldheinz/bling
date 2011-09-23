@@ -17,17 +17,18 @@ import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Spectrum
 
-type Contribution = [ImageSample]
-
-mkContrib :: WeightedSpectrum -> Sampled m ImageSample
-mkContrib ws = do
+mkContrib
+   :: WeightedSpectrum
+   -> Bool -- ^ true -> splat, otherwise -> addSample
+   -> Sampled m Contribution
+mkContrib ws splat = do
    cs <- cameraSample
-   return $ ImageSample (imageX cs) (imageY cs) ws
+   return $ (splat, ImageSample (imageX cs) (imageY cs) ws)
    
-type Consumer m = ImageSample -> ST m ()
+type Consumer m = Contribution -> ST m ()
 
 class Printable a => SurfaceIntegrator a where
-   contrib :: a -> Scene -> Consumer m -> Ray -> Sampled m ()
+   contrib :: a -> Scene -> Consumer s -> Ray -> Sampled s ()
    sampleCount1D :: a -> Int
    sampleCount2D :: a -> Int
    

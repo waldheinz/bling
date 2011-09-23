@@ -211,6 +211,6 @@ evalSample scn si smp = do
    smps <- liftR $ newSTRef []
    (flip randToSampled) smp $ do
       ray <- (fireRay (sceneCam scn))
-      contrib si scn (\is -> modifySTRef smps (is :)) ray
+      contrib si scn (\is -> modifySTRef smps ((snd is) :)) ray
    liftR $ readSTRef smps
    
