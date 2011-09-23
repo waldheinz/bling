@@ -5,39 +5,68 @@ module Graphics.Bling.Integrator.LightTracer (
    
    ) where
 
-import Control.Monad
-import Control.Monad.ST
+-- import Control.Monad
+-- import Control.Monad.ST
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Camera
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Image
+import Graphics.Bling.Integrator
 import Graphics.Bling.Primitive
-import Graphics.Bling.Random
+-- import Graphics.Bling.Random
 import Graphics.Bling.Reflection
-import Graphics.Bling.Rendering
+-- import Graphics.Bling.Rendering
 import Graphics.Bling.Scene
 import Graphics.Bling.Spectrum
+import Graphics.Bling.Sampling
 
 data LightTracer = LightT
-   { _passes   :: Int -- ^ number of passes
-   , _ppp      :: Int -- ^ particles per pass
+   { _maxDepth :: Int
+   , _sampleDepth :: Int
    }
 
 mkLightTracer
-   :: Int -- ^ number of passes
-   -> Int -- ^ photons per pass
+   :: Int
+   -> Int
    -> LightTracer
 mkLightTracer = LightT
 
 instance Printable LightTracer where
-   prettyPrint (LightT np ppp) = PP.vcat [
-      PP.text "light tracer",
+   prettyPrint (LightT _ _) = PP.vcat [
+      PP.text "light tracer" {-,
       PP.int np PP.<+> PP.text "passes",
-      PP.int ppp PP.<+> PP.text "photons per pass" ]
+      PP.int ppp PP.<+> PP.text "photons per pass" -} ]
 
-instance Renderer LightTracer where
-   render (LightT np ppp) job report = pass np img where
+
+smps2D :: Int
+smps2D = 3
+
+smps1D :: Int
+smps1D = 4
+
+smp2doff :: Int -> Int
+smp2doff d = smps2D * d
+
+smp1doff :: Int -> Int
+smp1doff d = smps1D * d
+
+instance SurfaceIntegrator LightTracer where
+   sampleCount1D (LightT _ sd) = smps1D * sd
+
+   sampleCount2D (LightT _ sd) = smps2D * sd
+
+   contrib (LightT md _) scene addsmp _ = {-# SCC "lightContrib" #-} do
+      ul <- rnd
+      ulo <- rnd2D
+      uld <- rnd2D
+      let (li, ray, nl, pdf) = sampleLightRay scene ul ulo uld
+      let wo = normalize $ rayDir ray
+      nextVertex scene (-wo) (intersect scene ray) (sScale li (absDot nl wo / pdf)) 0 splat
+      where
+         splat is = liftSampled $ addsmp (True, is)
+{-      
+   render (LightT np ppp maxD smpD) job report = pass np img where
       sc = jobScene job
       img = mkJobImage job
       pass n i
@@ -69,15 +98,15 @@ oneRay scene splat = do
    let (li, ray, nl, pdf) = sampleLightRay scene ul ulo uld
    let wo = normalize $ rayDir ray
    nextVertex scene (-wo) (intersect scene ray) (sScale li (absDot nl wo / pdf)) 0 splat
-   
+   -}
 nextVertex
    :: Scene
    -> Vector
    -> Maybe Intersection
    -> Spectrum
    -> Int -- ^ depth
-   -> (ImageSample -> Rand m ())
-   -> Rand m () 
+   -> (ImageSample -> Sampled m ())
+   -> Sampled m ()
 -- nothing hit, terminate path   
 nextVertex _ _ Nothing _ _ _ = return ()
 
