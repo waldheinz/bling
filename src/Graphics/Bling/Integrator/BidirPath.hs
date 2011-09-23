@@ -8,7 +8,6 @@ module Graphics.Bling.Integrator.BidirPath (
 import Debug.Trace
 import Data.BitSet
 import Control.Monad (liftM)
-import Control.Exception (assert)
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Camera
@@ -39,6 +38,7 @@ instance SurfaceIntegrator BidirPath where
    --   cws <- (mkContrib $ aws (contribS0 ep + contribS1 ep) (connect ep lp))
       
       contribS0 ep >>= addContrib
+      contribS1 s ep >>= addContrib
       
       where
          addContrib = liftSampled . addContrib'
@@ -128,11 +128,23 @@ contribS0 p = mkContrib (1, s0 p) False where
    s0 ((Vert _ _ _ _ _ l t f) : vs)
       | Specular `member` t = f * l + s0 vs
       | otherwise = f * l
-   
-contribS1 :: Path -> Sampled s Contribution
-contribS1 _ = mkContrib (1, black) False
--- contribS1 ((Vert _ _ _ _ _ _ _ _):vs) = black
 
+-- | one light subpaths
+contribS1 :: Scene -> Path -> Sampled s Contribution
+contribS1 scene path = s1 path >>= \x -> mkContrib (1, x) False where
+   s1 [] = return black
+   s1 ((Vert bsdf p n _ wo _ t f) : vs)
+      | Specular `member` t = s1 vs
+      | otherwise = do
+
+         -- for light sampling
+         lNumU <- rnd
+         lDirU <- rnd2D
+         lBsdfCompU <- rnd
+         lBsdfDirU <- rnd2D
+         let lHere = sampleOneLight scene p n wo bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU
+         return $ lHere
+   
 -- | follow specular paths from the light and connect the to the eye
 contribT1 :: Scene -> Path -> Spectrum -> Consumer m -> Sampled m ()
 contribT1 _ [] _ _ = return ()
