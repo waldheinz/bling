@@ -3,9 +3,6 @@ module Graphics.Bling.Integrator.BidirPath (
    BidirPath, mkBidirPathIntegrator
    ) where
 
-
-
-import Debug.Trace
 import Data.BitSet
 import Control.Monad (liftM)
 import qualified Text.PrettyPrint as PP
@@ -39,13 +36,11 @@ instance SurfaceIntegrator BidirPath where
       
       contribS0 ep >>= addContrib
       contribS1 s ep >>= addContrib
+      contribT1 s lp addContrib'
       
       where
          addContrib = liftSampled . addContrib'
          
-aws :: Spectrum -> WeightedSpectrum -> WeightedSpectrum
-aws s1 (w, s2) = (w, s1 + s2)
-
 -- | a path vertex
 data Vertex = Vert
    { _vbsdf    :: Bsdf
@@ -77,8 +72,8 @@ lightPath s = do
    ulo <- rnd2D
    uld <- rnd2D
    let (li, ray, nl, pdf) = sampleLightRay s ul ulo uld
-   let wo = - (normalize $ rayDir ray)
-   nextVertex s wo (s `intersect` ray) (sScale li (absDot nl wo / pdf)) 0
+   let wo = normalize $ rayDir ray
+   nextVertex s (-wo) (s `intersect` ray) (sScale li (absDot nl wo / pdf)) 0
    
 nextVertex
    :: Scene
@@ -97,7 +92,7 @@ nextVertex sc wi (Just int) alpha depth = do
    let int' = intersect sc $ Ray p wo epsilon infinity
    let wi' = -wo
    let l = intLe int wo
-   let pathScale = sScale f $ absDot wo (bsdfShadingNormal bsdf) / spdf
+   let pathScale = sScale f $ absDot wo (bsdfShadingNormal bsdf) / (spdf * pcont)
    let alpha' = pathScale * alpha
    x <- rnd -- russian roulette
    let rest = if x > pcont
@@ -143,21 +138,26 @@ contribS1 scene path = s1 path >>= \x -> mkContrib (1, x) False where
          lBsdfCompU <- rnd
          lBsdfDirU <- rnd2D
          let lHere = sampleOneLight scene p n wo bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU
-         return $ lHere
+         return $ lHere * f
    
 -- | follow specular paths from the light and connect the to the eye
-contribT1 :: Scene -> Path -> Spectrum -> Consumer m -> Sampled m ()
-contribT1 _ [] _ _ = return ()
-contribT1 sc ((Vert bsdf p n wi _ _ t f):vs) li tell
-   | Specular `member` t = contribT1 sc vs (f * li) tell
+contribT1 :: Scene -> Path -> Consumer m -> Sampled m ()
+contribT1 _ [] _ = return ()
+contribT1 sc ((Vert bsdf p n _ wi _ t le):vs) tell
+   | Specular `member` t = contribT1 sc vs tell
+   | intersects sc ray = contribT1 sc vs tell
    | otherwise = liftSampled $ tell (True, smp)
    where
-      le = li * evalBsdf bsdf wi we
-      smp = ImageSample px py (absDot n we / (cPdf * d2), le * csf)
+      f = csf * le * evalBsdf bsdf wi we
+      g = absDot n wi * absDot n we / (cPdf * d2)
+      smp = ImageSample px py (1 /g, f)
+      ray = segmentRay p pCam
+--      let smpHere = ImageSample px py (absDot n we / (cPdf * dCam2), f * li * csf)
       (CameraSampleResult csf pCam px py cPdf) = sampleCam (sceneCam sc) p
       dCam = pCam - p
       we = normalize $ dCam
       d2 = sqLen dCam -- ^ distance squared
-
+{-
 connect :: Path -> Path -> WeightedSpectrum
 connect ep lp = (1, black)
+-}
