@@ -22,7 +22,7 @@ module Graphics.Bling.Reflection (
    
    -- * BSDF
    
-   Bsdf, BsdfSample(..), bsdfShadingNormal,
+   Bsdf, BsdfSample(..), bsdfShadingNormal, bsdfSpecCompCount,
    mkBsdf, mkBsdf', evalBsdf, sampleBsdf, bsdfPdf,
    
    -- * Working with Vectors in shading coordinate system
@@ -234,6 +234,14 @@ bsdfShadingNormal :: Bsdf -> Normal
 {-# INLINE bsdfShadingNormal #-}
 bsdfShadingNormal bsdf = n where
    (LocalCoordinates _ _ n) = _bsdfCs bsdf
+
+-- | the number of specular BxDFs in a BSDF
+bsdfSpecCompCount :: Bsdf -> Int
+{-# INLINE bsdfSpecCompCount #-}
+bsdfSpecCompCount bsdf = V.foldl' go 0 $ _bsdfBxdfs bsdf where
+   go n bxdf
+      | Specular `member` bxdfType bxdf = n + 1
+      | otherwise = n
    
 bsdfPdf :: Bsdf -> Vector -> Vector -> Float
 bsdfPdf (Bsdf bs cs _) woW wiW

@@ -20,7 +20,7 @@ renderer {
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 6 ySamples 6 }
+      sampler { stratified xSamples 3 ySamples 3 }
       integrator { bidir }
    }
 }
