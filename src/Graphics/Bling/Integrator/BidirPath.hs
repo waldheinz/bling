@@ -51,9 +51,9 @@ instance SurfaceIntegrator BidirPath where
       let nspecBouces = countSpec ep lp
       
       -- direct illumination, aka "one light" or S1 subpaths
-      ld <- liftM sum $ forM (zip ep [0..]) $ \(v, i) -> do
+      ld <- liftM sum $ forM (zip ep [1..]) $ \(v, i) -> do
          d <- estimateDirect scene v
-         return $ sScale d $ 1 / (fromIntegral i + 1 - (nspecBouces V.! (i+1)))
+         return $ sScale d $ 1 / (fromIntegral i - (nspecBouces V.! i))
 
       let prevSpec = True : map (\v -> Specular `member` _vtype v) ep
 
@@ -141,7 +141,7 @@ lightPath s = do
    let (li, ray, nl, pdf) = sampleLightRay s ul ulo uld
    let wo = normalize $ rayDir ray
    let nl' = normalize nl
-   nextVertex s wo (s `intersect` ray) (sScale li (absDot nl' wo / pdf)) 0
+   nextVertex s (-wo) (s `intersect` ray) (sScale li (absDot nl' wo / pdf)) 0
    
 nextVertex
    :: Scene
@@ -165,7 +165,7 @@ nextVertex sc wi (Just int) alpha depth = do
    let alpha' = sScale (pathScale * alpha) (1 / rrProb)
    x <- rnd -- russian roulette
    let rest = if x > rrProb
-               then return []
+               then return [] -- terminate
                else nextVertex sc wi' int' alpha' (depth + 1)
    
    if isBlack f || spdf == 0

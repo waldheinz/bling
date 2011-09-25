@@ -16,7 +16,7 @@ renderer {
 # renderer { lightTracer passCount 10 particles 500000 }
 # renderer { metropolis  passCount 10 mutations 200000 bootstrap 15000 plarge 0.25 }
 
-# renderer { sampler sampled { sampler { random samples 16 } integrator { bidir } } }
+renderer { sampler sampled { sampler { random samples 16 } integrator { bidir } } }
 
 imageSize 480 480
 
@@ -275,5 +275,6 @@ shape {
    v 343.0 548.7 332.0
    v 213.0 548.7 332.0
    v 213.0 548.7 227.0
-   f 0 1 2 3
+   f 0 1 2
+#   f 2 3 0
 }
