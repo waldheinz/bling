@@ -13,13 +13,17 @@ import qualified Text.PrettyPrint as PP
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Integrator
 import Graphics.Bling.Primitive
+import Graphics.Bling.Random
 import Graphics.Bling.Reflection
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Spectrum
 
 data BidirPath = BDP
-
+   { _maxDepth    :: Int
+   , _sampleDepth :: Int
+   }
+   
 -- | a path vertex
 data Vertex = Vert
    { _vbsdf    :: Bsdf
@@ -33,26 +37,43 @@ data Vertex = Vert
 
 type Path = [Vertex]
 
-mkBidirPathIntegrator :: BidirPath
-mkBidirPathIntegrator = BDP
+mkBidirPathIntegrator :: Int -> Int -> BidirPath
+mkBidirPathIntegrator = BDP 
 
 instance Printable BidirPath where
-   prettyPrint (BDP) = PP.text "Bi-Dir Path"
+   prettyPrint (BDP _ _) = PP.text "Bi-Dir Path"
+
+
+smps2D :: Int
+smps2D = 3
+
+smps1D :: Int
+smps1D = 4
+
+smp1doff :: Int -> Int
+smp1doff d = smps1D * d + 1
+
+smp2doff :: Int -> Int
+smp2doff d = smps2D * d + 2
 
 instance SurfaceIntegrator BidirPath where
-   sampleCount1D _ = 0
-   sampleCount2D _ = 0
+   sampleCount1D (BDP _ sd) = smps1D * sd + 1
+   sampleCount2D (BDP _ sd) = smps2D * sd + 2
    
-   contrib (BDP) scene addContrib' r = do
-      ep <- eyePath scene r
-      lp <- lightPath scene
-
+   contrib (BDP md _) scene addContrib' r = do
+      ul <- rnd' 0
+      ulo <- rnd2D' 0
+      uld <- rnd2D' 1
+      
+      lp <- lightPath scene md ul ulo uld
+      ep <- eyePath scene r md
+      
       -- precompute sum of specular bounces in eye or light path
       let nspecBouces = countSpec ep lp
       
       -- direct illumination, aka "one light" or S1 subpaths
       ld <- liftM sum $ forM (zip ep [1..]) $ \(v, i) -> do
-         d <- estimateDirect scene v
+         d <- estimateDirect scene v i
          return $ sScale d $ 1 / (fromIntegral i - (nspecBouces V.! i))
 
       let prevSpec = True : map (\v -> Specular `member` _vtype v) ep
@@ -106,12 +127,12 @@ connect scene nspec
           ne = bsdfShadingNormal bsdfe
           nl = bsdfShadingNormal bsdfl
              
-estimateDirect :: Scene -> Vertex -> Sampled s Spectrum
-estimateDirect scene (Vert bsdf p wi _ _ _ alpha) = do
-   lNumU <- rnd
-   lDirU <- rnd2D
-   lBsdfCompU <- rnd
-   lBsdfDirU <- rnd2D
+estimateDirect :: Scene -> Vertex -> Int -> Sampled s Spectrum
+estimateDirect scene (Vert bsdf p wi _ _ _ alpha) depth = do
+   lNumU <- rnd' $ 2 + smp1doff depth
+   lDirU <- rnd2D' $ 1 + smp2doff depth
+   lBsdfCompU <- rnd' $ 3 + smp1doff depth
+   lBsdfDirU <- rnd2D' $ 2 + smp2doff depth
    let lHere = sampleOneLight scene p n wi bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU
    return $ lHere * alpha
    where
@@ -127,21 +148,18 @@ pairs (x:xs) ys = zip (repeat x) ys ++ pairs xs ys
 --------------------------------------------------------------------------------
 
 -- | generates the eye path
-eyePath :: Scene -> Ray -> Sampled m Path
-eyePath s r = nextVertex s wi int white 0 where
+eyePath :: Scene -> Ray -> Int -> Sampled m Path
+eyePath s r md = nextVertex s wi int white 0 md (\d -> 2 + smp1doff d) (\d -> 2 + smp2doff d) where
    wi = normalize $ (-(rayDir r))
    int = s `intersect` r
 
 -- | generates the light path
-lightPath :: Scene -> Sampled m Path
-lightPath s = do
-   ul <- rnd
-   ulo <- rnd2D
-   uld <- rnd2D
+lightPath :: Scene -> Int -> Flt -> Rand2D -> Rand2D -> Sampled m Path
+lightPath s md ul ulo uld = do
    let (li, ray, nl, pdf) = sampleLightRay s ul ulo uld
    let wo = normalize $ rayDir ray
    let nl' = normalize nl
-   nextVertex s (-wo) (s `intersect` ray) (sScale li (absDot nl' wo / pdf)) 0
+   nextVertex s (-wo) (s `intersect` ray) (sScale li (absDot nl' wo / pdf)) 0 md (\d -> 3 + smp1doff d) (\d -> 3 + smp2doff d)
    
 nextVertex
    :: Scene
@@ -149,30 +167,35 @@ nextVertex
    -> Maybe Intersection
    -> Spectrum -- ^ alpha
    -> Int -- ^ depth
+   -> Int -- ^ maximum depth
+   -> (Int -> Int) -- ^ 1d offsets
+   -> (Int -> Int) -- ^ 2d offsets
    -> Sampled m Path
 -- nothing hit, terminate path
-nextVertex _ _ Nothing _ _ = return []
-nextVertex sc wi (Just int) alpha depth = do
-   ubc <- rnd -- bsdf component
-   ubd <- rnd2D -- bsdf dir
-
-   let (BsdfSample t spdf f wo) = sampleBsdf bsdf wi ubc ubd
-   let int' = intersect sc $ Ray p wo epsilon infinity
-   let wi' = -wo
-   let vHere = Vert bsdf p wi wo int t alpha
-   let pathScale = sScale f $ absDot wo (bsdfShadingNormal bsdf) / spdf
-   let rrProb = min 1 $ sY pathScale
-   let alpha' = sScale (pathScale * alpha) (1 / rrProb)
-   x <- rnd -- russian roulette
-   let rest = if x > rrProb
-               then return [] -- terminate
-               else nextVertex sc wi' int' alpha' (depth + 1)
+nextVertex _ _ Nothing _ _ _ _ _ = return []
+nextVertex sc wi (Just int) alpha depth md f1d f2d
+   | depth == md = return []
+   | otherwise = do
+      ubc <- rnd' $ f1d depth -- bsdf component
+      ubd <- rnd2D' $ f2d depth -- bsdf dir
+      rr <- rnd' $ 1 + f1d depth -- russian roulette
+      
+      let (BsdfSample t spdf f wo) = sampleBsdf bsdf wi ubc ubd
+      let int' = intersect sc $ Ray p wo epsilon infinity
+      let wi' = -wo
+      let vHere = Vert bsdf p wi wo int t alpha
+      let pathScale = sScale f $ absDot wo (bsdfShadingNormal bsdf) / spdf
+      let rrProb = min 1 $ sY pathScale
+      let alpha' = sScale (pathScale * alpha) (1 / rrProb)
+      let rest = if rr > rrProb
+                  then return [] -- terminate
+                  else nextVertex sc wi' int' alpha' (depth + 1) md f1d f2d
    
-   if isBlack f || spdf == 0
-      then return [vHere]
-      else (liftM . (:)) vHere $! rest
+      if isBlack f || spdf == 0
+         then return [vHere]
+         else (liftM . (:)) vHere $! rest
    
-   where
-      dg = intGeometry int
-      bsdf = intBsdf int
-      p = dgP dg
+      where
+         dg = intGeometry int
+         bsdf = intBsdf int
+         p = dgP dg

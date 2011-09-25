@@ -23,7 +23,9 @@ pSurfaceIntegrator = (flip namedBlock) "integrator" $ do
    case t of
         
         "bidir" -> do
-           return $ mkAnySurface $ mkBidirPathIntegrator
+           md <- ws >> namedInt "maxDepth"
+           sd <- ws >> namedInt "sampleDepth"
+           return $ mkAnySurface $ mkBidirPathIntegrator md sd
 
         "debug" -> do
            return $ mkAnySurface $ mkKdVision
