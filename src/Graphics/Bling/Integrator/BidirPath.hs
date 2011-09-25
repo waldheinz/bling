@@ -6,12 +6,10 @@ module Graphics.Bling.Integrator.BidirPath (
 import Data.BitSet
 import qualified Data.Vector.Unboxed.Mutable as MV
 import qualified Data.Vector.Unboxed as V
-import Debug.Trace
 import Control.Monad (liftM, forM, forM_)
 import Control.Monad.ST
 import qualified Text.PrettyPrint as PP
 
-import Graphics.Bling.Camera
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Integrator
 import Graphics.Bling.Primitive
@@ -26,7 +24,6 @@ data BidirPath = BDP
 data Vertex = Vert
    { _vbsdf    :: Bsdf
    , _vpoint   :: Point
-   , _vnormal  :: Normal
    , _vwi      :: Vector
    , _vwo      :: Vector
    , _vle      :: Spectrum -- ^ light emitted here
@@ -90,8 +87,8 @@ countSpec ep lp = runST $ do
 
 connect :: Scene -> V.Vector Flt -> ((Vertex, Int),  (Vertex, Int)) -> Spectrum
 connect scene nspec
-   ((Vert bsdfe pe ne wie woe le te alphae, i),  -- eye vertex
-    (Vert bsdfl pl nl wil wol ll tl alphal, j))   -- camera vertex
+   ((Vert bsdfe pe wie woe le te alphae, i),  -- eye vertex
+    (Vert bsdfl pl wil wol ll tl alphal, j))   -- camera vertex
        | Specular `member` te = black
        | Specular `member` tl = black
        | isBlack fe || isBlack fl = black
@@ -102,42 +99,28 @@ connect scene nspec
           g = absDot ne w * absDot nl w / sqLen (pl - pe)
           w = normalize $ pl - pe
           nspece = fromIntegral $ bsdfSpecCompCount bsdfe
-          fe = sScale (evalBsdf bsdfe woe  w) (1 + nspece)
+          fe = sScale (evalBsdf bsdfe wie  w) (1 + nspece)
           nspecl = fromIntegral $ bsdfSpecCompCount bsdfl
-          fl = sScale (evalBsdf bsdfl (-w) wol) (1 + nspecl)
+          fl = sScale (evalBsdf bsdfl (-w) wil) (1 + nspecl)
           r = segmentRay pl pe
-          
+          ne = bsdfShadingNormal bsdfe
+          nl = bsdfShadingNormal bsdfl
+             
 estimateDirect :: Scene -> Vertex -> Sampled s Spectrum
-estimateDirect scene (Vert bsdf p n wi wo l t alpha) = do
+estimateDirect scene (Vert bsdf p wi wo l t alpha) = do
    lNumU <- rnd
    lDirU <- rnd2D
    lBsdfCompU <- rnd
    lBsdfDirU <- rnd2D
    let lHere = sampleOneLight scene p n wo bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU
    return $ lHere * alpha
+   where
+      n = bsdfShadingNormal bsdf
 
 pairs :: [a] -> [a] -> [(a, a)]
 pairs [] _ = []
 pairs _ [] = []
 pairs (x:xs) ys = zip (repeat x) ys ++ pairs xs ys
-
--- | follow specular paths from the light and connect the to the eye
-contribT1 :: Scene -> Path -> Consumer m -> Sampled m ()
-contribT1 _ [] _ = return ()
-contribT1 sc ((Vert bsdf p n _ wi _ t le):vs) tell
-   | Specular `member` t = contribT1 sc vs tell
-   | intersects sc ray = contribT1 sc vs tell
-   | otherwise = liftSampled $ tell (True, smp)
-   where
-      f = csf * le * evalBsdf bsdf wi we
-      g = absDot n wi * absDot n we / (cPdf * d2)
-      smp = ImageSample px py (1 /g, f)
-      ray = segmentRay p pCam
---      let smpHere = ImageSample px py (absDot n we / (cPdf * dCam2), f * li * csf)
-      (CameraSampleResult csf pCam px py cPdf) = sampleCam (sceneCam sc) p
-      dCam = pCam - p
-      we = normalize $ dCam
-      d2 = sqLen dCam -- ^ distance squared
 
 --------------------------------------------------------------------------------
 -- Path Generation
@@ -176,21 +159,20 @@ nextVertex sc wi (Just int) alpha depth = do
    let int' = intersect sc $ Ray p wo epsilon infinity
    let wi' = -wo
    let l = intLe int wo
-   let pathScale = sScale f $ absDot wo (bsdfShadingNormal bsdf) / (spdf * pcont)
-   let alpha' = pathScale * alpha
+   let vHere = Vert bsdf p wi wo l t alpha
+   let pathScale = sScale f $ absDot wo (bsdfShadingNormal bsdf) / spdf
+   let rrProb = min 1 $ sY pathScale
+   let alpha' = sScale (pathScale * alpha) (1 / rrProb)
    x <- rnd -- russian roulette
-   let rest = if x > pcont
+   let rest = if x > rrProb
                then return []
                else nextVertex sc wi' int' alpha' (depth + 1)
-
+   
    if isBlack f || spdf == 0
-      then return []
-      else (liftM . (:)) (Vert bsdf p n wi wo l t alpha) $! rest
-
+      then return [vHere]
+      else (liftM . (:)) vHere $! rest
+   
    where
-      pcont = if depth > 3 then 0.5 else 1
       dg = intGeometry int
       bsdf = intBsdf int
-
-      n = normalize $ dgN dg
       p = dgP dg
