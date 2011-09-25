@@ -1,6 +1,6 @@
 
 #filter sinc 4.0 4.0 3.0
-#filter triangle 3.0 3.0
+#filter triangle 2.0 2.0
 filter mitchell 3.0 3.0 0.333333 0.333333
 #filter box
 
@@ -8,15 +8,12 @@ renderer {
    sampler
    sampled {
       sampler { stratified xSamples 4 ySamples 4 }
-      integrator { path maxDepth 7 sampleDepth 4 }
+      integrator { bidir }
    }
 }
 
-# renderer { sampler sampled { sampler { random samples 256 } integrator { path maxDepth 5 sampleDepth 3 } } }
-# renderer { lightTracer passCount 10 particles 500000 }
-# renderer { metropolis  passCount 10 mutations 200000 bootstrap 15000 plarge 0.25 }
-
-# renderer { sampler sampled { sampler { random samples 16 } integrator { bidir } } }
+# renderer { sampler sampled { sampler { stratified xSamples 8 ySamples 8 } integrator { path maxDepth 7 sampleDepth 4 } } }
+# renderer { sampler sampled { sampler { random samples 1 } integrator { path maxDepth 5 } } }
 
 imageSize 480 480
 
@@ -71,10 +68,10 @@ shape {
    mesh
    vertexCount 4
    faceCount 1
-   v 552.8 0.0   0.0
-   v   0.0 0.0   0.0
-   v   0.0 0.0 559.2
-   v 549.6 0.0 559.2
+   v 552.8 0   0
+   v   0          0   0
+   v   0   0 559.2
+   v 549.6 0 559.2
    f 3 2 1 0
 }
 
@@ -109,79 +106,26 @@ shape {
 }
 
 #
-# short block
+# glass sphere
 #
 
-# material { glass ior 1.5 r { constant spd { 1 0.95 } } }
-
-shape {
-   mesh
-   vertexCount 20
-   faceCount 5
-   v 130.0 165.0  65.0
-   v  82.0 165.0 225.0
-   v 240.0 165.0 272.0
-   v 290.0 165.0 114.0
-   v 290.0   0.0 114.0
-   v 290.0 165.0 114.0
-   v 240.0 165.0 272.0
-   v 240.0   0.0 272.0
-   v 130.0   0.0  65.0
-   v 130.0 165.0  65.0
-   v 290.0 165.0 114.0
-   v 290.0   0.0 114.0
-   v  82.0   0.0 225.0
-   v  82.0 165.0 225.0
-   v 130.0 165.0  65.0
-   v 130.0   0.0  65.0
-   v 240.0   0.0 272.0
-   v 240.0 165.0 272.0
-   v  82.0 165.0 225.0
-   v  82.0   0.0 225.0
-   f 3 2 1 0
-   f 7 6 5 4
-   f 11 10 9 8
-   f 15 14 13 12
-   f 19 18 17 16
+material { glass
+   ior { constant 1.5 }
+   kr { constant spd { 1 0.95 } }
+   kt { constant rgb 0.6 0.6 0.9 }
 }
 
+transform { identity translate 400 130 200 }
+shape { sphere radius 130 }
+
 #
-# tall block
+# mirror sphere
 #
 
-#material { mirror spd { 1 0.95 } }
-#material { glass ior 1.5 r { constant spd { 1 0.95 } } }
-
-shape {
-   mesh
-   vertexCount 20
-   faceCount 5
-   v 423.0 330.0 247.0
-   v 265.0 330.0 296.0
-   v 314.0 330.0 456.0
-   v 472.0 330.0 406.0
-   v 423.0   0.0 247.0
-   v 423.0 330.0 247.0
-   v 472.0 330.0 406.0
-   v 472.0   0.0 406.0
-   v 472.0   0.0 406.0
-   v 472.0 330.0 406.0
-   v 314.0 330.0 456.0
-   v 314.0   0.0 456.0
-   v 314.0   0.0 456.0
-   v 314.0 330.0 456.0
-   v 265.0 330.0 296.0
-   v 265.0   0.0 296.0
-   v 265.0   0.0 296.0
-   v 265.0 330.0 296.0
-   v 423.0 330.0 247.0
-   v 423.0   0.0 247.0
-   f 3 2 1 0
-   f 7 6 5 4
-   f 11 10 9 8
-   f 15 14 13 12
-   f 19 18 17 16
-}
+material { mirror kr { constant spd { 1 0.95 } } }
+transform { identity translate 150 100 300 }
+shape { sphere radius 100 }
+transform { identity }
 
 #
 # right (green) wall

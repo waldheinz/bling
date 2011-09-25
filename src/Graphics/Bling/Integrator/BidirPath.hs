@@ -141,7 +141,7 @@ lightPath s = do
    let (li, ray, nl, pdf) = sampleLightRay s ul ulo uld
    let wo = normalize $ rayDir ray
    let nl' = normalize nl
-   nextVertex s (-wo) (s `intersect` ray) (sScale li (absDot nl' wo / pdf)) 0
+   nextVertex s wo (s `intersect` ray) (sScale li (absDot nl' wo / pdf)) 0
    
 nextVertex
    :: Scene
