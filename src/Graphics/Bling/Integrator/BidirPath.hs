@@ -26,7 +26,7 @@ data Vertex = Vert
    , _vpoint   :: Point
    , _vwi      :: Vector
    , _vwo      :: Vector
-   , _vle      :: Spectrum -- ^ light emitted here
+   , _vint     :: Intersection
    , _vtype    :: BxdfType
    , _valpha   :: Spectrum
    }
@@ -58,7 +58,7 @@ instance SurfaceIntegrator BidirPath where
       let prevSpec = True : map (\v -> Specular `member` _vtype v) ep
 
       -- light sources directly visible, or by specular reflection
-      let le = sum $ map (\v -> _vle v * _valpha v) $ map fst $ filter snd $ zip ep prevSpec
+      let le = sum $ map (\v -> _valpha v * (intLe (_vint v) (_vwi v))) $ map fst $ filter snd $ zip ep prevSpec
       
       let ei = zip ep [0..]
       let li = zip lp [0..]
@@ -87,8 +87,8 @@ countSpec ep lp = runST $ do
 
 connect :: Scene -> V.Vector Flt -> ((Vertex, Int),  (Vertex, Int)) -> Spectrum
 connect scene nspec
-   ((Vert bsdfe pe wie woe le te alphae, i),  -- eye vertex
-    (Vert bsdfl pl wil wol ll tl alphal, j))   -- camera vertex
+   ((Vert bsdfe pe wie _ _ te alphae, i),  -- eye vertex
+    (Vert bsdfl pl wil _ _ tl alphal, j))   -- camera vertex
        | Specular `member` te = black
        | Specular `member` tl = black
        | isBlack fe || isBlack fl = black
@@ -99,7 +99,7 @@ connect scene nspec
           g = absDot ne w * absDot nl w / sqLen (pl - pe)
           w = normalize $ pl - pe
           nspece = fromIntegral $ bsdfSpecCompCount bsdfe
-          fe = sScale (evalBsdf bsdfe wie  w) (1 + nspece)
+          fe = sScale (evalBsdf bsdfe wie w) (1 + nspece)
           nspecl = fromIntegral $ bsdfSpecCompCount bsdfl
           fl = sScale (evalBsdf bsdfl (-w) wil) (1 + nspecl)
           r = segmentRay pl pe
@@ -107,12 +107,12 @@ connect scene nspec
           nl = bsdfShadingNormal bsdfl
              
 estimateDirect :: Scene -> Vertex -> Sampled s Spectrum
-estimateDirect scene (Vert bsdf p wi wo l t alpha) = do
+estimateDirect scene (Vert bsdf p wi _ _ _ alpha) = do
    lNumU <- rnd
    lDirU <- rnd2D
    lBsdfCompU <- rnd
    lBsdfDirU <- rnd2D
-   let lHere = sampleOneLight scene p n wo bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU
+   let lHere = sampleOneLight scene p n wi bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU
    return $ lHere * alpha
    where
       n = bsdfShadingNormal bsdf
@@ -140,7 +140,8 @@ lightPath s = do
    uld <- rnd2D
    let (li, ray, nl, pdf) = sampleLightRay s ul ulo uld
    let wo = normalize $ rayDir ray
-   nextVertex s (-wo) (s `intersect` ray) (sScale li (absDot nl wo / pdf)) 0
+   let nl' = normalize nl
+   nextVertex s (-wo) (s `intersect` ray) (sScale li (absDot nl' wo / pdf)) 0
    
 nextVertex
    :: Scene
@@ -158,8 +159,7 @@ nextVertex sc wi (Just int) alpha depth = do
    let (BsdfSample t spdf f wo) = sampleBsdf bsdf wi ubc ubd
    let int' = intersect sc $ Ray p wo epsilon infinity
    let wi' = -wo
-   let l = intLe int wo
-   let vHere = Vert bsdf p wi wo l t alpha
+   let vHere = Vert bsdf p wi wo int t alpha
    let pathScale = sScale f $ absDot wo (bsdfShadingNormal bsdf) / spdf
    let rrProb = min 1 $ sY pathScale
    let alpha' = sScale (pathScale * alpha) (1 / rrProb)

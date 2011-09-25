@@ -17,6 +17,7 @@ import Graphics.Bling.Random
 import qualified Graphics.Bling.Shape as S
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Transform
+import Debug.Trace
 
 data LightSample = LightSample {
    de :: Spectrum, -- ^ differential irradiance
@@ -143,7 +144,7 @@ sample (PointLight r pos) p _ _ = LightSample r' wi ray 1 True where
    ray = segmentRay p pos
    
 sample (AreaLight _ s r l2w w2l) p _ us = LightSample r' wi' ray pd False where
-   r' = if ns `dot` (-wi) > 0 then r else black
+   r' = if ns `dot` wi < 0 then r else black
    p' = transPoint w2l p -- point to be lit in local space
    (ps, ns) = S.sample s p' us -- point in local space
    wi' = transVector l2w wi -- incident vector in world space

@@ -190,21 +190,22 @@ intersect (Triangle v1 v2 v3) r@(Ray ro rd tmin tmax)
    | t < tmin || t > tmax = Nothing
    | otherwise = Just (t, mkDg' (rayAt r t) n)
    where
-      n = normalize $ cross e2 e1
-      t = dot e2 s2 * invDiv
-      b2 = dot rd s2 * invDiv -- second barycentric
-      s2 = cross d e1
-      b1 = dot d s1 * invDiv -- first barycentric
-      d = ro - p1
-      invDiv = 1 / divisor
+      (p1, p2, p3) = (vertexPos v1, vertexPos v2, vertexPos v3)
+      (e1, e2) = (p2 - p1, p3 - p1)
+      s1 = rd `cross` e2
       divisor = dot s1 e1
-      s1 = cross rd e2
-      e1 = p2 - p1
-      e2 = p3 - p1
-      p1 = vertexPos v1
-      p2 = vertexPos v2
-      p3 = vertexPos v3
+      invDiv = 1 / divisor
+      
+      -- first barycentric
+      b1 = dot d s1 * invDiv 
+      d = ro - p1
 
+      -- second barycentric
+      b2 = dot rd s2 * invDiv
+      s2 = cross d e1
+      t = dot e2 s2 * invDiv
+      n = normalize $ cross e1 e2
+      
 intersects :: Shape -> Ray -> Bool
 
 intersects (Cylinder r zmin zmax phimax) ray@(Ray ro rd tmin tmax) =
@@ -318,7 +319,7 @@ area (Disk _ rmax rmin _) = pi * (rmax2 - rmin2) where
    rmin2 = rmin * rmin
    rmax2 = rmax * rmax
 area (Sphere r) = r * r * 4 * pi
-area (Triangle v1 v2 v3) = 0.5 * len (cross (p2 - p1) (p3 - p1)) where
+area (Triangle v1 v2 v3) = 0.5 * len ((p2 - p1) `cross` (p3 - p1)) where
       p1 = vertexPos v1
       p2 = vertexPos v2
       p3 = vertexPos v3
@@ -332,7 +333,7 @@ pdf :: Shape -- ^ the @Shape@ to compute the pdf for
     -> Flt -- ^ the computed pdf value
     
 pdf s p wi = maybe 0 p' (s `intersect` r) where
-   r = Ray p wi 0 infinity
+   r = Ray p wi 1e-3 infinity
    f pd = if isInfinite pd then 0 else pd
    p' (t, dg) = f $ sqLen (p - (rayAt r t)) / (absDot (dgN dg) (-wi) * area s)
 
@@ -382,10 +383,8 @@ sample' (Disk h rmax rmin phiMax) (u1, u2) = (p, n) where
 sample' (Sphere r) us = (p * vpromote r, p) where
    p = uniformSampleSphere us 
 
-sample' (Triangle v1 v2 v3) (u1, u2) = (p, n) where
-   p = p1 * vpromote b1 + p2 * vpromote b2 + p3 * vpromote (1 - b1 - b2)
+sample' (Triangle v1 v2 v3) us = (p, n) where
    (p1, p2, p3) = (vertexPos v1, vertexPos v2, vertexPos v3)
-   b1 = 1 - u1' -- first barycentric
-   b2 = u2 * u1' -- second barycentric
-   u1' = sqrt u1
-   n = normalize $ cross (p3 - p1) (p2 - p1)
+   (b1, b2) = uniformSampleTriangle us
+   p = p1 * vpromote b1 + p2 * vpromote b2 + p3 * vpromote (1 - b1 - b2)
+   n = normalize $ (p2 - p1) `cross` (p3 - p1)

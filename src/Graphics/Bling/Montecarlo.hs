@@ -11,7 +11,7 @@ module Graphics.Bling.Montecarlo (
    
    uniformSampleCone, uniformConePdf, cosineSampleHemisphere,
    concentricSampleDisk, concentricSampleDisk', uniformSampleSphere,
-   uniformSampleHemisphere
+   uniformSampleHemisphere, uniformSampleTriangle
    ) where
 
 import Data.Maybe (fromJust, isJust)
@@ -137,8 +137,17 @@ uniformSampleSphere (u1, u2) = Vector (s * cos omega) (s * sin omega) u where
    omega = u2 * 2 * pi
 
 uniformSampleHemisphere :: Vector -> Rand2D -> Vector
+{-# INLINE uniformSampleHemisphere #-}
 uniformSampleHemisphere d u
    | d `dot` rd < 0 = -rd
    | otherwise = rd
    where
       rd = uniformSampleSphere u
+
+uniformSampleTriangle
+   :: Rand2D
+   -> (Flt, Flt) -- ^ first and second barycentric
+{-# INLINE uniformSampleTriangle #-}
+uniformSampleTriangle (u1, u2) = (1 - su1, u2 * su1) where
+   su1 = sqrt u1
+   

@@ -90,7 +90,7 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) t l md
       
       where
          dg = intGeometry int
-         pc = if depth <= 3 then 1 else min 0.5 (sY t) -- cont. probability
+         pc = if depth <= 3 then 1 else min 1 (sY t) -- cont. probability
          intl = if spec then intLe int wo else black
          wo = -rd
          bsdf = intBsdf int
