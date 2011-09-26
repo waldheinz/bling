@@ -51,7 +51,7 @@ instance Printable Metropolis where
       PP.float mpp PP.<+> PP.text "mutations per pixel"]
 
 instance Renderer Metropolis where
-   render (MLT integ mpp nboot plarge) job report = {-# SCC "mlt.render" #-} pass img 1 where
+   render (MLT integ mpp nboot plarge) job report = {-# SCC "mlt.render" #-} pass img 1 1 where
       scene = jobScene job
       img = mkJobImage job
       sSmp :: Flt -> ImageSample -> ImageSample
@@ -60,13 +60,13 @@ instance Renderer Metropolis where
       wt = 1 / mpp
       imgSize = (fromIntegral $ imgW img, fromIntegral $ imgH img)
       nd = (sampleCount1D integ, sampleCount2D integ)
-      pass i p = {-# SCC "mlt.pass" #-} do
+      pass i p b = {-# SCC "mlt.pass" #-} do
             seed <- ioSeed
-            img' <- stToIO $ do
+            (img', bNew) <- stToIO $ do
                mimg <- thaw i
                
-               runWithSeed seed $ do
-                  (b, initial) <- bootstrap scene nboot integ imgSize nd
+               b'' <- runWithSeed seed $ do
+                  (b', initial) <- bootstrap scene nboot integ imgSize nd
                   sCurr <- trace ("b=" ++ show b) newRandRef initial
                   lCurr <- readRandRef sCurr >>= evalSample scene integ >>= newRandRef
                   
@@ -83,11 +83,11 @@ instance Renderer Metropolis where
                      if iCurr > 0 && not (isInfinite (1 / iCurr))
                         then do
                            lcs <- readRandRef lCurr
-                           liftR $ mapM_ (\lc -> splatSample mimg $ sSmp ((1 - a) * b / iCurr) lc) lcs
+                           liftR $ mapM_ (\lc -> splatSample mimg $ sSmp ((1 - a) / iCurr) lc) lcs
                         else return ()
                         
                      if iProp > 0 && not (isInfinite (1 / iProp))
-                        then liftR $ mapM_ (\l -> splatSample mimg $ sSmp (a * b / iProp) l) lProp
+                        then liftR $ mapM_ (\l -> splatSample mimg $ sSmp (a / iProp) l) lProp
                         else return ()
    
                      R.rnd >>= \r -> if r < a
@@ -95,12 +95,15 @@ instance Renderer Metropolis where
                            writeRandRef sCurr sProp
                            writeRandRef lCurr lProp
                         else return ()
-                     
-               freeze mimg
+                  return b'
+               x <- freeze mimg
+               return (x, b'')
 
-            cont <- report $ (PassDone p img' (1 / fromIntegral p))
+            let bnext = lerp (1 / fromIntegral p) b bNew
+               
+            cont <- report $ (PassDone p img' (bnext / fromIntegral p))
             if cont
-               then pass img' (p+1)
+               then pass img' (p+1) bnext
                else return ()
 
 bootstrap :: (SurfaceIntegrator i)
