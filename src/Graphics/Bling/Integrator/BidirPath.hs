@@ -43,7 +43,6 @@ mkBidirPathIntegrator = BDP
 instance Printable BidirPath where
    prettyPrint (BDP _ _) = PP.text "Bi-Dir Path"
 
-
 smps2D :: Int
 smps2D = 3
 
@@ -78,7 +77,7 @@ instance SurfaceIntegrator BidirPath where
 
       let prevSpec = True : map (\v -> Specular `member` _vtype v) ep
 
-      -- light sources directly visible, or by specular reflection
+      -- light sources directly visible, or via specular reflection
       let le = sum $ map (\v -> _valpha v * (intLe (_vint v) (_vwi v))) $ map fst $ filter snd $ zip ep prevSpec
       
       let ei = zip ep [0..]
@@ -108,8 +107,8 @@ countSpec ep lp = runST $ do
 
 connect :: Scene -> V.Vector Flt -> ((Vertex, Int),  (Vertex, Int)) -> Spectrum
 connect scene nspec
-   ((Vert bsdfe pe wie _ _ te alphae, i),  -- eye vertex
-    (Vert bsdfl pl wil _ _ tl alphal, j))   -- camera vertex
+   ((Vert bsdfe pe _ wie _ te alphae, i),  -- eye vertex
+    (Vert bsdfl pl _ wil _ tl alphal, j))   -- camera vertex
        | Specular `member` te = black
        | Specular `member` tl = black
        | isBlack fe || isBlack fl = black
@@ -117,7 +116,7 @@ connect scene nspec
        | otherwise = sScale (alphae * fe * alphal * fl) (g * pathWt)
        where
           pathWt = 1 / (fromIntegral (i + j + 2) - nspec V.! (i+j+2))
-          g = absDot ne w * absDot nl w / sqLen (pl - pe)
+          g = ((absDot ne w) * (absDot nl w)) / sqLen (pl - pe)
           w = normalize $ pl - pe
           nspece = fromIntegral $ bsdfSpecCompCount bsdfe
           fe = sScale (evalBsdf bsdfe wie w) (1 + nspece)

@@ -184,11 +184,11 @@ sample'
    -> (Spectrum, Ray, Normal, Flt)
       -- ^ (radiance, outgoing ray, normal at light source, PDF)
 
-sample' (AreaLight _ s r l2w w2l) _ uo ud = (ls, ray, ns, pd) where
-   ls = if ns `dot` dir > 0 then r else black
+sample' (AreaLight _ s r l2w w2l) _ uo ud = (r, ray, ns, pd) where
    (org, ns) = S.sample' s uo
    pd = invTwoPi * S.pdf' s org
-   dir = uniformSampleHemisphere ns ud
+   dir' = uniformSampleSphere ud
+   dir = if ns `dot` dir' < 0 then -dir' else dir'
    ray = Ray org dir 1e-2 infinity
 
 pdf :: Light -- ^ the light to compute the pdf for

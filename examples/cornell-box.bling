@@ -12,13 +12,13 @@ renderer {
    }
 }
 
-renderer { sampler sampled { sampler { random samples 64 } integrator { path maxDepth 7 sampleDepth 3 } } }
+# renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
 # renderer { lightTracer passCount 10 particles 500000 }
-# renderer { metropolis  passCount 10 mutations 20000 bootstrap 5000 plarge 0.25 }
+renderer { metropolis  passCount 10 mutations 200000 bootstrap 15000 plarge 0.25 }
 
 # renderer { sampler sampled { sampler { stratified xSamples 4 ySamples 4 } integrator { bidir maxDepth 10 sampleDepth 5 } } }
 
-# renderer { sampler sampled { sampler { random samples 16 } integrator { bidir maxDepth 7 sampleDepth 5 } } }
+renderer { sampler sampled { sampler { random samples 16 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 
 imageSize 480 480

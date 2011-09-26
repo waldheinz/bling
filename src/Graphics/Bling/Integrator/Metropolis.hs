@@ -116,22 +116,22 @@ bootstrap :: (SurfaceIntegrator i)
    -> (Int, Int) -- ^ (n1d, n2d) sampling needs (redundant to integ)
    -> Rand s (Flt, Sample s) -- ^ (b)
 bootstrap scene n integ imgSize nd = do
-   smps <- liftR $ MV.new n
-   is <- newRandRef []
+ --  smps <- liftR $ MV.new n
+ --  is <- newRandRef []
    
    -- take initial set of samples to compute b
    sumI <- liftM sum $ forM [0..n-1] $ \i -> do
       smp <- initialSample imgSize nd
       l <- evalSample scene integ smp
-      liftR $ MV.write smps (n - i - 1) smp
-      modifyRandRef is (evalI l :)
+ --     liftR $ MV.write smps (n - i - 1) smp
+ --     modifyRandRef is (evalI l :)
       return $ evalI l
 
    -- select initial sample from bootstrap samples
-   smpDist <- mkDist1D `liftM` readRandRef is
-   smpOff <- (sampleDiscrete smpDist) `liftM` R.rnd
-   smp <- liftR $ MV.read smps $ fst smpOff
-   
+ --  smpDist <- mkDist1D `liftM` readRandRef is
+ --  smpOff <- (sampleDiscrete smpDist) `liftM` R.rnd
+ --  smp <- liftR $ MV.read smps $ fst smpOff
+   smp <- initialSample imgSize nd
    return (sumI / fromIntegral n, smp)
 
 initialSample :: (Flt, Flt) -> (Int, Int) -> Rand s (Sample s)

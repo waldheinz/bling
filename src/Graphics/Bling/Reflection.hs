@@ -238,10 +238,10 @@ bsdfShadingNormal bsdf = n where
 -- | the number of specular BxDFs in a BSDF
 bsdfSpecCompCount :: Bsdf -> Int
 {-# INLINE bsdfSpecCompCount #-}
-bsdfSpecCompCount bsdf = V.foldl' go 0 $ _bsdfBxdfs bsdf where
-   go n bxdf
-      | Specular `member` bxdfType bxdf = n + 1
-      | otherwise = n
+bsdfSpecCompCount bsdf = V.sum $ V.map go $ _bsdfBxdfs bsdf where
+   go bxdf
+      | Specular `member` bxdfType bxdf = 1
+      | otherwise = 0
    
 bsdfPdf :: Bsdf -> Vector -> Vector -> Float
 bsdfPdf (Bsdf bs cs _) woW wiW

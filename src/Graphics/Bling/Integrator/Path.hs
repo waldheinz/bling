@@ -48,21 +48,21 @@ instance SurfaceIntegrator PathIntegrator where
    sampleCount2D (PathIntegrator _ sd) = smps2D * sd
    
    contrib (PathIntegrator md _) s addSample r = {-# SCC "pathContrib" #-} do
-      li <- nextVertex s 0 True r (s `intersect` r) white black md >>= \is -> mkContrib is False
-      liftSampled $ addSample $ li
+      li <- nextVertex s 0 True r (s `intersect` r) white md
+      c <- mkContrib (1, li) False
+      liftSampled $ addSample c
       
-nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Spectrum -> Int -> Sampled m WeightedSpectrum
+nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Spectrum -> Int -> Sampled m Spectrum
 
 -- nothing hit, specular bounce
-nextVertex s _ True ray Nothing t l _ = 
-   {-# SCC "nextVertex.termSpec" #-} return (1, l + t * V.sum (V.map (`le` ray) (sceneLights s)))
+nextVertex s _ True ray Nothing t _  =
+   {-# SCC "nextVertex.termSpec" #-} return $ t * (V.sum $ V.map (`le` ray) (sceneLights s))
    
 -- nothing hit, non-specular bounce
-nextVertex _ _ False _ Nothing _ l _ = 
-   return (1, l)
+nextVertex _ _ False _ Nothing _ _ = return black
 
-nextVertex scene depth spec (Ray _ rd _ _) (Just int) t l md
-   | isBlack t || depth == md = return (1, l)
+nextVertex scene depth spec (Ray _ rd _ _) (Just int) t md
+   | isBlack t || depth == md = return black
    | otherwise = do
       -- for bsdf sampling
       bsdfCompU <- rnd' $ 0 + smp1doff depth
@@ -76,17 +76,20 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) t l md
       
       let (BsdfSample smpType spdf f wi) = sampleBsdf bsdf wo bsdfCompU bsdfDirU
       let lHere = sampleOneLight scene p n wo bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU
-      let l' = l + (t * (lHere + intl))
+      let l = t * (lHere + intl)
       
       rnd' (3 + smp1doff depth) >>= \x -> if x > pc || (spdf == 0) || isBlack f
-         then return $! (1.0, l')
+         then return black
          else let
                  t' = t * sScale f (absDot wi n / (spdf * pc))
                  spec' = Specular `member` smpType
                  ray' = (Ray p wi epsilon infinity)
                  int' = {-# SCC "nextVertex.intersect" #-} intersect (scenePrim scene) ray'
                  depth' = depth + 1
-              in nextVertex scene depth' spec' ray' int' t' l' md
+                 rest = nextVertex scene depth' spec' ray' int' t' md
+              in do
+                 r <- rest
+                 return $ r + l
       
       where
          dg = intGeometry int

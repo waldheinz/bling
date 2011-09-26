@@ -1,0 +1,81 @@
+
+#
+# complex test
+#
+
+renderer { sampler sampled { sampler { random samples 4 } integrator { path maxDepth 5 sampleDepth 3 } } }
+# renderer { metropolis  passCount 10 mutations 500000 bootstrap 20000 plarge 0.25 }
+# renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
+# renderer { sampler sampled { sampler { random samples 4 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
+
+transform {
+   lookAt {
+      pos 0 8 -5
+      look 0 0 0
+      up 0 1 0
+   }
+}
+
+camera {
+   perspective
+   fov 70
+   lensRadius 0
+   focalDistance 10
+}
+
+transform { identity }
+
+material {
+   matte
+   kd { constant spd { 0 0.5 }}
+   sigma { constant 0 }
+}
+
+# ground plane
+
+shape {
+   mesh
+   vertexCount 4
+   faceCount 1
+   v  10 0 -10
+   v -10 0 -10
+   v -10 0  10
+   v  10 0  10
+   f 3 2 1 0
+}
+
+# reflector
+
+shape {
+   mesh
+   vertexCount 4
+   faceCount 2
+   v -13 -5 -4
+   v -13  5 -4
+   v -13 -5  4
+   v -13  5  4
+   f 0 1 2
+   f 1 3 2
+}
+
+transform { identity translate -1 2 0 }
+
+shape { sphere radius 2 }
+
+transform { identity }
+
+emission {
+   rgb 30 30 30
+}
+
+shape {
+   mesh
+   vertexCount 4
+   faceCount 2
+   v -10 -4 -6
+   v -10  0 -6
+   v -10 -4  6
+   v -10  0  6
+   f 0 2 1
+   f 1 2 3
+}
