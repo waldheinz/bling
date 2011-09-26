@@ -15,7 +15,9 @@ renderer {
       integrator { path maxDepth 7 sampleDepth 3 }
    }
 }
-renderer { metropolis  passCount 10 mutations 500000 bootstrap 30000}
+
+renderer { metropolis  passCount 10 mutations 50000 bootstrap 5000 plarge 0.25 }
+
 transform {
    lookAt {
       pos 9 15 -9
