@@ -28,7 +28,7 @@ import Graphics.Bling.Spectrum
 
 data Metropolis = MLT
    { _integrator :: PathIntegrator
-   , _ppp      :: Int -- ^ mutations per pass
+   , _mpp      :: Int -- ^ mutations per pixel
    , _passCount :: Int
    , _nbootstrap :: Int
    , _plarge :: Flt
@@ -50,7 +50,7 @@ instance Printable Metropolis where
    prettyPrint (MLT integ mpp pc _ _) = PP.vcat [
       PP.text "metropolis light transport",
       PP.text "integrator" PP.<+> prettyPrint integ,
-      PP.int mpp PP.<+> PP.text "mutations per pass",
+      PP.int mpp PP.<+> PP.text "mutations per pixel",
       PP.int pc PP.<+> PP.text "passes"]
 
 instance Renderer Metropolis where
@@ -59,8 +59,8 @@ instance Renderer Metropolis where
       img = mkJobImage job
       sSmp :: Flt -> ImageSample -> ImageSample
       sSmp f (ImageSample x y (w, s)) = ImageSample x y (w * f * wt, s)
-      nPixels = fromIntegral $ imgW img * imgH img
-      wt = nPixels / fromIntegral (mpp)
+      nPixels = imgW img * imgH img
+      wt = 1 / fromIntegral (mpp)
       imgSize = (fromIntegral $ imgW img, fromIntegral $ imgH img)
       nd = (sampleCount1D integ, sampleCount2D integ)
       pass i p
@@ -76,7 +76,7 @@ instance Renderer Metropolis where
                   sCurr <- trace ("b=" ++ show b) newRandRef initial
                   lCurr <- readRandRef sCurr >>= evalSample scene integ >>= newRandRef
                   
-                  replicateM_ mpp $ do
+                  replicateM_ nPixels $ replicateM_ mpp $ do
                      sProp <- readRandRef sCurr >>= mutate imgSize nd plarge
                      lProp <- evalSample scene integ sProp
                      
