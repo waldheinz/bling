@@ -84,14 +84,16 @@ mkSunSkyLight up east sdw turb = [sky, sun] where
    ssd = initSky basis sdw turb
 
 -- | the emission from the surface of an area light source
-lEmit :: Light -> Point -> Normal -> Vector -> Spectrum
-lEmit (AreaLight _ _ r _ t) _ n' wo'
+lEmit
+   :: Light -- ^ the light to get the radiance from
+   -> Point -- ^ the point on the area light in world space
+   -> Normal -- ^ the area light's normal at the intersection point
+   -> Vector -- ^ the incident direction where the light is cast
+   -> Spectrum
+lEmit (AreaLight _ _ r _ _) _ n wo
    | n `dot` wo > 0 = r
    | otherwise = black
-   where
-      n = transNormal t n'
-      wo = transVector t wo'
-      
+   
 -- all others return black because they are no area light sources
 lEmit _ _ _ _ = black
 

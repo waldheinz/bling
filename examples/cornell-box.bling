@@ -7,7 +7,7 @@ filter mitchell 3.0 3.0 0.333333 0.333333
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 4 ySamples 4 }
+      sampler { stratified xSamples 8 ySamples 8 }
       integrator { path maxDepth 7 sampleDepth 4 }
    }
 }
@@ -18,7 +18,7 @@ renderer {
 
 # renderer { sampler sampled { sampler { stratified xSamples 4 ySamples 4 } integrator { bidir maxDepth 10 sampleDepth 5 } } }
 
-renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
+# renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 
 imageSize 480 480
 
@@ -273,10 +273,9 @@ shape {
    mesh
    vertexCount 4
    faceCount 1
-   v 343.0 548.7 227.0
-   v 343.0 548.7 332.0
-   v 213.0 548.7 332.0
-   v 213.0 548.7 227.0
-   f 0 1 2
-#   f 2 3 0
+   v 343.0 508.7 227.0
+   v 343.0 508.7 332.0
+   v 213.0 508.7 332.0
+   v 213.0 508.7 227.0
+   f 3 2 1 0
 }
