@@ -14,11 +14,11 @@ renderer {
 
 # renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
 # renderer { lightTracer passCount 10 particles 500000 }
-renderer { metropolis  passCount 10 mutations 200000 bootstrap 15000 plarge 0.25 }
+renderer { metropolis  passCount 20 mutations 200000 bootstrap 25000 plarge 0.25 }
 
 # renderer { sampler sampled { sampler { stratified xSamples 4 ySamples 4 } integrator { bidir maxDepth 10 sampleDepth 5 } } }
 
-renderer { sampler sampled { sampler { random samples 16 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
+# renderer { sampler sampled { sampler { random samples 16 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 
 imageSize 480 480
@@ -274,9 +274,9 @@ shape {
    mesh
    vertexCount 4
    faceCount 1
-   v 343.0 508.7 227.0
-   v 343.0 508.7 332.0
-   v 213.0 508.7 332.0
-   v 213.0 508.7 227.0
-   f 3 2 1 0
+   v 343.0 548.7 227.0
+   v 343.0 548.7 332.0
+   v 213.0 548.7 332.0
+   v 213.0 548.7 227.0
+   f 0 1 2 3
 }

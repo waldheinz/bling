@@ -60,7 +60,7 @@ instance Renderer Metropolis where
       sSmp :: Flt -> ImageSample -> ImageSample
       sSmp f (ImageSample x y (w, s)) = ImageSample x y (w * f * wt, s)
       nPixels = fromIntegral $ imgW img * imgH img
-      wt = nPixels / fromIntegral (mpp * pc)
+      wt = nPixels / fromIntegral (mpp)
       imgSize = (fromIntegral $ imgW img, fromIntegral $ imgH img)
       nd = (sampleCount1D integ, sampleCount2D integ)
       pass i p
@@ -85,12 +85,13 @@ instance Renderer Metropolis where
                      let a = min 1 (iProp / iCurr)
                      
                      -- record samples
+                     
                      if iCurr > 0 && not (isInfinite (1 / iCurr))
                         then do
                            lcs <- readRandRef lCurr
                            liftR $ mapM_ (\lc -> splatSample mimg $ sSmp ((1 - a) * b / iCurr) lc) lcs
                         else return ()
-                     
+                        
                      if iProp > 0 && not (isInfinite (1 / iProp))
                         then liftR $ mapM_ (\l -> splatSample mimg $ sSmp (a * b / iProp) l) lProp
                         else return ()
@@ -103,7 +104,7 @@ instance Renderer Metropolis where
                      
                freeze mimg
 
-            cont <- report $ (PassDone (pc - p + 1) img')
+            cont <- report $ (PassDone (pc - p + 1) img' (1 / fromIntegral (pc - p + 1)))
             if cont
                then pass img' (p-1)
                else return ()

@@ -42,7 +42,7 @@ lookQuit = do
 prog :: AppConfig -> ProgressReporter
 prog ac (SamplesAdded w img) = do
    let s = screen ac
-   forM_ (rgbPixels img w) $ putPixel s
+   forM_ (rgbPixels img 1 w) $ putPixel s -- TODO: splat weight ?!
    SDL.flip s
    lookQuit
 
@@ -53,20 +53,20 @@ prog ac (RegionStarted w) = do
    SDL.flip s
    lookQuit
 
-prog ac (PassDone p img) = do
+prog ac (PassDone p img spw) = do
    let w = imageWindow' img
    let s = screen ac
-   let ps = rgbPixels img w
+   let ps = rgbPixels img spw w
    mapM_ (putPixel s) ps
    SDL.flip s
    
    putStrLn $ "\nWriting " ++ fname ++ "..."
    h1 <- openFile (fname ++ ".ppm") WriteMode
-   writePpm img h1
+   writePpm img spw h1
    hClose h1
    
    h2 <- openFile (fname ++ ".hdr") WriteMode
-   writeRgbe img h2
+   writeRgbe img spw h2
    hClose h2
    lookQuit
    

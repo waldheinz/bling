@@ -67,6 +67,7 @@ data Progress
    | PassDone
       { progPassNum :: Int
       , finalImg :: Image
+      , splatWeight :: Flt
       }
 
 type ProgressReporter = Progress -> IO Bool
@@ -132,7 +133,7 @@ instance Renderer SamplerRenderer where
 
             i <- readIORef lastImg
             
-            report (PassDone p i) >>= \ cnt ->
+            report (PassDone p i 1) >>= \ cnt ->
                if cnt
                   then render' i (p + 1)
                   else return i

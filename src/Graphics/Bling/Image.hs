@@ -139,18 +139,22 @@ addContrib img (splat, is)
    | otherwise = addSample img is
 
 -- | extracts the pixel at the specified offset from an Image
-getPixel :: Image -> Int -> (Float, Float, Float)
-getPixel (Img _ _ _ p) o
-   | w == 0 = (sr, sg, sb)
-   | otherwise = (sr + r / w, sg + g / w, sb + b / w)
+getPixel
+   :: Image
+   -> Float -- ^ splat weight
+   -> Int
+   -> (Float, Float, Float)
+getPixel (Img _ _ _ p) sw o
+   | w == 0 = (sw * sr, sw * sg, sw * sb)
+   | otherwise = (sw * sr + r / w, sw * sg + g / w, sw * sb + b / w)
    where
       (w, (r, g, b), (sr, sg, sb)) = V.unsafeIndex p o
       
-writeRgbe :: Image -> Handle -> IO ()
-writeRgbe img@(Img w h _ _) hnd =
+writeRgbe :: Image -> Float -> Handle -> IO ()
+writeRgbe img@(Img w h _ _) spw hnd =
    let header = "#?RGBE\nFORMAT=32-bit_rgbe\n\n-Y " ++ show h ++ " +X " ++ show w ++ "\n"
        pixel :: Int -> IO BS.ByteString
-       pixel p = return $ toRgbe $ getPixel img p
+       pixel p = return $ toRgbe $ getPixel img spw p
    in do
       hPutStr hnd header
       mapM_ (\p -> pixel p >>= BS.hPutStr hnd) [0..(w*h-1)]
@@ -175,11 +179,15 @@ frexp x
          | otherwise = (s, e)
 
 -- | writes an image in ppm format
-writePpm :: Image -> Handle -> IO ()
-writePpm img@(Img w h _ _) handle =
+writePpm
+   :: Image
+   -> Float -- ^ splat weight
+   -> Handle
+   -> IO ()
+writePpm img@(Img w h _ _) splatW handle =
    let
        header = "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n"
-       pixel p = return $ ppmPixel $ getPixel img p
+       pixel p = return $ ppmPixel $ getPixel img splatW p
    in do
       hPutStr handle header
       mapM_ (\p -> pixel p >>= hPutStr handle) [0..(w*h-1)]
@@ -193,9 +201,9 @@ gamma x (r, g, b) = (r ** x', g ** x', b ** x') where
 clamp :: Float -> Int
 clamp v = round ( min 1 (max 0 v) * 255 )
 
-rgbPixels :: Image -> SampleWindow -> [((Int, Int), (Int, Int, Int))]
-rgbPixels img w = Prelude.zip xs clamped where
-   ps = map (getPixel img) os
+rgbPixels :: Image -> Float -> SampleWindow -> [((Int, Int), (Int, Int, Int))]
+rgbPixels img spw w = Prelude.zip xs clamped where
+   ps = map (getPixel img spw) os
    rgbs = map (gamma 2.2) ps
    clamped = map (\(r,g,b) -> (clamp r, clamp g, clamp b)) rgbs
    xs = coverWindow w
