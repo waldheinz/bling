@@ -198,7 +198,7 @@ cameraSample = ask >>= \s -> case s of
 {-# INLINE cameraSample #-}
 
 rnd' :: Int -> Sampled m Float
---{-# INLINE rnd' #-}
+{-# INLINE rnd' #-}
 rnd' n = do
    s <- ask
    case s of

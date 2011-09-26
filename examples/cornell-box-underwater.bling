@@ -12,9 +12,9 @@ renderer {
    }
 }
 
-renderer { sampler sampled { sampler { stratified xSamples 8 ySamples 8 } integrator { path maxDepth 7 sampleDepth 5 } } }
-# renderer { lightTracer passCount 5 particles 300000 }
-renderer { metropolis  passCount 100 mutations 10 bootstrap 20000 plarge 0.25 }
+renderer { sampler sampled { sampler { random samples 64 } integrator { path maxDepth 7 sampleDepth 5 } } }
+# renderer { lightTracer passCount 1 particles 300000 }
+renderer { metropolis mpp 2 bootstrap 50000 plarge 0.05 }
 # renderer { sampler sampled { sampler { stratified xSamples 32 ySamples 32 } integrator { light maxDepth 7 sampleDepth 5 } } }
 
 imageSize 480 480

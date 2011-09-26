@@ -28,8 +28,7 @@ import Graphics.Bling.Spectrum
 
 data Metropolis = MLT
    { _integrator :: PathIntegrator
-   , _mpp      :: Int -- ^ mutations per pixel
-   , _passCount :: Int
+   , _mpp      :: Flt -- ^ mutations per pixel
    , _nbootstrap :: Int
    , _plarge :: Flt
    }
@@ -38,36 +37,31 @@ maxDepth :: Int
 maxDepth = 7
 
 mkMLT
-   :: Int
-   -> Int
+   :: Flt -- ^ mutations per pixel
    -> Int
    -> Flt -- ^ plarge
    -> Metropolis
-mkMLT pc mpp nboot pl =
-   MLT (mkPathIntegrator maxDepth maxDepth) mpp pc nboot pl
+mkMLT mpp nboot pl =
+   MLT (mkPathIntegrator maxDepth maxDepth) mpp nboot pl
 
 instance Printable Metropolis where
-   prettyPrint (MLT integ mpp pc _ _) = PP.vcat [
+   prettyPrint (MLT integ mpp _ _) = PP.vcat [
       PP.text "metropolis light transport",
       PP.text "integrator" PP.<+> prettyPrint integ,
-      PP.int mpp PP.<+> PP.text "mutations per pixel",
-      PP.int pc PP.<+> PP.text "passes"]
+      PP.float mpp PP.<+> PP.text "mutations per pixel"]
 
 instance Renderer Metropolis where
-   render (MLT integ mpp pc nboot plarge) job report = pass img pc where
+   render (MLT integ mpp nboot plarge) job report = {-# SCC "mlt.render" #-} pass img 1 where
       scene = jobScene job
       img = mkJobImage job
       sSmp :: Flt -> ImageSample -> ImageSample
       sSmp f (ImageSample x y (w, s)) = ImageSample x y (w * f * wt, s)
       nPixels = imgW img * imgH img
-      wt = 1 / fromIntegral (mpp)
+      wt = 1 / mpp
       imgSize = (fromIntegral $ imgW img, fromIntegral $ imgH img)
       nd = (sampleCount1D integ, sampleCount2D integ)
-      pass i p
-         | p == 0 = return ()
-         | otherwise = do
+      pass i p = {-# SCC "mlt.pass" #-} do
             seed <- ioSeed
-            
             img' <- stToIO $ do
                mimg <- thaw i
                
@@ -76,7 +70,7 @@ instance Renderer Metropolis where
                   sCurr <- trace ("b=" ++ show b) newRandRef initial
                   lCurr <- readRandRef sCurr >>= evalSample scene integ >>= newRandRef
                   
-                  replicateM_ nPixels $ replicateM_ mpp $ do
+                  replicateM_ (floor $ mpp * fromIntegral nPixels) $ do
                      sProp <- readRandRef sCurr >>= mutate imgSize nd plarge
                      lProp <- evalSample scene integ sProp
                      
@@ -104,9 +98,9 @@ instance Renderer Metropolis where
                      
                freeze mimg
 
-            cont <- report $ (PassDone (pc - p + 1) img' (1 / fromIntegral (pc - p + 1)))
+            cont <- report $ (PassDone p img' (1 / fromIntegral p))
             if cont
-               then pass img' (p-1)
+               then pass img' (p+1)
                else return ()
 
 bootstrap :: (SurfaceIntegrator i)
@@ -160,20 +154,21 @@ mutate imgSize nd@(n1d, n2d) plarge (PrecomSample cs v1d v2d) = do
    R.rnd >>= \x -> if x < plarge
       then initialSample imgSize nd
       else do
-
+         v1d' <- liftR $ V.new $ V.length v1d
          forM_ [0..n1d - 1] $ \i -> do
             v <- liftR $ V.read v1d i
             v' <- jitter v 0 1
-            liftR $ V.write v1d i v'
+            liftR $ V.write v1d' i v'
 
+         v2d' <- liftR $ V.new $ V.length v2d
          forM_ [0..n2d - 1] $ \i -> do
             (u1, u2) <- liftR $ V.read v2d i
             u1' <- jitter u1 0 1
             u2' <- jitter u2 0 1
-            liftR $ V.write v2d i (u1', u2')
+            liftR $ V.write v2d' i (u1', u2')
          
          cs' <- mutateCamaraSample imgSize cs
-         return $ PrecomSample cs' v1d v2d
+         return $ PrecomSample cs' v1d' v2d'
 mutate _ _ _ _ = error "mutate not precomputed sample"
 
 mutateCamaraSample :: (Flt, Flt) -> CameraSample -> Rand s CameraSample
@@ -185,6 +180,7 @@ mutateCamaraSample (sx, sy) (CameraSample x y (lu, lv)) = do
    return $ CameraSample x' y' (lu', lv')
 
 jitter :: Flt -> Flt -> Flt -> Rand s Flt
+{-# INLINE jitter #-}
 jitter v vmin vmax
    | vmin == vmax = return vmin
    | otherwise = do
@@ -197,7 +193,7 @@ jitter v vmin vmax
          where
             delta = (vmax - vmin) * b * exp (logRat * u1)
       a = 1 / 1024
-      b = 1 / 128 -- 64
+      b = 1 / 64
       logRat = -log (b / a)
       wrapAround x0 x1 x
          | x >= x1 = x0 + (x - x1)

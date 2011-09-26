@@ -26,11 +26,10 @@ pRenderer = pBlock $ do
    r <- case tName of
              
              "metropolis" -> do
-                np <- namedInt "passCount"
-                mpp <- ws >> namedInt "mutations"
+                mpp <- namedFloat "mpp"
                 nboot <- ws >> namedInt "bootstrap"
                 plarge <- ws >> namedFloat "plarge"
-                return $ mkAnyRenderer $ mkMLT np mpp nboot plarge
+                return $ mkAnyRenderer $ mkMLT mpp nboot plarge
                 
              "sampler" -> do
                 sr <- pSamplerRenderer
