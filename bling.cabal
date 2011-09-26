@@ -115,7 +115,7 @@ Executable bling-test
     
   Hs-Source-Dirs:    src/Graphics/Bling/Main
   Main-Is:           Tests.hs
-  Build-Depends:     bling, haskell98, QuickCheck, base
+  Build-Depends:     bling, haskell98, QuickCheck, base, mwc-random, vector
   Ghc-Options:       -Wall -O -fexcess-precision
 
 Executable bling-benchmark

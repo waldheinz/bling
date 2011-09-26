@@ -5,7 +5,7 @@ module Graphics.Bling.Random (
 
    -- * managing the random number generator
    
-   Rand, liftR, Rand2D, runRand, runRandIO, runWithSeed, ioSeed,
+   Rand, liftR, Rand2D, runRand, runRandIO, runWithSeed, ioSeed, intSeed,
       
    -- * generating random values
    
@@ -20,6 +20,7 @@ import Control.Monad (forM_, replicateM)
 import Control.Monad.Primitive
 import Control.Monad.ST
 import Data.STRef
+import qualified Data.Vector as V
 import qualified Data.Vector.Generic.Mutable as MV
 import qualified System.Random.MWC as MWC
 
@@ -47,6 +48,12 @@ ioSeed :: IO MWC.Seed
 ioSeed = MWC.withSystemRandom $ do
    s' <- MWC.save :: MWC.Gen (PrimState IO) -> IO MWC.Seed
    return s'
+
+intSeed :: [Int] -> MWC.Seed
+intSeed seed = runST $ do
+      g <- MWC.initialize (V.fromList $ map fromIntegral seed)
+      s <- MWC.save g -- :: MWC.Gen (PrimState (ST s)) -> ST s MWC.Seed
+      return s
 
 runRandIO :: Rand RealWorld a -> IO a
 runRandIO = MWC.withSystemRandom . runRand

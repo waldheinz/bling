@@ -74,7 +74,7 @@ instance SurfaceIntegrator BidirPath where
       -- direct illumination, aka "one light" or S1 subpaths
       ld <- liftM sum $ forM (zip ep [1..]) $ \(v, i) -> do
          d <- estimateDirect scene v i
-         return $ sScale d $ 1 / (fromIntegral i - (nspecBouces V.! i))
+         return $ sScale d $ 1 / (fromIntegral i - nspecBouces V.! i)
 
       let prevSpec = True : map (\v -> Specular `member` _vtype v) ep
 
