@@ -28,8 +28,12 @@ pSurfaceIntegrator = (flip namedBlock) "integrator" $ do
            return $ mkAnySurface $ mkBidirPathIntegrator md sd
 
         "debug" -> do
-           return $ mkAnySurface $ mkKdVision
-           
+           dt <- ws >> pString
+           case dt of
+                "kdtree"   -> return $ mkAnySurface $ mkKdVision
+                "normals"  -> return $ mkAnySurface $ mkNormalMap
+                _          -> fail $ "unknown debug integrator " ++ dt
+                
         "directLighting" -> do
            return $ mkAnySurface $ mkDirectLightingIntegrator False
 
