@@ -65,6 +65,7 @@ liftR m = Rand $ const m
 
 -- | shuffles the given mutable vector in-place
 shuffle :: (MV.MVector v a) => v s a -> Rand s ()
+{-# INLINE shuffle #-}
 shuffle v = do
    forM_ [0..n-1] $ \i -> do
       other <- rndIntR (0, n - i - 1)

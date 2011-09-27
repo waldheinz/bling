@@ -35,10 +35,10 @@ Library
       random-shuffle == 0.0.2
 
    Ghc-Options:
-      -Wall -O -fexcess-precision -fspec-constr-count=64 -threaded -optc-O3 -optc-march=native -optc-msse4
+      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -threaded -optc-O3 -optc-march=native -optc-msse4
 
    Ghc-Prof-Options:
-      -O -fexcess-precision -prof -auto-all
+      -O2 -fexcess-precision -prof
 
    Exposed-Modules:
       Graphics.Bling.AABB,
@@ -92,7 +92,7 @@ Executable bling
    Main-is:          Main.hs
    Build-Depends:    bling, base, haskell98, pretty, random, mwc-random
    ghc-options:      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -rtsopts -threaded
-   ghc-prof-options: -O2 -fexcess-precision -prof -auto-all -rtsopts
+   ghc-prof-options: -O2 -fexcess-precision -prof -rtsopts
 
 Executable bling-gui
    if flag(Gui)

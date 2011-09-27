@@ -244,9 +244,10 @@ bsdfSpecCompCount bsdf = V.sum $ V.map go $ _bsdfBxdfs bsdf where
       | otherwise = 0
    
 bsdfPdf :: Bsdf -> Vector -> Vector -> Float
-bsdfPdf (Bsdf bs cs _) woW wiW
+
+bsdfPdf (Bsdf bs cs _) woW wiW 
    | V.null bs = 0
-   | otherwise = pdfSum / fromIntegral (V.length bs) where
+   | otherwise = {-# SCC "bsdfPdf" #-} pdfSum / fromIntegral (V.length bs) where
       pdfSum = V.sum $ V.map (\b -> bxdfPdf b wo wi) bs
       wo = worldToLocal cs woW
       wi = worldToLocal cs wiW
@@ -259,6 +260,7 @@ data BsdfSample = BsdfSample {
    } deriving (Show)
 
 sampleBsdf :: Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
+
 sampleBsdf (Bsdf bs cs ng) woW uComp uDir
    | V.null bs || pdf' == 0 = {-# SCC "sampleBsdfEmpty" #-} emptyBsdfSample
    | isSpecular bxdf = {-# SCC "sampleBsdfSpecular" #-} BsdfSample t pdf' f' wiW
@@ -276,7 +278,8 @@ sampleBsdf (Bsdf bs cs ng) woW uComp uDir
       t = bxdfType bxdf
       
 evalBsdf :: Bsdf -> Vector -> Vector -> Spectrum
-evalBsdf (Bsdf bxdfs cs ng) woW wiW =
+
+evalBsdf (Bsdf bxdfs cs ng) woW wiW = {-# SCC "evalBsdf" #-}
    V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bxdfs
    where
       flt = if dot woW ng * dot wiW ng < 0 then isTransmission else isReflection

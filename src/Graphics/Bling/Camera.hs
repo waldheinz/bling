@@ -46,9 +46,8 @@ instance Printable Camera where
 --
 
 -- | fires an eye ray from a camera
-fireRay :: Camera -> Sampled m Ray
-
-fireRay (ProjectiveCamera c2w r2c _ _ lr fd) = do
+fireRay :: Camera -> Sampled s Ray
+fireRay (ProjectiveCamera c2w r2c _ _ lr fd) = {-# SCC "fireRayProjective" #-} do
    cs <- cameraSample
    let ix = imageX cs
    let iy = imageY cs

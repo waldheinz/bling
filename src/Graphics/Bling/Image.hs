@@ -114,7 +114,7 @@ splatSample (MImage w h _ p) (ImageSample sx sy (sw, ss))
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | sInfinite ss = trace ("not splatting infinite sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
-   | otherwise = do
+   | otherwise = {-# SCC "splatSample" #-} do
       (ow, oxyz, (ox, oy, oz)) <- unsafeRead p o
       unsafeWrite p o (ow, oxyz, (ox + dx, oy + dy, oz + dz))
       where
@@ -129,7 +129,7 @@ addSample img smp@(ImageSample sx sy (sw, ss))
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | sInfinite ss = trace ("skipping infinite sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
-   | otherwise = forM_ pixels (addPixel img)
+   | otherwise = {-# SCC "addSample" #-} forM_ pixels (addPixel img)
    where
          pixels = filterSample (imageFilter img) smp
 

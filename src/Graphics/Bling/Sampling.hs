@@ -88,7 +88,7 @@ mkStratifiedSampler :: Int -> Int -> Sampler
 mkStratifiedSampler = Stratified
 
 sample :: Sampler -> SampleWindow -> Int -> Int -> Sampled s a -> R.Rand s ()
-sample (Random spp) wnd _ _ c = do
+sample (Random spp) wnd _ _ c = {-# SCC "sample.Random" #-} do
    {-# SCC "sample.forM_" #-} CM.forM_ (coverWindow wnd) $ \ (ix, iy) -> do
       let (fx, fy) = (fromIntegral ix, fromIntegral iy)
       CM.replicateM spp $ do
@@ -98,7 +98,7 @@ sample (Random spp) wnd _ _ c = do
          let s = RandomSample (CameraSample (fx + ox) (fy + oy) luv)
          randToSampled c s
 
-sample (Stratified nu nv) wnd n1d n2d c = do
+sample (Stratified nu nv) wnd n1d n2d c = {-# SCC "sample.Stratified" #-} do
    v1d <- R.liftR $ V.new (nu * nv * n1d)
    v2d <- R.liftR $ V.new (nu * nv * n2d)
    
@@ -125,7 +125,7 @@ shuffle xl xs = do
    return $ {-# SCC "shuffle'" #-} S.shuffle' xs xl $ mkStdGen seed
 
 fill :: (V.Unbox a) => V.MVector (PrimState (ST m)) a -> Int -> Int -> (R.Rand m [a]) -> R.Rand m ()
-fill v n n' gen = do
+fill v n n' gen = {-# SCC "fill" #-} do
    forM_ [0..n-1] $ \off -> do
       rs <- do
          vv <- R.liftR $ V.new n'

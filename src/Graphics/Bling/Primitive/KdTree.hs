@@ -206,9 +206,9 @@ traverse :: (Ray, Maybe Intersection) -> Vector -> KdTreeNode -> (Flt, Flt) -> (
 traverse ri _ (Leaf ps) _ = {-# SCC "traverseLeaf" #-} nearest' ps ri
 traverse ri@(r, _) inv (Interior left right sp axis) mima@(tmin, tmax)
    | rayMax r < tmin = ri
-   | tp > tmax || tp <= 0 = {-# SCC "traverseFirst" #-} traverse ri inv fc mima
-   | tp < tmin = {-# SCC "traverseSecond" #-} traverse ri inv sc mima
-   | otherwise = {-# SCC "traverseBoth" #-}traverse (traverse ri inv fc (tmin, tp)) inv sc (tp, tmax)
+   | tp > tmax || tp <= 0 = traverse ri inv fc mima
+   | tp < tmin = traverse ri inv sc mima
+   | otherwise = traverse (traverse ri inv fc (tmin, tp)) inv sc (tp, tmax)
    where
          (ro, rd) = (rayOrigin r, rayDir r)
          tp = (sp - ro .! axis) * inv .! axis
@@ -220,12 +220,12 @@ instance Primitive KdTree where
    
    worldBounds (KdTree b _) = b
    
-   intersect (KdTree b t) r@(Ray _ d _ _) = intersectAABB b r >>= trav where
+   intersect (KdTree b t) r@(Ray _ d _ _) = {-# SCC "intersect" #-} intersectAABB b r >>= trav where
       trav ts = snd $ traverse (r, Nothing) invDir t ts
       invDir = mkV (1 / d .! 0, 1 / d .! 1, 1 / d .! 2)
       
       
-   intersects (KdTree b t) r@(Ray _ d _ _) = maybe False tr (intersectAABB b r) where
+   intersects (KdTree b t) r@(Ray _ d _ _) = {-# SCC "intersects" #-} maybe False tr (intersectAABB b r) where
       tr = traverse' r invDir t
       invDir = mkV (1 / d .! 0, 1 / d .! 1, 1 / d .! 2)
       
