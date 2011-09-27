@@ -68,8 +68,10 @@ liftR m = Rand $ const m
 {-# INLINE shuffle #-}
 shuffle v = do
    forM_ [0..n-1] $ \i -> do
-      other <- rndIntR (0, n - i - 1)
-      liftR $ MV.unsafeSwap v i (other + i)
+      -- the obvious alternative would be to use something like
+      -- "rndIntR (0, n - i - 1)", but this performs *much* better
+      other <- rndInt
+      liftR $ MV.unsafeSwap v i (abs other `mod` (n - 1))
    where
       n = MV.length v
 
@@ -86,7 +88,7 @@ rndInt = Rand MWC.uniform
 
 rndIntR :: (Int, Int) -> Rand s Int
 {-# INLINE rndIntR #-}
-rndIntR r = Rand $ MWC.uniformR r
+rndIntR r = {-# SCC "rndIntR" #-} Rand $ MWC.uniformR r
 
 rndIntList
    :: Int

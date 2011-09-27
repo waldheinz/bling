@@ -12,7 +12,7 @@ renderer {
    }
 }
 
-# renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
+renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
 
 # renderer { lightTracer passCount 10 particles 500000 }
 # renderer { metropolis mpp 1 bootstrap 1000 plarge 0.25 }
