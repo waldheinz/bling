@@ -10,14 +10,17 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 2 ySamples 2 }
-      integrator { path maxDepth 7 }
+      # sampler { stratified xSamples 2 ySamples 2 }
+      sampler { random samples 2 }
+      integrator { path maxDepth 7 sampleDepth 3}
    }
 }
 
+renderer { metropolis mpp 0.5 bootstrap 500 plarge 0.25 }
+
 transform {
    lookAt {
-      pos 7.0 6.0 -3.0
+      pos 0.0 8.0 -7.0
       look 0 1 0
       up 0 1 0
    }
@@ -26,7 +29,7 @@ transform {
 camera {
    perspective
    fov 70
-   lensRadius 0.2
+   lensRadius 0
    focalDistance 10
 }
 
@@ -73,7 +76,7 @@ shape {
    v 5.0 15.7 5.0
    v -5.0 15.7 5.0
    v -5.0 15.7 -5.0
-   f 3 2 1 0
+   f 0 1 2 3
 }
 
 #
@@ -211,7 +214,14 @@ transform {
    translate 5.0 3.0 0.0
 }
 
+transform {
+   scale 0.1 0.1 0.1
+}
+
 material {
+   bumpMap
+   bump { scale 0.5 texture { perlin map { identity } } }
+   
    metal
    eta {
       constant spd {
@@ -236,6 +246,11 @@ material {
       }
    }
    rough { constant 0.01 }
+}
+
+
+transform {
+   scale 10 10 10
 }
 
 shape { sphere radius 2.0 }

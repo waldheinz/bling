@@ -2,7 +2,11 @@
 module Graphics.Bling.Texture (
    -- * Texture Types
    
-   Texture, SpectrumTexture, ScalarTexture,
+   Texture, SpectrumTexture, ScalarTexture, TextureMapping3d,
+   
+   -- * Texture Mappings
+
+   identityMapping3d,
    
    -- * Creating Textures
    constant, scaleTexture, graphPaper, checkerBoard, noiseTexture, woodTexture
@@ -14,11 +18,26 @@ import qualified Data.Vector.Unboxed as V
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Spectrum
 
+--------------------------------------------------------------------------------
+-- Texture Types
+--------------------------------------------------------------------------------
+
 -- | A @Texture@ transforms a @DifferentialGeomerty@ to some value
 type Texture a = DifferentialGeometry -> a
 
 type SpectrumTexture = Texture Spectrum
 type ScalarTexture = Texture Flt
+
+type TextureMapping3d = DifferentialGeometry -> (Flt, Flt, Flt)
+
+
+--------------------------------------------------------------------------------
+-- Texture Mappings
+--------------------------------------------------------------------------------
+
+identityMapping3d :: Transform -> TextureMapping3d
+identityMapping3d w2t dg = (x, y, z) where
+   (Vector x y z) = transPoint w2t $ dgP dg
 
 constant :: a -> Texture a
 constant r _ = r
@@ -65,9 +84,8 @@ woodTexture dg = wood where
 -- Perlin Noise
 --
 
-noiseTexture :: ScalarTexture
-noiseTexture dg = perlin3d (x, y, z) where
-   (Vector x y z) = vpromote (1/10) * dgP dg
+noiseTexture :: TextureMapping3d -> ScalarTexture
+noiseTexture texMap dg = perlin3d $ texMap dg
 
 perlin3d :: (Flt, Flt, Flt) -> Flt
 perlin3d (x, y, z) = lerp wz y0 y1 where

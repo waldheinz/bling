@@ -118,9 +118,21 @@ pScalarTexture = namedBlock $ do
          t <- ws >> pScalarTexture "texture"
          return $ scaleTexture s t
          
-      "perlin" -> return noiseTexture
+      "perlin" -> do
+         m <- pTextureMapping3d "map"
+         return $ noiseTexture m
       
       _ -> fail ("unknown texture type " ++ tp)
+
+pTextureMapping3d :: String -> JobParser TextureMapping3d
+pTextureMapping3d = namedBlock $ do
+   mt <- pString
+   ws >> case mt of
+              "identity" -> do
+                 s <- getState
+                 return $ identityMapping3d (transform s)
+                 
+              _ -> fail $ "unknown mapping " ++ mt
 
 pSpectrumTexture :: String -> JobParser SpectrumTexture
 pSpectrumTexture = namedBlock $ do
