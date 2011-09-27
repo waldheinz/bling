@@ -60,7 +60,7 @@ instance Renderer Metropolis where
       wt = 1 / mpp
       imgSize = (fromIntegral $ imgW img, fromIntegral $ imgH img)
       nd = (sampleCount1D integ, sampleCount2D integ)
-      pass i p b = {-# SCC "mlt.pass" #-} do
+      pass i p b = {-# SCC "mlt.onePass" #-} do
             seed <- ioSeed
             (img', bNew) <- stToIO $ do
                mimg <- thaw i
@@ -113,7 +113,7 @@ bootstrap :: (SurfaceIntegrator i)
    -> (Flt, Flt) -- ^ image size
    -> (Int, Int) -- ^ (n1d, n2d) sampling needs (redundant to integ)
    -> Rand s (Flt, Sample s) -- ^ (b)
-bootstrap scene n integ imgSize nd = do
+bootstrap scene n integ imgSize nd = {-# SCC "bootstrap" #-} do
    smps <- liftR $ MV.new n
    is <- newRandRef []
    
@@ -121,9 +121,12 @@ bootstrap scene n integ imgSize nd = do
    sumI <- liftM sum $ forM [0..n-1] $ \i -> do
       smp <- initialSample imgSize nd
       l <- evalSample scene integ smp
-      liftR $ MV.write smps (n - i - 1) smp
-      modifyRandRef is (evalI l :)
-      return $ evalI l
+      if isNaN (evalI l)
+         then trace "ignoring NaN bootstrap sample" $ return 0
+         else do
+            liftR $ MV.write smps (n - i - 1) smp
+            modifyRandRef is (evalI l :)
+            return $ evalI l
 
    -- select initial sample from bootstrap samples
    smpDist <- mkDist1D `liftM` readRandRef is
@@ -155,8 +158,8 @@ initialSample (sx, sy) (n1d, n2d) = do
 mutate :: (Flt, Flt) -> (Int, Int) -> Flt -> Sample s -> Rand s (Sample s)
 mutate imgSize nd@(n1d, n2d) plarge (PrecomSample cs v1d v2d) = do
    R.rnd >>= \x -> if x < plarge
-      then initialSample imgSize nd
-      else do
+      then {-# SCC "mutate.largeStep" #-} initialSample imgSize nd
+      else {-# SCC "mutate.smallStep" #-} do
          v1d' <- liftR $ V.new $ V.length v1d
          forM_ [0..n1d - 1] $ \i -> do
             v <- liftR $ V.read v1d i
@@ -186,28 +189,27 @@ jitter :: Flt -> Flt -> Flt -> Rand s Flt
 {-# INLINE jitter #-}
 jitter v vmin vmax
    | vmin == vmax = return vmin
-   | otherwise = do
-      u <- R.rnd2D
-      return $ jit u
+   | otherwise = go `liftM` R.rnd2D
    where
-      jit (u1, u2) 
-         | u2 < 0.5 = wrapAround vmin vmax  $ v + delta
-         | otherwise = wrapAround vmin vmax  $ v - delta
-         where
-            delta = (vmax - vmin) * b * exp (logRat * u1)
       a = 1 / 1024
       b = 1 / 64
       logRat = -log (b / a)
-      wrapAround x0 x1 x
-         | x >= x1 = x0 + (x - x1)
-         | x < x0 = x1 - (x0 - x)
+      go (u1, u2)
+         | u2 < 0.5 = wrapAround $ v + delta
+         | otherwise = wrapAround $ v - delta
+         where
+            delta = (vmax - vmin) * b * exp (logRat * u1)
+            
+      wrapAround x
+         | x >= vmax = vmin + (x - vmax)
+         | x < vmin = vmax - (vmin - x)
          | otherwise = x
 
 evalI :: [ImageSample] -> Flt
 evalI smps = sum $ map (\(ImageSample _ _ (_, ss)) -> sY ss) smps
 
 evalSample :: (SurfaceIntegrator i) => Scene -> i -> Sample s -> Rand s [ImageSample]
-evalSample scn si smp = do
+evalSample scn si smp = {-# SCC "evalSample" #-} do
    smps <- liftR $ newSTRef []
    (flip randToSampled) smp $ do
       ray <- (fireRay (sceneCam scn))

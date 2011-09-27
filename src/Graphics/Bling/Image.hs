@@ -68,12 +68,12 @@ mkImage flt w h = Img w h flt pixels where
    pixels = V.replicate (w * h) (0, (0, 0, 0), (0, 0, 0))
    
 thaw :: Image -> ST s (MImage s)
-thaw (Img w h f p) = do
+thaw (Img w h f p) = {-# SCC "thaw" #-} do
    p' <- GV.thaw p
    return $ MImage w h f p'
  
 freeze :: MImage s -> ST s Image
-freeze (MImage w h f p) = do
+freeze (MImage w h f p) = {-# SCC "freeze" #-} do
    p' <- GV.freeze p
    return $ Img w h f p'
 
