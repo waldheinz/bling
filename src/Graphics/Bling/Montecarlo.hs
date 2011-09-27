@@ -102,7 +102,6 @@ uniformSampleCone (LocalCoordinates x y z) cosThetaMax (u1, u2) = let
       z * vpromote cosTheta
       )
 
-
 cosineSampleHemisphere :: Rand2D -> Vector
 {-# INLINE cosineSampleHemisphere #-}
 cosineSampleHemisphere u = Vector x y (sqrt (max 0 (1 - x*x - y*y))) where

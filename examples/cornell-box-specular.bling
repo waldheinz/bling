@@ -7,15 +7,15 @@ filter mitchell 3.0 3.0 0.333333 0.333333
 renderer {
    sampler
    sampled {
-      sampler { random samples 64 }
-      integrator { bidir maxDepth 7 sampleDepth 4 }
+      sampler { random samples 16 }
+      integrator { bidir maxDepth 5 sampleDepth 3 }
    }
 }
 
 # renderer { sampler sampled { sampler { stratified xSamples 8 ySamples 8 } integrator { path maxDepth 7 sampleDepth 4 } } }
-renderer { sampler sampled { sampler { random samples 1 } integrator { path maxDepth 5 } } }
+# renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
 
-# renderer { metropolis mpp 1 bootstrap 5000 plarge 0.2 }
+# renderer { metropolis mpp 1 bootstrap 1000 plarge 0.2 }
 
 imageSize 480 480
 

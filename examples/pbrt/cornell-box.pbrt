@@ -2,12 +2,14 @@
 LookAt 278 273 -800  278 273 0   0 1 0
 Camera "perspective" "float fov" [37.5]
 PixelFilter "mitchell" "float xwidth" [3] "float ywidth" [3]
-Accelerator "kdtree"
-Sampler "bestcandidate" "integer pixelsamples" [4]
+# Accelerator "kdtree"
+# Sampler "bestcandidate" "integer pixelsamples" [512]
 Film "image" "string filename" ["cornell.exr"]
      "integer xresolution" [480] "integer yresolution" [480]
 
-SurfaceIntegrator "path"
+# SurfaceIntegrator "path"
+
+Renderer "metropolis" "integer samplesperpixel" [64]
 
 WorldBegin
 

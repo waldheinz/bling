@@ -61,6 +61,7 @@ lightPower s = V.sum $ V.map (\l -> L.power l (worldBounds s)) (sceneLights s)
 --------------------------------------------------------------------------------
 
 sampleLightMis :: Scene -> LightSample -> Bsdf -> Vector -> Normal -> Spectrum
+{-# INLINE sampleLightMis #-}
 sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n
    | lpdf == 0 || isBlack li || isBlack f || occluded scene ray = black
    | delta = sScale (f * li) (absDot wi n / lpdf)
@@ -70,6 +71,7 @@ sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n
          weight = powerHeuristic (1, lpdf) (1, bsdfPdf bsdf wo wi)
 
 sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Spectrum
+{-# INLINE sampleBsdfMis #-}
 sampleBsdfMis (Scene _ sp _ _) l (BsdfSample _ bPdf f wi) n p
    | isBlack f || bPdf == 0 = black
    | isJust lint = maybe black ff $ intLight (fromJust lint)
@@ -92,7 +94,7 @@ estimateDirect
    -> RandLightSample
    -> Spectrum
 {-# INLINE estimateDirect #-}
-estimateDirect s l p n wo bsdf smp = ls + bs where
+estimateDirect s l p n wo bsdf smp = ls where
    ls = {-# SCC "estimateDirect.light" #-} sampleLightMis s (sample l p n $ ulDir smp) bsdf wo n
    bs = {-# SCC "estimateDirect.bsdf"  #-} sampleBsdfMis s l (sampleBsdf bsdf wo uBC uBD) n p
    uBC = uBsdfComp smp
