@@ -94,7 +94,7 @@ estimateDirect
    -> RandLightSample
    -> Spectrum
 {-# INLINE estimateDirect #-}
-estimateDirect s l p n wo bsdf smp = ls where
+estimateDirect s l p n wo bsdf smp = ls + bs where
    ls = {-# SCC "estimateDirect.light" #-} sampleLightMis s (sample l p n $ ulDir smp) bsdf wo n
    bs = {-# SCC "estimateDirect.bsdf"  #-} sampleBsdfMis s l (sampleBsdf bsdf wo uBC uBD) n p
    uBC = uBsdfComp smp

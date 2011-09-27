@@ -7,7 +7,7 @@ filter mitchell 3.0 3.0 0.333333 0.333333
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 4 ySamples 4 }
+      sampler { stratified xSamples 2 ySamples 2 }
       integrator { path maxDepth 5 sampleDepth 3 }
    }
 }
@@ -19,7 +19,7 @@ renderer {
 # renderer { sampler sampled { sampler { stratified xSamples 4 ySamples 4 } integrator { bidir maxDepth 10 sampleDepth 5 } } }
 # renderer { sampler sampled { sampler { random samples 16 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
-renderer { sampler sampled { sampler { random samples 512 } integrator { debug reference } } }
+# renderer { sampler sampled { sampler { random samples 128 } integrator { debug reference } } }
 
 imageSize 480 480
 
