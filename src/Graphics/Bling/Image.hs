@@ -166,7 +166,7 @@ toRgbe (r, g, b)
    where
          v = max r $ max g b
          (v', e) = frexp v
-         v'' = v' * 256.0 / v
+         v'' = v' * 256 / v
 
 frexp :: Float -> (Float, Int)
 frexp x
