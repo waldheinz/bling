@@ -76,7 +76,7 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) t md
       
       let (BsdfSample smpType spdf f wi) = sampleBsdf bsdf wo bsdfCompU bsdfDirU
       let lHere = sampleOneLight scene p n wo bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU
-      let l = t * (lHere + intl)
+      
       
       rnd' (3 + smp1doff depth) >>= \x -> if x > pc || (spdf == 0) || isBlack f
          then return black
@@ -87,6 +87,7 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) t md
                  int' = {-# SCC "nextVertex.intersect" #-} intersect (scenePrim scene) ray'
                  depth' = depth + 1
                  rest = nextVertex scene depth' spec' ray' int' t' md
+                 l = t' * (lHere + intl)
               in do
                  r <- rest
                  return $ r + l

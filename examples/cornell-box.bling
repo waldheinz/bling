@@ -7,18 +7,18 @@ filter mitchell 3.0 3.0 0.333333 0.333333
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 8 ySamples 8 }
-      integrator { path maxDepth 7 sampleDepth 4 }
+      sampler { stratified xSamples 3 ySamples 3 }
+      integrator { path maxDepth 5 sampleDepth 3 }
    }
 }
 
-renderer { sampler sampled { sampler { random samples 64 } integrator { path maxDepth 5 sampleDepth 3 } } }
+renderer { sampler sampled { sampler { random samples 9 } integrator { path maxDepth 5 sampleDepth 3 } } }
 # renderer { lightTracer passCount 10 particles 500000 }
 # renderer { metropolis mpp 0.1 bootstrap 5000 plarge 0.25 }
 
 # renderer { sampler sampled { sampler { stratified xSamples 4 ySamples 4 } integrator { bidir maxDepth 10 sampleDepth 5 } } }
 
-renderer { sampler sampled { sampler { random samples 16 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
+# renderer { sampler sampled { sampler { random samples 16 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 
 imageSize 480 480

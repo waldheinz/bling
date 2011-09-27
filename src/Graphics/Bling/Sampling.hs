@@ -133,8 +133,10 @@ fill v n n' gen = do
          forM_ (zip xs [0..]) $ \(val, i) -> do
             R.liftR $ V.write vv i val
          return vv
-            
-      idx <- R.liftR $ newSTRef 0
+
+      R.shuffle rs
+      
+      idx <- R.newRandRef 0
       R.liftR $ forM_ [0..n'-1] $ \ vidx -> do
          i <- readSTRef idx
          val <- V.read rs vidx

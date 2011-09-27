@@ -63,11 +63,12 @@ liftR :: ST s a -> Rand s a
 {-# INLINE liftR #-}
 liftR m = Rand $ const m
 
-shuffle :: (MV.MVector v a, PrimMonad (Rand m)) => v (PrimState (Rand m)) a -> Rand m ()
+-- | shuffles the given mutable vector in-place
+shuffle :: (MV.MVector v a) => v s a -> Rand s ()
 shuffle v = do
    forM_ [0..n-1] $ \i -> do
-      other <- rndIntR (i, n - i - 1)
-      MV.swap v i other
+      other <- rndIntR (0, n - i - 1)
+      liftR $ MV.swap v i (other + i)
    where
       n = MV.length v
 
