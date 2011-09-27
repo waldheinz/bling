@@ -103,12 +103,12 @@ instance Primitive Geometry where
    
    worldBounds g = S.worldBounds (shape g) (o2w g)
    
-   intersects g rw = S.intersects (shape g) (transRay (w2o g) rw)
+   intersects g rw = {-# SCC "intersects.Geometry" #-} S.intersects (shape g) (transRay (w2o g) rw)
    
    light g = emission g >>= \e ->
       Just $ mkAreaLight (shape g) e (o2w g) (geomId g)
    
-   intersect g rw = (S.intersect (shape g) ro) >>= int where
+   intersect g rw = {-# SCC "intersect.Geometry" #-} (S.intersect (shape g) ro) >>= int where
       int (t, dg) = Just $ Intersection t (transDg (o2w g) dg) p m
       m = material g
       p = MkAnyPrim g

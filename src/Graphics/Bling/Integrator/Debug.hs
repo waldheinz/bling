@@ -62,7 +62,7 @@ instance SurfaceIntegrator DebugIntegrator where
       where
          mint = scene `intersect` ray
       
-   contrib Reference scene tell ray = go ray >>= \ws -> mkContrib ws False >>= (liftSampled . tell) where
+   contrib Reference scene tell ray = {-# SCC "contrib.Reference" #-} go ray >>= \ws -> mkContrib ws False >>= (liftSampled . tell) where
       go r = maybe (return (0, black)) evalInt (scene `intersect` r) where
           evalInt int = let
                             dg = intGeometry int

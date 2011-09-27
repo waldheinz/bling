@@ -112,10 +112,10 @@ data RandLightSample = RLS
 sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> RandLightSample -> Spectrum
 sampleOneLight scene@(Scene _ _ lights _) p n wo bsdf smp
    | lc == 0 = black
-   | lc == 1 = ed (V.head lights)
-   | otherwise = sScale ld (fromIntegral lc) where     
+   | lc == 1 = {-# SCC "sampleOneLight.single" #-} ed (V.head lights)
+   | otherwise = {-# SCC "sampleOneLight.many" #-} sScale ld (fromIntegral lc) where     
             ld = ed $ V.unsafeIndex lights ln
-            ed l = {-# SCC "sampleOneLight.estimate" #-} estimateDirect scene l p n wo bsdf smp
+            ed l = estimateDirect scene l p n wo bsdf smp
             lc = V.length lights
             ln = min (floor $ (ulNum smp) * fromIntegral lc) (lc - 1)
 

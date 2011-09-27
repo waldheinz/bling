@@ -127,17 +127,17 @@ shuffle xl xs = do
 fill :: (V.Unbox a) => V.MVector (PrimState (ST m)) a -> Int -> Int -> (R.Rand m [a]) -> R.Rand m ()
 fill v n n' gen = {-# SCC "fill" #-} do
    forM_ [0..n-1] $ \off -> do
-      rs <- do
+      rs <- {-# SCC "fill.top" #-} do
          vv <- R.liftR $ V.new n'
          xs <- gen
          forM_ (zip xs [0..]) $ \(val, i) -> do
             R.liftR $ V.write vv i val
          return vv
 
-      R.shuffle rs
+      {-# SCC "fill.shuffle" #-} R.shuffle rs
       
       idx <- R.newRandRef 0
-      R.liftR $ forM_ [0..n'-1] $ \ vidx -> do
+      {-# SCC "fill.bottom" #-} R.liftR $ forM_ [0..n'-1] $ \ vidx -> do
          i <- readSTRef idx
          val <- V.read rs vidx
          modifySTRef idx (+1)

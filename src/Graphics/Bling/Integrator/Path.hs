@@ -47,7 +47,7 @@ instance SurfaceIntegrator PathIntegrator where
    
    sampleCount2D (PathIntegrator _ sd) = smps2D * sd
    
-   contrib (PathIntegrator md _) s addSample r = {-# SCC "pathContrib" #-} do
+   contrib (PathIntegrator md _) s addSample r = {-# SCC "contrib" #-} do
       li <- nextVertex s 0 True r (s `intersect` r) md
       c <- mkContrib (1, li) False
       liftSampled $ addSample c

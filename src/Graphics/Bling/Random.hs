@@ -21,7 +21,7 @@ import Control.Monad.Primitive
 import Control.Monad.ST
 import Data.STRef
 import qualified Data.Vector as V
-import qualified Data.Vector.Generic.Mutable as MV
+import qualified Data.Vector.Unboxed.Mutable as MV
 import qualified System.Random.MWC as MWC
 
 type Rand2D = (Float, Float)
@@ -64,12 +64,12 @@ liftR :: ST s a -> Rand s a
 liftR m = Rand $ const m
 
 -- | shuffles the given mutable vector in-place
-shuffle :: (MV.MVector v a) => v s a -> Rand s ()
+-- shuffle :: (MV.MVector v a) => v s a -> Rand s ()
 {-# INLINE shuffle #-}
 shuffle v = do
    forM_ [0..n-1] $ \i -> do
       other <- rndIntR (0, n - i - 1)
-      liftR $ MV.swap v i (other + i)
+      liftR $ MV.unsafeSwap v i (other + i)
    where
       n = MV.length v
 
