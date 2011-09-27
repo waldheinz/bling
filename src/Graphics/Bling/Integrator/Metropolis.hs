@@ -192,7 +192,7 @@ jitter v vmin vmax
    | otherwise = go `liftM` R.rnd2D
    where
       a = 1 / 1024
-      b = 1 / 64
+      b = 1 / 256 --64
       logRat = -log (b / a)
       go (u1, u2)
          | u2 < 0.5 = wrapAround $ v + delta

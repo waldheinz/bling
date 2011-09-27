@@ -8,6 +8,7 @@ import qualified Data.Vector.Unboxed.Mutable as MV
 import qualified Data.Vector.Unboxed as V
 import Control.Monad (liftM, forM, forM_)
 import Control.Monad.ST
+import Control.Parallel.Strategies (parMap, rdeepseq)
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.DifferentialGeometry
@@ -83,9 +84,10 @@ instance SurfaceIntegrator BidirPath where
       let ei = zip ep [0..]
       let li = zip lp [0..]
 
-      let l = sum $ map (connect scene nspecBouces) $ pairs ei li
+      let l = sum $ parMap rdeepseq (connect scene nspecBouces) $ pairs ei li
       mkContrib (1, l + ld + le) False >>= addContrib
       where
+         
          addContrib = liftSampled . addContrib'
 
 --------------------------------------------------------------------------------
@@ -125,7 +127,7 @@ connect scene nspec
           r = segmentRay pl pe
           ne = bsdfShadingNormal bsdfe
           nl = bsdfShadingNormal bsdfl
-             
+          
 estimateDirect :: Scene -> Vertex -> Int -> Sampled s Spectrum
 estimateDirect scene (Vert bsdf p wi _ _ _ alpha) depth = do
    lNumU <- rnd' $ 2 + smp1doff depth
