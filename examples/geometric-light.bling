@@ -10,7 +10,7 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 2 ySamples 2 }
+      sampler { stratified xSamples 8 ySamples 8 }
       integrator { path maxDepth 7 sampleDepth 4 }
    }
 }

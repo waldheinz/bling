@@ -45,8 +45,9 @@ object = do
    ws
    
    case objName of
-        "shape" -> pShape
+        "shape" -> pGeometry
         "filter" -> pFilter
+        "fractal" -> pFractal
         "imageSize" -> pSize
         "renderer" -> pRenderer
         "transform" -> pTransform

@@ -7,7 +7,7 @@ module Graphics.Bling.Primitive.Fractal (
    
    -- * The Fractal Primitive
    
-   FractalPrim, mkFractalPrim
+   FractalPrim, mkFractalPrim, mkMengerSponge
    
 ) where
 
@@ -15,13 +15,7 @@ import Graphics.Bling.AABB
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
-
---
--- Menger Sponge
---
-
--- mkMenger :: Transform -> Material -> Int -> [Geometry]
--- mkMenger trans mat depth = mkGeom trans False Material Nothing shape 
+import Graphics.Bling.Shape
 
 --
 -- Julia Fractal
@@ -32,15 +26,26 @@ data Fractal = Julia Quaternion Flt Int
 mkJuliaQuat :: Quaternion -> Flt -> Int -> Fractal
 mkJuliaQuat = Julia
 
-data FractalPrim = FP
-   { _fractal   :: Fractal
-   , _material  :: Material
-   }
+data FractalPrim
+   = FP
+      { _fractal  :: ! Fractal
+      , _material :: ! Material
+      }
+   | Menger
+      { _base     :: ! Shape
+      , _mMat     :: ! Material
+      , _level    :: ! Int
+      , _trans    :: ! Transform
+      }
 
 mkFractalPrim :: Fractal -> Material -> FractalPrim
 mkFractalPrim = FP
 
+mkMengerSponge :: Shape -> Material -> Int -> Transform -> FractalPrim
+mkMengerSponge = Menger
+
 instance Primitive FractalPrim where
+   flatten (Menger g m l t) = buildMenger g m l t
    flatten fp = [mkAnyPrim fp]
    
    worldBounds _ = AABB (mkPoint n n n) $ mkPoint p p p where
@@ -175,3 +180,18 @@ qsq :: Quaternion -> Quaternion
 qsq (Quaternion r i) = Quaternion r' i' where
    r' = r * r - i `dot` i
    i' = vpromote (2 * r) * i
+
+--------------------------------------------------------------------------------
+-- Menger Sponge
+--------------------------------------------------------------------------------
+
+buildMenger :: Shape -> Material -> Int -> Transform -> [AnyPrim]
+buildMenger s m level trans = go level identity where
+   putAt t = mkAnyPrim $ mkGeom t False m Nothing s (-1)
+   go 0 t = [putAt (concatTrans (scale $ mkV (2.2, 2.2, 2.2)) t `concatTrans` trans) ]
+   go l t = concatMap (go (l-1)) ts where
+      ts = map (\v -> foldl concatTrans t [sc, translate v]) vs
+      sc = scale $ mkV (1/3, 1/3, 1/3)
+      vs = map (mkV) coords
+      coords = filter vm [(x, y, z) | x <- [-1..1], y <- [-1..1], z <- [-1..1]]
+      vm (a, b, c) = (length $ filter (/=0) [a, b, c]) > 1 -- valid coord?

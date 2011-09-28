@@ -51,7 +51,7 @@ transDg :: Transform -> DifferentialGeometry -> DifferentialGeometry
 transDg t (DG p n u v dpdu dpdv dndu dndv) = dg' where
    dg' = DG p' n' u v dpdu' dpdv' dndu' dndv'
    p' = transPoint t p
-   n' = transNormal t n
+   n' = normalize $ transNormal t n
    dpdu' = transVector t dpdu
    dpdv' = transVector t dpdv
    dndu' = transNormal t dndu

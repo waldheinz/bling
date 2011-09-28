@@ -1,7 +1,7 @@
 
 module Graphics.Bling.IO.ShapeParser (
    
-   pShape, pFractal
+   pShape, pFractal, pGeometry
    
    ) where
 
@@ -19,20 +19,26 @@ import Graphics.Bling.Primitive.Fractal
 --
 
 pFractal :: JobParser ()
-pFractal = flip namedBlock "fractal" $ do
+pFractal = pBlock $ do
    t <- many alphaNum
    f <- case t of
              "julia" -> do
                 c <- ws >> pNamedQuat "c"
                 e <- ws >> namedFloat "epsilon"
                 i <- ws >> namedInt "iterations"
-                return $ mkJuliaQuat c e i
+                s <- getState
+                return $ mkFractalPrim (mkJuliaQuat c e i) (material s)
+                
+             "menger" -> do
+                shape <- ws >> pShape
+                level <- ws >> namedInt "level"
+                s <- getState
+                return $ mkMengerSponge shape (material s) level (transform s)
                 
              _ -> fail $ "unknown fractal type " ++ t
 
    s <- getState
-   let p = mkFractalPrim f $ material s
-   setState s {prims = (mkAnyPrim p) : (prims s)}
+   setState s {prims = (mkAnyPrim f) : (prims s)}
 
 pNamedQuat :: String -> JobParser Quaternion
 pNamedQuat n = do
@@ -49,8 +55,37 @@ pQuaternion = do
 -- parsing shapes
 --
 
-pShape :: JobParser ()
+pShape :: JobParser Shape
 pShape = pBlock $ do
+   t <- pString
+   
+   case t of
+      "box" -> do
+         pmin <- ws >> namedVector "pmin"
+         pmax <- ws >> namedVector "pmax"
+         return $ mkBox pmin pmax
+
+      "cylinder" -> do
+         r <- ws >> namedFloat "radius"
+         zmin <- ws >> namedFloat "zmin"
+         zmax <- ws >> namedFloat "zmax"
+         phiMax <- ws >> namedFloat "phiMax"
+         return $ mkCylinder r zmin zmax phiMax
+
+      "disk" -> do
+         h <- ws >> namedFloat "height"
+         r <- ws >> namedFloat "radius"
+         ri <- ws >> namedFloat "innerRadius"
+         phiMax <- ws >> namedFloat "phiMax"
+         return $ mkDisk h r ri phiMax
+
+      "sphere" -> do
+         r <- ws >> namedFloat "radius"
+         return $ mkSphere r
+
+      _ -> fail $ "unknown shape type " ++ t
+pGeometry :: JobParser ()
+pGeometry = pBlock $ do
    t <- many alphaNum
    
    sh <- case t of
