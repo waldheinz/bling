@@ -188,7 +188,7 @@ qsq (Quaternion r i) = Quaternion r' i' where
 buildMenger :: Shape -> Material -> Int -> Transform -> [AnyPrim]
 buildMenger s m level trans = go level identity where
    putAt t = mkAnyPrim $ mkGeom t False m Nothing s (-1)
-   go 0 t = [putAt (concatTrans (scale $ mkV (2.2, 2.2, 2.2)) t `concatTrans` trans) ]
+   go 0 t = [putAt (concatTrans (scale $ mkV (2.5, 2.5, 2.5)) t `concatTrans` trans) ]
    go l t = concatMap (go (l-1)) ts where
       ts = map (\v -> foldl concatTrans t [sc, translate v]) vs
       sc = scale $ mkV (1/3, 1/3, 1/3)

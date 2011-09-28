@@ -51,10 +51,10 @@ smps1D :: Int
 smps1D = 4
 
 smp1doff :: Int -> Int
-smp1doff d = 1 + smps1D * d + 1
+smp1doff d = 1 + smps1D * d * 3
 
 smp2doff :: Int -> Int
-smp2doff d = 2 + smps2D * d + 2
+smp2doff d = 2 + smps2D * d * 3
 
 instance SurfaceIntegrator BidirPath where
    sampleCount1D (BDP _ sd) = smps1D * sd * 3 + 1
