@@ -18,6 +18,7 @@ import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Image
 import Graphics.Bling.Integrator
 import Graphics.Bling.Integrator.Path
+import Graphics.Bling.Integrator.BidirPath
 import Graphics.Bling.Montecarlo
 import Graphics.Bling.Random as R
 import Graphics.Bling.Reflection
@@ -27,7 +28,7 @@ import Graphics.Bling.Scene
 import Graphics.Bling.Spectrum
 
 data Metropolis = MLT
-   { _integrator :: PathIntegrator
+   { _integrator :: BidirPath
    , _mpp      :: Flt -- ^ mutations per pixel
    , _nbootstrap :: Int
    , _plarge :: Flt
@@ -42,7 +43,7 @@ mkMLT
    -> Flt -- ^ plarge
    -> Metropolis
 mkMLT mpp nboot pl =
-   MLT (mkPathIntegrator maxDepth maxDepth) mpp nboot pl
+   MLT (mkBidirPathIntegrator maxDepth maxDepth) mpp nboot pl
 
 instance Printable Metropolis where
    prettyPrint (MLT integ mpp _ _) = PP.vcat [

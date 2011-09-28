@@ -16,11 +16,16 @@ renderer {
 }
 
 # renderer { sampler sampled { sampler { random samples 1 } integrator { path maxDepth 5 sampleDepth 3 } } }
+# renderer { sampler sampled { sampler { random samples 64 } integrator { bidir maxDepth 7 sampleDepth 4 } } }
+# renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
+renderer { metropolis mpp 1 bootstrap 1000 plarge 0.25 }
+
+# renderer { sampler sampled { sampler { stratified xSamples 3 ySamples 3 } integrator { bidir maxDepth 7 sampleDepth 4 } } }
 
 transform {
    lookAt {
-      pos -2 3 -2.5
-      look 1 0 0
+      pos -2 3 -5
+      look 1 -2 0
       up 0 1 0
    }
 }
@@ -29,7 +34,7 @@ camera {
    perspective
    fov 40
    lensRadius 0.015
-   focalDistance 2
+   focalDistance 3.5
 }
 
 #
@@ -64,26 +69,16 @@ shape {
    mesh
    vertexCount 4
    faceCount 1
-   v  50.0 0.0 -50.0
-   v -50.0 0.0 -50.0
-   v -50.0 0.0  50.0
-   v  50.0 0.0  50.0
+   v  50.0 -1 -50.0
+   v -50.0 -1 -50.0
+   v -50.0 -1  50.0
+   v  50.0 -1  50.0
    f 3 2 1 0
 }
 
 #
 # light source
 #
-
-transform { identity }
-
-light {
-   sunSky
-   up 0 1 0
-   east 0 0 1
-   sunDir 0 0.2 0.5
-   turbidity 4
-}
 
 material {
    metal
@@ -136,9 +131,17 @@ material {
    rough { constant 0.002 }
 }
 
-transform { identity translate 0 0.5 0 }
+transform { identity translate 0 0 0 }
 
-fractal {
-   menger { box pmin -0.5 -0.5 -0.5 pmax 0.5 0.5 0.5 }
-   level 3
-}
+fractal { menger { box pmin -0.5 -0.5 -0.5 pmax 0.5 0.5 0.5 } level 2 }
+
+material { blackbody }
+
+emission { temp 4000 }
+transform { identity translate 0 1 0 }
+shape { sphere radius 0.15 }
+
+# emission { rgb 100 100 100 }
+emission { none }
+transform { identity translate -5 5 0 }
+shape { sphere radius 2 }

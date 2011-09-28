@@ -51,14 +51,14 @@ smps1D :: Int
 smps1D = 4
 
 smp1doff :: Int -> Int
-smp1doff d = smps1D * d + 1
+smp1doff d = 1 + smps1D * d + 1
 
 smp2doff :: Int -> Int
-smp2doff d = smps2D * d + 2
+smp2doff d = 2 + smps2D * d + 2
 
 instance SurfaceIntegrator BidirPath where
-   sampleCount1D (BDP _ sd) = smps1D * sd + 1
-   sampleCount2D (BDP _ sd) = smps2D * sd + 2
+   sampleCount1D (BDP _ sd) = smps1D * sd * 3 + 1
+   sampleCount2D (BDP _ sd) = smps2D * sd * 3 + 2
    
    contrib (BDP md _) scene addContrib' r = do
       ul <- rnd' 0
@@ -130,10 +130,10 @@ connect scene nspec
           
 estimateDirect :: Scene -> Vertex -> Int -> Sampled s Spectrum
 estimateDirect scene (Vert bsdf p wi _ _ _ alpha) depth = do
-   lNumU <- rnd' $ 2 + smp1doff depth
-   lDirU <- rnd2D' $ 1 + smp2doff depth
-   lBsdfCompU <- rnd' $ 3 + smp1doff depth
-   lBsdfDirU <- rnd2D' $ 2 + smp2doff depth
+   lNumU <- rnd' $ 0 + smp1doff depth
+   lDirU <- rnd2D' $ 0 + smp2doff depth
+   lBsdfCompU <- rnd' $ 1 + smp1doff depth
+   lBsdfDirU <- rnd2D' $ 1 + smp2doff depth
    let lHere = sampleOneLight scene p n wi bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU
    return $ lHere * alpha
    where
