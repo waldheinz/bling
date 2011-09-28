@@ -3,10 +3,12 @@
 # complex test
 #
 
+imageSize 320 240
+
 renderer { sampler sampled { sampler { random samples 4 } integrator { path maxDepth 5 sampleDepth 3 } } }
-renderer { metropolis  passCount 50 mutations 50000 bootstrap 2000 plarge 0.025 }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
+renderer { metropolis mpp 1 bootstrap 1000 plarge 0.25 }
 
 transform {
    lookAt {
