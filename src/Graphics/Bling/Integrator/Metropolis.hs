@@ -43,9 +43,12 @@ mkMLT
    :: Flt -- ^ mutations per pixel
    -> Int
    -> Flt -- ^ plarge
+   -> Bool -- ^ direct separate
    -> Metropolis
-mkMLT mpp nboot pl =
-   MLT (mkNoDirectBidirIntegrator maxDepth maxDepth) mpp nboot pl True
+mkMLT mpp nboot pl sepDir = MLT integ mpp nboot pl sepDir where
+   integ = if sepDir
+              then mkNoDirectBidirIntegrator maxDepth maxDepth
+              else mkBidirPathIntegrator maxDepth maxDepth
 
 instance Printable Metropolis where
    prettyPrint (MLT integ mpp _ _ _) = PP.vcat [
@@ -118,7 +121,7 @@ runDirectLighting :: RenderJob -> (Progress -> IO Bool) -> IO Image
 runDirectLighting job report =
    let
       integrator = mkAnySurface $ mkDirectLightingIntegrator False
-      sampler = mkStratifiedSampler 8 8
+      sampler = mkStratifiedSampler 6 6
       renderer = mkSamplerRenderer sampler integrator
    in do
       imgRef <- newIORef Nothing
@@ -223,7 +226,7 @@ jitter v vmin vmax
    | otherwise = go `liftM` R.rnd2D
    where
       a = 1 / 1024
-      b = 1 / 256 --64
+      b = 1 / 64
       logRat = -log (b / a)
       go (u1, u2)
          | u2 < 0.5 = wrapAround $ v + delta

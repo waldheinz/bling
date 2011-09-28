@@ -29,7 +29,8 @@ pRenderer = pBlock $ do
                 mpp <- namedFloat "mpp"
                 nboot <- ws >> namedInt "bootstrap"
                 plarge <- ws >> namedFloat "plarge"
-                return $ mkAnyRenderer $ mkMLT mpp nboot plarge
+                sepDir <- ws >> (option False $ string "separateDirect" >> return True)
+                return $ mkAnyRenderer $ mkMLT mpp nboot plarge sepDir
                 
              "sampler" -> do
                 sr <- pSamplerRenderer
