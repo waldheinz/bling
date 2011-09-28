@@ -7,7 +7,7 @@ module Graphics.Bling.Shape (
    
    -- * Creating shapes
    
-   mkCylinder, mkDisk, mkSphere, mkTriangle,
+   mkCylinder, mkDisk, mkSphere, mkTriangle, mkBox,
 
    -- * Working with shapes
    
@@ -15,7 +15,7 @@ module Graphics.Bling.Shape (
    objectBounds, worldBounds, intersect, intersects
    ) where
 
-import Data.List (foldl')
+import Data.List (foldl', foldl1')
 import Data.Maybe
 
 import Graphics.Bling.DifferentialGeometry
@@ -27,7 +27,9 @@ data Vertex = Vertex {
    } deriving (Eq, Show)   
 
 data Shape
-   = Cylinder
+   = Box {-# UNPACK #-} !Point {-# UNPACK #-} !Point
+      -- ^ a box with it's minimum and maximum extent
+   | Cylinder
       {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt
        -- ^ radius zmin zmax phimax
    | Disk
@@ -40,18 +42,12 @@ data Shape
       
    deriving (Eq, Show)
 
--- | a disk parallel to the xz - plane
-mkDisk
-   :: Flt -- ^ offset from xz - plane (aka height)
-   -> Flt -- ^ outer radius
-   -> Flt -- ^ inner radius
-   -> Flt -- ^ maximum phi angle in [degrees]
-   -> Shape
-mkDisk h r0 r1 mp = Disk h ro ri mp' where
-   ro = max r0 r1
-   ri = min r0 r1
-   mp' = radians $ clamp mp 0 360
-   
+-- | creates a box with the specified extent
+mkBox :: Point -> Point -> Shape
+mkBox (Vector x0 y0 z0) (Vector x1 y1 z1) = Box pmin pmax where
+   pmax = mkV (max x0 x1, max y0 y1, max z0 z1)
+   pmin = mkV (min x0 x1, min y0 y1, min z0 z1)
+
 -- | creates a cylinder along the z-axis
 mkCylinder
    :: Flt -- ^ the radius
@@ -63,6 +59,18 @@ mkCylinder r z0 z1 phimax = Cylinder r zmin zmax pm where
    zmin = min z0 z1
    zmax = max z0 z1
    pm = radians $ clamp phimax 0 360
+
+-- | a disk parallel to the xz - plane
+mkDisk
+   :: Flt -- ^ offset from xz - plane (aka height)
+   -> Flt -- ^ outer radius
+   -> Flt -- ^ inner radius
+   -> Flt -- ^ maximum phi angle in [degrees]
+   -> Shape
+mkDisk h r0 r1 mp = Disk h ro ri mp' where
+   ro = max r0 r1
+   ri = min r0 r1
+   mp' = radians $ clamp mp 0 360
 
 -- | creates a sphere around the origin
 mkSphere
@@ -82,6 +90,27 @@ triangulate vs = concatMap tr' vs where
 
 intersect :: Shape -> Ray -> Maybe (Flt, DifferentialGeometry)
 
+intersect (Box pmin pmax) ray@(Ray o d tmin tmax) = testSlabs allDimensions tmin tmax undefined >>= go where
+   
+   go (t, axis) = Just (t, mkDg' p n) where
+      p = rayAt ray t
+      n = setComponent axis dir $ mkV (0, 0, 0)
+      dir = if p .! axis > half .! axis then 1 else -1
+      half = pmax - pmin
+
+   testSlabs :: [Dimension] -> Flt -> Flt -> Dimension -> Maybe (Flt, Dimension)
+   testSlabs [] n f dd
+      | n > f = Nothing
+      | otherwise = Just (n, dd)
+   testSlabs (dim:ds) near far dd
+      | near > far = Nothing
+      | otherwise = testSlabs ds (max near near') (min far far') (if near < near' then dim else dd) where
+    (near', far') = if tNear > tFar then (tFar, tNear) else (tNear, tFar)
+    tFar = (pmax .! dim - oc) * dInv
+    tNear = (pmin .! dim - oc) * dInv
+    oc = o .! dim
+    dInv = 1 / d .! dim
+    
 intersect (Cylinder r zmin zmax phimax) ray@(Ray ro rd tmin tmax) =
    solveQuadric a b c >>= intersectCylinder >>= \hp -> Just (params hp) where
       a = (vx rd) * (vx rd) + (vy rd) * (vy rd)
@@ -208,6 +237,8 @@ intersect (Triangle v1 v2 v3) r@(Ray ro rd tmin tmax)
       
 intersects :: Shape -> Ray -> Bool
 
+intersects (Box pmin pmax) r = isJust $ intersectAABB (mkAABB pmin pmax) r
+
 intersects (Cylinder r zmin zmax phimax) ray@(Ray ro rd tmin tmax) =
    maybe False intersectsCylinder (solveQuadric a b c) where
       a = (vx rd) * (vx rd) + (vy rd) * (vy rd)
@@ -292,6 +323,8 @@ worldBounds s t = transBox t (objectBounds s)
 objectBounds
    :: Shape -- ^ the shape to get the bounds for
    -> AABB -- ^ the bounds of the shape
+
+objectBounds (Box p1 p2) = mkAABB p1 p2
 
 objectBounds (Cylinder r z0 z1 _) = mkAABB p1 p2 where
    p1 = mkPoint nr nr z0

@@ -3,8 +3,6 @@
 # Test Scene for Shape Implementations
 #
 
-# metal
-
 filter mitchell 3.0 3.0 0.333333 0.333333
 filter box
 
@@ -13,14 +11,16 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 2 ySamples 2 }
-      integrator { path maxDepth 5 }
+      sampler { stratified xSamples 3 ySamples 3 }
+      integrator { path maxDepth 5 sampleDepth 3 }
    }
 }
 
+# renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
+
 transform {
    lookAt {
-      pos 0.0 6.0 -6.0
+      pos 0 6 -6
       look 0 0 0
       up 0 1 0
    }
@@ -28,7 +28,7 @@ transform {
 
 camera {
    perspective
-   fov 90
+   fov 30
    lensRadius 0
    focalDistance 10
 }
@@ -72,7 +72,7 @@ shape {
    v 3.0 15.7 3.0
    v -3.0 15.7 3.0
    v -3.0 15.7 -3.0
-   f 3 2 1 0
+   f 0 1 2 3
 }
 
 #
@@ -94,3 +94,6 @@ shape { cylinder radius 1 zmin -1 zmax 1 phiMax 360 }
 
 transform { translate 3 0 0 }
 shape { disk height 0 radius 1 innerRadius 0.5 phiMax 360 }
+
+transform { translate 3 0 0 }
+shape { box pmin -1 -1 -1 pmax 1 1 1 }

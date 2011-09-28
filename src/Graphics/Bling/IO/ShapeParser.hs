@@ -59,6 +59,11 @@ pShape = pBlock $ do
          patches <- many1 (try pBezierPatch)
          optional ws
          return $ tesselateBezierMesh subdivs patches
+
+      "box" -> do
+         pmin <- ws >> namedVector "pmin"
+         pmax <- ws >> namedVector "pmax"
+         return [mkBox pmin pmax]
          
       "cylinder" -> do
          r <- ws >> namedFloat "radius"

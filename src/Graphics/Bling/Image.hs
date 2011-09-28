@@ -114,6 +114,10 @@ splatSample (MImage w h _ p) (ImageSample sx sy (sw, ss))
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | sInfinite ss = trace ("not splatting infinite sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
+   | isNaN sw = trace ("not splatting NaN weight sample at ("
+      ++ show sx ++ ", " ++ show sy ++ ")") (return () )
+   | sInfinite ss = trace ("not splatting infinite weight sample at ("
+      ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | otherwise = {-# SCC "splatSample" #-} do
       (ow, oxyz, (ox, oy, oz)) <- unsafeRead p o
       unsafeWrite p o (ow, oxyz, (ox + dx, oy + dy, oz + dz))
