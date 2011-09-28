@@ -206,13 +206,13 @@ clamp :: Float -> Int
 clamp v = round ( min 1 (max 0 v) * 255 )
 
 rgbPixels :: Image -> Float -> SampleWindow -> [((Int, Int), (Int, Int, Int))]
-rgbPixels img spw w = Prelude.zip xs clamped where
+rgbPixels img@(Img w h _ _) spw wnd = Prelude.zip xs clamped where
    ps = map (getPixel img spw) os
    rgbs = map (gamma 2.2) ps
    clamped = map (\(r,g,b) -> (clamp r, clamp g, clamp b)) rgbs
-   xs = coverWindow w
+   xs = filter (\(x, y) -> x >= 0 && y >= 0 && x < w && y < h) $ coverWindow wnd
    os = map (\(x,y) -> (y * (imgW img)) + x) xs
-         
+
 -- | converts a @WeightedSpectrum@ into what's expected to be found in a ppm file
 ppmPixel :: (Float, Float, Float) -> String
 ppmPixel ws = (toString . gamma 2.2) ws

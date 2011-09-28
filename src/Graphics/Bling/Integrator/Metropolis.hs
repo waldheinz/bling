@@ -8,6 +8,7 @@ module Graphics.Bling.Integrator.Metropolis (
 import Control.Monad
 import Control.Monad.ST
 import Data.STRef
+import Data.IORef
 import Debug.Trace
 import qualified Data.Vector.Unboxed.Mutable as V
 import qualified Data.Vector.Mutable as MV
@@ -17,8 +18,8 @@ import Graphics.Bling.Camera
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Image
 import Graphics.Bling.Integrator
-import Graphics.Bling.Integrator.Path
 import Graphics.Bling.Integrator.BidirPath
+import Graphics.Bling.Integrator.DirectLighting
 import Graphics.Bling.Montecarlo
 import Graphics.Bling.Random as R
 import Graphics.Bling.Reflection
@@ -32,6 +33,7 @@ data Metropolis = MLT
    , _mpp      :: Flt -- ^ mutations per pixel
    , _nbootstrap :: Int
    , _plarge :: Flt
+   , _directSeparate    :: Bool -- ^ do direct lighting in separate pass
    }
 
 maxDepth :: Int
@@ -43,23 +45,28 @@ mkMLT
    -> Flt -- ^ plarge
    -> Metropolis
 mkMLT mpp nboot pl =
-   MLT (mkBidirPathIntegrator maxDepth maxDepth) mpp nboot pl
+   MLT (mkNoDirectBidirIntegrator maxDepth maxDepth) mpp nboot pl True
 
 instance Printable Metropolis where
-   prettyPrint (MLT integ mpp _ _) = PP.vcat [
+   prettyPrint (MLT integ mpp _ _ _) = PP.vcat [
       PP.text "metropolis light transport",
       PP.text "integrator" PP.<+> prettyPrint integ,
       PP.float mpp PP.<+> PP.text "mutations per pixel"]
 
 instance Renderer Metropolis where
-   render (MLT integ mpp nboot plarge) job report = {-# SCC "mlt.render" #-} pass img 1 1 where
+   render (MLT integ mpp nboot plarge directSep) job report = do
+      img <- if directSep
+                then runDirectLighting job report
+                else return $ mkJobImage job
+      {-# SCC "mlt.render" #-} pass img 1 1
+      where
       scene = jobScene job
-      img = mkJobImage job
+      
       sSmp :: Flt -> ImageSample -> ImageSample
       sSmp f (ImageSample x y (w, s)) = ImageSample x y (w * f * wt, s)
-      nPixels = imgW img * imgH img
+      nPixels = imageSizeX job * imageSizeY job
       wt = 1 / mpp
-      imgSize = (fromIntegral $ imgW img, fromIntegral $ imgH img)
+      imgSize = (fromIntegral $ imageSizeX job, fromIntegral $ imageSizeY job)
       nd = (sampleCount1D integ, sampleCount2D integ)
       pass i p b = {-# SCC "mlt.onePass" #-} do
             seed <- ioSeed
@@ -106,6 +113,29 @@ instance Renderer Metropolis where
             if cont
                then pass img' (p+1) bnext
                else return ()
+               
+runDirectLighting :: RenderJob -> (Progress -> IO Bool) -> IO Image
+runDirectLighting job report =
+   let
+      integrator = mkAnySurface $ mkDirectLightingIntegrator False
+      sampler = mkStratifiedSampler 8 8
+      renderer = mkSamplerRenderer sampler integrator
+   in do
+      imgRef <- newIORef Nothing
+      render renderer job $ \prog ->
+         case prog of
+           rs@(RegionStarted _) -> report rs
+           sa@(SamplesAdded _ _) -> report sa
+           (PassDone _s img _) -> do
+              writeIORef imgRef $ Just img
+              return False
+           x -> report x
+
+      result <- readIORef imgRef
+      case result of
+           Nothing -> error "direct lighting produced no image"
+           Just img -> return img
+                                       
 
 bootstrap :: (SurfaceIntegrator i)
    => Scene

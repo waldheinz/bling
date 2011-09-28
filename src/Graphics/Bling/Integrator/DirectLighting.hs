@@ -25,8 +25,8 @@ instance Printable DirectLighting where
    prettyPrint _ = PP.text "Direct Lighting" 
 
 instance SurfaceIntegrator DirectLighting where
-   sampleCount1D _ = 0
-   sampleCount2D _ = 0
+   sampleCount1D _ = 2
+   sampleCount2D _ = 2
    
    contrib (DirectLighting sa) s addSample r = do
       c <- directLighting sa s r >>= \is -> mkContrib is False
@@ -36,10 +36,10 @@ directLighting :: Bool -> Scene -> Ray -> Sampled m WeightedSpectrum
 directLighting _ s r@(Ray _ rd _ _) =
    maybe (return (0, black)) ls (s `intersect` r) where
       ls int = do
-         uln <- rnd
-         uld <- rnd2D
-         ubc <- rnd
-         ubd <- rnd2D
+         uln <- rnd' 0
+         uld <- rnd2D' 0
+         ubc <- rnd' 1
+         ubd <- rnd2D' 1
          let l = sampleOneLight s p n wo bsdf $ RLS uln uld ubc ubd 
          return (1, l + intLe int wo) where
             dg = intGeometry int
