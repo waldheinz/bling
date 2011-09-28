@@ -21,7 +21,7 @@ import Control.Monad.Primitive
 import Control.Monad.ST
 import Data.STRef
 import qualified Data.Vector as V
-import qualified Data.Vector.Unboxed.Mutable as MV
+import qualified Data.Vector.Generic.Mutable as MV
 import qualified System.Random.MWC as MWC
 
 type Rand2D = (Float, Float)
@@ -64,7 +64,7 @@ liftR :: ST s a -> Rand s a
 liftR m = Rand $ const m
 
 -- | shuffles the given mutable vector in-place
--- shuffle :: (MV.MVector v a) => v s a -> Rand s ()
+shuffle :: (MV.MVector v a) => v s a -> Rand s ()
 {-# INLINE shuffle #-}
 shuffle v = do
    forM_ [0..n-1] $ \i -> do
@@ -119,9 +119,9 @@ rnd2D = do
    u2 <- rnd
    return (u1, u2)
 
---------------------------------
+--------------------------------------------------------------------------------
 -- STRefs in Rand
-------------------------------------
+--------------------------------------------------------------------------------
 
 newRandRef :: a -> Rand s (STRef s a)
 {-# INLINE newRandRef #-}
@@ -138,4 +138,3 @@ writeRandRef r a = liftR $ writeSTRef r a
 modifyRandRef :: STRef s a -> (a -> a) -> Rand s ()
 {-# INLINE modifyRandRef #-}
 modifyRandRef r f = liftR $ modifySTRef r f
-

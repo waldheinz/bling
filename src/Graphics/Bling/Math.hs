@@ -9,7 +9,7 @@ module Graphics.Bling.Math (
    
    -- * Basic Functions
    
-   lerp, clamp, radians, solveQuadric, atan2',
+   lerp, remapRand, clamp, radians, solveQuadric, atan2',
    
    -- * Vectors
    
@@ -99,6 +99,17 @@ lerp :: Flt -> Flt -> Flt -> Flt
 {-# INLINE lerp #-}
 lerp t v1 v2 = (1 - t) * v1 + t * v2
 
+-- remaps a random variable in [0, 1) to a number of strata
+remapRand
+   :: Int -- ^ the number of strata to remap to
+   -> Flt -- ^ the variate to remap
+   -> (Int, Flt) -- ^ (selected stratum, remapped variate)
+{-# INLINE remapRand #-}
+remapRand segs u = (seg, u') where
+   seg = min (segs-1) (floor $ u * segs')
+   segs' = fromIntegral segs
+   u' = (u - fromIntegral seg / segs') * segs'
+
 -- | Calculate the roots of the equation a * x^2 + b * x + c = 0
 solveQuadric :: Flt -> Flt -> Flt -> Maybe (Flt, Flt)
 {-# INLINE solveQuadric #-}
@@ -129,9 +140,9 @@ sphericalPhi (Vector x y _)
    where
          p' = atan2 y x
 
---
+--------------------------------------------------------------------------------
 -- Vectors
---
+--------------------------------------------------------------------------------
 
 data Vector = Vector { vx, vy, vz :: {-# UNPACK #-} !Flt } deriving ( Eq )
 {-# INLINE vx #-}
@@ -246,9 +257,9 @@ faceForward v v2
    | v `dot` v2 < 0 = -v
    | otherwise = v
 
---
+--------------------------------------------------------------------------------
 -- Rays
---
+--------------------------------------------------------------------------------
 
 data Ray = Ray {
    rayOrigin :: {-# UNPACK #-} ! Point,
@@ -256,7 +267,6 @@ data Ray = Ray {
    rayMin :: {-# UNPACK #-} ! Flt,
    rayMax :: {-# UNPACK #-} ! Flt
    } deriving Show
-
 
 -- | Creates a ray that connects the two specified points.
 segmentRay :: Point -> Point -> Ray

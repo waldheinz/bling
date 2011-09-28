@@ -10,14 +10,13 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 6 ySamples 6 }
+      sampler { stratified xSamples 2 ySamples 2 }
       integrator { path maxDepth 7 sampleDepth 4 }
    }
 }
 
-
-renderer { sampler sampled { sampler { random samples 8 } integrator { bidir } } }
-
+# renderer { sampler sampled { sampler { random samples 8 } integrator { bidir maxDepth 7 sampleDepth 4 } } }
+# renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 
 transform {
    lookAt {
@@ -93,9 +92,10 @@ emission { rgb 10 4 2 }
 transform {
    identity
  #  translate 0 -4 0
-   rotateX -45
-   translate 0 5 0
+ #  rotateX -45
+   translate 0 2 0
 }
 
 # shape { cylinder radius 2 zmin -8 zmax 8 phiMax 360 }
-shape { disk height 0 radius 6 innerRadius 5 phiMax 360 }
+# shape { disk height 0 radius 6 innerRadius 5 phiMax 360 }
+shape { box pmin -2 -2 -2 pmax 2 2 2 }

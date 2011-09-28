@@ -15,7 +15,7 @@ module Graphics.Bling.Shape (
    objectBounds, worldBounds, intersect, intersects
    ) where
 
-import Data.List (foldl', foldl1')
+import Data.List (foldl')
 import Data.Maybe
 
 import Graphics.Bling.DifferentialGeometry
@@ -90,13 +90,13 @@ triangulate vs = concatMap tr' vs where
 
 intersect :: Shape -> Ray -> Maybe (Flt, DifferentialGeometry)
 
-intersect (Box pmin pmax) ray@(Ray o d tmin tmax) = testSlabs allDimensions tmin tmax undefined >>= go where
+intersect (Box pmin pmax) ray@(Ray o d tmin tmax) = testSlabs allDimensions tmin tmax 0 >>= go where
    
    go (t, axis) = Just (t, mkDg' p n) where
       p = rayAt ray t
       n = setComponent axis dir $ mkV (0, 0, 0)
-      dir = if p .! axis > half .! axis then 1 else -1
-      half = pmax - pmin
+      dir = if (p .! axis) > half then 1 else -1
+      half = (pmin .! axis + pmax .! axis) / 2
 
    testSlabs :: [Dimension] -> Flt -> Flt -> Dimension -> Maybe (Flt, Dimension)
    testSlabs [] n f dd
@@ -346,6 +346,11 @@ objectBounds (Triangle v1 v2 v3) = foldl' extendAABBP emptyAABB pl where
 area
    :: Shape -- ^ the @Shape@ to get the surface area for
    -> Flt -- ^ the surface area of that @Shape@
+area (Box pmin pmax) = 2 * (h*w + h*l + w*l) where
+   (h, w, l) = (pmax .! dimX - pmin .! dimX,
+                pmax .! dimY - pmin .! dimY,
+                pmax .! dimZ - pmin .! dimZ)
+
 area (Cylinder r z0 z1 _) = 2 * pi * r * h where
    h = z1 - z0
 area (Disk _ rmax rmin _) = pi * (rmax2 - rmin2) where
@@ -401,6 +406,16 @@ sample'
    -> Rand2D
    -> (Point, Normal)
 
+sample' (Box pmin pmax) (u1, u2) = (p, n) where
+   (axis, u1') = remapRand 3 u1
+   (nf, u2') = remapRand 2 u2
+   n = setComponent axis ((fromIntegral nf * 2 - 1)) $ mkV (0, 0, 0)
+   (oa0, oa1) = ((axis + 1) `mod` 3, (axis + 2) `mod` 3)
+   
+   p = setComponent oa0 (lerp u1' (pmin .! oa0) (pmax .! oa0)) $
+       setComponent oa1 (lerp u2' (pmin .! oa1) (pmax .! oa1)) $
+       if nf == 0 then pmin else pmax
+   
 sample' (Cylinder r z0 z1 _) (u1, u2) = (p, n) where
    p = mkPoint (r * cos phi) (r * sin phi) z
    z = lerp u1 z0 z1
