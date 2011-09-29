@@ -156,6 +156,7 @@ sample
 
 sample (Infinite r dist w2l) p _ us
    | mapPdf == 0 = LightSample black (mkV (0,1,0)) (error "empty light sample") 0 False
+   | sint == 0 = LightSample black (mkV (0,1,0)) (error "empty light sample") 0 False
    | otherwise = LightSample ls wi ray pd False
    where
       (uv, mapPdf) = sampleContinuous2D dist us
@@ -163,9 +164,9 @@ sample (Infinite r dist w2l) p _ us
       sphDir = cartToSph uv
       wi = transVector (inverse w2l) $ sphToDir $ sphDir
       ray = Ray p wi epsilon infinity
-      pd = mapPdf / (2 * pi * pi * sphSinTheta sphDir)
+      sint = sphSinTheta sphDir
+      pd = mapPdf / (2 * pi * pi * sint)
       
-
 sample (Directional r d) p n _ = lightSampleD r d p n
 sample (PointLight r pos) p _ _ = LightSample r' wi ray 1 True where
    r' = sScale r (1 / sqLen (pos - p))
@@ -202,6 +203,9 @@ sample (Sun dir r) p n us = LightSample r' d ray pd False where
    ray = Ray p d epsilon infinity
    pd = uniformConePdf sunThetaMax
 
+emptySample' :: (Spectrum, Ray, Normal, Flt)
+emptySample' = (black, Ray (mkV (0, 0, 0)) (mkV (0, 1, 0)) 0 0, mkV (0, 1, 0), 0)
+
 -- | samples an outgoing @Ray@ from a light source
 sample'
    :: Light -- ^ the light to sample the ray from
@@ -218,22 +222,25 @@ sample' (AreaLight _ s r _ _) _ uo ud = (r, ray, ns, pd) where
    dir = if ns `dot` dir' < 0 then -dir' else dir'
    ray = Ray org dir 1e-2 infinity
 
-sample' (Infinite rmap dist w2l) bounds uo ud = (ls, ray, d, pd) where
-   -- find sample coordinates
-   (uv, pdMap) = sampleContinuous2D dist ud
-   ls = texMapEval rmap uv
-   sphDir = cartToSph uv
-   d = transVector (inverse w2l) $ sphToDir $ sphDir
-   -- find Ray
-   (worldCenter, worldRad) = boundingSphere bounds
-   (LocalCoordinates v1 v2 _) = coordinateSystem (-d)
-   (d1, d2) = concentricSampleDisk uo
-   pDisk = worldCenter + vpromote worldRad * (vpromote d1 * v1 + vpromote d2 * v2)
-   ray = Ray (pDisk + vpromote worldRad * (-d)) d 0 infinity
-   -- find PDF
-   pdDir = pdMap / (2 * pi * pi * sphSinTheta sphDir)
-   pdArea = 1 / (pi * worldRad * worldRad)
-   pd = pdDir * pdArea
+sample' (Infinite rmap dist w2l) bounds uo ud
+   | pdMap == 0 = emptySample'
+   | otherwise = (ls, ray, d, pd) where
+      -- find sample coordinates
+      (uv, pdMap) = sampleContinuous2D dist ud
+      ls = texMapEval rmap uv
+      sphDir = cartToSph uv
+      d = transVector (inverse w2l) $ sphToDir $ sphDir
+      -- find Ray
+      (worldCenter, worldRad) = boundingSphere bounds
+      (LocalCoordinates v1 v2 _) = coordinateSystem (-d)
+      (d1, d2) = concentricSampleDisk uo
+      pDisk = worldCenter + vpromote worldRad * (vpromote d1 * v1 + vpromote d2 * v2)
+      ray = Ray (pDisk + vpromote worldRad * (-d)) d 0 infinity
+      -- find PDF
+      sint = sphSinTheta sphDir
+      pdDir = pdMap / (2 * pi * pi * sint)
+      pdArea = 1 / (pi * worldRad * worldRad)
+      pd = if sint == 0 then 0 else pdDir * pdArea
 
 pdf :: Light -- ^ the light to compute the pdf for
     -> Point -- ^ the point from which the light is viewed

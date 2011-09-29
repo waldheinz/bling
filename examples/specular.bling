@@ -12,12 +12,12 @@ imageSize 320 240
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 5 ySamples 5 }
+      sampler { stratified xSamples 2 ySamples 2 }
       integrator { path maxDepth 7 sampleDepth 3 }
    }
 }
 
-renderer { metropolis  mpp 1 bootstrap 5000 plarge 0.25 separateDirect }
+# renderer { metropolis  mpp 1 bootstrap 5000 plarge 0.25 separateDirect }
 
 transform {
    lookAt {
@@ -66,7 +66,7 @@ shape {
 
 light {
    infinite
-   l { constant temp 2000 }
+   l { constant rgb 1 1 1 }
 #   sunSky
 #   up 0 1 0
 #   east 1 0 0
