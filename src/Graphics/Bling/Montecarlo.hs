@@ -4,7 +4,7 @@ module Graphics.Bling.Montecarlo (
    -- * 1D and 2D Distributions
 
    Dist1D, mkDist1D, sampleDiscrete1D, sampleContinuous1D,
-   Dist2D, mkDist2D, sampleContinuous2D,
+   Dist2D, mkDist2D, sampleContinuous2D, pdfDist2D,
    
    -- * MIS Combination Strategies
    
@@ -29,7 +29,7 @@ import Graphics.Bling.Random
 --------------------------------------------------------------------------------
 
 data Dist1D = MkDist1D {
-   _func    :: V.Vector Flt,
+   distFunc :: V.Vector Flt,
    _cdf     :: V.Vector Flt,
    funcInt  :: Flt
    }
@@ -83,19 +83,30 @@ data Dist2D = MkDist2D
                   
 -- | creates a 2D distribution
 mkDist2D
-   :: (PixelPos -> Flt)   -- ^ lookup function
-   -> PixelSize         -- ^ area to cover
+   :: PixelSize         -- ^ area to cover
+   -> (PixelPos -> Flt) -- ^ evaluation function
    -> Dist2D
-mkDist2D fun (nu, nv) = MkDist2D conditional marginal where
+mkDist2D (nu, nv) fun = MkDist2D conditional marginal where
    conditional = BV.generate nv $ \v ->
       mkDist1D [fun (u, v) | u <- [0..nu-1]]
    marginal = mkDist1D' $ GV.map funcInt conditional
    mkDist1D' x = mkDist1D $ GV.toList x
 
-sampleContinuous2D :: Dist2D -> Rand2D -> ((Flt, Flt), Flt)
-sampleContinuous2D (MkDist2D cond marg) (u0, u1) = ((u, v), pdf0 * pdf1) where
+sampleContinuous2D :: Dist2D -> Rand2D -> (CartesianCoords, Flt)
+sampleContinuous2D (MkDist2D cond marg) (u0, u1) = (Cartesian (u, v), pdf0 * pdf1) where
    (v, pdf1, imarg) = sampleContinuous1D marg u1
    (u, pdf0, _) = sampleContinuous1D (cond BV.! imarg) u0
+
+pdfDist2D :: Dist2D -> CartesianCoords -> Flt
+pdfDist2D (MkDist2D cond marg) (Cartesian (u, v))
+   | funcInt marg * funcInt (cond BV.! iv) == 0 = 0
+   | otherwise = (distFunc (cond BV.! iv) V.! iu * distFunc marg V.! iv) /
+                 (funcInt (cond BV.! iv) * funcInt marg)
+   where
+      iu' = floor $ u * (fromIntegral $ count $ cond BV.! 0)
+      iu = max 0 $ min (count (cond BV.! 0) - 1) iu'
+      iv' = floor $ v * (fromIntegral $ count marg)
+      iv = max 0 $ min (count marg - 1) iv'
 
 --------------------------------------------------------------------------------
 -- MIS combination strategies

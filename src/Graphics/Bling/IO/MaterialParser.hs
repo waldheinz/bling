@@ -1,6 +1,6 @@
 
 module Graphics.Bling.IO.MaterialParser (
-   defaultMaterial, pMaterial
+   defaultMaterial, pMaterial, pSpectrumMap, namedSpectrumMap
    ) where
 
 import Text.ParserCombinators.Parsec
@@ -158,3 +158,20 @@ pSpectrumTexture = namedBlock $ do
          
       _ -> fail ("unknown texture type " ++ tp)
 
+--------------------------------------------------------------------------------
+-- Texture Maps
+--------------------------------------------------------------------------------
+
+namedSpectrumMap :: String -> JobParser SpectrumMap
+namedSpectrumMap n = string n >> ws >> pSpectrumMap
+
+pSpectrumMap :: JobParser SpectrumMap
+pSpectrumMap = pBlock $ do
+   tp <- pString
+   ws >> case tp of
+              "constant" -> do
+                 s <- pSpectrum
+                 return $ constSpectrumMap s
+                 
+              _ -> fail $ "unknown map type " ++ tp
+   

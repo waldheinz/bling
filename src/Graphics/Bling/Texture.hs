@@ -3,6 +3,7 @@ module Graphics.Bling.Texture (
    -- * Texture Types
    
    Texture, SpectrumTexture, ScalarTexture, TextureMapping3d,
+   TextureMap(..), SpectrumMap, constSpectrumMap,
    
    -- * Texture Mappings
 
@@ -19,7 +20,7 @@ import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Spectrum
 
 --------------------------------------------------------------------------------
--- Texture Types
+-- textures and texture maps
 --------------------------------------------------------------------------------
 
 -- | A @Texture@ transforms a @DifferentialGeomerty@ to some value
@@ -30,6 +31,16 @@ type ScalarTexture = Texture Flt
 
 type TextureMapping3d = DifferentialGeometry -> (Flt, Flt, Flt)
 
+data TextureMap a = TexMap
+   { texMapEval   :: CartesianCoords -> a
+   , texMapAvg    :: a
+   , texSize      :: PixelSize
+   }
+
+type SpectrumMap = TextureMap Spectrum
+
+constSpectrumMap :: Spectrum -> SpectrumMap
+constSpectrumMap x = TexMap (const x) x (1, 1)
 
 --------------------------------------------------------------------------------
 -- Texture Mappings

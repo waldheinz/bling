@@ -18,6 +18,7 @@ module Graphics.Bling.Math (
    Normal, mkNormal, Point, mkPoint,
    Dimension, allDimensions, setComponent, (.!), dominant, dimX, dimY, dimZ,
    sphericalDirection, sphericalTheta, sphericalPhi, faceForward,
+   sphToDir, dirToSph, sphSinTheta,
    
    -- * Rays
    
@@ -127,6 +128,20 @@ solveQuadric a b c
 sphericalDirection :: Flt -> Flt -> Flt -> Vector
 {-# INLINE sphericalDirection #-}
 sphericalDirection sint cost phi = Vector (sint * cos phi) (sint * sin phi) cost
+
+-- | converts from spherical coordinates to a direction vector
+sphToDir :: SphericalCoords -> Vector
+{-# INLINE sphToDir #-}
+sphToDir (Spherical (p, t)) = sphericalDirection (sin t) (cos t) p
+
+dirToSph :: Vector -> SphericalCoords
+{-# INLINE dirToSph #-}
+dirToSph v = Spherical (sphericalPhi v, sphericalTheta v)
+
+-- | returns the sine of the theta component of @SphericalCoords@
+sphSinTheta :: SphericalCoords -> Flt
+{-# INLINE sphSinTheta #-}
+sphSinTheta (Spherical (_, t)) = sin t
 
 sphericalTheta :: Vector -> Float
 {-# INLINE sphericalTheta #-}

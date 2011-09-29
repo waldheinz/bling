@@ -3,7 +3,7 @@
 module Graphics.Bling.Light (
    
    -- * Creating Light sources
-   Light, mkPointLight, mkDirectional, mkAreaLight,
+   Light, mkPointLight, mkDirectional, mkAreaLight, mkInfiniteAreaLight,
    mkSunSkyLight,
 
    -- * Working with light sources
@@ -16,19 +16,22 @@ import Graphics.Bling.Montecarlo
 import Graphics.Bling.Random
 import qualified Graphics.Bling.Shape as S
 import Graphics.Bling.Spectrum
+import Graphics.Bling.Texture
 import Graphics.Bling.Transform
-import Debug.Trace
 
 data LightSample = LightSample {
-   de :: Spectrum, -- ^ differential irradiance
-   lightSampleWi :: Vector, -- ^ incident direction
-   testRay :: Ray, -- ^ for visibility test
-   lightSamplePdf :: Float,
-   lightSampleDelta :: Bool -- ^ does that light employ a delta-distributuion?
+   de                :: Spectrum,   -- ^ differential irradiance
+   lightSampleWi     :: Vector,     -- ^ incident direction
+   testRay           :: Ray,        -- ^ for visibility test
+   lightSamplePdf    :: Float,      -- ^ the PDF for this sample
+   lightSampleDelta  :: Bool        -- ^ does that light employ a delta-distributuion?
    }
 
 data Light
-   = SoftBox ! Spectrum -- ^ an infinite area light surrounding the whole scene
+   = Infinite
+      { _infRadiance :: SpectrumMap
+      , _infDis      :: Dist2D
+      , _infw2l      :: Transform }
    | Directional !Spectrum !Normal
    | PointLight !Spectrum !Point
    | AreaLight {
@@ -70,6 +73,16 @@ mkAreaLight
    -> Light -- ^ the resulting @Light@
 mkAreaLight s r t lid = AreaLight lid s r t (inverse t)
 
+mkInfiniteAreaLight
+   :: SpectrumMap
+   -> Transform
+   -> Light
+mkInfiniteAreaLight rmap t = Infinite rmap dist t where
+   dist = mkDist2D (texSize rmap) eval
+   (sx, sy) = (\(ix, iy) -> (fromIntegral ix, fromIntegral iy)) $ texSize rmap
+   eval (x, y) = sY $ texMapEval rmap p where
+      p = Cartesian (fromIntegral x / sx, fromIntegral y / sy)
+      
 -- | creates the Perez sun/sky model
 mkSunSkyLight
    :: Vector -- ^ the up vector
@@ -103,7 +116,9 @@ le :: Light -> Ray -> Spectrum
 le (AreaLight _ _ _ _ _) _ = black
 le (Directional _ _) _ = black
 le (PointLight _ _) _ = black
-le (SoftBox r) _ = r
+le (Infinite rmap _ w2l) ray = texMapEval rmap $ sphToCart sphDir where
+   sphDir = dirToSph wh
+   wh = normalize $ transVector w2l $ rayDir ray
 le (Sky basis ssd) r = skySpectrum ssd d where
    d = normalize $ worldToLocal basis (rayDir r)
 le (Sun sd r) ray
@@ -118,7 +133,7 @@ sunThetaMax = sqrt $ max 0 (1 - sint2) where
    radius = 6.955e5 -- km
    meanDistance = 1.496e8 -- 149,60 million km
 
--- | computes the power of a light source
+-- | computes the total power of a light source
 power
    :: Light -- ^ the light to get the power for
    -> AABB -- ^ the bounds of the area illuminated by this light
@@ -126,10 +141,10 @@ power
 
 power (AreaLight _ s r _ _) _ = sScale r ((S.area s) * pi)
 power (Directional r _) b = sScale r $ pi * radius * radius where
-   (_, radius) = boundingSphere b
+   radius = snd $ boundingSphere b
 power (PointLight r _) _ = sScale r $ 4 * pi
-power (SoftBox r) b = sScale r $ pi * wr * wr where
-   (_, wr) = boundingSphere b
+power (Infinite r _ _) b = sScale (texMapAvg r) $ pi * wr * wr where
+   wr = snd $ boundingSphere b
 
 -- | samples one light source
 sample
@@ -138,7 +153,19 @@ sample
    -> Normal -- ^ the surface normal in world space from where the light is viewed
    -> Rand2D -- ^ the random value for sampling the light
    -> LightSample -- ^ the computed @LightSample@
-sample (SoftBox r) p n us = lightSampleSB r p n us
+
+sample (Infinite r dist w2l) p _ us
+   | mapPdf == 0 = LightSample black (mkV (0,1,0)) (error "empty light sample") 0 False
+   | otherwise = LightSample ls wi ray pd False
+   where
+      (uv, mapPdf) = sampleContinuous2D dist us
+      ls = texMapEval r uv
+      sphDir = cartToSph uv
+      wi = transVector (inverse w2l) $ sphToDir $ sphDir
+      ray = Ray p wi epsilon infinity
+      pd = mapPdf / (2 * pi * pi * sphSinTheta sphDir)
+      
+
 sample (Directional r d) p n _ = lightSampleD r d p n
 sample (PointLight r pos) p _ _ = LightSample r' wi ray 1 True where
    r' = sScale r (1 / sqLen (pos - p))
@@ -184,7 +211,7 @@ sample'
    -> (Spectrum, Ray, Normal, Flt)
       -- ^ (radiance, outgoing ray, normal at light source, PDF)
 
-sample' (AreaLight _ s r l2w w2l) _ uo ud = (r, ray, ns, pd) where
+sample' (AreaLight _ s r _ _) _ uo ud = (r, ray, ns, pd) where
    (org, ns) = S.sample' s uo
    pd = invTwoPi * S.pdf' s org
    dir' = uniformSampleSphere ud
@@ -195,20 +222,19 @@ pdf :: Light -- ^ the light to compute the pdf for
     -> Point -- ^ the point from which the light is viewed
     -> Vector -- ^ the wi vector
     -> Float -- ^ the computed pdf value
-pdf (SoftBox _) _ _ = undefined
+    
+pdf (Infinite _ dist w2l) _ wiW
+   | sint == 0 = 0
+   | otherwise = pdfDist2D dist (sphToCart sph) / (2 * pi * pi * sint)
+   where
+      sint = sphSinTheta sph
+      sph = dirToSph $ transVector w2l wiW
+
 pdf (Directional _ _) _ _ = 0 -- zero chance to find the direction by sampling
 pdf (AreaLight _ ss _ _ t) p wi = S.pdf ss (transPoint t p) (transVector t wi)
 pdf (PointLight _ _) _ _ = 0
 pdf (Sky _ _) _ _ = 1 / (4 * pi) -- invTwoPi
 pdf (Sun _ _) _ _ = uniformConePdf sunThetaMax
-
-lightSampleSB :: Spectrum -> Point -> Normal -> Rand2D -> LightSample
-lightSampleSB r pos n us = LightSample r (toWorld lDir) (ray $ toWorld lDir) (p lDir) False
-   where
-      lDir = cosineSampleHemisphere us
-      ray dir = Ray pos dir epsilon infinity
-      p (Vector _ _ z) = invPi * z
-      toWorld = localToWorld (coordinateSystem n)
 
 lightSampleD :: Spectrum -> Normal -> Point -> Normal -> LightSample
 lightSampleD r d pos n = LightSample y d ray 1.0 True where

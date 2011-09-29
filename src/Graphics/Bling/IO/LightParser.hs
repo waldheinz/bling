@@ -5,6 +5,7 @@ import Text.ParserCombinators.Parsec
 
 import Graphics.Bling.Light
 import Graphics.Bling.IO.ParserCore
+import Graphics.Bling.IO.MaterialParser
 
 --
 -- parsing light sources
@@ -16,12 +17,19 @@ pLight = pBlock $ do
    ws
    ls <- case t of
       "directional"  -> pDirectionalLight
+      "infinite"     -> pInfiniteArea
       "point"        -> pPointLight
       "sunSky"       -> pSunSkyLight
       _              -> fail $ "unknown light type " ++ t
 
    s <- getState
    setState s { lights = ls ++ (lights s) }
+
+pInfiniteArea :: JobParser [Light]
+pInfiniteArea = do
+   l <- namedSpectrumMap "l"
+   s <- getState
+   return $ [mkInfiniteAreaLight l (transform s)]
 
 pSunSkyLight :: JobParser [Light]
 pSunSkyLight = do
