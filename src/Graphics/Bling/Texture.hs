@@ -35,12 +35,22 @@ type TextureMapping3d = DifferentialGeometry -> (Flt, Flt, Flt)
 -- Texture Mappings
 --------------------------------------------------------------------------------
 
-identityMapping3d :: Transform -> TextureMapping3d
+-- | maps world-space points to texture space using a @Transform@
+identityMapping3d
+   :: Transform -- ^ the world-to-texture transformation
+   -> TextureMapping3d
 identityMapping3d w2t dg = (x, y, z) where
    (Vector x y z) = transPoint w2t $ dgP dg
 
-constant :: a -> Texture a
+-- | a constant texture, always returning the same value
+constant
+   :: a -- the value of the texture
+   -> Texture a
 constant r _ = r
+
+--------------------------------------------------------------------------------
+-- Textures
+--------------------------------------------------------------------------------
 
 scaleTexture :: (Num a) => a -> Texture a -> Texture a
 scaleTexture s t dg = s * (t dg)
