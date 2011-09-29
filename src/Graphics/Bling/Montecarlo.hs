@@ -1,7 +1,10 @@
 
 module Graphics.Bling.Montecarlo (
-   -- * 1D Distributions
-   Dist1D, mkDist1D, sampleDiscrete,
+   
+   -- * 1D and 2D Distributions
+
+   Dist1D, mkDist1D, sampleDiscrete1D, sampleContinuous1D,
+   Dist2D, mkDist2D, sampleContinuous2D,
    
    -- * MIS Combination Strategies
    
@@ -14,59 +17,89 @@ module Graphics.Bling.Montecarlo (
    uniformSampleHemisphere, uniformSampleTriangle
    ) where
 
-import Data.Maybe (fromJust, isJust)
 import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Generic as GV
+import qualified Data.Vector as BV
 
 import Graphics.Bling.Math
 import Graphics.Bling.Random
 
---
+--------------------------------------------------------------------------------
 -- 1D - distribution
---
+--------------------------------------------------------------------------------
 
-data (V.Unbox a) => Dist1D a = MkDist1D {
-   _func :: V.Vector a,
-   _cdf :: V.Vector a,
-   _funcInt :: a
+data Dist1D = MkDist1D {
+   _func    :: V.Vector Flt,
+   _cdf     :: V.Vector Flt,
+   funcInt  :: Flt
    }
 
-instance (Show a, V.Unbox a) => Show (Dist1D a) where
-   show (MkDist1D f _ _) = "mkDist1D " Prelude.++ show (V.toList f)
-
-integ :: (Fractional a) => [a] -> (a, [a])
+integ :: (Num a) => [a] -> (a, [a])
 integ vs = (sm, Prelude.tail int) where
    (sm, int, _) = integ' (0, [], vs)
    integ' (s, is, []) = (s, is Prelude.++ [s], [])
-   integ' (s, is, (f:fs)) = integ' (s + f, is Prelude.++ [s], fs)
+   integ' (s, is, f:fs) = integ' (s + f, is Prelude.++ [s], fs)
 
-mkDist1D :: (Fractional a, V.Unbox a, Enum a) => [a] -> Dist1D a
+mkDist1D :: [Flt] -> Dist1D
 mkDist1D ls = MkDist1D f (V.fromList c) fi where
    f = V.fromList ls
    (fi, i) = integ ls
    cnt = V.length f
-   c = 0.0 : if fi == 0
-      then Prelude.take cnt (Prelude.map (/fromIntegral cnt) [1.0..])
+   c = 0 : if fi == 0
+      then Prelude.take cnt (Prelude.map (/fromIntegral cnt) [1..])
       else Prelude.map (/fi) i
 
-count :: (V.Unbox a) => Dist1D a -> Int
+count :: Dist1D -> Int
 count (MkDist1D f _ _) = V.length f
 
-upperBound :: (Ord a, V.Unbox a) => V.Vector a -> a -> Int
-upperBound v u = if isJust i then fromJust i - 1 else V.length v - 1 where
-   i = V.findIndex (>= u) v
+upperBound :: V.Vector Flt -> Flt -> Int
+upperBound v u = max 0 $ maybe (V.length v - 1) (\i -> i - 1) $ V.findIndex (>= u) v
 
-sampleDiscrete :: (Fractional a, V.Unbox a, Ord a) => Dist1D a -> a -> (Int, a)
-sampleDiscrete d@(MkDist1D f c fi) u
-   | u < 0 = error "u < 0"
-   | u >= 1 = error "u >= 1"
+sampleDiscrete1D
+   :: Dist1D      -- ^ the distribution to sample
+   -> Flt         -- ^ the variate for sampling, must be in [0..1)
+   -> (Int, Flt)  -- ^ (sampled offset, pdf)
+sampleDiscrete1D d@(MkDist1D f c fi) u
+   | u < 0 = error "sampleDiscrete1D : u < 0"
+   | u >= 1 = error "sampleDiscrete1D : u >= 1"
    | otherwise = (offset, pdf) where
       offset = upperBound c u
       pdf = V.unsafeIndex f offset / (fi * fromIntegral (count d))
 
+sampleContinuous1D :: Dist1D -> Flt -> (Flt, Flt, Int)
+sampleContinuous1D (MkDist1D func cdf fi) u = (x, pdf, offset) where
+   offset = upperBound cdf u
+   pdf = if fi == 0 then 0 else (func V.! offset) / fi
+   rel = if cdf V.! (offset + 1) == 0
+            then 0
+            else (cdf V.! offset) / (cdf V.! (offset + 1))
+   du = u - rel - (cdf V.! offset)
+   x = (fromIntegral offset + du) / fromIntegral (V.length func)
 
---
+-- | a 2D distribution
+data Dist2D = MkDist2D
+                (BV.Vector Dist1D) -- conditional
+                Dist1D -- marginal
+                  
+-- | creates a 2D distribution
+mkDist2D
+   :: (PixelPos -> Flt)   -- ^ lookup function
+   -> PixelSize         -- ^ area to cover
+   -> Dist2D
+mkDist2D fun (nu, nv) = MkDist2D conditional marginal where
+   conditional = BV.generate nv $ \v ->
+      mkDist1D [fun (u, v) | u <- [0..nu-1]]
+   marginal = mkDist1D' $ GV.map funcInt conditional
+   mkDist1D' x = mkDist1D $ GV.toList x
+
+sampleContinuous2D :: Dist2D -> Rand2D -> ((Flt, Flt), Flt)
+sampleContinuous2D (MkDist2D cond marg) (u0, u1) = ((u, v), pdf0 * pdf1) where
+   (v, pdf1, imarg) = sampleContinuous1D marg u1
+   (u, pdf0, _) = sampleContinuous1D (cond BV.! imarg) u0
+
+--------------------------------------------------------------------------------
 -- MIS combination strategies
---
+--------------------------------------------------------------------------------
 
 -- | a combination strategy for multiple importance sampling
 type MisHeuristic = (Int, Flt) -> (Int, Flt) -> Flt
@@ -97,8 +130,8 @@ uniformSampleCone (LocalCoordinates x y z) cosThetaMax (u1, u2) = let
    phi = u2 * twoPi
    in
       (
-      x * vpromote ((cos phi) * sinTheta) +
-      y * vpromote ((sin phi) * sinTheta) +
+      x * vpromote (cos phi * sinTheta) +
+      y * vpromote (sin phi * sinTheta) +
       z * vpromote cosTheta
       )
 

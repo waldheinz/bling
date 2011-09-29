@@ -28,7 +28,7 @@ data LightSample = LightSample {
    }
 
 data Light
-   = SoftBox ! Spectrum -- ^ an infinite area light surrounding the whole scene, emitting a constant amount of light from all directions.
+   = SoftBox ! Spectrum -- ^ an infinite area light surrounding the whole scene
    | Directional !Spectrum !Normal
    | PointLight !Spectrum !Point
    | AreaLight {

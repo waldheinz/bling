@@ -164,7 +164,7 @@ bootstrap scene n integ imgSize nd = {-# SCC "bootstrap" #-} do
 
    -- select initial sample from bootstrap samples
    smpDist <- mkDist1D `liftM` readRandRef is
-   smpOff <- (sampleDiscrete smpDist) `liftM` R.rnd
+   smpOff <- (sampleDiscrete1D smpDist) `liftM` R.rnd
    smp <- liftR $ MV.read smps $ fst smpOff
   -- smp <- initialSample imgSize nd
    return (sumI / fromIntegral n, smp)

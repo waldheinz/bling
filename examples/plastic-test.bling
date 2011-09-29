@@ -10,9 +10,11 @@ renderer {
    sampler
    sampled {
       sampler { stratified xSamples 4 ySamples 4 }
-      integrator { path maxDepth 7 }
+      integrator { path maxDepth 7 sampleDepth 4 }
    }
 }
+
+renderer { metropolis mpp 1 bootstrap 1000 plarge 0.25 separateDirect }
 
 transform {
    lookAt {
@@ -60,7 +62,7 @@ emission { temp 3100 }
 
 transform {
    identity
-   scale 5.0 1.0 5.0
+#   scale 5.0 1.0 5.0
    translate 0.0 5.0 0.0
 }
 
@@ -72,7 +74,7 @@ shape {
    v 2.0 15.7 2.0
    v -2.0 15.7 2.0
    v -2.0 15.7 -2.0
-   f 3 2 1 0
+   f 0 1 2 3
 }
 
 emission { none }

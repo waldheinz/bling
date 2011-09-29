@@ -4,7 +4,7 @@
 #
 
 renderer { sampler sampled { sampler { random samples 4 } integrator { path maxDepth 5 sampleDepth 3 } } }
-# renderer { metropolis  passCount 10 mutations 200000 bootstrap 10000 plarge 0.25 }
+renderer { metropolis  mpp 1 bootstrap 1000 plarge 0.25 separateDirect }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
 
