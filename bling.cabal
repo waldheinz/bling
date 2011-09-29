@@ -74,6 +74,7 @@ Library
       Graphics.Bling.IO.ParserCore,
       Graphics.Bling.IO.RenderJob,
       Graphics.Bling.IO.RendererParser,
+      Graphics.Bling.IO.RGBE,
       Graphics.Bling.IO.ShapeParser,
       Graphics.Bling.IO.TransformParser,
       Graphics.Bling.Material.Lafortune,
