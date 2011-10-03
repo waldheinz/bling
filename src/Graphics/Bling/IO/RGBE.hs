@@ -3,9 +3,20 @@ module Graphics.Bling.IO.RGBE (
    -- * RGBE image format support
    ) where
    
-   
+
+import qualified Data.Vector.Generic as GV
+import qualified Data.Vector.Unboxed as V 
+import Data.Vector.Unboxed.Mutable as MV
+import qualified Data.ByteString.Lazy as BS
+import qualified Data.ByteString.Internal as BSI
+import qualified Data.ByteString.Lazy.Char8 as L8
+import Data.Char as C
+
+import Graphics.Bling.Types
 
 type RGBEHeader = (PixelSize)
+
+
 
 parseRGBEHeader :: BS.ByteString -> (BS.ByteString, Maybe RGBEHeader)
 parseRGBEHeader bs = (rest, Just size) where
