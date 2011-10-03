@@ -9,9 +9,14 @@ module Graphics.Bling.Image (
    
    mkMImage, addSample, splatSample, addContrib,
    
-   imageWidth, imageHeight, imageWindow, writePpm, writeRgbe,
+   imageWidth, imageHeight, imageWindow, writePpm, 
    
-   thaw, freeze
+   thaw, freeze,
+
+   -- * Reading and Writing RGBE
+
+   writeRgbe
+   
    ) where
 
 import Control.Monad
@@ -21,15 +26,19 @@ import Debug.Trace
 import qualified Data.Vector.Generic as GV
 import qualified Data.Vector.Unboxed as V 
 import Data.Vector.Unboxed.Mutable as MV
-import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BS
+import qualified Data.ByteString.Internal as BSI
+import qualified Data.ByteString.Lazy.Char8 as L8
+import Data.Char as C
 import System.IO
 
 import Graphics.Bling.Filter
 import Graphics.Bling.Sampling
 import Graphics.Bling.Spectrum
+import Graphics.Bling.Types
 
--- | an image pixel, which consists of the sample weight, the sample XYZ value
---   and the XYZ value of the splatted samples
+-- | an image pixel, which consists of the sample weight, the sample RGB value
+--   and the RGB value of the splatted samples
 type Pixel = (Float, (Float, Float, Float), (Float, Float, Float))
 
 -- | an mutable image has a width, a height and some pixels 
@@ -90,7 +99,6 @@ imageWindow' (Img w h f _) = SampleWindow x0 x1 y0 y1 where
    x1 = floor (0.5 + (fromIntegral w) + filterWidth f)
    y0 = floor (0.5 - filterHeight f)
    y1 = floor (0.5 + (fromIntegral h) + filterHeight f)
-
 
 addPixel :: MImage s -> (Int, Int, WeightedSpectrum) -> ST s ()
 {-# INLINE addPixel #-}
@@ -154,34 +162,6 @@ getPixel (Img _ _ _ p) sw o
    where
       (w, (r, g, b), (sr, sg, sb)) = V.unsafeIndex p o
       
-writeRgbe :: Image -> Float -> Handle -> IO ()
-writeRgbe img@(Img w h _ _) spw hnd =
-   let header = "#?RGBE\nFORMAT=32-bit_rgbe\n\n-Y " ++ show h ++ " +X " ++ show w ++ "\n"
-       pixel :: Int -> IO BS.ByteString
-       pixel p = return $ toRgbe $ getPixel img spw p
-   in do
-      hPutStr hnd header
-      mapM_ (\p -> pixel p >>= BS.hPutStr hnd) [0..(w*h-1)]
-      
-toRgbe :: (Float, Float, Float) -> BS.ByteString
-toRgbe (r, g, b)
-   | v < 0.00001 = BS.pack [0,0,0,0]
-   | otherwise = BS.pack $ map truncate [r * v'', g * v'', b * v'', fromIntegral $ e + 128]
-   where
-         v = max r $ max g b
-         (v', e) = frexp v
-         v'' = v' * 256 / v
-
-frexp :: Float -> (Float, Int)
-frexp x
-   | isNaN x = error "NaN given to frexp"
-   | isInfinite x = error "infinity given to frexp"
-   | otherwise  = frexp' (x, 0) where
-      frexp' (s, e)
-         | s >= 1.0 = frexp' (s / 2, e + 1)
-         | s < 0.5 = frexp' (s * 2, e - 1)
-         | otherwise = (s, e)
-
 -- | writes an image in ppm format
 writePpm
    :: Image
@@ -218,3 +198,35 @@ ppmPixel :: (Float, Float, Float) -> String
 ppmPixel ws = (toString . gamma 2.2) ws
    where
       toString (r, g, b) = show (clamp r) ++ " " ++ show (clamp g) ++ " " ++ show (clamp b) ++ " "
+
+--------------------------------------------------------------------------------
+-- RGBE
+--------------------------------------------------------------------------------
+
+frexp :: Float -> (Float, Int)
+frexp x
+   | isNaN x = error "NaN given to frexp"
+   | isInfinite x = error "infinity given to frexp"
+   | otherwise  = frexp' (x, 0) where
+      frexp' (s, e)
+         | s >= 1.0 = frexp' (s / 2, e + 1)
+         | s < 0.5 = frexp' (s * 2, e - 1)
+         | otherwise = (s, e)
+
+writeRgbe :: Image -> Float -> Handle -> IO ()
+writeRgbe img@(Img w h _ _) spw hnd =
+   let header = "#?RGBE\nFORMAT=32-bit_rgbe\n\n-Y " ++ show h ++ " +X " ++ show w ++ "\n"
+       pixel :: Int -> IO BS.ByteString
+       pixel p = return $ toRgbe $ getPixel img spw p
+   in do
+      hPutStr hnd header
+      mapM_ (\p -> pixel p >>= BS.hPutStr hnd) [0..(w*h-1)]
+
+toRgbe :: (Float, Float, Float) -> BS.ByteString
+toRgbe (r, g, b)
+   | v < 0.00001 = BS.pack [0,0,0,0]
+   | otherwise = BS.pack $ map truncate [r * v'', g * v'', b * v'', fromIntegral $ e + 128]
+   where
+         v = max r $ max g b
+         (v', e) = frexp v
+         v'' = v' * 256 / v
