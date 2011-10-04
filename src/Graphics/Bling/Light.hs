@@ -30,6 +30,7 @@ data LightSample = LightSample {
 data Light
    = Infinite
       { _infRadiance :: SpectrumMap
+      , _infAvg      :: Spectrum
       , _infDis      :: Dist2D
       , _infw2l      :: Transform }
    | Directional !Spectrum !Normal
@@ -77,10 +78,12 @@ mkInfiniteAreaLight
    :: SpectrumMap
    -> Transform
    -> Light
-mkInfiniteAreaLight rmap t = Infinite rmap dist t where
-   dist = mkDist2D (texSize rmap) eval
+mkInfiniteAreaLight rmap t = Infinite rmap avg dist t where
+   dist = mkDist2D (texSize rmap) (sY . eval)
    (sx, sy) = (\(ix, iy) -> (fromIntegral ix, fromIntegral iy)) $ texSize rmap
-   eval (x, y) = sY $ texMapEval rmap p where
+   (mx, my) = texSize rmap
+   avg = sScale (sum $ map eval [(x, y) | y <- [0..my], x <- [0..mx]]) (1 / sx * sy)
+   eval (x, y) = texMapEval rmap p where
       p = Cartesian (fromIntegral x / sx, fromIntegral y / sy)
       
 -- | creates the Perez sun/sky model
@@ -116,7 +119,7 @@ le :: Light -> Ray -> Spectrum
 le (AreaLight _ _ _ _ _) _ = black
 le (Directional _ _) _ = black
 le (PointLight _ _) _ = black
-le (Infinite rmap _ w2l) ray = texMapEval rmap $ sphToCart sphDir where
+le (Infinite rmap _ _ w2l) ray = texMapEval rmap $ sphToCart sphDir where
    sphDir = dirToSph wh
    wh = normalize $ transVector w2l $ rayDir ray
 le (Sky basis ssd) r = skySpectrum ssd d where
@@ -143,7 +146,7 @@ power (AreaLight _ s r _ _) _ = sScale r ((S.area s) * pi)
 power (Directional r _) b = sScale r $ pi * radius * radius where
    radius = snd $ boundingSphere b
 power (PointLight r _) _ = sScale r $ 4 * pi
-power (Infinite r _ _) b = sScale (texMapAvg r) $ pi * wr * wr where
+power (Infinite _ r _ _) b = sScale r $ pi * wr * wr where
    wr = snd $ boundingSphere b
 
 -- | samples one light source
@@ -154,7 +157,7 @@ sample
    -> Rand2D -- ^ the random value for sampling the light
    -> LightSample -- ^ the computed @LightSample@
 
-sample (Infinite r dist w2l) p _ us
+sample (Infinite r _ dist w2l) p _ us
    | mapPdf == 0 = LightSample black (mkV (0,1,0)) (error "empty light sample") 0 False
    | sint == 0 = LightSample black (mkV (0,1,0)) (error "empty light sample") 0 False
    | otherwise = LightSample ls wi ray pd False
@@ -222,7 +225,7 @@ sample' (AreaLight _ s r _ _) _ uo ud = (r, ray, ns, pd) where
    dir = if ns `dot` dir' < 0 then -dir' else dir'
    ray = Ray org dir 1e-2 infinity
 
-sample' (Infinite rmap dist w2l) bounds uo ud
+sample' (Infinite rmap _ dist w2l) bounds uo ud
    | pdMap == 0 = emptySample'
    | otherwise = (ls, ray, d, pd) where
       -- find sample coordinates
@@ -247,7 +250,7 @@ pdf :: Light -- ^ the light to compute the pdf for
     -> Vector -- ^ the wi vector
     -> Float -- ^ the computed pdf value
     
-pdf (Infinite _ dist w2l) _ wiW
+pdf (Infinite _ _ dist w2l) _ wiW
    | sint == 0 = 0
    | otherwise = pdfDist2D dist (sphToCart sph) / (2 * pi * pi * sint)
    where
