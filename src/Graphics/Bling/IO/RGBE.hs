@@ -72,7 +72,7 @@ readRlePixels bs width height = trace (show $ BS.length bs) $ go height (bs, [])
          | b0 > 128 = go (n - fromIntegral b0 + 128) (BS.drop 2 cb, Prelude.replicate ((fromIntegral b0) - 128) b1 ++ xs)
          | otherwise = go (n - fromIntegral b0) (BS.drop (fromIntegral b0) cb, (BS.unpack $ BS.take (fromIntegral b0) cb) ++ xs)
          where
-            (b0:b1:_) = BS.unpack $ BS.take 2 bs
+            (b0:b1:_) = BS.unpack $ BS.take 2 cb
    
 readFlatPixels :: BS.ByteString -> Int -> (BS.ByteString, [Spectrum])
 readFlatPixels bs count = trace ("count=" ++ show count++ " len=" ++ show (BS.length bs)) $ go count (bs, []) where
