@@ -65,7 +65,7 @@ readRlePixels bs width height = go height (bs, []) where
       | shiftL ((fromIntegral b) :: Int) 8 .|. fromIntegral e /= width = error "invalid scanline width"
       | otherwise = trace (show chR) $ (lrest, zipWith4 rgbeToSpectrum chR chG chB chE)
       where
-         (lbs', chR) = oneChannel lbs
+         (lbs', chR) = oneChannel $ BS.drop 4 lbs
          (lbs'', chG) = oneChannel lbs'
          (lbs''', chB) = oneChannel lbs''
          (lrest, chE) = oneChannel lbs'''
@@ -77,8 +77,8 @@ readRlePixels bs width height = go height (bs, []) where
       go n (cb, xs)
          | n < 0 = error "ewww"
          | b0 == 0 = error "bad scanline data"
-         | b0 > 128 = seq xs $ go (n - (fromIntegral b0 - 128)) (BS.drop 2 cb, Prelude.replicate ((fromIntegral b0) - 128) b1 ++ xs)
-         | otherwise = seq xs $ go (n - fromIntegral b0 + 1) (BS.drop (fromIntegral b0 + 1) cb, (BS.unpack $ BS.take (fromIntegral b0) cb) ++ xs)
+         | b0 > 128 = trace ("run of " ++ show (b0 - 128)) $ seq xs $ go (n - (fromIntegral b0 - 128)) (BS.drop 2 cb, xs ++ Prelude.replicate ((fromIntegral b0) - 128) b1)
+         | otherwise = trace ("literal " ++ show b0) $ seq xs $ go (n - fromIntegral b0) (BS.drop (fromIntegral b0 + 1) cb, xs ++ (BS.unpack $ BS.take (fromIntegral b0) cb))
          where
             (b0:b1:_) = BS.unpack $ BS.take 2 cb
    
