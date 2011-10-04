@@ -27,15 +27,11 @@ import qualified Data.Vector.Generic as GV
 import qualified Data.Vector.Unboxed as V 
 import Data.Vector.Unboxed.Mutable as MV
 import qualified Data.ByteString.Lazy as BS
-import qualified Data.ByteString.Internal as BSI
-import qualified Data.ByteString.Lazy.Char8 as L8
-import Data.Char as C
 import System.IO
 
 import Graphics.Bling.Filter
 import Graphics.Bling.Sampling
 import Graphics.Bling.Spectrum
-import Graphics.Bling.Types
 
 -- | an image pixel, which consists of the sample weight, the sample RGB value
 --   and the RGB value of the splatted samples
