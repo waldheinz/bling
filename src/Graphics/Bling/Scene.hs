@@ -26,7 +26,7 @@ import qualified Data.ByteString.Lazy as BS
 inf :: Light
 {-# NOINLINE inf #-}
 inf = unsafePerformIO $ do
-   rgbe <- parseRGBE `liftM` BS.readFile "/home/trem/Downloads/grace_probe_small.hdr"
+   rgbe <- parseRGBE `liftM` BS.readFile "/home/trem/Downloads/ennis_small.hdr"
    case rgbe of
         Left e -> error e
         Right x -> return $ mkInfiniteAreaLight (rgbeToTextureMap x) identity

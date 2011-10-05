@@ -25,35 +25,30 @@ import Graphics.Bling.Math
 import Graphics.Bling.Random
 
 --------------------------------------------------------------------------------
--- 1D - distribution
+-- 1D - Distribution
 --------------------------------------------------------------------------------
 
 data Dist1D = MkDist1D {
    distFunc :: V.Vector Flt,
    _cdf     :: V.Vector Flt,
    funcInt  :: Flt
-   }
-
-integ :: (Num a) => [a] -> (a, [a])
-integ vs = (sm, Prelude.tail int) where
-   (sm, int, _) = integ' (0, [], vs)
-   integ' (s, is, []) = (s, is Prelude.++ [s], [])
-   integ' (s, is, f:fs) = integ' (s + f, is Prelude.++ [s], fs)
+   } deriving (Show)
 
 mkDist1D :: [Flt] -> Dist1D
-mkDist1D ls = MkDist1D f (V.fromList c) fi where
-   f = V.fromList ls
-   (fi, i) = integ ls
-   cnt = V.length f
-   c = 0 : if fi == 0
-      then Prelude.take cnt (Prelude.map (/fromIntegral cnt) [1..])
-      else Prelude.map (/fi) i
+mkDist1D ls = MkDist1D func cdf fi where
+   func = V.fromList ls
+   n = V.length func
+   i = V.scanl (\c f -> c + f / fromIntegral n) 0 func
+   fi = V.last i
+   cdf = if fi /= 0
+            then V.map (/fi) i
+            else V.generate (n+1) (\j -> fromIntegral j / fromIntegral n)
 
 count :: Dist1D -> Int
 count (MkDist1D f _ _) = V.length f
 
 upperBound :: V.Vector Flt -> Flt -> Int
-upperBound v u = max 0 $ maybe (V.length v - 1) (\i -> i - 1) $ V.findIndex (>= u) v
+upperBound v u = min (V.length v - 2) $ max 0 $ maybe (V.length v - 1) (\i -> i - 1) $ V.findIndex (>= u) v
 
 sampleDiscrete1D
    :: Dist1D      -- ^ the distribution to sample
@@ -70,10 +65,7 @@ sampleContinuous1D :: Dist1D -> Flt -> (Flt, Flt, Int)
 sampleContinuous1D (MkDist1D func cdf fi) u = (x, pdf, offset) where
    offset = upperBound cdf u
    pdf = if fi == 0 then 0 else (func V.! offset) / fi
-   rel = if cdf V.! (offset + 1) == 0
-            then 0
-            else (cdf V.! offset) / (cdf V.! (offset + 1))
-   du = u - rel - (cdf V.! offset)
+   du = (u - (cdf V.! offset)) / ((cdf V.! (offset + 1)) - (cdf V.! offset))
    x = (fromIntegral offset + du) / fromIntegral (V.length func)
 
 -- | a 2D distribution

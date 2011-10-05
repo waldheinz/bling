@@ -23,33 +23,35 @@ import Graphics.Bling.Texture
 import Graphics.Bling.Types
 
 data RGBEImage = RGBE
-   { _rgbeSize    :: ! PixelSize
+   { _rgbeSize    :: {-# UNPACK #-} ! PixelSize
    , _rgbePixels  :: ! (UV.Vector Spectrum)
    }
 
 instance Show RGBEImage where
-   show (RGBE size px) = "RGBE Image (size=" ++ (show size) ++ (show (UV.head px)) ++ ")"
+   show (RGBE size px) = "RGBE Image (size=" ++ (show size) ++ (show px) ++ ")"
 
 rgbeToTextureMap :: RGBEImage -> SpectrumMap
 rgbeToTextureMap (RGBE size@(w, h) px) = mkTextureMap size eval where
    eval cs = eval' $ unCartesian cs
    eval' (u, v) = px UV.! o where
-      o = floor $ ((v::Flt) * fromIntegral h) * fromIntegral w + (u::Flt) * fromIntegral w
-
+      o = max 0 $ min (UV.length px - 1) $ y * w + x
+      x = floor $ v * fromIntegral w
+      y = floor $ (1-u) * fromIntegral h
+      
 type RGBEHeader = (PixelSize)
 
 parseRGBE :: BS.ByteString -> Either String RGBEImage
 parseRGBE bs
    | isNothing header = Left "error parsing RGBE header"
-   | otherwise = trace ("rest = " ++ (show $ BS.length blah)) $ Right $ RGBE (fromJust header) (UV.fromList (concat pixels))
+   | otherwise = Right $ RGBE (fromJust header) (UV.fromList (concat pixels))
    where
       (rest, header) = parseRGBEHeader bs
-      (blah, pixels) = parseRGBEPixels rest (fromJust header)
+      (_, pixels) = parseRGBEPixels rest (fromJust header)
 
 parseRGBEPixels :: BS.ByteString -> PixelSize -> (BS.ByteString, [[Spectrum]])
 parseRGBEPixels bs (width, height)
- --  | width < 8 || width > 0x7fff = readFlatPixels bs (width * height)
- --  | (r /= 2) || (g /= 2) || ((b .&. 0x80) /= 0) = readFlatPixels bs (width * height)
+   | width < 8 || width > 0x7fff = readFlatPixels bs (width * height)
+   | (r /= 2) || (g /= 2) || ((b .&. 0x80) /= 0) = readFlatPixels bs (width * height)
    | otherwise = readRlePixels bs width height
    where
       (r:g:b:[]) = BS.unpack $ BS.take 3 bs
@@ -57,14 +59,15 @@ parseRGBEPixels bs (width, height)
 readRlePixels :: BS.ByteString -> Int -> Int -> (BS.ByteString, [[Spectrum]])
 readRlePixels bs width height = go height (bs, []) where
    go 0 x = x
-   go n (bs', ls) = trace (show line) $ seq ls $ go (n-1) (rest, line : ls) where
+   go n (bs', ls) = go (n-1) (rest, line : ls) where
       (rest, line) = oneLine bs'
    
    oneLine :: BS.ByteString -> (BS.ByteString, [Spectrum])
    oneLine lbs
-      | shiftL ((fromIntegral b) :: Int) 8 .|. fromIntegral e /= width = error "invalid scanline width"
-      | otherwise = trace (show chR) $ (lrest, zipWith4 rgbeToSpectrum chR chG chB chE)
+      | width' /= width = error "invalid scanline width"
+      | otherwise = (lrest, zipWith4 rgbeToSpectrum chR chG chB chE)
       where
+         width' = shiftL ((fromIntegral b) :: Int) 8 .|. fromIntegral e
          (lbs', chR) = oneChannel $ BS.drop 4 lbs
          (lbs'', chG) = oneChannel lbs'
          (lbs''', chB) = oneChannel lbs''
@@ -72,24 +75,24 @@ readRlePixels bs width height = go height (bs, []) where
          (_:_:b:e:_) = BS.unpack $ BS.take 4 lbs
 
    oneChannel :: BS.ByteString -> (BS.ByteString, [Word8])
-   oneChannel cbs = go width (cbs, []) where
-      go 0 x = x
-      go n (cb, xs)
+   oneChannel cbs = goc width (cbs, []) where
+      goc 0 x = x
+      goc n (cb, xs)
          | n < 0 = error "ewww"
          | b0 == 0 = error "bad scanline data"
-         | b0 > 128 = trace ("run of " ++ show (b0 - 128)) $ seq xs $ go (n - (fromIntegral b0 - 128)) (BS.drop 2 cb, xs ++ Prelude.replicate ((fromIntegral b0) - 128) b1)
-         | otherwise = trace ("literal " ++ show b0) $ seq xs $ go (n - fromIntegral b0) (BS.drop (fromIntegral b0 + 1) cb, xs ++ (BS.unpack $ BS.take (fromIntegral b0) cb))
+         | b0 > 128 = goc (n - (fromIntegral b0 - 128)) (BS.drop 2 cb, xs ++ Prelude.replicate ((fromIntegral b0) - 128) b1)
+         | otherwise = goc (n - fromIntegral b0) (BS.drop (fromIntegral b0 + 1) cb, xs ++ (BS.unpack $ BS.take (fromIntegral b0) cb))
          where
             (b0:b1:_) = BS.unpack $ BS.take 2 cb
    
-readFlatPixels :: BS.ByteString -> Int -> (BS.ByteString, [Spectrum])
+readFlatPixels :: BS.ByteString -> Int -> (BS.ByteString, [[Spectrum]])
 readFlatPixels bs count = trace ("count=" ++ show count++ " len=" ++ show (BS.length bs)) $ go count (bs, []) where
    go 0 x = x
    go n (bs', ss) = go (n-1) (rest, s:ss) where
       (rest, s) = trace ("bs' len = " ++ (show $ BS.length bs')) $ readFlatPixel bs'
 
-readFlatPixel :: BS.ByteString -> (BS.ByteString, Spectrum)
-readFlatPixel bs = (BS.drop 4 bs, rgbeToSpectrum r g b e) where
+readFlatPixel :: BS.ByteString -> (BS.ByteString, [Spectrum])
+readFlatPixel bs = (BS.drop 4 bs, [rgbeToSpectrum r g b e]) where
    (r:g:b:e:_) = BS.unpack $ BS.take 4 bs
 
 rgbeToSpectrum :: Word8 -> Word8 -> Word8 -> Word8 -> Spectrum
@@ -100,15 +103,15 @@ rgbeToSpectrum r g b e
       r' = fromIntegral r * f;
       g' = fromIntegral g * f;
       b' = fromIntegral b * f;
-      f = ldexp 1 (e - 128 + 8)
+      f = ldexp 1 ((fromIntegral e :: Int) - (128 + 8))
       ldexp x ex = x * (2 ** fromIntegral ex)
 
 parseRGBEHeader :: BS.ByteString -> (BS.ByteString, Maybe RGBEHeader)
 parseRGBEHeader bs = (BS.tail rest, Just size) where
-   (headerLines, pixAndSize) = splitHeader bs
+   (_, pixAndSize) = splitHeader bs
    (sizeStr, rest) = BS.span (/=(fromIntegral $ C.ord '\n')) pixAndSize
    size' = BS.split (BSI.c2w ' ') sizeStr
-   size = (Prelude.read $ bsToStr (size' !! 1), Prelude.read $ bsToStr (size' !! 3))
+   size = (Prelude.read $ bsToStr (size' !! 3), Prelude.read $ bsToStr (size' !! 1))
 
 bsToStr :: BS.ByteString -> String
 bsToStr bs = map BSI.w2c $ BS.unpack bs

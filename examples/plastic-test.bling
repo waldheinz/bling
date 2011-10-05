@@ -9,12 +9,12 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 4 ySamples 4 }
+      sampler { stratified xSamples 2 ySamples 2 }
       integrator { path maxDepth 7 sampleDepth 4 }
    }
 }
 
-renderer { metropolis mpp 1 bootstrap 1000 plarge 0.25 separateDirect }
+# renderer { metropolis mpp 1 bootstrap 1000 plarge 0.25 separateDirect }
 
 transform {
    lookAt {
@@ -26,7 +26,7 @@ transform {
 
 camera {
    perspective
-   fov 45
+   fov 90
    lensRadius 0
    focalDistance 10
 }
@@ -43,22 +43,22 @@ material {
    sigma { constant 0.0 }
 }
 
-shape {
-   mesh
-   vertexCount 4
-   faceCount 1
-   v  50.0 0.0 -50.0
-   v -50.0 0.0 -50.0
-   v -50.0 0.0  50.0
-   v  50.0 0.0  50.0
-   f 3 2 1 0
-}
+#shape {
+#   mesh
+#   vertexCount 4
+#   faceCount 1
+#   v  50.0 0.0 -50.0
+#   v -50.0 0.0 -50.0
+#   v -50.0 0.0  50.0
+#   v  50.0 0.0  50.0
+#   f 3 2 1 0
+#}
 
 #
 # light source
 #
 
-emission { temp 3100 }
+# emission { temp 3100 }
 
 transform {
    identity
