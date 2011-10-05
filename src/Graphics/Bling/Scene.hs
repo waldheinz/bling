@@ -18,19 +18,6 @@ import Graphics.Bling.Reflection
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Primitive.KdTree
 
-import Control.Monad (liftM)
-import Graphics.Bling.IO.RGBE
-import System.IO.Unsafe
-import qualified Data.ByteString.Lazy as BS
-
-inf :: Light
-{-# NOINLINE inf #-}
-inf = unsafePerformIO $ do
-   rgbe <- parseRGBE `liftM` BS.readFile "/home/trem/Downloads/ennis_small.hdr"
-   case rgbe of
-        Left e -> error e
-        Right x -> return $ mkInfiniteAreaLight (rgbeToTextureMap x) (rotateX (-90))
-
 data Scene = Scene {
    _scenePrimCount :: Int, -- just for reference
    scenePrim :: KdTree,
@@ -49,7 +36,7 @@ instance Printable Scene where
 
 mkScene :: (Primitive a) => [Light] -> [a] -> Camera -> Scene
 mkScene l prims cam = Scene cnt (mkKdTree ps) (V.fromList lights) cam where
-   lights = [inf] ++ l ++ gl
+   lights = l ++ gl
    gl = mapMaybe light ps -- collect the geometric lights
    ps = Prelude.concatMap flatten prims
    cnt = length ps
