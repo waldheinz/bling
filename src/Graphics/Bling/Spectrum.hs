@@ -5,11 +5,7 @@ module Graphics.Bling.Spectrum (
 
    Spectrum, WeightedSpectrum, ImageSample(..), Contribution,
    white, black, 
-
-   -- * Vectors of Spectrum
---   V_Spectrum,
-   -- V.Vector(..), MV.MVector(..),
-      
+   
    -- * Working with SPDs
    Spd, mkSpd, mkSpd', mkSpdFunc, fromCIExy, spdToXYZ, evalSpd,
    
@@ -25,7 +21,6 @@ import Data.Vector.Unboxed as V
 import qualified Data.Vector.Generic as GV
 import qualified Data.Vector.Generic.Mutable as MV
 import Control.DeepSeq as DS
-import Control.Monad.Primitive
 import Prelude as P
 
 import Graphics.Bling.Math
@@ -53,10 +48,18 @@ instance Unbox Spectrum
 
 instance MV.MVector V.MVector Spectrum where
    basicLength (MV_Spectrum v) = MV.basicLength v `div` bands
-   basicUnsafeSlice start len (MV_Spectrum v) =
-      MV_Spectrum $ (MV.unsafeSlice (start * bands) (len * bands) v)
-   basicUnsafeNew len = MV_Spectrum `liftM` MV.unsafeNew (len * bands)
-   basicOverlaps (MV_Spectrum v) = error "overlaps"
+   {-# INLINE basicLength #-}
+   
+   basicUnsafeSlice s l (MV_Spectrum v) =
+      MV_Spectrum $ (MV.unsafeSlice (s * bands) (l * bands) v)
+   {-# INLINE basicUnsafeSlice #-}
+   
+   basicUnsafeNew l = MV_Spectrum `liftM` MV.unsafeNew (l * bands)
+   {-# INLINE basicUnsafeNew #-}
+   
+   basicOverlaps (MV_Spectrum v1) (MV_Spectrum v2) = MV.overlaps v1 v2
+   {-# INLINE basicOverlaps #-}
+   
    basicUnsafeRead (MV_Spectrum v) idx = do
       r <- MV.unsafeRead v idx'
       g <- MV.unsafeRead v (idx' + 1)
@@ -64,19 +67,30 @@ instance MV.MVector V.MVector Spectrum where
       return $ fromRGB (r, g, b)
       where
          idx' = idx * bands
-
+   {-# INLINE basicUnsafeRead #-}
+   
    basicUnsafeWrite (MV_Spectrum v) idx (Spectrum r g b) = do
       MV.unsafeWrite v (idx' + 0) r
       MV.unsafeWrite v (idx' + 1) g
       MV.unsafeWrite v (idx' + 2) b
       where
          idx' = idx * bands
-
+   {-# INLINE basicUnsafeWrite #-}
+   
 instance GV.Vector V.Vector Spectrum where
    basicLength (V_Spectrum v) = GV.basicLength v `div` bands
-   basicUnsafeSlice start len (V_Spectrum v) = error "GV_slice"
+   {-# INLINE basicLength #-}
+   
+   basicUnsafeSlice s l (V_Spectrum v) =
+      V_Spectrum $ (GV.unsafeSlice (s * bands) (l * bands) v)
+   {-# INLINE basicUnsafeSlice #-}
+   
    basicUnsafeFreeze (MV_Spectrum v) = V_Spectrum `liftM` (GV.unsafeFreeze v)
-   basicUnsafeThaw (V_Spectrum v) = error "thaw"
+   {-# INLINE basicUnsafeFreeze #-}
+   
+   basicUnsafeThaw (V_Spectrum v) = MV_Spectrum `liftM` (GV.unsafeThaw v)
+   {-# INLINE basicUnsafeThaw #-}
+   
    basicUnsafeIndexM (V_Spectrum v) idx = do
       r <- GV.unsafeIndexM v (idx' + 0)
       g <- GV.unsafeIndexM v (idx' + 1)
@@ -84,7 +98,12 @@ instance GV.Vector V.Vector Spectrum where
       return $ fromRGB (r, g, b)
       where
          idx' = idx * bands
+   {-# INLINE basicUnsafeIndexM #-}
    
+--------------------------------------------------------------------------------
+-- ImageSample and the like
+--------------------------------------------------------------------------------
+
 type WeightedSpectrum = (Float, Spectrum)
 
 -- | places a @WeightedSpectrum@ in an @Image@
