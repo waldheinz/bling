@@ -1,6 +1,9 @@
 
 module Graphics.Bling.IO.ParserCore (
-
+   module Text.Parsec.Char,
+   module Text.Parsec.Combinator,
+   module Text.Parsec.Prim,
+      
    -- * Data Types
 
    JobParser, PState(..), nextId,
@@ -11,7 +14,10 @@ module Graphics.Bling.IO.ParserCore (
    
    ) where
 
-import Text.ParserCombinators.Parsec
+import Text.Parsec.Prim
+import Text.Parsec.Combinator
+import Text.Parsec.Char
+import Text.Parsec.String()
 
 import Graphics.Bling.Camera
 import Graphics.Bling.Filter
@@ -22,7 +28,7 @@ import Graphics.Bling.Rendering
 import Graphics.Bling.Reflection
 import Graphics.Bling.Spectrum
 
-type JobParser a = GenParser Char PState a
+type JobParser a = ParsecT String PState IO a
 
 data PState = PState {
    resX :: Int,

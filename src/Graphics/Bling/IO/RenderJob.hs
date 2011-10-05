@@ -3,6 +3,8 @@ module Graphics.Bling.IO.RenderJob (
    parseJob
    ) where
 
+import Text.Parsec.Error
+
 import Graphics.Bling.Filter
 import Graphics.Bling.Rendering
 import Graphics.Bling.Scene
@@ -15,8 +17,6 @@ import Graphics.Bling.IO.RendererParser
 import Graphics.Bling.IO.ShapeParser
 import Graphics.Bling.IO.TransformParser
 
-import Text.ParserCombinators.Parsec
-
 startState :: PState
 startState = PState 640 480 defaultRenderer mkBoxFilter
    (defaultCamera 640 480)
@@ -27,9 +27,10 @@ startState = PState 640 480 defaultRenderer mkBoxFilter
    []
    0
    
-parseJob :: String -> (RenderJob, AnyRenderer)
-parseJob s = either (error . show) (id) pr where
-   pr = runParser jobParser startState "unknown source"  s
+parseJob :: FilePath -> IO (Either ParseError (RenderJob, AnyRenderer))
+parseJob fname = do
+   file <- readFile fname
+   runPT jobParser startState fname file
 
 jobParser :: JobParser (RenderJob, AnyRenderer)
 jobParser = do

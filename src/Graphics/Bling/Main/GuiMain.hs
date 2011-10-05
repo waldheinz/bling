@@ -86,10 +86,12 @@ putPixel s ((x, y), (r,g,b))
    
 main :: IO ()
 main = SDL.withInit [InitEverything] $ do
-   fName <- fmap head getArgs
-   (j, r) <- fmap parseJob $ readFile fName
-   env <- initEnv j
-   
-   render r j $ prog env
-   waitQuit
+   fname <- fmap head getArgs
+   parseJob fname >>= \ result ->
+      case result of
+           (Left e) -> putStrLn $ show e
+           (Right (job, renderer)) -> do
+              env <- initEnv job
+              render renderer job $ prog env
+              waitQuit
    

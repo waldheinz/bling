@@ -3,8 +3,6 @@ module Graphics.Bling.IO.TransformParser (
    pTransform
    ) where
 
-import Text.ParserCombinators.Parsec
-
 import Graphics.Bling.Math
 import Graphics.Bling.Transform
 import Graphics.Bling.IO.ParserCore

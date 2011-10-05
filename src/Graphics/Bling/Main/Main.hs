@@ -32,11 +32,13 @@ prog _ = return True
 main :: IO ()
 main = do
    args <- getArgs
-   let fName = head args
-   (job, renderer) <- fmap parseJob $ readFile fName
-
-   putStrLn (PP.render (PP.text "Job Stats" PP.$$ PP.nest 3 (prettyPrint job)))
-   render renderer job $ prog
+   let fname = head args
+   parseJob fname >>= \ result ->
+      case result of
+           (Left e) -> putStrLn $ show e
+           (Right (job, renderer)) -> do
+              putStrLn (PP.render (PP.text "Job Stats" PP.$$ PP.nest 3 (prettyPrint job)))
+              render renderer job $ prog
 
 {-
 -- | Pretty print the date in '1d 9h 9m 17s' format

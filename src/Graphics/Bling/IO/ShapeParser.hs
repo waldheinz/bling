@@ -6,7 +6,6 @@ module Graphics.Bling.IO.ShapeParser (
    ) where
 
 import qualified Data.Vector as V
-import Text.ParserCombinators.Parsec
 
 import Graphics.Bling.Primitive
 import Graphics.Bling.Shape

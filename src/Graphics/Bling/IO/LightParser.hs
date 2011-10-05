@@ -1,8 +1,6 @@
 
 module Graphics.Bling.IO.LightParser ( pLight, pEmission ) where
 
-import Text.ParserCombinators.Parsec
-
 import Graphics.Bling.Light
 import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.MaterialParser
@@ -13,7 +11,7 @@ import Graphics.Bling.IO.MaterialParser
 
 pLight :: JobParser ()
 pLight = pBlock $ do
-   t <- many1 alphaNum
+   t <- pString
    ws
    ls <- case t of
       "directional"  -> pDirectionalLight
