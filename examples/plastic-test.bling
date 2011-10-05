@@ -18,8 +18,8 @@ renderer {
 
 transform {
    lookAt {
-      pos 9 15 -9
-      look 0 1 0
+      pos 0 0 -9
+      look 0 0 0
       up 0 1 0
    }
 }

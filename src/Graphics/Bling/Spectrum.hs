@@ -58,15 +58,19 @@ instance MV.MVector V.MVector Spectrum where
    basicUnsafeNew len = MV_Spectrum `liftM` MV.unsafeNew (len * bands)
    basicOverlaps (MV_Spectrum v) = error "overlaps"
    basicUnsafeRead (MV_Spectrum v) idx = do
-      r <- MV.unsafeRead v idx
-      g <- MV.unsafeRead v (idx + 1)
-      b <- MV.unsafeRead v (idx + 2)
+      r <- MV.unsafeRead v idx'
+      g <- MV.unsafeRead v (idx' + 1)
+      b <- MV.unsafeRead v (idx' + 2)
       return $ fromRGB (r, g, b)
+      where
+         idx' = idx * bands
 
    basicUnsafeWrite (MV_Spectrum v) idx (Spectrum r g b) = do
-      MV.unsafeWrite v (idx + 0) r
-      MV.unsafeWrite v (idx + 1) g
-      MV.unsafeWrite v (idx + 2) b
+      MV.unsafeWrite v (idx' + 0) r
+      MV.unsafeWrite v (idx' + 1) g
+      MV.unsafeWrite v (idx' + 2) b
+      where
+         idx' = idx * bands
 
 instance GV.Vector V.Vector Spectrum where
    basicLength (V_Spectrum v) = GV.basicLength v `div` bands
@@ -74,10 +78,12 @@ instance GV.Vector V.Vector Spectrum where
    basicUnsafeFreeze (MV_Spectrum v) = V_Spectrum `liftM` (GV.unsafeFreeze v)
    basicUnsafeThaw (V_Spectrum v) = error "thaw"
    basicUnsafeIndexM (V_Spectrum v) idx = do
-      r <- GV.unsafeIndexM v (idx + 0)
-      g <- GV.unsafeIndexM v (idx + 1)
-      b <- GV.unsafeIndexM v (idx + 2)
+      r <- GV.unsafeIndexM v (idx' + 0)
+      g <- GV.unsafeIndexM v (idx' + 1)
+      b <- GV.unsafeIndexM v (idx' + 2)
       return $ fromRGB (r, g, b)
+      where
+         idx' = idx * bands
    
 type WeightedSpectrum = (Float, Spectrum)
 
