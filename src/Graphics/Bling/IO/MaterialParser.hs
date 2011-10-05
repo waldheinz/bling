@@ -3,18 +3,22 @@ module Graphics.Bling.IO.MaterialParser (
    defaultMaterial, pMaterial, pSpectrumMap, namedSpectrumMap
    ) where
 
+import Control.Monad.IO.Class (liftIO)
+import qualified Data.ByteString.Lazy as BS
 import Text.ParserCombinators.Parsec
 
 import Graphics.Bling.Reflection
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Texture
 import Graphics.Bling.IO.ParserCore
+import Graphics.Bling.IO.RGBE
 import Graphics.Bling.Material.Lafortune
 import Graphics.Bling.Material.Matte
 import Graphics.Bling.Material.Metal
 import Graphics.Bling.Material.Plastic
 import Graphics.Bling.Material.Specular
 import Graphics.Bling.Material.Substrate
+
 
 defaultMaterial :: Material
 defaultMaterial = mkMatte (constant $ fromRGB (0.9, 0.9, 0.9)) (constant 0)
@@ -172,6 +176,13 @@ pSpectrumMap = pBlock $ do
               "constant" -> do
                  s <- pSpectrum
                  return $ constSpectrumMap s
-                 
+
+              "rgbeFile" -> do
+                 fname <- pQString
+                 rgbe <- liftIO $ BS.readFile fname
+                 case parseRGBE rgbe of
+                      Left e -> fail e
+                      Right x -> return $ (rgbeToTextureMap x)
+                      
               _ -> fail $ "unknown map type " ++ tp
    

@@ -10,7 +10,7 @@ module Graphics.Bling.IO.ParserCore (
    
    -- * Core Parsing Primitives
    flt, ws, pVec, pSpectrum, pBlock, namedBlock, namedInt, namedFloat,
-   namedVector, namedSpectrum, integ, pString
+   namedVector, namedSpectrum, integ, pString, pQString
    
    ) where
 
@@ -54,6 +54,23 @@ nextId = do
 pString :: JobParser String
 pString = many1 alphaNum
 
+-- | parses a "quoted" string, and returns it without the quotes
+pQString :: JobParser String
+pQString = do
+   dquote
+   r <- many qcont
+   dquote
+   return $ concat r
+   <?> "quoted string"
+   where
+      qtext = noneOf "\\\"\r\n"
+      qcont = (many1 qtext) <|> (quoted_pair)
+      dquote = (do _ <- char '"'; return ()) <?> "double quote"
+      quoted_pair = do _ <- char '\\'
+                       r <- noneOf "\r\n"
+                       return ['\\',r]
+                    <?> "quoted pair"
+                    
 comment :: JobParser ()
 comment = do
    char '#' >> many (noneOf "\n") >> char '\n' >> return () <?> "comment"

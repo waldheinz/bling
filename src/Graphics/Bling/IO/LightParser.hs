@@ -1,5 +1,9 @@
 
-module Graphics.Bling.IO.LightParser ( pLight, pEmission ) where
+module Graphics.Bling.IO.LightParser (
+   
+   pLight, pEmission
+   
+   ) where
 
 import Graphics.Bling.Light
 import Graphics.Bling.IO.ParserCore

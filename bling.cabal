@@ -32,7 +32,8 @@ Library
       primitive >= 0.3 && < 0.5,
       deepseq >= 1.1 && < 1.2,
       random >= 1.0 && < 1.1,
-      random-shuffle == 0.0.2
+      random-shuffle == 0.0.2,
+      transformers == 0.2.*
 
    Ghc-Options:
       -Wall -O2 -fexcess-precision -fspec-constr-count=64 -threaded -optc-O3 -optc-march=native -optc-msse4
