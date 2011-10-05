@@ -9,7 +9,7 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 2 ySamples 2 }
+      sampler { stratified xSamples 6 ySamples 6 }
       integrator { path maxDepth 7 sampleDepth 4 }
    }
 }
@@ -18,18 +18,21 @@ renderer {
 
 transform {
    lookAt {
-      pos 0 0 -9
-      look 0 0 0
+      pos 9 15 -9
+      look 0 1 0
       up 0 1 0
    }
 }
 
 camera {
    perspective
-   fov 90
+   fov 45
    lensRadius 0
    focalDistance 10
 }
+
+# transform { identity } camera { environment }
+
 
 transform { identity }
 
@@ -43,38 +46,15 @@ material {
    sigma { constant 0.0 }
 }
 
-#shape {
-#   mesh
-#   vertexCount 4
-#   faceCount 1
-#   v  50.0 0.0 -50.0
-#   v -50.0 0.0 -50.0
-#   v -50.0 0.0  50.0
-#   v  50.0 0.0  50.0
-#   f 3 2 1 0
-#}
-
-#
-# light source
-#
-
-# emission { temp 3100 }
-
-transform {
-   identity
-#   scale 5.0 1.0 5.0
-   translate 0.0 5.0 0.0
-}
-
 shape {
    mesh
    vertexCount 4
    faceCount 1
-   v 2.0 15.7 -2.0
-   v 2.0 15.7 2.0
-   v -2.0 15.7 2.0
-   v -2.0 15.7 -2.0
-   f 0 1 2 3
+   v  50.0 1 -50.0
+   v -50.0 1 -50.0
+   v -50.0 1  50.0
+   v  50.0 1  50.0
+   f 3 2 1 0
 }
 
 emission { none }
@@ -85,7 +65,7 @@ emission { none }
 
 transform {
    identity
-   translate -5.0 3.0 -2.5
+   translate -5.0 3 -2.5
 }
 
 material { plastic
@@ -102,11 +82,11 @@ shape { sphere radius 2.0 }
 
 transform {
    identity
-   translate 0.0 3.0 -2.5
+   translate 0.0 3 -2.5
 }
 
 material { plastic
-   kd { constant rgb 0.4 0.02 0.4 }
+   kd { constant rgb 0.3 0.02 0.4 }
    ks { constant rgb 0.5 0.5 0.5 }
    rough { constant 0.05 }
 }
@@ -120,7 +100,7 @@ shape { sphere radius 2.0 }
 
 transform {
    identity
-   translate 5.0 3.0 -2.5
+   translate 5.0 3 -2.5
 }
 
 material { plastic
@@ -137,7 +117,7 @@ shape { sphere radius 2.0 }
 
 transform {
    identity
-   translate -5.0 3.0 2.5
+   translate -5.0 3 2.5
 }
 
 material { plastic
@@ -154,7 +134,7 @@ shape { sphere radius 2.0 }
 
 transform {
    identity
-   translate 0.0 3.0 2.5
+   translate 0.0 3 2.5
 }
 
 material { plastic
@@ -172,7 +152,7 @@ shape { sphere radius 2.0 }
 
 transform {
    identity
-   translate 5.0 3.0 2.5
+   translate 5.0 3 2.5
 }
 
 material { plastic

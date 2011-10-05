@@ -29,7 +29,7 @@ inf = unsafePerformIO $ do
    rgbe <- parseRGBE `liftM` BS.readFile "/home/trem/Downloads/ennis_small.hdr"
    case rgbe of
         Left e -> error e
-        Right x -> return $ mkInfiniteAreaLight (rgbeToTextureMap x) identity
+        Right x -> return $ mkInfiniteAreaLight (rgbeToTextureMap x) (rotateX (-90))
 
 data Scene = Scene {
    _scenePrimCount :: Int, -- just for reference

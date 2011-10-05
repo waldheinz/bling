@@ -35,8 +35,8 @@ rgbeToTextureMap (RGBE size@(w, h) px) = mkTextureMap size eval where
    eval cs = eval' $ unCartesian cs
    eval' (u, v) = px UV.! o where
       o = max 0 $ min (UV.length px - 1) $ y * w + x
-      x = floor $ v * fromIntegral w
-      y = floor $ (1-u) * fromIntegral h
+      x = floor $ u * fromIntegral w
+      y = floor $ v * fromIntegral h
       
 type RGBEHeader = (PixelSize)
 

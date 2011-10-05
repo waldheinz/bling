@@ -19,7 +19,7 @@ renderer {
    }
 }
 
-renderer { metropolis  passCount 10 mutations 100000 bootstrap 10000}
+# renderer { metropolis  passCount 10 mutations 100000 bootstrap 10000}
 
 transform {
    lookAt {
@@ -40,13 +40,7 @@ camera {
 # light source
 #
 
-light {
-   sunSky
-   up 0 1 0
-   east 1 0 0
-   sunDir 1 0.3 0
-   turbidity 5
-}
+light { sunSky up 0 1 0 east 1 0 0 sunDir 1 0.3 0 turbidity 5 }
 
 #
 # sphere

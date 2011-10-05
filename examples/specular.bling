@@ -53,10 +53,10 @@ shape {
    mesh
    vertexCount 4
    faceCount 1
-   v  50.0 0.0 -50.0
-   v -50.0 0.0 -50.0
-   v -50.0 0.0  50.0
-   v  50.0 0.0  50.0
+   v  50.0 1.0 -50.0
+   v -50.0 1.0 -50.0
+   v -50.0 1.0  50.0
+   v  50.0 1.0  50.0
    f 3 2 1 0
 }
 
@@ -64,15 +64,13 @@ shape {
 # light source
 #
 
-light {
-   infinite
-   l { constant rgb 1 1 1 }
+# light {
 #   sunSky
 #   up 0 1 0
 #   east 1 0 0
 #   sunDir 1 0.9 0
 #   turbidity 3
-}
+# }
 
 emission { rgb 10 10 10 }
 
