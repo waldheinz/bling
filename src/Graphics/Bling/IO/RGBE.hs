@@ -79,7 +79,7 @@ readRlePixels bs width height = go height (bs, []) where
          | n < 0 = error "ewww"
          | b0 == 0 = error "bad scanline data"
          | isRun = (cb', replicate runlen b1 ++ xs')
-         | otherwise = (cb', (BS.unpack $ BS.take (fromIntegral b0) cb) ++ xs')
+         | otherwise = (cb', (BS.unpack $ BS.take (fromIntegral b0) (BS.drop 1 cb)) ++ xs')
          where
             (cb', xs') = goc (n - lHere) (BS.drop cHere cb, [])
             lHere = if isRun then runlen else fromIntegral b0
@@ -101,7 +101,7 @@ readFlatPixel bs = (BS.drop 4 bs, [rgbeToSpectrum r g b e]) where
 
 rgbeToSpectrum :: Word8 -> Word8 -> Word8 -> Word8 -> Spectrum
 rgbeToSpectrum r g b e
-   | e == 0 = black
+  -- | e == 0 = black
    | otherwise = fromRGB (r', g', b')
    where
       r' = fromIntegral r * f;

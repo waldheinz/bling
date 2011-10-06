@@ -2,15 +2,15 @@
 # plastic
 
 filter mitchell 3.0 3.0 0.333333 0.333333
-filter box
+# filter box
 
 imageSize 640 480
 
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 3 ySamples 3 }
-      integrator { path maxDepth 7 sampleDepth 4 }
+      sampler { stratified xSamples 8 ySamples 8 }
+      integrator { path maxDepth 5 sampleDepth 3 }
    }
 }
 
@@ -18,7 +18,7 @@ renderer {
 
 transform {
    lookAt {
-      pos 9 15 -9
+      pos 3 8 -9
       look 0 1 0
       up 0 1 0
    }
@@ -26,7 +26,7 @@ transform {
 
 camera {
    perspective
-   fov 45
+   fov 70
    lensRadius 0
    focalDistance 10
 }
@@ -52,16 +52,16 @@ material {
    sigma { constant 0 }
 }
 
-#shape {
-#   mesh
-#   vertexCount 4
-#   faceCount 1
-#   v  50.0 1 -50.0
-#   v -50.0 1 -50.0
-#   v -50.0 1  50.0
-#   v  50.0 1  50.0
-#   f 3 2 1 0
-#}
+shape {
+   mesh
+   vertexCount 4
+   faceCount 1
+   v  10 1 -10
+   v -10 1 -10
+   v -10 1  10
+   v  10 1  10
+   f 3 2 1 0
+}
 
 emission { none }
 
