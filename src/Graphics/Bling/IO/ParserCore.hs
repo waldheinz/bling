@@ -9,11 +9,19 @@ module Graphics.Bling.IO.ParserCore (
    JobParser, PState(..), nextId,
    
    -- * Core Parsing Primitives
+   
    flt, ws, pVec, pSpectrum, pBlock, namedBlock, namedInt, namedFloat,
-   namedVector, namedSpectrum, integ, pString, pQString
+   namedVector, namedSpectrum, integ, pString, pQString,
+
+   -- * Reading External Resources
+
+   readFileBS
    
    ) where
 
+
+import Control.Monad.IO.Class (liftIO)
+import qualified Data.ByteString.Lazy as BS
 import Text.Parsec.Prim
 import Text.Parsec.Combinator
 import Text.Parsec.Char
@@ -151,3 +159,13 @@ integ :: JobParser Int
 integ = do
    x <- many1 digit
    return (read x)
+
+--------------------------------------------------------------------------------
+-- External Resources
+--------------------------------------------------------------------------------
+
+readFileBS :: FilePath -> JobParser BS.ByteString
+readFileBS fname = liftIO $ do
+   putStrLn $ "Reading " ++ fname
+   BS.readFile fname
+   

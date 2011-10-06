@@ -3,8 +3,6 @@ module Graphics.Bling.IO.MaterialParser (
    defaultMaterial, pMaterial, pSpectrumMap, namedSpectrumMap
    ) where
 
-import Control.Monad.IO.Class (liftIO)
-import qualified Data.ByteString.Lazy as BS
 import Text.ParserCombinators.Parsec
 
 import Graphics.Bling.Reflection
@@ -178,8 +176,7 @@ pSpectrumMap = pBlock $ do
                  return $ constSpectrumMap s
 
               "rgbeFile" -> do
-                 fname <- pQString
-                 rgbe <- liftIO $ BS.readFile fname
+                 rgbe <- pQString >>= readFileBS
                  case parseRGBE rgbe of
                       Left e -> fail e
                       Right x -> return $ (rgbeToTextureMap x)
