@@ -1,7 +1,7 @@
 
 module Graphics.Bling.IO.ShapeParser (
    
-   pShape, pFractal, pGeometry
+   pShape, pPrimitive, pGeometry
    
    ) where
 
@@ -25,26 +25,25 @@ pPrimitive = pBlock $ do
                 subdivs <- ws >> namedInt "subdivs"
                 patches <- many1 (try pBezierPatch)
                 optional ws
-                return $ tesselateBezierMesh subdivs patches
+                s <- getState
+                return $ mkAnyPrim $ tesselateBezier subdivs patches (transform s) (material s)
                 
              "julia" -> do
                 c <- ws >> pNamedQuat "c"
                 e <- ws >> namedFloat "epsilon"
                 i <- ws >> namedInt "iterations"
                 s <- getState
-                return $ mkFractalPrim (mkJuliaQuat c e i) (material s)
+                return $ mkAnyPrim $ mkFractalPrim (mkJuliaQuat c e i) (material s)
                 
              "menger" -> do
                 shape <- ws >> pShape
                 level <- ws >> namedInt "level"
                 s <- getState
-                return $ mkMengerSponge shape (material s) level (transform s)
+                return $ mkAnyPrim $ mkMengerSponge shape (material s) level (transform s)
                 
              _ -> fail $ "unknown fractal type " ++ t
 
-   return $ mkAnyPrim p
---    s <- getState
---    setState s {prims = (mkAnyPrim f) : (prims s)}
+   return $ p
 
 pNamedQuat :: String -> JobParser Quaternion
 pNamedQuat n = do

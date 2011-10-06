@@ -48,7 +48,10 @@ object = do
    case objName of
         "shape" -> pGeometry
         "filter" -> pFilter
-        "fractal" -> pFractal
+        "prim" -> do -- a top-level primitive
+            p <- pPrimitive
+            s <- getState
+            setState s {prims = p : (prims s)}
         "imageSize" -> pSize
         "renderer" -> pRenderer
         "transform" -> pTransform

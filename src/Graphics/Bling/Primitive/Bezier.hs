@@ -2,14 +2,17 @@
 module Graphics.Bling.Primitive.Bezier (
 
    -- * Bezier Patch Meshes
-   Patch, mkPatch, tesselateBezierMesh
+   Patch, mkPatch, tesselateBezier
+   
 ) where
 
-import qualified Data.Vector as VB
+import Control.Monad (forM_)
+import Control.Monad.ST
 import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Unboxed.Mutable as MV
 
 import Graphics.Bling.Math
-import Graphics.Bling.Shape
+import Graphics.Bling.Reflection
 import Graphics.Bling.Primitive.TriangleMesh
 
 newtype Patch = Patch { _unPatch :: V.Vector Flt }
@@ -59,19 +62,35 @@ evalPatch (Patch ctrl) bu bdu bv bdv = (p, dpdu, dpdv) where
    ev bj bi = mkV (s 0, s 1, s 2) where
       s o = sum [c (i * 12 + j * 3 + o) * bj j * bi i | i <- [0..3], j <- [0..3]]
 
-tesselatePatchFlat :: Int -> Patch -> [Shape]
-tesselatePatchFlat subdivs p = ts where
+onePatch :: Int -> Patch -> ([Int], [(Point, Vector, Vector)])
+onePatch subdivs p = (is, ps) where
    step = 1 / fromIntegral subdivs
    vstride = subdivs + 1
-   ts = concat [mkTris i j | i <- [0..subdivs-1], j <- [0..subdivs-1]]
-   mkTris i j = [mkTriangle (v00, v01, v10), mkTriangle (v10, v01, v11)] where
-      v00 = vs VB.! ((i + 0) * vstride + (j + 0))
-      v10 = vs VB.! ((i + 1) * vstride + (j + 0))
-      v01 = vs VB.! ((i + 0) * vstride + (j + 1))
-      v11 = vs VB.! ((i + 1) * vstride + (j + 1))
-   vs = VB.fromList $ map (\(pt, _, _) -> Vertex pt) ps
+   is = concat [mkTris i j | i <- [0..subdivs-1], j <- [0..subdivs-1]]
+   mkTris i j = [v00, v01, v10, v10, v01, v11] where
+      v00 = ((i + 0) * vstride + (j + 0))
+      v10 = ((i + 1) * vstride + (j + 0))
+      v01 = ((i + 0) * vstride + (j + 1))
+      v11 = ((i + 1) * vstride + (j + 1))
    ps = concat $ [evalv (bernstein (fromIntegral i * step)) (bernsteinDeriv (fromIntegral i * step)) | i <- [0 .. subdivs]]
    evalv bu bdu = [evalPatch p bu bdu (bernstein (fromIntegral j * step)) (bernsteinDeriv  (fromIntegral j * step)) | j <- [0 .. subdivs]]
    
-tesselateBezierMesh :: Int -> [Patch] -> [Shape]
-tesselateBezierMesh subdivs ps = concatMap (tesselatePatchFlat subdivs) ps
+tesselateBezier :: Int -> [Patch] -> Transform -> Material -> TriangleMesh
+tesselateBezier subs patches t mat = mesh where
+   mesh = mkTriangleMesh t mat ps is Nothing Nothing
+   (ps, is) = runST $ do
+      let stride = (subs+1) * (subs+1)
+      pv <- MV.new (stride * length patches)
+      iv <- MV.new (subs * subs * length patches * 3 * 2)
+      
+      forM_ (zip patches [0, stride..]) $ \(p, offset) -> do
+         let (pis, pps) = onePatch subs p
+         forM_ (zip pis [0..]) $ \(vi, o) -> do
+            MV.write iv (offset * 3 * 2 + o) (vi + offset)
+         forM_ (zip pps [0..]) $ \((vp, _, _), o) -> do
+            MV.write pv (offset + o) vp
+         
+      pv' <- V.freeze pv
+      iv' <- V.freeze iv
+      return (pv', iv')
+

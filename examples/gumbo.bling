@@ -104,7 +104,7 @@ material {
    rough { constant 0.01 }
 }
 
-shape {
+prim {
    bezier
    subdivs 3
    p { 10.0000,  2.00000,  0.00000, 10.0000,  2.00000,  0.00000,
