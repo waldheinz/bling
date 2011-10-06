@@ -1,4 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Graphics.Bling.Math (
    module  Graphics.Bling.Types,
@@ -29,6 +31,11 @@ module Graphics.Bling.Math (
    coordinateSystem',
    
    ) where
+
+import Control.Monad (liftM)
+import qualified Data.Vector.Unboxed as V
+import qualified Data.Vector.Generic as GV
+import qualified Data.Vector.Generic.Mutable as MV
 
 import Graphics.Bling.Types
 
@@ -194,6 +201,69 @@ instance Fractional Vector where
   recip = vmap recip
   fromRational = vpromote . fromRational
 
+-- make Vector an instance of Unbox
+
+newtype instance V.MVector s Vector = MV_Vector (V.MVector s Flt)
+newtype instance V.Vector Vector = V_Vector (V.Vector Flt)
+
+instance V.Unbox Vector
+
+instance MV.MVector V.MVector Vector where
+   basicLength (MV_Vector v) = MV.basicLength v `div` 3
+   {-# INLINE basicLength #-}
+   
+   basicUnsafeSlice s l (MV_Vector v) =
+      MV_Vector $ (MV.unsafeSlice (s * 3) (l * 3) v)
+   {-# INLINE basicUnsafeSlice #-}
+
+   basicUnsafeNew l = MV_Vector `liftM` MV.unsafeNew (l * 3)
+   {-# INLINE basicUnsafeNew #-}
+
+   basicOverlaps (MV_Vector v1) (MV_Vector v2) = MV.overlaps v1 v2
+   {-# INLINE basicOverlaps #-}
+
+   basicUnsafeRead (MV_Vector v) idx = do
+      x <- MV.unsafeRead v idx'
+      y <- MV.unsafeRead v (idx' + 1)
+      z <- MV.unsafeRead v (idx' + 2)
+      return $ Vector x y z
+      where
+         idx' = idx * 3
+   {-# INLINE basicUnsafeRead #-}
+
+   basicUnsafeWrite (MV_Vector v) idx (Vector x y z) = do
+      MV.unsafeWrite v (idx' + 0) x
+      MV.unsafeWrite v (idx' + 1) y
+      MV.unsafeWrite v (idx' + 2) z
+      where
+         idx' = idx * 3
+   {-# INLINE basicUnsafeWrite #-}
+
+instance GV.Vector V.Vector Vector where
+   basicLength (V_Vector v) = GV.basicLength v `div` 3
+   {-# INLINE basicLength #-}
+
+   basicUnsafeSlice s l (V_Vector v) =
+      V_Vector $ (GV.unsafeSlice (s * 3) (l * 3) v)
+   {-# INLINE basicUnsafeSlice #-}
+
+   basicUnsafeFreeze (MV_Vector v) = V_Vector `liftM` (GV.unsafeFreeze v)
+   {-# INLINE basicUnsafeFreeze #-}
+
+   basicUnsafeThaw (V_Vector v) = MV_Vector `liftM` (GV.unsafeThaw v)
+   {-# INLINE basicUnsafeThaw #-}
+
+   basicUnsafeIndexM (V_Vector v) idx = do
+      x <- GV.unsafeIndexM v (idx' + 0)
+      y <- GV.unsafeIndexM v (idx' + 1)
+      z <- GV.unsafeIndexM v (idx' + 2)
+      return $ Vector x y z
+      where
+         idx' = idx * 3
+   {-# INLINE basicUnsafeIndexM #-}
+
+-- types derieved from Vector
+   
 type Point = Vector
 
 mkPoint :: Flt -> Flt -> Flt -> Point
