@@ -111,7 +111,7 @@ instance Primitive Geometry where
    intersect g rw = {-# SCC "intersect.Geometry" #-} (S.intersect (shape g) ro) >>= int where
       int (t, dg) = Just $ Intersection t (transDg (o2w g) dg) p m
       m = material g
-      p = MkAnyPrim g
+      p = mkAnyPrim g
       ro = transRay (w2o g) rw -- ray in object space
    
 near :: (Primitive a) => (Ray, Maybe Intersection) -> a -> (Ray, Maybe Intersection)
