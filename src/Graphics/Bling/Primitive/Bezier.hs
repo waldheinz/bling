@@ -10,6 +10,7 @@ import qualified Data.Vector.Unboxed as V
 
 import Graphics.Bling.Math
 import Graphics.Bling.Shape
+import Graphics.Bling.Primitive.TriangleMesh
 
 newtype Patch = Patch { _unPatch :: V.Vector Flt }
 

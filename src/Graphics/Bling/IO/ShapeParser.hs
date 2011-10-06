@@ -13,14 +13,20 @@ import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.Primitive.Bezier
 import Graphics.Bling.Primitive.Fractal
 
---
--- parsing fractals
---
+--------------------------------------------------------------------------------
+-- Primitives
+--------------------------------------------------------------------------------
 
-pFractal :: JobParser ()
-pFractal = pBlock $ do
-   t <- many alphaNum
-   f <- case t of
+pPrimitive :: JobParser AnyPrim
+pPrimitive = pBlock $ do
+   t <- pString
+   p <- case t of
+             "bezier" -> do
+                subdivs <- ws >> namedInt "subdivs"
+                patches <- many1 (try pBezierPatch)
+                optional ws
+                return $ tesselateBezierMesh subdivs patches
+                
              "julia" -> do
                 c <- ws >> pNamedQuat "c"
                 e <- ws >> namedFloat "epsilon"
@@ -36,8 +42,9 @@ pFractal = pBlock $ do
                 
              _ -> fail $ "unknown fractal type " ++ t
 
-   s <- getState
-   setState s {prims = (mkAnyPrim f) : (prims s)}
+   return $ mkAnyPrim p
+--    s <- getState
+--    setState s {prims = (mkAnyPrim f) : (prims s)}
 
 pNamedQuat :: String -> JobParser Quaternion
 pNamedQuat n = do
@@ -83,17 +90,12 @@ pShape = pBlock $ do
          return $ mkSphere r
 
       _ -> fail $ "unknown shape type " ++ t
+      
 pGeometry :: JobParser ()
 pGeometry = pBlock $ do
    t <- many alphaNum
    
    sh <- case t of
-      "bezier" -> do
-         subdivs <- ws >> namedInt "subdivs"
-         patches <- many1 (try pBezierPatch)
-         optional ws
-         return $ tesselateBezierMesh subdivs patches
-
       "box" -> do
          pmin <- ws >> namedVector "pmin"
          pmax <- ws >> namedVector "pmax"
