@@ -16,8 +16,6 @@ import Data.Bits ((.&.), (.|.), shiftL)
 import Data.Char as C
 import Data.Word
 
-import Debug.Trace
-
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Texture
 import Graphics.Bling.Types
@@ -77,19 +75,25 @@ readRlePixels bs width height = go height (bs, []) where
    oneChannel :: BS.ByteString -> (BS.ByteString, [Word8])
    oneChannel cbs = goc width (cbs, []) where
       goc 0 x = x
-      goc n (cb, xs)
+      goc n (cb, _)
          | n < 0 = error "ewww"
          | b0 == 0 = error "bad scanline data"
-         | b0 > 128 = goc (n - (fromIntegral b0 - 128)) (BS.drop 2 cb, xs ++ Prelude.replicate ((fromIntegral b0) - 128) b1)
-         | otherwise = goc (n - fromIntegral b0) (BS.drop (fromIntegral b0 + 1) cb, xs ++ (BS.unpack $ BS.take (fromIntegral b0) cb))
+         | isRun = (cb', replicate runlen b1 ++ xs')
+         | otherwise = (cb', (BS.unpack $ BS.take (fromIntegral b0) cb) ++ xs')
          where
+            (cb', xs') = goc (n - lHere) (BS.drop cHere cb, [])
+            lHere = if isRun then runlen else fromIntegral b0
+            cHere = if isRun then 2 else fromIntegral b0 + 1
+            isRun = b0 > 128
             (b0:b1:_) = BS.unpack $ BS.take 2 cb
+            runlen = fromIntegral b0 - 128
+            
    
 readFlatPixels :: BS.ByteString -> Int -> (BS.ByteString, [[Spectrum]])
-readFlatPixels bs count = trace ("count=" ++ show count++ " len=" ++ show (BS.length bs)) $ go count (bs, []) where
+readFlatPixels bs count = go count (bs, []) where
    go 0 x = x
    go n (bs', ss) = go (n-1) (rest, s:ss) where
-      (rest, s) = trace ("bs' len = " ++ (show $ BS.length bs')) $ readFlatPixel bs'
+      (rest, s) = readFlatPixel bs'
 
 readFlatPixel :: BS.ByteString -> (BS.ByteString, [Spectrum])
 readFlatPixel bs = (BS.drop 4 bs, [rgbeToSpectrum r g b e]) where
