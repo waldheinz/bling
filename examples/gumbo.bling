@@ -38,8 +38,17 @@ camera {
 
 transform { identity }
 
-light { sunSky up 0 0 1 east 1 0 0 sunDir -1 0 0.3 turbidity 8 }
+# light { sunSky up 0 0 1 east 1 0 0 sunDir -1 0 0.3 turbidity 8 }
 # light { directional intensity rgb 1 1 1 normal 0 0 1 }
+
+# transform { identity rotateX -90 }
+
+light {
+   infinite
+   l { rgbeFile "./examples/envmaps/studio015.hdr" }
+}
+
+# transform { identity }
 
 #
 # light source

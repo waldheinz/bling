@@ -139,14 +139,14 @@ nearest' ps x = V.foldl' near x ps
 
 data Intersection = Intersection {
    intDist :: Float,
-   intGeometry :: DifferentialGeometry,
+   _intGeometry :: DifferentialGeometry,
    intPrimitive :: AnyPrim,
    intMaterial :: Material
    }
 
 intBsdf :: Intersection -> Bsdf
 intBsdf int = intMaterial int dgg dgs where
-   dgg = intGeometry int
+   dgg = _intGeometry int
    dgs = shadingGeometry (intPrimitive int) identity dgg
 
 -- | the light emitted at an @Intersection@

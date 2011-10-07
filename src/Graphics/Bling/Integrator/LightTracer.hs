@@ -140,8 +140,7 @@ nextVertex sc wi (Just int) li depth splat
       
    where
       pcont = if depth > 3 then 0.5 else 1
-      dg = intGeometry int
       bsdf = intBsdf int
-      n = normalize $ dgN dg
-      p = dgP dg
+      n = bsdfShadingNormal bsdf
+      p = bsdfShadingPoint bsdf
       

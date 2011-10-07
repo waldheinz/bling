@@ -207,6 +207,5 @@ nextVertex sc wi (Just int) alpha depth md f1d f2d
          else (liftM . (:)) vHere $! rest
    
       where
-         dg = intGeometry int
          bsdf = intBsdf int
-         p = dgP dg
+         p = bsdfShadingPoint bsdf
