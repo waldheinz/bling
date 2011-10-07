@@ -98,6 +98,9 @@ instance Primitive Triangle where
    worldBounds tri = foldl' extendAABBP emptyAABB [p1, p2, p3] where
       (p1, p2, p3) = triPoints tri
 
+   intersect t r = {-# SCC "intersect" #-} intersectTri t r
+   intersects t r = {-# SCC "intersects" #-} intersectsTri t r
+   
    shadingGeometry tri@(Tri _ mesh) o2w dgg
       | isNothing $ mns mesh = dgg
       | otherwise = dgg { dgN = ns, dgDPDU = ss, dgDPDV = ts }
@@ -111,71 +114,74 @@ instance Primitive Triangle where
          (ss, ts) = if sqLen ts' > 0
                        then ((normalize $ ts') `cross` ns, normalize $ ts')
                        else coordinateSystem'' ns
+
+
+intersectsTri :: Triangle -> Ray -> Bool
+intersectsTri tri (Ray ro rd tmin tmax)
+   | divisor == 0 = False
+   | b1 < 0 || b1 > 1 = False
+   | b2 < 0 || b1 + b2 > 1 = False
+   | t < tmin || t > tmax = False
+   | otherwise = True
+   where
+      (p1, p2, p3) = triPoints tri
+      t = dot e2 s2 * invDiv
+      b2 = dot rd s2 * invDiv -- second barycentric
+      s2 = cross d e1
+      b1 = dot d s1 * invDiv -- first barycentric
+      d = ro - p1
+      invDiv = 1 / divisor
+      divisor = dot s1 e1
+      s1 = cross rd e2
+      e1 = p2 - p1
+      e2 = p3 - p1
+
+intersectTri :: Triangle -> Ray -> Maybe Intersection
+intersectTri tri r@(Ray ro rd tmin tmax)
+   | divisor == 0 = Nothing
+   | b1 < 0 || b1 > 1 = Nothing
+   | b2 < 0 || b1 + b2 > 1 = Nothing
+   | t < tmin || t > tmax = Nothing
+   | otherwise = Just int
+   where
+      (p1, p2, p3) = triPoints tri
+      (e1, e2) = (p2 - p1, p3 - p1)
+      s1 = rd `cross` e2
+      divisor = dot s1 e1
+      invDiv = 1 / divisor
+
+      -- first barycentric
+      b1 = dot d s1 * invDiv
+      d = ro - p1
+
+      -- second barycentric
+      b2 = dot rd s2 * invDiv
+      s2 = cross d e1
+      t = dot e2 s2 * invDiv
+      n = normalize $ cross e1 e2
+
+      -- compute partial derivatives
+      (uv00, uv01, uv10, uv11, uv20, uv21) = triUVs tri
+      du1 = uv00 - uv20
+      du2 = uv10 - uv20
+      dv1 = uv01 - uv21
+      dv2 = uv11 - uv21
+      (dp1, dp2) = (p1 - p3, p2 - p3)
+      determinant = du1 * dv2 - dv1 * du2
+
+      (dpdu, dpdv)
+         | determinant == 0 = coordinateSystem'' n
+         | otherwise = (invDet *# (  dv2  *# dp1 - dv1 *# dp2),
+                        invDet *# ((-du2) *# dp1 + du1 *# dp2))
+         where
+            invDet = 1 / determinant
+
+      -- interpolate u and v
+      b0 = 1 - b1 - b2
+      tu = b1 -- b0 * uv00 + b1 * uv10 + b2 * uv20
+      tv = b2 -- b0 * uv01 + b1 * uv11 + b2 * uv21
          
-   intersects tri (Ray ro rd tmin tmax)
-      | divisor == 0 = False
-      | b1 < 0 || b1 > 1 = False
-      | b2 < 0 || b1 + b2 > 1 = False
-      | t < tmin || t > tmax = False
-      | otherwise = True
-      where
-         (p1, p2, p3) = triPoints tri
-         t = dot e2 s2 * invDiv
-         b2 = dot rd s2 * invDiv -- second barycentric
-         s2 = cross d e1
-         b1 = dot d s1 * invDiv -- first barycentric
-         d = ro - p1
-         invDiv = 1 / divisor
-         divisor = dot s1 e1
-         s1 = cross rd e2
-         e1 = p2 - p1
-         e2 = p3 - p1
-
-   intersect tri r@(Ray ro rd tmin tmax)
-      | divisor == 0 = Nothing
-      | b1 < 0 || b1 > 1 = Nothing
-      | b2 < 0 || b1 + b2 > 1 = Nothing
-      | t < tmin || t > tmax = Nothing
-      | otherwise = Just int
-      where
-         (p1, p2, p3) = triPoints tri
-         (e1, e2) = (p2 - p1, p3 - p1)
-         s1 = rd `cross` e2
-         divisor = dot s1 e1
-         invDiv = 1 / divisor
-
-         -- first barycentric
-         b1 = dot d s1 * invDiv
-         d = ro - p1
-
-         -- second barycentric
-         b2 = dot rd s2 * invDiv
-         s2 = cross d e1
-         t = dot e2 s2 * invDiv
-         n = normalize $ cross e1 e2
-
-         -- compute partial derivatives
-         (uv00, uv01, uv10, uv11, uv20, uv21) = triUVs tri
-         du1 = uv00 - uv20
-         du2 = uv10 - uv20
-         dv1 = uv01 - uv21
-         dv2 = uv11 - uv21
-         (dp1, dp2) = (p1 - p3, p2 - p3)
-         determinant = du1 * dv2 - dv1 * du2
-
-         (dpdu, dpdv)
-            | determinant == 0 = coordinateSystem'' n
-            | otherwise = (invDet *# (  dv2  *# dp1 - dv1 *# dp2),
-                           invDet *# ((-du2) *# dp1 + du1 *# dp2))
-            where
-               invDet = 1 / determinant
-
-         -- interpolate u and v
-         b0 = 1 - b1 - b2
-         tu = b1 -- b0 * uv00 + b1 * uv10 + b2 * uv20
-         tv = b2 -- b0 * uv01 + b1 * uv11 + b2 * uv21
-         
-         -- create intersection
-         dg = mkDg (rayAt r t) tu tv dpdu dpdv (mkV (0, 0, 0)) (mkV (0,0, 0))
-         int = Intersection t dg (mkAnyPrim tri) (triMaterial tri)
+      -- create intersection
+      dg = mkDg (rayAt r t) tu tv dpdu dpdv (mkV (0, 0, 0)) (mkV (0,0, 0))
+      int = Intersection t dg (mkAnyPrim tri) (triMaterial tri)
          

@@ -138,10 +138,10 @@ nearest' ps x = V.foldl' near x ps
 --
 
 data Intersection = Intersection {
-   intDist :: Float,
-   _intGeometry :: DifferentialGeometry,
-   intPrimitive :: AnyPrim,
-   intMaterial :: Material
+   intDist        :: {-# UNPACK #-} ! Float,
+   _intGeometry   :: {-# UNPACK #-} ! DifferentialGeometry,
+   intPrimitive   :: ! AnyPrim,
+   intMaterial    :: ! Material
    }
 
 intBsdf :: Intersection -> Bsdf

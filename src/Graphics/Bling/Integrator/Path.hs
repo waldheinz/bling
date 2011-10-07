@@ -55,13 +55,13 @@ instance SurfaceIntegrator PathIntegrator where
 nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Int -> Sampled m Spectrum
 
 -- nothing hit, specular bounce
-nextVertex s _ True ray Nothing _ = return $ (V.sum $ V.map (`le` ray) (sceneLights s))
+nextVertex s _ True ray Nothing _ = return $! (V.sum $ V.map (`le` ray) (sceneLights s))
    
 -- nothing hit, non-specular bounce
-nextVertex _ _ False _ Nothing _ = return black
+nextVertex _ _ False _ Nothing _ = return $! black
 
 nextVertex scene depth spec (Ray _ rd _ _) (Just int) md
-   | depth == md = return black
+   | depth == md = return $! black
    | otherwise = do
 
       -- for light sampling
@@ -88,12 +88,12 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) md
                   int' = scene `intersect` ray'
                   depth' = depth + 1
                   rest x = if x > pc
-                            then return black
+                            then return $! black
                             else nextVertex scene depth' spec' ray' int' md
                             
               in do
                   r <- rnd' (3 + smp1doff depth) >>= rest
-                  return $ t * (lHere + sScale r (1 / pc))
+                  return $! t * (lHere + sScale r (1 / pc))
       
       where
          intl = if spec then intLe int wo else black

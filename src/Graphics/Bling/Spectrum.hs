@@ -118,10 +118,12 @@ type Contribution = (Bool, ImageSample)
 
 -- | A "black" @Spectrum@ (no transmittance or emission) at all wavelengths
 black :: Spectrum
+{-# INLINE black #-}
 black = Spectrum 0 0 0
 
 -- | A "white" @Spectrum@ (full transmission at any wavelength).
 white :: Spectrum
+{-# INLINE white #-}
 white = Spectrum 1 1 1
 
 fromRGB :: (Float, Float, Float) -> Spectrum

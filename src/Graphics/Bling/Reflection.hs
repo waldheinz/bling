@@ -120,7 +120,8 @@ instance Bxdf FresnelBlend where
    bxdfPdf (FB _ _ d) wo wi
       | sameHemisphere wo wi = 0.5 * (absCosTheta wi * invPi + mfDistPdf d wo wi)
       | otherwise = 0
---------------------------------------------------------------------------------
+
+  --------------------------------------------------------------------------------
 -- Helper Functions
 --------------------------------------------------------------------------------
 
@@ -249,7 +250,6 @@ bsdfSpecCompCount bsdf = V.sum $ V.map go $ _bsdfBxdfs bsdf where
       | otherwise = 0
    
 bsdfPdf :: Bsdf -> Vector -> Vector -> Float
-
 bsdfPdf (Bsdf bs cs _ _) woW wiW 
    | V.null bs = 0
    | otherwise = {-# SCC "bsdfPdf" #-} pdfSum / fromIntegral (V.length bs) where
@@ -258,22 +258,25 @@ bsdfPdf (Bsdf bs cs _ _) woW wiW
       wi = worldToLocal cs wiW
 
 data BsdfSample = BsdfSample {
-   bsdfSampleType :: BxdfType,
-   bsdfSamplePdf :: Float,
-   bsdfSampleTransport :: Spectrum,
-   bsdfSampleWi :: Vector
+   bsdfSampleType       :: {-# UNPACK #-} ! BxdfType,
+   bsdfSamplePdf        :: {-# UNPACK #-} ! Flt,
+   bsdfSampleTransport  :: {-# UNPACK #-} ! Spectrum,
+   bsdfSampleWi         :: {-# UNPACK #-} ! Vector
    } deriving (Show)
 
 sampleBsdf :: Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
+sampleBsdf = {-# SCC "sampleBsdf" #-} sampleBsdf'
 
-sampleBsdf (Bsdf bs cs _ ng) woW uComp uDir
-   | V.null bs || pdf' == 0 = {-# SCC "sampleBsdfEmpty" #-} emptyBsdfSample
-   | isSpecular bxdf = {-# SCC "sampleBsdfSpecular" #-} BsdfSample t pdf' f' wiW
+sampleBsdf' :: Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
+{-# INLINE sampleBsdf' #-}
+sampleBsdf' (Bsdf bs cs _ ng) woW uComp uDir
+   | V.null bs || pdf' == 0 = emptyBsdfSample
+   | isSpecular bxdf = BsdfSample t pdf' f' wiW
    | otherwise = BsdfSample t pdf f wiW where
-      (f', wi, pdf') = {-# SCC "sampleBsdfBxdf" #-} bxdfSample bxdf wo uDir
+      (f', wi, pdf') = bxdfSample bxdf wo uDir
       flt = if woW `dot` ng * wiW `dot` ng < 0 then isTransmission else isReflection
-      f = {-# SCC "sampleBsdf_f" #-}f' + (V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bs')
-      pdf = {-# SCC "sampleBsdf_pdf" #-}(pdf' + (V.sum $ V.map (\b -> bxdfPdf b wo wi) bs')) / (fromIntegral cnt)
+      f = f' + (V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bs')
+      pdf = (pdf' + (V.sum $ V.map (\b -> bxdfPdf b wo wi) bs')) / (fromIntegral cnt)
       bs' = V.ifilter (\i _ -> (i /= sNum)) bs -- filter explicitely sampled
       wiW = localToWorld cs wi
       wo = worldToLocal cs woW
@@ -346,9 +349,9 @@ instance Bxdf OrenNayar where
 --------------------------------------------------------------------------------
 
 data Microfacet = Microfacet {
-   distribution :: Distribution,
-   fresnel :: Fresnel,
-   reflectance :: Spectrum
+   distribution   :: ! Distribution,
+   fresnel        :: ! Fresnel,
+   reflectance    :: {-# UNPACK #-} ! Spectrum
    }
 
 instance Bxdf Microfacet where
