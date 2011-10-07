@@ -80,17 +80,18 @@ tesselateBezier subs patches t mat = mesh where
    mesh = mkTriangleMesh t mat ps is Nothing Nothing
    (ps, is) = runST $ do
       let stride = (subs+1) * (subs+1)
-      pv <- MV.new (stride * length patches)
       iv <- MV.new (subs * subs * length patches * 3 * 2)
+      pv <- MV.new (stride * length patches)
       
-      forM_ (zip patches [0, stride..]) $ \(p, offset) -> do
+      forM_ (zip patches [0..]) $ \(p, pn) -> do
          let (pis, pps) = onePatch subs p
-         forM_ (zip pis [0..]) $ \(vi, o) -> do
-            MV.write iv (offset * 3 * 2 + o) (vi + offset)
-         forM_ (zip pps [0..]) $ \((vp, _, _), o) -> do
-            MV.write pv (offset + o) vp
+         
+         forM_ (zip pis [0..]) $ \(vi, o) -> do -- indices
+            MV.write iv (pn * subs * subs * 3 * 2 + o) (vi + pn * stride)
+            
+         forM_ (zip pps [0..]) $ \((vp, _, _), o) -> do -- points
+            MV.write pv (pn * stride + o) vp
          
       pv' <- V.freeze pv
       iv' <- V.freeze iv
       return (pv', iv')
-

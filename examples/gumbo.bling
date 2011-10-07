@@ -11,7 +11,7 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 3 ySamples 3 }
+      sampler { stratified xSamples 2 ySamples 2 }
       integrator { path maxDepth 5 sampleDepth 3 }
    }
 }
@@ -36,7 +36,7 @@ camera {
 
 transform { identity }
 
-light { sunSky up 0 0 1 east 1 0 0 sunDir -1 0 0.8 turbidity 8 }
+light { sunSky up 0 0 1 east 1 0 0 sunDir -1 0 0.3 turbidity 8 }
 #light { directional intensity rgb 1 1 1 normal 0 0 1 }
 
 #

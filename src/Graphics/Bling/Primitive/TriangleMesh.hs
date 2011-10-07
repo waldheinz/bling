@@ -28,12 +28,17 @@ mkTriangleMesh
    -> Maybe (V.Vector Normal)       -- ^ shading normals
    -> Maybe (V.Vector (Flt, Flt))   -- ^ uv coordinates for parametrization
    -> TriangleMesh
-mkTriangleMesh o2w mat p i n uv = Mesh i p' n uv mat where
-   p' = V.map (transPoint o2w) p
-
+mkTriangleMesh o2w mat p i n uv
+   | V.length i `rem` 3 /= 0 = error "mkTriangleMesh: number of indices must be multiple of 3"
+   | V.any (>= V.length p) i = error "mkTriangleMesh: contains out of bounds indices"
+   | otherwise = Mesh i p' n uv mat
+   where
+      p' = V.map (transPoint o2w) p
+--      ntris = V.length i `div` 3
+   
 instance Primitive TriangleMesh where
    flatten mesh = map mkAnyPrim $ map (mkTri mesh) is where
-      is = [0..(V.length $ mvidx mesh) `div` 3]
+      is = [0..((V.length $ mvidx mesh) `div` 3 - 1)]
 
    worldBounds mesh = V.foldl' extendAABBP emptyAABB $ mps mesh
 
@@ -47,7 +52,9 @@ instance Primitive TriangleMesh where
 data Triangle = Tri {-# UNPACK #-} !Int ! TriangleMesh
 
 mkTri :: TriangleMesh -> Int -> Triangle
-mkTri mesh n = Tri (n*3) mesh
+mkTri mesh n
+   | V.length (mvidx mesh) <= (n*3+2) = error "this triangle should not exist"
+   | otherwise = Tri (n*3) mesh
 
 triOffsets :: Triangle -> (Int, Int, Int)
 {-# INLINE triOffsets #-}
