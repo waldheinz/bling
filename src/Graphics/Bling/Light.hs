@@ -225,6 +225,15 @@ sample' (AreaLight _ s r _ _) _ uo ud = (r, ray, ns, pd) where
    dir = if ns `dot` dir' < 0 then -dir' else dir'
    ray = Ray org dir 1e-2 infinity
 
+sample' (Directional r n) bounds uo ud = (r, ray, ns, pd) where
+   (wc, wr) = boundingSphere bounds
+   (v1, v2) = coordinateSystem'' n
+   (d1, d2) = concentricSampleDisk uo
+   pdisk = wc + wr *# (d1 *# v1 + d2 *# v2)
+   ns = (-n)
+   ray = Ray (pdisk + wr *# n) ns 0 infinity
+   pd = 1 / (pi * wr * wr)
+   
 sample' (Infinite rmap _ dist w2l) bounds uo ud
    | pdMap == 0 = emptySample'
    | otherwise = (ls, ray, d, pd) where

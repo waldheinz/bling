@@ -79,7 +79,7 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) md
       let (BsdfSample smpType spdf f wi) = sampleBsdf bsdf wo bsdfCompU bsdfDirU
 
       if spdf == 0 || isBlack f
-         then return lHere
+         then return $! lHere
          else let
                   t = sScale f (absDot wi n / spdf)
                   pc = if depth <= 3 then 1 else min 1 (sY t) -- cont. probability
