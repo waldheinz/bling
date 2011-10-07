@@ -63,7 +63,7 @@ evalPatch (Patch ctrl) bu bdu bv bdv = (p, dpdu, dpdv) where
       s o = sum [c (i * 12 + j * 3 + o) * bj j * bi i | i <- [0..3], j <- [0..3]]
 
 onePatch :: Int -> Patch -> ([Int], [(Point, Vector, Vector)], [(Flt, Flt)])
-onePatch subdivs p = (is, ps, uvs) where
+onePatch subdivs p = {-# SCC "onePatch" #-} (is, ps, uvs) where
    step = 1 / fromIntegral subdivs
    vstride = subdivs + 1
    is = concat [mkTris i j | i <- [0..subdivs-1], j <- [0..subdivs-1]]
@@ -77,7 +77,7 @@ onePatch subdivs p = (is, ps, uvs) where
    evalv bu bdu = [evalPatch p bu bdu (bernstein (fromIntegral j * step)) (bernsteinDeriv  (fromIntegral j * step)) | j <- [0 .. subdivs]]
    
 tesselateBezier :: Int -> [Patch] -> Transform -> Material -> TriangleMesh
-tesselateBezier subs patches t mat = mesh where
+tesselateBezier subs patches t mat = {-# SCC "tesselateBezier" #-} mesh where
    mesh = mkTriangleMesh t mat ps is (Just ns) (Just uvs)
    (ps, is, ns, uvs) = runST $ do
       let stride = (subs+1) * (subs+1)

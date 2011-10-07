@@ -11,12 +11,12 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 8 ySamples 8 }
+      sampler { stratified xSamples 2 ySamples 2 }
       integrator { path maxDepth 5 sampleDepth 3 }
    }
 }
 
-# renderer { sampler sampled { sampler { random samples 9 } integrator { path maxDepth 5 sampleDepth 3 } } }
+# renderer { sampler sampled { sampler { random samples 1 } integrator { path maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 # renderer { sampler sampled { sampler { random samples 128 } integrator { debug reference } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { directLighting } } }
@@ -24,7 +24,7 @@ renderer {
 transform {
    lookAt {
       pos 5 25 22
-      look 12 0 4
+      look 12 0 3.5
       up 0 0 1
    }
 }
@@ -39,16 +39,17 @@ camera {
 transform { identity }
 
 # light { sunSky up 0 0 1 east 1 0 0 sunDir -1 0 0.3 turbidity 8 }
-# light { directional intensity rgb 1 1 1 normal 0 0 1 }
+ light { directional intensity rgb 1 1 1 normal 0 0 1 }
 
-# transform { identity rotateX -90 }
+transform { identity rotateX 180 }
 
-light {
-   infinite
-   l { rgbeFile "./examples/envmaps/studio015.hdr" }
-}
+#light {
+#   infinite
+#   l { rgbeFile "./examples/envmaps/studio015.hdr" }
+#   l { rgbeFile "/home/trem/Downloads/garage4_hd.hdr" }
+#}
 
-# transform { identity }
+transform { identity }
 
 #
 # light source
@@ -60,12 +61,12 @@ light {
 # ground plane
 #
 
-transform { identity scale 100 100 1 }
+transform { identity scale 10 10 1 }
 
-material {
-   matte
-   kd { constant rgb 0.8 0.8 0.8 }
-   sigma { constant 0.0 }
+material { plastic
+   kd { constant rgb 0.1 0.1 0.1 }
+   ks { constant rgb 0.5 0.5 0.5 }
+   rough { constant 0.00078125 }
 }
 
 shape {
@@ -112,11 +113,11 @@ material {
 }
 
 # material { measured name Clay }
-# material { mirror kr { constant rgb 1 0.7 0.3 } }
+# material { mirror kr { constant rgb 0.9 0.9 0.9 } }
 
 prim {
    bezier
-   subdivs 10
+   subdivs 5
    p { 10.0000,  2.00000,  0.00000, 10.0000,  2.00000,  0.00000,
        14.0000,  2.00000,  0.00000, 14.0000,  2.00000,  0.00000,
        10.0000,  2.00000,  0.00000, 10.2277,  2.22776, -0.91104,

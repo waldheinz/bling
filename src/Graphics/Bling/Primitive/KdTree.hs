@@ -103,7 +103,7 @@ data BP = BP
    }
 
 mkKdTree :: [AnyPrim] -> KdTree
-mkKdTree ps = KdTree bounds root where
+mkKdTree ps = {-# SCC "mkKdTree" #-} KdTree bounds root where
    root = buildTree bounds bps md
    bps = V.map (\p -> BP p (worldBounds p)) (V.fromList ps)
    bounds = V.foldl' extendAABB emptyAABB $ V.map bpBounds bps
@@ -111,8 +111,8 @@ mkKdTree ps = KdTree bounds root where
    
 buildTree :: AABB -> V.Vector BP -> Int -> KdTreeNode
 buildTree bounds bps depth
-   | depth == 0 || V.length bps <= 1 = leaf
-   | otherwise = fromMaybe leaf $ trySplit bounds bps depth
+   | depth == 0 || V.length bps <= 1 = {-# SCC "buildTree.leaf" #-} leaf
+   | otherwise = {-# SCC "buildTree.trySplit" #-} fromMaybe leaf $ trySplit bounds bps depth
    where
       leaf = Leaf $ V.map bpPrim bps
       
@@ -177,7 +177,7 @@ cost
    -> Int -- ^ the number of prims to the left of the split
    -> Int -- ^ the number of prims to the right of the split
    -> Flt -- ^ the resulting split cost according to the SAH
-cost b@(AABB pmin pmax) a0 t nl nr = cT + cI * eb * pI where
+cost b@(AABB pmin pmax) a0 t nl nr = {-# SCC "cost" #-} cT + cI * eb * pI where
    pI = pl * fromIntegral nl + pr * fromIntegral nr
    eb = if nl == 0 || nr == 0 then 0.8 else 1
    (pl, pr) = (sal * invTotSa, sar * invTotSa)
