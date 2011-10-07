@@ -100,12 +100,17 @@ instance Primitive Triangle where
 
    shadingGeometry tri@(Tri _ mesh) o2w dgg
       | isNothing $ mns mesh = dgg
-      | otherwise = dgg { dgN = ns }
+      | otherwise = dgg { dgN = ns, dgDPDU = ss, dgDPDV = ts }
       where
          (b0, b1, b2) = (1 - b1 - b2, dgU dgg, dgV dgg)
          (n0, n1, n2) = triNormals tri
          ns = normalize $ transNormal o2w ns'
          ns' = (b0 *# n0) + (b1 *# n1) + (b2 *# n2)
+         ss' = normalize $ dgDPDU dgg
+         ts' = ss' `cross` ns
+         (ss, ts) = if sqLen ts' > 0
+                       then ((normalize $ ts') `cross` ns, normalize $ ts')
+                       else coordinateSystem'' ns
          
    intersects tri (Ray ro rd tmin tmax)
       | divisor == 0 = False

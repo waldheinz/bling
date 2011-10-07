@@ -11,7 +11,7 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 2 ySamples 2 }
+      sampler { stratified xSamples 8 ySamples 8 }
       integrator { path maxDepth 5 sampleDepth 3 }
    }
 }
@@ -19,7 +19,7 @@ renderer {
 # renderer { sampler sampled { sampler { random samples 9 } integrator { path maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 # renderer { sampler sampled { sampler { random samples 128 } integrator { debug reference } } }
-renderer { sampler sampled { sampler { random samples 4 } integrator { directLighting } } }
+# renderer { sampler sampled { sampler { random samples 4 } integrator { directLighting } } }
 
 transform {
    lookAt {
@@ -38,8 +38,8 @@ camera {
 
 transform { identity }
 
-# light { sunSky up 0 0 1 east 1 0 0 sunDir -1 0 0.3 turbidity 8 }
-light { directional intensity rgb 1 1 1 normal 0 0 1 }
+light { sunSky up 0 0 1 east 1 0 0 sunDir -1 0 0.3 turbidity 8 }
+# light { directional intensity rgb 1 1 1 normal 0 0 1 }
 
 #
 # light source
@@ -102,13 +102,12 @@ material {
    rough { constant 0.01 }
 }
 
-material {
-   measured name Clay
-}
+# material { measured name Clay }
+# material { mirror kr { constant rgb 1 0.7 0.3 } }
 
 prim {
    bezier
-   subdivs 6
+   subdivs 10
    p { 10.0000,  2.00000,  0.00000, 10.0000,  2.00000,  0.00000,
        14.0000,  2.00000,  0.00000, 14.0000,  2.00000,  0.00000,
        10.0000,  2.00000,  0.00000, 10.2277,  2.22776, -0.91104,
