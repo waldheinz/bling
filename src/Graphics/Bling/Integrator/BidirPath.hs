@@ -60,13 +60,13 @@ instance SurfaceIntegrator BidirPath where
    
    sampleCount2D (BDP _ sd _) = smps2D * sd * 3 + 2
    
-   contrib (BDP md _ noDirect) scene addContrib' r = do
+   contrib (BDP md _ noDirect) scene addContrib' r = {-# SCC "contrib" #-} do
       ul <- rnd' 0
       ulo <- rnd2D' 0
       uld <- rnd2D' 1
       
-      lp <- lightPath scene md ul ulo uld
-      ep <- eyePath scene r md
+      lp <- {-# SCC "lightPath" #-} lightPath scene md ul ulo uld
+      ep <- {-# SCC "eyePath" #-} eyePath scene r md
       
       -- precompute sum of specular bounces in eye or light path
       let nspecBouces = countSpec ep lp
@@ -79,7 +79,7 @@ instance SurfaceIntegrator BidirPath where
                    else ep
                    
       -- direct illumination, aka "one light" or S1 subpaths
-      ld <- do
+      ld <- {-# SCC "directIllum" #-} do
           liftM sum $ forM (zip ep' [1..]) $ \(v, i) -> do
           d <- estimateDirect scene v i
           return $ sScale d $ 1 / (fromIntegral i - nspecBouces V.! i)
@@ -95,7 +95,8 @@ instance SurfaceIntegrator BidirPath where
       let ei = zip ep [0..]
       let li = zip lp [0..]
 
-      let l = sum $ parMap rdeepseq (connect scene nspecBouces) $ pairs ei li
+      let l = {-# SCC "connect" #-} 
+              sum $ parMap rdeepseq (connect scene nspecBouces) $ pairs ei li
       mkContrib (1, l + ld + le) False >>= addContrib
       where
          addContrib = liftSampled . addContrib'
