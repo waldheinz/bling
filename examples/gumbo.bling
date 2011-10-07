@@ -16,8 +16,10 @@ renderer {
    }
 }
 
-#renderer { sampler sampled { sampler { random samples 9 } integrator { path maxDepth 5 sampleDepth 3 } } }
+# renderer { sampler sampled { sampler { random samples 9 } integrator { path maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
+# renderer { sampler sampled { sampler { random samples 128 } integrator { debug reference } } }
+renderer { sampler sampled { sampler { random samples 4 } integrator { directLighting } } }
 
 transform {
    lookAt {
@@ -36,8 +38,8 @@ camera {
 
 transform { identity }
 
-light { sunSky up 0 0 1 east 1 0 0 sunDir -1 0 0.3 turbidity 8 }
-#light { directional intensity rgb 1 1 1 normal 0 0 1 }
+# light { sunSky up 0 0 1 east 1 0 0 sunDir -1 0 0.3 turbidity 8 }
+light { directional intensity rgb 1 1 1 normal 0 0 1 }
 
 #
 # light source
@@ -67,10 +69,6 @@ shape {
    v  50.0  50.0 0
    f 3 2 1 0
 }
-
-# material {
-#    measured name Clay
-# }
 
 transform {
    identity
@@ -104,9 +102,13 @@ material {
    rough { constant 0.01 }
 }
 
+material {
+   measured name Clay
+}
+
 prim {
    bezier
-   subdivs 3
+   subdivs 6
    p { 10.0000,  2.00000,  0.00000, 10.0000,  2.00000,  0.00000,
        14.0000,  2.00000,  0.00000, 14.0000,  2.00000,  0.00000,
        10.0000,  2.00000,  0.00000, 10.2277,  2.22776, -0.91104,

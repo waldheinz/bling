@@ -20,7 +20,7 @@ module Graphics.Bling.Math (
    Normal, mkNormal, Point, mkPoint,
    Dimension, allDimensions, setComponent, (.!), dominant, dimX, dimY, dimZ,
    sphericalDirection, sphericalTheta, sphericalPhi, faceForward,
-   sphToDir, dirToSph, sphSinTheta,
+   sphToDir, dirToSph, sphSinTheta, (*#),
    
    -- * Rays
    
@@ -28,7 +28,7 @@ module Graphics.Bling.Math (
    
    -- * Otrth. Basis
    LocalCoordinates(..), worldToLocal, localToWorld, coordinateSystem,
-   coordinateSystem',
+   coordinateSystem', coordinateSystem''
    
    ) where
 
@@ -47,7 +47,7 @@ infinity :: Flt
 infinity = 1 / 0
 
 epsilon :: Flt
-epsilon = 0.01
+epsilon = 0.1
 
 invPi :: Flt
 invPi = 1 / pi
@@ -200,6 +200,10 @@ instance Fractional Vector where
   (/) = vzip (/)
   recip = vmap recip
   fromRational = vpromote . fromRational
+
+(*#) :: Flt -> Vector -> Vector
+{-# INLINE (*#) #-}
+(*#) f v = vpromote f * v
 
 -- make Vector an instance of Unbox
 
@@ -404,6 +408,11 @@ coordinateSystem' w v = LocalCoordinates u v' w' where
    w' = normalize w
    u = normalize $ v `cross` w'
    v' = w' `cross` u
+
+coordinateSystem'' :: Vector -> (Vector, Vector)
+{-# INLINE coordinateSystem'' #-}
+coordinateSystem'' v = (du, dv) where
+   (LocalCoordinates du dv _) = coordinateSystem v
 
 worldToLocal :: LocalCoordinates -> Vector -> Vector
 {-# INLINE worldToLocal #-}

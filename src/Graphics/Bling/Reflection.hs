@@ -22,8 +22,8 @@ module Graphics.Bling.Reflection (
    
    -- * BSDF
    
-   Bsdf, BsdfSample(..), bsdfShadingNormal, bsdfSpecCompCount,
-   mkBsdf, mkBsdf', evalBsdf, sampleBsdf, bsdfPdf,
+   Bsdf, BsdfSample(..), bsdfShadingNormal, bsdfShadingPoint,
+   bsdfSpecCompCount, mkBsdf, mkBsdf', evalBsdf, sampleBsdf, bsdfPdf,
    
    -- * Working with Vectors in shading coordinate system
 
@@ -205,9 +205,10 @@ mkBxdfType = foldl' (flip insert) empty
 --------------------------------------------------------------------------------
 
 data Bsdf = Bsdf
-   { _bsdfBxdfs :: V.Vector AnyBxdf -- ^ the BxDFs the BSDF is composed of
-   , _bsdfCs    :: LocalCoordinates -- ^ the shading coordinate system
-   , _bsdfNg    :: Normal -- ^ geometric normal
+   { _bsdfBxdfs :: ! (V.Vector AnyBxdf) -- ^ the BxDFs the BSDF is composed of
+   , _bsdfCs    :: {-# UNPACK #-} ! LocalCoordinates -- ^ the shading coordinate system
+   , _bsdfP     :: {-# UNPACK #-} ! Point
+   , _bsdfNg    :: {-# UNPACK #-} ! Normal -- ^ geometric normal
    }
 
 -- | creates a BSDF
@@ -216,10 +217,10 @@ mkBsdf
    -> DifferentialGeometry -- ^ the differential geometry for shading
    -> Normal -- ^ the normal from the geometry
    -> Bsdf
-mkBsdf bs dg ng = Bsdf (V.fromList bs) cs ng where
+mkBsdf bs dgs ng = Bsdf (V.fromList bs) cs (dgP dgs) ng where
    cs = LocalCoordinates sn tn nn
-   nn = dgN dg
-   sn = normalize $ dgDPDU dg
+   nn = dgN dgs
+   sn = normalize $ dgDPDU dgs
    tn = nn `cross` sn
 
 mkBsdf'
@@ -235,6 +236,10 @@ bsdfShadingNormal :: Bsdf -> Normal
 bsdfShadingNormal bsdf = n where
    (LocalCoordinates _ _ n) = _bsdfCs bsdf
 
+bsdfShadingPoint :: Bsdf -> Point
+{-# INLINE bsdfShadingPoint #-}
+bsdfShadingPoint bsdf = _bsdfP bsdf
+
 -- | the number of specular BxDFs in a BSDF
 bsdfSpecCompCount :: Bsdf -> Int
 {-# INLINE bsdfSpecCompCount #-}
@@ -245,7 +250,7 @@ bsdfSpecCompCount bsdf = V.sum $ V.map go $ _bsdfBxdfs bsdf where
    
 bsdfPdf :: Bsdf -> Vector -> Vector -> Float
 
-bsdfPdf (Bsdf bs cs _) woW wiW 
+bsdfPdf (Bsdf bs cs _ _) woW wiW 
    | V.null bs = 0
    | otherwise = {-# SCC "bsdfPdf" #-} pdfSum / fromIntegral (V.length bs) where
       pdfSum = V.sum $ V.map (\b -> bxdfPdf b wo wi) bs
@@ -261,7 +266,7 @@ data BsdfSample = BsdfSample {
 
 sampleBsdf :: Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
 
-sampleBsdf (Bsdf bs cs ng) woW uComp uDir
+sampleBsdf (Bsdf bs cs _ ng) woW uComp uDir
    | V.null bs || pdf' == 0 = {-# SCC "sampleBsdfEmpty" #-} emptyBsdfSample
    | isSpecular bxdf = {-# SCC "sampleBsdfSpecular" #-} BsdfSample t pdf' f' wiW
    | otherwise = BsdfSample t pdf f wiW where
@@ -279,7 +284,7 @@ sampleBsdf (Bsdf bs cs ng) woW uComp uDir
       
 evalBsdf :: Bsdf -> Vector -> Vector -> Spectrum
 
-evalBsdf (Bsdf bxdfs cs ng) woW wiW = {-# SCC "evalBsdf" #-}
+evalBsdf (Bsdf bxdfs cs _ ng) woW wiW = {-# SCC "evalBsdf" #-}
    V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bxdfs
    where
       flt = if dot woW ng * dot wiW ng < 0 then isTransmission else isReflection

@@ -6,6 +6,7 @@ module Graphics.Bling.Primitive.TriangleMesh (
    ) where
 
 import Data.List (foldl')
+import Data.Maybe (fromJust, isNothing)
 import qualified Data.Vector.Unboxed as V
 
 import Graphics.Bling.DifferentialGeometry
@@ -15,8 +16,8 @@ import Graphics.Bling.Reflection
 data TriangleMesh = Mesh
    { mvidx  :: V.Vector Int
    , mps    :: V.Vector Point
-   , _mns    :: Maybe (V.Vector Normal)
-   , _muvs   :: Maybe (V.Vector (Flt, Flt))
+   , mns    :: Maybe (V.Vector Normal)
+   , muvs   :: Maybe (V.Vector Flt)
    , mmat   :: Material
    }
 
@@ -26,7 +27,7 @@ mkTriangleMesh
    -> V.Vector Point                -- ^ vertex positions
    -> V.Vector Int                  -- ^ vertex indices for triangles
    -> Maybe (V.Vector Normal)       -- ^ shading normals
-   -> Maybe (V.Vector (Flt, Flt))   -- ^ uv coordinates for parametrization
+   -> Maybe (V.Vector Flt)          -- ^ uv coordinates for parametrization
    -> TriangleMesh
 mkTriangleMesh o2w mat p i n uv
    | V.length i `rem` 3 /= 0 = error "mkTriangleMesh: number of indices must be multiple of 3"
@@ -71,9 +72,25 @@ triPoints t@(Tri _ m) = (p1, p2, p3) where
    p2 = (mps m) V.! o2
    p3 = (mps m) V.! o3
 
+-- | assumes that the mesh actually *has* normals
+triNormals :: Triangle -> (Normal, Normal, Normal)
+{-# INLINE triNormals #-}
+triNormals t@(Tri _ m) = (ns V.! o1, ns V.! o2, ns V.! o3) where
+   ns = fromJust (mns m)
+   (o1, o2, o3) = triOffsets t
+
 triMaterial :: Triangle -> Material
 {-# INLINE triMaterial #-}
 triMaterial (Tri _ m) = mmat m
+
+triUVs :: Triangle -> (Flt, Flt, Flt, Flt, Flt, Flt)
+{-# INLINE triUVs #-}
+triUVs tri@(Tri _ m) = maybe (0, 0, 1, 0, 1, 1) go (muvs m) where
+   (o1, o2, o3) = triOffsets tri
+   muv x i = x V.! i
+   go uvs = (muv uvs (2 * o1), muv uvs (2 * o1 + 1),
+             muv uvs (2 * o2), muv uvs (2 * o2 + 1),
+             muv uvs (2 * o3), muv uvs (2 * o3 + 1))
    
 instance Primitive Triangle where
    flatten tri = [mkAnyPrim tri]
@@ -81,6 +98,15 @@ instance Primitive Triangle where
    worldBounds tri = foldl' extendAABBP emptyAABB [p1, p2, p3] where
       (p1, p2, p3) = triPoints tri
 
+   shadingGeometry tri@(Tri _ mesh) o2w dgg
+      | isNothing $ mns mesh = dgg
+      | otherwise = dgg { dgN = ns }
+      where
+         (b0, b1, b2) = (1 - b1 - b2, dgU dgg, dgV dgg)
+         (n0, n1, n2) = triNormals tri
+         ns = normalize $ transNormal o2w ns'
+         ns' = (b0 *# n0) + (b1 *# n1) + (b2 *# n2)
+         
    intersects tri (Ray ro rd tmin tmax)
       | divisor == 0 = False
       | b1 < 0 || b1 > 1 = False
@@ -123,7 +149,28 @@ instance Primitive Triangle where
          t = dot e2 s2 * invDiv
          n = normalize $ cross e1 e2
 
+         -- compute partial derivatives
+         (uv00, uv01, uv10, uv11, uv20, uv21) = triUVs tri
+         du1 = uv00 - uv20
+         du2 = uv10 - uv20
+         dv1 = uv01 - uv21
+         dv2 = uv11 - uv21
+         (dp1, dp2) = (p1 - p3, p2 - p3)
+         determinant = du1 * dv2 - dv1 * du2
+
+         (dpdu, dpdv)
+            | determinant == 0 = coordinateSystem'' n
+            | otherwise = (invDet *# (  dv2  *# dp1 - dv1 *# dp2),
+                           invDet *# ((-du2) *# dp1 + du1 *# dp2))
+            where
+               invDet = 1 / determinant
+
+         -- interpolate u and v
+         b0 = 1 - b1 - b2
+         tu = b1 -- b0 * uv00 + b1 * uv10 + b2 * uv20
+         tv = b2 -- b0 * uv01 + b1 * uv11 + b2 * uv21
+         
          -- create intersection
-         dg = mkDg' (rayAt r t) n
+         dg = mkDg (rayAt r t) tu tv dpdu dpdv (mkV (0, 0, 0)) (mkV (0,0, 0))
          int = Intersection t dg (mkAnyPrim tri) (triMaterial tri)
          

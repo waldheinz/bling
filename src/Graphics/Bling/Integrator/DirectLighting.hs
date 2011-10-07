@@ -9,6 +9,7 @@ import qualified Text.PrettyPrint as PP
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Integrator
 import Graphics.Bling.Primitive
+import Graphics.Bling.Reflection
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Spectrum
@@ -42,9 +43,8 @@ directLighting _ s r@(Ray _ rd _ _) =
          ubd <- rnd2D' 1
          let l = sampleOneLight s p n wo bsdf $ RLS uln uld ubc ubd 
          return (1, l + intLe int wo) where
-            dg = intGeometry int
             bsdf = intBsdf int
-            p = dgP dg
-            n = dgN dg
+            p = bsdfShadingPoint bsdf
+            n = bsdfShadingNormal bsdf
             wo = -rd
       

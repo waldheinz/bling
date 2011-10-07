@@ -96,9 +96,8 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) md
                   return $ t * (lHere + sScale r (1 / pc))
       
       where
-         dg = intGeometry int
          intl = if spec then intLe int wo else black
          wo = -rd
          bsdf = intBsdf int
-         n = dgN dg
-         p = dgP dg
+         n = bsdfShadingNormal bsdf
+         p = bsdfShadingPoint bsdf

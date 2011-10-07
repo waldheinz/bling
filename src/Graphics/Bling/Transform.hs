@@ -6,7 +6,12 @@ module Graphics.Bling.Transform (
       Transform, identity, translate, scale, inverse, fromMatrix, rotateX,
       rotateY, rotateZ, lookAt, perspective,
       transPoint, transVector, transBox, transRay, transNormal, concatTrans,
-      fromMatrix'
+      fromMatrix',
+
+      -- * Utility Functions
+
+      solveLinearSystem2x2
+      
    ) where
 
 import Graphics.Bling.AABB
@@ -252,3 +257,18 @@ transBox t (AABB (Vector mx my mz) (Vector nx ny nz)) = b' where
    p5 = transPoint t (mkPoint nx my nz)
    p6 = transPoint t (mkPoint nx ny mz)
    p7 = transPoint t (mkPoint nx ny nz)
+
+--------------------------------------------------------------------------------
+-- Utility Functions
+--------------------------------------------------------------------------------
+
+solveLinearSystem2x2 :: (Flt, Flt, Flt, Flt) -> (Flt, Flt) -> Maybe (Flt, Flt)
+solveLinearSystem2x2 (a00, a01, a10, a11) (b0, b1)
+   | abs det < 1e-10 = Nothing
+   | isNaN x0 || isNaN x1 = Nothing
+   | otherwise = Just (x0, x1)
+   where
+      det = a00 * a11 - a01 * a10
+      x0 = (a11 * b0 - a01 * b1) / det
+      x1 = (a00 * b1 - a10 * b0) / det
+      

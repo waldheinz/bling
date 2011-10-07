@@ -61,6 +61,9 @@ instance Primitive AnyPrim where
    
    light (MkAnyPrim p) = light p
    {-# INLINE light #-}
+
+   shadingGeometry (MkAnyPrim p) = shadingGeometry p
+   {-# INLINE shadingGeometry #-}
    
 mkAnyPrim :: (Primitive a) => a -> AnyPrim
 mkAnyPrim = MkAnyPrim

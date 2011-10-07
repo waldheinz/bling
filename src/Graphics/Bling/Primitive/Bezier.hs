@@ -62,36 +62,44 @@ evalPatch (Patch ctrl) bu bdu bv bdv = (p, dpdu, dpdv) where
    ev bj bi = mkV (s 0, s 1, s 2) where
       s o = sum [c (i * 12 + j * 3 + o) * bj j * bi i | i <- [0..3], j <- [0..3]]
 
-onePatch :: Int -> Patch -> ([Int], [(Point, Vector, Vector)])
-onePatch subdivs p = (is, ps) where
+onePatch :: Int -> Patch -> ([Int], [(Point, Vector, Vector)], [(Flt, Flt)])
+onePatch subdivs p = (is, ps, uvs) where
    step = 1 / fromIntegral subdivs
    vstride = subdivs + 1
    is = concat [mkTris i j | i <- [0..subdivs-1], j <- [0..subdivs-1]]
-   mkTris i j = [v00, v01, v10, v10, v01, v11] where
+   mkTris i j = [v00, v10, v01, v10, v11, v01] where
       v00 = ((i + 0) * vstride + (j + 0))
       v10 = ((i + 1) * vstride + (j + 0))
       v01 = ((i + 0) * vstride + (j + 1))
       v11 = ((i + 1) * vstride + (j + 1))
+   uvs = [(fromIntegral i * step, fromIntegral j * step) | i <- [0..subdivs], j <- [0..subdivs]]
    ps = concat $ [evalv (bernstein (fromIntegral i * step)) (bernsteinDeriv (fromIntegral i * step)) | i <- [0 .. subdivs]]
    evalv bu bdu = [evalPatch p bu bdu (bernstein (fromIntegral j * step)) (bernsteinDeriv  (fromIntegral j * step)) | j <- [0 .. subdivs]]
    
 tesselateBezier :: Int -> [Patch] -> Transform -> Material -> TriangleMesh
 tesselateBezier subs patches t mat = mesh where
-   mesh = mkTriangleMesh t mat ps is Nothing Nothing
-   (ps, is) = runST $ do
+   mesh = mkTriangleMesh t mat ps is (Just ns) (Just uvs)
+   (ps, is, ns, uvs) = runST $ do
       let stride = (subs+1) * (subs+1)
       iv <- MV.new (subs * subs * length patches * 3 * 2)
       pv <- MV.new (stride * length patches)
+      nv <- MV.new (stride * length patches)
+      uvv <- MV.new (stride * length patches * 2)
       
       forM_ (zip patches [0..]) $ \(p, pn) -> do
-         let (pis, pps) = onePatch subs p
+         let (pis, pps, uv) = onePatch subs p
          
          forM_ (zip pis [0..]) $ \(vi, o) -> do -- indices
             MV.write iv (pn * subs * subs * 3 * 2 + o) (vi + pn * stride)
             
-         forM_ (zip pps [0..]) $ \((vp, _, _), o) -> do -- points
-            MV.write pv (pn * stride + o) vp
-         
+         forM_ (zip3 pps uv [0..]) $ \((vp, dpdu, dpdv), (u, v), o) -> do
+            MV.write pv (pn * stride + o) vp -- points
+            MV.write nv (pn * stride + o) (dpdu `cross` dpdv) -- normals
+            MV.write uvv ((pn * stride + o) * 2 + 0) u
+            MV.write uvv ((pn * stride + o) * 2 + 1) v
+            
       pv' <- V.freeze pv
       iv' <- V.freeze iv
-      return (pv', iv')
+      nv' <- V.freeze nv
+      uvv' <- V.freeze uvv
+      return (pv', iv', nv', uvv')
