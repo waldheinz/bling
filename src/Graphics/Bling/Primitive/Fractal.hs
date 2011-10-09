@@ -48,7 +48,7 @@ instance Primitive FractalPrim where
    flatten (Menger g m l t) = buildMenger g m l t
    flatten fp = [mkAnyPrim fp]
    
-   worldBounds _ = AABB (mkPoint n n n) $ mkPoint p p p where
+   worldBounds _ = AABB (mkPoint' n n n) $ mkPoint' p p p where
       (n, p) = (-juliaRadius, juliaRadius)
       
    intersects (FP (Julia q e mi) _) r = maybe False (\_ -> True) t where

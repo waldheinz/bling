@@ -56,13 +56,13 @@ fireRay (ProjectiveCamera c2w r2c _ _ lr fd) = {-# SCC "fireRayProjective" #-} d
       r ix iy luv = if lr > 0 then ray' else ray where
          
          -- ray without accounting for lens size
-         ray = Ray (mkPoint 0 0 0) (normalize pCamera) 0 infinity
+         ray = Ray (mkPoint' 0 0 0) (normalize pCamera) 0 infinity
          pCamera = transPoint r2c pRaster
-         pRaster = mkPoint ix iy 0
+         pRaster = mkPoint' ix iy 0
          
          -- account for lens size
          ray' = Ray ro rd 0 infinity
-         ro = mkPoint lu lv 0
+         ro = mkPoint' lu lv 0
          (lu, lv) = (\(u', v') -> (u'*lr, v'*lr)) (concentricSampleDisk luv)
          rd = normalize $ pFocus - ro
          pFocus = rayAt ray (fd / vz (rayDir ray))
@@ -70,7 +70,7 @@ fireRay (ProjectiveCamera c2w r2c _ _ lr fd) = {-# SCC "fireRayProjective" #-} d
 fireRay (Environment c2w sx sy) = do
    ix <- imageX `liftM` cameraSample
    iy <- imageY `liftM` cameraSample
-   return $ transRay c2w $ Ray (mkPoint 0 0 0) (dir ix iy) 0 infinity where
+   return $ transRay c2w $ Ray (mkPoint' 0 0 0) (dir ix iy) 0 infinity where
       dir ix iy = mkV (sin t * cos p, cos t, sin t * sin p) where
          t = pi * iy / sy
          p = 2 * pi * ix / sx
@@ -95,7 +95,7 @@ sampleCam
 sampleCam (ProjectiveCamera c2w r2c w2r ap _ _) p = smp where
    smp = CameraSampleResult white pLens px py (cost3 * ap)
    pRas@(Vector px py _) = transPoint w2r p
-   pLens = transPoint c2w (mkPoint 0 0 0)
+   pLens = transPoint c2w $ mkPoint' 0 0 0
    pRas' = transPoint r2c pRas
    (Vector _ _ cost) = normalize $ transVector (inverse c2w) pRas'
    cost3 = cost * cost * cost

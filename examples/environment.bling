@@ -18,7 +18,7 @@ renderer {
 
 transform {
    lookAt {
-      pos 3 8 -9
+      pos 3 8 -5
       look 0 1 0
       up 0 1 0
    }
@@ -33,11 +33,17 @@ camera {
 
 # transform { identity } camera { environment }
 
+transform { identity }
+prim {
+#   waveFront "/home/trem/Downloads/venus.obj"
+   waveFront "/home/trem/Privat/bling-raytracer/examples/meshes/cube.obj"
+}
+
 transform { identity rotateX -90 }
 
-light {
-   infinite
-   l { rgbeFile "./examples/envmaps/studio015.hdr" }
+light { infinite
+#   l { rgbeFile "./examples/envmaps/studio015.hdr" }
+   l { constant rgb 1 1 1 }
 }
 
 transform { identity }
@@ -52,16 +58,7 @@ material {
    sigma { constant 0 }
 }
 
-shape {
-   mesh
-   vertexCount 4
-   faceCount 1
-   v  10 1 -10
-   v -10 1 -10
-   v -10 1  10
-   v  10 1  10
-   f 3 2 1 0
-}
+# shape { mesh vertexCount 4 faceCount 1 v  10 1 -10 v -10 1 -10 v -10 1  10 v  10 1  10 f 3 2 1 0 }
 
 emission { none }
 

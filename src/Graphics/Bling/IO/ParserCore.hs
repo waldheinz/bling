@@ -15,7 +15,7 @@ module Graphics.Bling.IO.ParserCore (
 
    -- * Reading External Resources
 
-   readFileBS
+   readFileBS, readFileString
    
    ) where
 
@@ -88,7 +88,8 @@ ws :: JobParser ()
 ws = many1 (choice [space >> return (), comment]) >> return ()
 
 -- | parse a floating point number
-flt :: JobParser Flt
+flt :: (Monad m) => (ParsecT String u m) Flt
+{-# INLINE flt #-}
 flt = do
   sign <- option 1 ( do s <- oneOf "+-"
                         return $ if s == '-' then (-1.0) else 1.0)
@@ -155,7 +156,8 @@ namedInt n = do
    integ <|> fail ("cannot parse " ++ n ++ " value")
 
 -- | parse an integer
-integ :: JobParser Int
+integ :: (Monad m) => (ParsecT String u m) Int
+{-# INLINE integ #-}
 integ = do
    x <- many1 digit
    return (read x)
@@ -164,8 +166,16 @@ integ = do
 -- External Resources
 --------------------------------------------------------------------------------
 
+
+-- | reads a file into a lazy ByteString
 readFileBS :: FilePath -> JobParser BS.ByteString
 readFileBS fname = liftIO $ do
    putStrLn $ "Reading " ++ fname
    BS.readFile fname
+
+-- | reads a file into a String
+readFileString :: FilePath -> JobParser String
+readFileString fname = liftIO $ do
+   putStrLn $ "Reading " ++ fname
+   readFile fname
    

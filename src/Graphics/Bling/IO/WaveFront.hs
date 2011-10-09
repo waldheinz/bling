@@ -1,38 +1,38 @@
 
-module WaveFront (
-      waveFrontParser,
+module Graphics.Bling.IO.WaveFront (
       parseWaveFront
    ) where
 
-import Lafortune
-import Math
-import Primitive
-import Transform
-import TriangleMesh
+import Graphics.Bling.Transform
+import Graphics.Bling.IO.ParserCore
+import Graphics.Bling.Primitive.TriangleMesh
 
-import Control.Monad.ST
+import qualified Data.Vector.Unboxed as V
 import Debug.Trace
-import Data.Vector.Mutable hiding (read)
-import Text.ParserCombinators.Parsec
-import Text.ParserCombinators.Parsec.Token(float)
+import Text.Parsec.String
 
-data WFState = WFState {
-   vertices :: [Vertex],
-   tris :: [[Vertex]]
-   }
+type Triangle = [Int]
+
+data WFState = WFState [Point] [Triangle]
 
 type WFParser a = GenParser Char WFState a
 
-parseWaveFront :: Transform -> String -> TriangleMesh
-parseWaveFront t s = either (error . show) (id) pr where
-   pr = runParser (waveFrontParser t) (WFState [] []) "unknown"  s
+parseWaveFront :: FilePath -> JobParser TriangleMesh
+parseWaveFront fname = do
+   inp <- readFileString fname
+   let res = runParser waveFrontParser (WFState [] []) fname inp
+   case res of
+        (Left e) -> fail $ show e
+        (Right (WFState ps vs)) -> do
+           s <- getState
+           let ps' = V.fromList $ reverse ps
+           let vs' = V.fromList $ concatMap (take 3) vs
+           return $ mkTriangleMesh (transform s) (material s) ps' vs' Nothing Nothing
 
-waveFrontParser :: Transform -> WFParser TriangleMesh
-waveFrontParser t = do
-   many line
-   (WFState _ tris) <- getState
-   eof
-   return $ mkMesh (measuredMaterial BluePaint) t tris
+waveFrontParser :: WFParser WFState
+waveFrontParser = do
+   _ <- many line
+   getState
 
 line :: WFParser ()
 line =
@@ -48,17 +48,15 @@ ignore = do
 
 face :: WFParser ()
 face = do
-   char 'f'
+   _ <- char 'f'
    indices <- many1 (try (do spaces; integ))
    eol
-   (WFState verts tris) <- getState
-   let tvs = map (verts !!) $ map pred indices
-   setState (WFState verts ((reverse tvs) : tris))
-   return ()
+   (WFState vs ts) <- getState
+   setState (WFState vs ((map pred indices) : ts))
    
 vertex :: WFParser ()
 vertex = do
-   char 'v'
+   _ <- char 'v'
    spaces
    x <- flt
    spaces
@@ -66,21 +64,8 @@ vertex = do
    spaces
    z <- flt
    eol
-   (WFState verts tris) <- getState
-   setState (WFState (verts ++ [Vertex (MkVector x y z)]) tris)
-   return ()
-   
-eol = char '\n'
+   (WFState vs ts) <- getState
+   setState (WFState (mkPoint (x, y, z) : vs) ts)
 
-integ :: WFParser Int
-integ = do
-   x <- many1 digit
-   return $ read x
-
-flt :: WFParser Float
-flt = do
-  sign <- option 1 ( do s <- oneOf "+-"
-                        return $ if s == '-' then (-1.0) else 1.0)
-  i <- many digit
-  d <- try (char '.' >> try (many digit))
-  return $ sign * read (i++"."++d)
+eol :: WFParser ()
+eol = char '\n' >> return ()

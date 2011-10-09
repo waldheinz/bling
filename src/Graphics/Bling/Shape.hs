@@ -327,16 +327,16 @@ objectBounds
 objectBounds (Box p1 p2) = mkAABB p1 p2
 
 objectBounds (Cylinder r z0 z1 _) = mkAABB p1 p2 where
-   p1 = mkPoint nr nr z0
-   p2 = mkPoint r r z1
+   p1 = mkPoint' nr nr z0
+   p2 = mkPoint' r r z1
    nr = -r
 
 objectBounds (Disk h r _ _) = mkAABB p1 p2 where
-   p1 = mkPoint nr nr h
-   p2 = mkPoint r r h
+   p1 = mkPoint' nr nr h
+   p2 = mkPoint' r r h
    nr = -r
 
-objectBounds (Sphere r) = mkAABB (mkPoint nr nr nr) (mkPoint r r r) where
+objectBounds (Sphere r) = mkAABB (mkPoint' nr nr nr) (mkPoint' r r r) where
    nr = -r
 
 objectBounds (Triangle v1 v2 v3) = foldl' extendAABBP emptyAABB pl where
@@ -417,13 +417,13 @@ sample' (Box pmin pmax) (u1, u2) = (p, n) where
        if nf == 0 then pmin else pmax
    
 sample' (Cylinder r z0 z1 _) (u1, u2) = (p, n) where
-   p = mkPoint (r * cos phi) (r * sin phi) z
+   p = mkPoint' (r * cos phi) (r * sin phi) z
    z = lerp u1 z0 z1
    phi = lerp u2 0 twoPi
    n = normalize $ mkV (vx p, vy p, 0)
 
 sample' (Disk h rmax rmin phiMax) (u1, u2) = (p, n) where
-   p = mkPoint (r * cos phi) (r * sin phi) h
+   p = mkPoint' (r * cos phi) (r * sin phi) h
    r = lerp u1 rmin rmax
    phi = lerp u2 0 phiMax
    n = mkV (0, 0, -1)

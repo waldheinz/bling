@@ -10,6 +10,7 @@ import qualified Data.Vector as V
 import Graphics.Bling.Primitive
 import Graphics.Bling.Shape
 import Graphics.Bling.IO.ParserCore
+import Graphics.Bling.IO.WaveFront
 import Graphics.Bling.Primitive.Bezier
 import Graphics.Bling.Primitive.Fractal
 
@@ -40,6 +41,11 @@ pPrimitive = pBlock $ do
                 level <- ws >> namedInt "level"
                 s <- getState
                 return $ mkAnyPrim $ mkMengerSponge shape (material s) level (transform s)
+
+             "waveFront" -> do
+                fname <- ws >> pQString
+                m <- parseWaveFront fname
+                return $ mkAnyPrim m
                 
              _ -> fail $ "unknown fractal type " ++ t
 

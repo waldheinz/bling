@@ -214,8 +214,8 @@ concatTrans (MkTransform m1 i1) (MkTransform m2 i2) = MkTransform m' i' where
 transPoint :: Transform -> Point -> Point
 {-# INLINE transPoint #-}
 transPoint (MkTransform m _) (Vector x y z)
-   | wp == 1 = mkPoint xp yp zp
-   | otherwise = mkPoint (xp/wp) (yp/wp) (zp/wp)
+   | wp == 1 = mkPoint' xp yp zp
+   | otherwise = mkPoint (xp/wp, yp/wp, zp/wp)
    where
       xp = m00 m * x + m01 m * y + m02 m * z + m03 m
       yp = m10 m * x + m11 m * y + m12 m * z + m13 m
@@ -249,14 +249,14 @@ transBox :: Transform -> AABB -> AABB
 {-# INLINE transBox #-}
 transBox t (AABB (Vector mx my mz) (Vector nx ny nz)) = b' where
    b' = foldl' extendAABBP emptyAABB [p0, p1, p2, p3, p4, p5, p6, p7]
-   p0 = transPoint t (mkPoint mx my mz)
-   p1 = transPoint t (mkPoint mx my nz)
-   p2 = transPoint t (mkPoint mx ny mz)
-   p3 = transPoint t (mkPoint mx ny nz)
-   p4 = transPoint t (mkPoint nx my mz)
-   p5 = transPoint t (mkPoint nx my nz)
-   p6 = transPoint t (mkPoint nx ny mz)
-   p7 = transPoint t (mkPoint nx ny nz)
+   p0 = transPoint t (mkPoint' mx my mz)
+   p1 = transPoint t (mkPoint' mx my nz)
+   p2 = transPoint t (mkPoint' mx ny mz)
+   p3 = transPoint t (mkPoint' mx ny nz)
+   p4 = transPoint t (mkPoint' nx my mz)
+   p5 = transPoint t (mkPoint' nx my nz)
+   p6 = transPoint t (mkPoint' nx ny mz)
+   p7 = transPoint t (mkPoint' nx ny nz)
 
 --------------------------------------------------------------------------------
 -- Utility Functions

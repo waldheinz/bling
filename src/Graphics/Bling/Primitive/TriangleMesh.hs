@@ -32,10 +32,10 @@ mkTriangleMesh
 mkTriangleMesh o2w mat p i n uv
    | V.length i `rem` 3 /= 0 = error "mkTriangleMesh: number of indices must be multiple of 3"
    | V.any (>= V.length p) i = error "mkTriangleMesh: contains out of bounds indices"
+   | V.any (< 0) i = error "mkTriangleMesh: contains negative indices"
    | otherwise = Mesh i p' n uv mat
    where
       p' = V.map (transPoint o2w) p
---      ntris = V.length i `div` 3
    
 instance Primitive TriangleMesh where
    flatten mesh = map mkAnyPrim $ map (mkTri mesh) is where

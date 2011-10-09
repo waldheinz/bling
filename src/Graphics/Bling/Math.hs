@@ -17,7 +17,7 @@ module Graphics.Bling.Math (
    
    Vector(..), mkV, vpromote, dot, cross, normalize, absDot,
    len, sqLen,
-   Normal, mkNormal, Point, mkPoint,
+   Normal, mkNormal, Point, mkPoint, mkPoint',
    Dimension, allDimensions, setComponent, (.!), dominant, dimX, dimY, dimZ,
    sphericalDirection, sphericalTheta, sphericalPhi, faceForward,
    sphToDir, dirToSph, sphSinTheta, (*#),
@@ -270,9 +270,13 @@ instance GV.Vector V.Vector Vector where
    
 type Point = Vector
 
-mkPoint :: Flt -> Flt -> Flt -> Point
+mkPoint :: (Flt, Flt, Flt) -> Point
 {-# INLINE mkPoint #-}
-mkPoint = Vector
+mkPoint (x, y, z) = Vector x y z
+
+mkPoint' :: Flt -> Flt -> Flt -> Point
+{-# INLINE mkPoint' #-}
+mkPoint' = Vector
 
 type Normal = Vector
 
@@ -309,9 +313,9 @@ component !(Vector x y z) !d
 setComponent :: Dimension -> Flt -> Vector -> Vector
 {-# INLINE setComponent #-}
 setComponent dim t (Vector x y z)
-   | dim == dimX  = mkPoint t y z
-   | dim == dimY  = mkPoint x t z
-   | otherwise    = mkPoint x y t
+   | dim == dimX  = mkPoint' t y z
+   | dim == dimY  = mkPoint' x t z
+   | otherwise    = mkPoint' x y t
 
 sqLen :: Vector -> Flt
 {-# INLINE sqLen #-}
