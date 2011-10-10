@@ -48,4 +48,4 @@ directLighting _ s r@(Ray _ rd _ _) =
             p = bsdfShadingPoint bsdf
             n = bsdfShadingNormal bsdf
             wo = -rd
-      
+            

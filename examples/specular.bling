@@ -67,7 +67,7 @@ shape {
 
 # light { sunSky up 0 1 0 east 1 0 0 sunDir 1 0.9 0 turbidity 3 }
 
-emission { rgb 10 10 10 }
+emission { rgb 300 300 300 }
 
 transform {
    identity
