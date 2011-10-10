@@ -1,0 +1,56 @@
+
+# plastic
+
+filter mitchell 3.0 3.0 0.333333 0.333333
+# filter box
+
+imageSize 640 480
+
+renderer {
+   sampler
+   sampled {
+      sampler { stratified xSamples 2 ySamples 2 }
+      integrator { path maxDepth 5 sampleDepth 3 }
+   }
+}
+
+# renderer { metropolis mpp 1 bootstrap 1000 plarge 0.25 separateDirect }
+
+transform {
+   lookAt {
+      pos 0 0 -300
+      look 0 0 0
+      up 0 1 0
+   }
+}
+
+camera {
+   perspective
+   fov 75
+   lensRadius 0
+   focalDistance 10
+}
+
+# transform { identity } camera { environment }
+
+
+transform { identity rotateX -90 rotateY 90 rotateZ -90 }
+
+material {
+   matte
+   kd { constant rgb 0.7 0.7 0.7 }
+   sigma { constant 0 }
+}
+
+prim {
+   waveFront "/home/trem/Privat/bling-raytracer/examples/meshes/ducky.obj"
+}
+
+transform { identity rotateX -90 }
+
+light { infinite
+#   l { rgbeFile "./examples/envmaps/studio015.hdr" }
+#   l { rgbeFile "/home/trem/Downloads/garage4_hd.hdr" }
+#   l { rgbeFile "/home/trem/Downloads/ennis.hdr" }
+   l { constant rgb 1 1 1 }
+}

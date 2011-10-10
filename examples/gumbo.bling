@@ -20,13 +20,13 @@ renderer {
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 # renderer { sampler sampled { sampler { random samples 128 } integrator { debug reference } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { directLighting } } }
-renderer { sampler sampled { sampler { random samples 1 } integrator { bidir maxDepth 10 sampleDepth 5 } } }
+# renderer { sampler sampled { sampler { random samples 1 } integrator { bidir maxDepth 10 sampleDepth 5 } } }
 
 transform {
    lookAt {
       pos 5 25 22
-      look 12 0 3.5
-      up 0 0 1
+      look 0 0 0
+      up 0 1 0
    }
 }
 
@@ -40,7 +40,7 @@ camera {
 transform { identity }
 
 # light { sunSky up 0 0 1 east 1 0 0 sunDir -1 0 0.3 turbidity 8 }
- light { directional intensity rgb 1 1 1 normal 0 0 1 }
+ light { directional intensity rgb 1 1 1 normal 0 1 0 }
 
 transform { identity rotateX 180 }
 

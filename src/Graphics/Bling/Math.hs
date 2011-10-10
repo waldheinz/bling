@@ -47,7 +47,7 @@ infinity :: Flt
 infinity = 1 / 0
 
 epsilon :: Flt
-epsilon = 0.1
+epsilon = 0.001
 
 invPi :: Flt
 invPi = 1 / pi
