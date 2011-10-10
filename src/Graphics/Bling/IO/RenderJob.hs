@@ -3,6 +3,7 @@ module Graphics.Bling.IO.RenderJob (
    parseJob
    ) where
 
+import System.FilePath
 import Text.Parsec.Error
 
 import Graphics.Bling.Filter
@@ -17,8 +18,8 @@ import Graphics.Bling.IO.RendererParser
 import Graphics.Bling.IO.ShapeParser
 import Graphics.Bling.IO.TransformParser
 
-startState :: PState
-startState = PState 640 480 defaultRenderer mkBoxFilter
+startState :: FilePath -> PState
+startState base = PState 640 480 defaultRenderer mkBoxFilter
    (defaultCamera 640 480)
    identity
    defaultMaterial
@@ -26,17 +27,18 @@ startState = PState 640 480 defaultRenderer mkBoxFilter
    []
    []
    0
+   base
    
 parseJob :: FilePath -> IO (Either ParseError (RenderJob, AnyRenderer))
 parseJob fname = do
    file <- readFile fname
-   runPT jobParser startState fname file
+   runPT jobParser (startState $ takeDirectory fname)fname file
 
 jobParser :: JobParser (RenderJob, AnyRenderer)
 jobParser = do
    _ <- many object
    optional ws >> eof
-   (PState sx sy r f cam _ _ _ ls ps _) <- getState
+   (PState sx sy r f cam _ _ _ ls ps _ _) <- getState
    let scn = mkScene ls ps cam
    return (mkJob scn f sx sy, r)
 

@@ -43,7 +43,7 @@ material {
 }
 
 prim {
-   waveFront "/home/trem/Privat/bling-raytracer/examples/meshes/ducky.obj"
+   waveFront "meshes/ducky.obj"
 }
 
 transform { identity rotateX -90 }

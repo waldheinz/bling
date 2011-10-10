@@ -19,22 +19,23 @@ Library
    Hs-Source-Dirs:   src
    Build-Depends:
       base >= 3 && < 5,
+      bitset,
+      bytestring,
+      deepseq >= 1.1 && < 1.2,
+      filepath == 1.2.*,
       haskell98,
       mtl >= 2 && < 2.1,
       mwc-random,
-      Vec == 0.9.*,
-      vector,
-      bitset,
-      bytestring,
       parsec,
       parallel,
       pretty,
       primitive >= 0.3 && < 0.5,
-      deepseq >= 1.1 && < 1.2,
       random >= 1.0 && < 1.1,
       random-shuffle == 0.0.2,
-      transformers == 0.2.*
-
+      transformers == 0.2.*,
+      Vec == 0.9.*,
+      vector
+      
    Ghc-Options:
       -Wall -O2 -fexcess-precision -fspec-constr-count=64 -threaded -optc-O3 -optc-march=native -optc-msse4
 

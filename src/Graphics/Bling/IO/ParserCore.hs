@@ -19,6 +19,7 @@ module Graphics.Bling.IO.ParserCore (
 
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.ByteString.Lazy as BS
+import System.FilePath as FP
 import Text.Parsec.Prim as PS
 import Text.Parsec.Combinator as PS
 import Text.Parsec.Char as PS
@@ -46,7 +47,8 @@ data PState = PState {
    emit :: Maybe Spectrum, -- ^ the emission for the next primitives
    lights :: [Light],
    prims :: [AnyPrim],
-   currId :: Int
+   currId :: Int,
+   basePath :: FilePath
    }
 
 nextId :: JobParser Int
@@ -160,15 +162,20 @@ integ = do
 -- External Resources
 --------------------------------------------------------------------------------
 
+resolveFile :: FilePath -> JobParser FilePath
+resolveFile n = do
+   s <- getState
+   return $ (basePath s) `FP.combine` n
+
 -- | reads a file into a lazy ByteString
 readFileBS :: FilePath -> JobParser BS.ByteString
-readFileBS fname = liftIO $ do
-   putStrLn $ "Reading " ++ fname
-   BS.readFile fname
+readFileBS n = resolveFile n >>= \f -> liftIO $ do
+   putStrLn $ "Reading " ++ n
+   BS.readFile f
 
 -- | reads a file into a String
 readFileString :: FilePath -> JobParser String
-readFileString fname = liftIO $ do
-   putStrLn $ "Reading " ++ fname
-   readFile fname
+readFileString n = resolveFile n >>= \f -> liftIO $ do
+   putStrLn $ "Reading " ++ n
+   readFile f
    
