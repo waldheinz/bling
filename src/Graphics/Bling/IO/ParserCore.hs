@@ -1,8 +1,6 @@
 
 module Graphics.Bling.IO.ParserCore (
-   module Text.Parsec.Char,
-   module Text.Parsec.Combinator,
-   module Text.Parsec.Prim,
+   module PS,
       
    -- * Data Types
 
@@ -19,12 +17,11 @@ module Graphics.Bling.IO.ParserCore (
    
    ) where
 
-
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.ByteString.Lazy as BS
-import Text.Parsec.Prim
-import Text.Parsec.Combinator
-import Text.Parsec.Char
+import Text.Parsec.Prim as PS
+import Text.Parsec.Combinator as PS
+import Text.Parsec.Char as PS
 import Text.Parsec.String()
 
 import Graphics.Bling.Camera
@@ -57,7 +54,7 @@ nextId = do
    s <- getState
    let nid = currId s
    setState s { currId = nid + 1 }
-   return $ nid
+   return nid
 
 pString :: JobParser String
 pString = many1 alphaNum
@@ -72,7 +69,7 @@ pQString = do
    <?> "quoted string"
    where
       qtext = noneOf "\\\"\r\n"
-      qcont = (many1 qtext) <|> (quoted_pair)
+      qcont = many1 qtext <|> quoted_pair
       dquote = (do _ <- char '"'; return ()) <?> "double quote"
       quoted_pair = do _ <- char '\\'
                        r <- noneOf "\r\n"
@@ -80,8 +77,7 @@ pQString = do
                     <?> "quoted pair"
                     
 comment :: JobParser ()
-comment = do
-   char '#' >> many (noneOf "\n") >> char '\n' >> return () <?> "comment"
+comment = char '#' >> many (noneOf "\n") >> char '\n' >> return () <?> "comment"
 
 -- | skips over whitespace and comments
 ws :: JobParser ()
@@ -108,9 +104,6 @@ pVec = do
 namedVector :: String -> JobParser Vector
 namedVector n = do string n >> ws; pVec
 
-namedSpectrum :: String -> JobParser Spectrum
-namedSpectrum n = string n >> ws >> pSpectrum
-
 pSpectrum :: JobParser Spectrum
 pSpectrum = do
    t <- many alphaNum
@@ -127,6 +120,9 @@ pSpectrum = do
          temp <- flt
          return (sBlackBody temp)
       _ -> fail ("unknown spectrum type " ++ t)
+
+namedSpectrum :: String -> JobParser Spectrum
+namedSpectrum n = string n >> ws >> pSpectrum
       
 pSpectrumSpd :: JobParser Spectrum
 pSpectrumSpd = do
@@ -139,9 +135,7 @@ pBlock :: JobParser a -> JobParser a
 pBlock = between (char '{' >> optional ws) (optional ws >> char '}')
       
 namedBlock :: JobParser a -> String -> JobParser a
-namedBlock p n = do
-   optional ws >> string n >> optional ws
-   between (char '{' >> optional ws) (optional ws >> char '}') p
+namedBlock p n = optional ws >> string n >> optional ws >> pBlock p
    
 namedFloat :: String -> JobParser Flt
 namedFloat n = do
@@ -165,7 +159,6 @@ integ = do
 --------------------------------------------------------------------------------
 -- External Resources
 --------------------------------------------------------------------------------
-
 
 -- | reads a file into a lazy ByteString
 readFileBS :: FilePath -> JobParser BS.ByteString
