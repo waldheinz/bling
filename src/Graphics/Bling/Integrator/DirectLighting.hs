@@ -5,7 +5,6 @@ module Graphics.Bling.Integrator.DirectLighting (
 
 import qualified Text.PrettyPrint as PP
 
-
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Integrator
 import Graphics.Bling.Primitive

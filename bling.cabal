@@ -19,7 +19,6 @@ Library
    Hs-Source-Dirs:   src
    Build-Depends:
       base >= 3 && < 5,
-      bitset,
       bytestring,
       deepseq >= 1.1 && < 1.2,
       filepath == 1.2.*,

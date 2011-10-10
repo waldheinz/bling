@@ -3,7 +3,6 @@ module Graphics.Bling.Integrator.BidirPath (
    BidirPath, mkBidirPathIntegrator, mkNoDirectBidirIntegrator
    ) where
 
-import Data.BitSet
 import qualified Data.Vector.Unboxed.Mutable as MV
 import qualified Data.Vector.Unboxed as V
 import Control.Monad (liftM, forM, forM_)
@@ -73,7 +72,7 @@ instance SurfaceIntegrator BidirPath where
 
       -- if we do separate DL, we must drop the specular bounces at the
       -- beginning of the eye path to avoid double-counting
-      let nSpec = 1 + (length $ takeWhile (\v -> Specular `member` _vtype v) ep)
+      let nSpec = 1 + (length $ takeWhile (\v -> _vtype v `bxdfIs` Specular) ep)
       let ep' = if noDirect
                    then drop nSpec ep
                    else ep
@@ -84,7 +83,7 @@ instance SurfaceIntegrator BidirPath where
           d <- estimateDirect scene v i
           return $ sScale d $ 1 / (fromIntegral i - nspecBouces V.! i)
       
-      let prevSpec = True : map (\v -> Specular `member` _vtype v) ep
+      let prevSpec = True : map (\v -> _vtype v `bxdfIs` Specular) ep
 
       -- light sources directly visible, or via specular reflection
       let le = if noDirect
@@ -111,7 +110,7 @@ countSpec ep lp = runST $ do
    x <- MV.replicate (length ep + length lp + 2) 0
    forM_ [0..length ep - 1] $ \i -> do
       forM_ [0..length lp - 1] $ \j -> do
-         if Specular `member` (_vtype $ ep !! i) || Specular `member` (_vtype $ lp !! j)
+         if (_vtype $ ep !! i) `bxdfIs` Specular || (_vtype $ lp !! j) `bxdfIs` Specular
             then do
                old <- MV.read x (i+j+2)
                MV.write x (i+j+2) (old + 1)
@@ -122,8 +121,8 @@ connect :: Scene -> V.Vector Flt -> ((Vertex, Int),  (Vertex, Int)) -> Spectrum
 connect scene nspec
    ((Vert bsdfe pe _ wie _ te alphae, i),  -- eye vertex
     (Vert bsdfl pl _ wil _ tl alphal, j))   -- camera vertex
-       | Specular `member` te = black
-       | Specular `member` tl = black
+       | te `bxdfIs` Specular = black
+       | tl `bxdfIs` Specular = black
        | isBlack fe || isBlack fl = black
        | scene `intersects` r = black
        | otherwise = sScale (alphae * fe * alphal * fl) (g * pathWt)

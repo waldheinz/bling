@@ -16,9 +16,11 @@ module Graphics.Bling.Reflection (
    Microfacet(..), Distribution, mkBlinn, mkAnisotropic,
 
    -- * BxDF Functions
+
+   AnyBxdf(..), Bxdf(..),  Lambertian(..), mkOrenNayar, OrenNayar,
    
-   AnyBxdf(..), Bxdf(..), BxdfProp(..), BxdfType, mkBxdfType,
-   Lambertian(..), mkOrenNayar, OrenNayar,
+   -- ** BxDF Types
+   BxdfProp(..), BxdfType, mkBxdfType, bxdfIs,
    
    -- * BSDF
    
@@ -32,7 +34,7 @@ module Graphics.Bling.Reflection (
    
    ) where
 
-import Data.BitSet
+import Data.Bits
 import Data.List (foldl')
 import qualified Data.Vector as V
 
@@ -121,7 +123,7 @@ instance Bxdf FresnelBlend where
       | sameHemisphere wo wi = 0.5 * (absCosTheta wi * invPi + mfDistPdf d wo wi)
       | otherwise = 0
 
-  --------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Helper Functions
 --------------------------------------------------------------------------------
 
@@ -151,20 +153,57 @@ sinPhi v
    where
          sint = sinTheta v
 
-
 -- | decides if two vectors in shading coordinate system lie within the
 --   same hemisphere
 sameHemisphere :: Vector -> Vector -> Bool
 {-# INLINE sameHemisphere #-}
 sameHemisphere (Vector _ _ z1) (Vector _ _ z2) = z1 * z2 > 0
 
-data BxdfProp = Transmission | Reflection | Diffuse | Glossy | Specular deriving (Eq, Enum, Show)
-
-type BxdfType = BitSet BxdfProp
-
 toSameHemisphere :: Vector -> Vector -> Vector
 {-# INLINE toSameHemisphere #-}
 toSameHemisphere wo wi = if vz wo < 0 then wi {vz = -(vz wi)} else wi
+
+--------------------------------------------------------------------------------
+-- BxDFs
+--------------------------------------------------------------------------------
+
+data BxdfProp
+   = Reflection
+   | Transmission
+   | Diffuse
+   | Glossy
+   | Specular
+   deriving (Eq, Show)
+
+fromBxdfProp :: BxdfProp -> Int
+{-# INLINE fromBxdfProp #-}
+fromBxdfProp Reflection    = 1
+fromBxdfProp Transmission  = 2
+fromBxdfProp Diffuse       = 4
+fromBxdfProp Glossy        = 8
+fromBxdfProp Specular      = 16
+
+newtype BxdfType = BxdfType { unBxdfType :: Int } deriving (Show)
+
+bxdfIs :: BxdfType -> BxdfProp -> Bool
+{-# INLINE bxdfIs #-}
+bxdfIs b p = ((fromBxdfProp p) .&. (unBxdfType b)) /= 0
+
+isReflection :: (Bxdf b) => b -> Bool
+{-# INLINE isReflection #-}
+isReflection b = bxdfIs (bxdfType b) Reflection
+
+isTransmission :: (Bxdf b) => b -> Bool
+{-# INLINE isTransmission #-}
+isTransmission b = bxdfIs (bxdfType b) Transmission
+
+isSpecular :: (Bxdf b) => b -> Bool
+{-# INLINE isSpecular #-}
+isSpecular b = bxdfIs (bxdfType b) Specular
+
+mkBxdfType :: [BxdfProp] -> BxdfType
+{-# INLINE mkBxdfType #-}
+mkBxdfType ps = BxdfType $ foldl' (\a p -> a .|. (fromBxdfProp p)) 0 ps
 
 class Bxdf a where
    bxdfEval :: a -> Normal -> Normal -> Spectrum
@@ -188,18 +227,6 @@ instance Bxdf AnyBxdf where
    bxdfSample (MkAnyBxdf a) = bxdfSample a
    bxdfPdf (MkAnyBxdf a) = bxdfPdf a
    bxdfType (MkAnyBxdf a) = bxdfType a
-
-isReflection :: (Bxdf b) => b -> Bool
-isReflection b = Reflection `member` bxdfType b
-
-isTransmission :: (Bxdf b) => b -> Bool
-isTransmission b = Transmission `member` bxdfType b
-
-isSpecular :: (Bxdf b) => b -> Bool
-isSpecular b = Specular `member` bxdfType b
-
-mkBxdfType :: [BxdfProp] -> BxdfType
-mkBxdfType = foldl' (flip insert) empty
 
 --------------------------------------------------------------------------------
 -- The BSDF (bidirectional scattering distribution function)
@@ -246,7 +273,7 @@ bsdfSpecCompCount :: Bsdf -> Int
 {-# INLINE bsdfSpecCompCount #-}
 bsdfSpecCompCount bsdf = V.sum $ V.map go $ _bsdfBxdfs bsdf where
    go bxdf
-      | Specular `member` bxdfType bxdf = 1
+      | isSpecular bxdf = 1
       | otherwise = 0
    
 bsdfPdf :: Bsdf -> Vector -> Vector -> Float

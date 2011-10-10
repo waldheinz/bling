@@ -5,7 +5,6 @@ module Graphics.Bling.Integrator.Path (
    mkPathIntegrator, PathIntegrator
    ) where
 
-import Data.BitSet
 import qualified Data.Vector.Generic as V
 import qualified Text.PrettyPrint as PP
 
@@ -83,7 +82,7 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) md
          else let
                   t = sScale f (absDot wi n / spdf)
                   pc = if depth <= 3 then 1 else min 1 (sY t) -- cont. probability
-                  spec' = Specular `member` smpType
+                  spec' = smpType `bxdfIs` Specular
                   ray' = (Ray p wi epsilon infinity)
                   int' = scene `intersect` ray'
                   depth' = depth + 1
