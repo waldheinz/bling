@@ -9,7 +9,6 @@ import Graphics.Bling.Primitive.TriangleMesh
 
 import Data.List (tails)
 import qualified Data.Vector.Unboxed as V
-import Debug.Trace
 import Text.Parsec.String
 
 type Face = [Int]
@@ -49,15 +48,21 @@ triangulate = concatMap go where
 
 line :: WFParser ()
 line =
-   (do try vertex; return () )
-   <|> try face
-   <|> ignore
+   do pUV <|> vertex <|> face <|> ignore
 
+pUV :: WFParser ()
+pUV = do
+   _ <- try $ string "vt"
+   _ <- space >> flt -- u
+   _ <- space >> flt -- v
+   _ <- optional $ space >> flt -- w
+   return ()
+   
 ignore :: WFParser ()
 ignore = do
-   ignored <- many (noneOf "\n")
+   _ <- many (noneOf "\n")
    eol
-   trace ignored $ return ()
+   return ()
 
 face :: WFParser ()
 face = do
@@ -80,6 +85,7 @@ vertex = do
    x <- space >> flt
    y <- space >> flt
    z <- space >> flt
+   _ <- optional $ space >> flt
    eol
    (WFState vs ts) <- getState
    setState (WFState (mkPoint (x, y, z) : vs) ts)
