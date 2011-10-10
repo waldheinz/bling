@@ -26,11 +26,12 @@ pRenderer = pBlock $ do
    r <- case tName of
              
              "metropolis" -> do
-                mpp <- namedFloat "mpp"
+                md <- namedInt "maxDepth"
+                mpp <- ws >> namedFloat "mpp"
                 nboot <- ws >> namedInt "bootstrap"
                 plarge <- ws >> namedFloat "plarge"
-                sepDir <- ws >> (option False $ string "separateDirect" >> return True)
-                return $ mkAnyRenderer $ mkMLT mpp nboot plarge sepDir
+                dspp <- ws >> namedInt "directSamples"
+                return $ mkAnyRenderer $ mkMLT md mpp nboot plarge dspp
                 
              "sampler" -> do
                 sr <- pSamplerRenderer

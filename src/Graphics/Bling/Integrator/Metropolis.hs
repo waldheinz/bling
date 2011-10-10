@@ -29,37 +29,38 @@ import Graphics.Bling.Scene
 import Graphics.Bling.Spectrum
 
 data Metropolis = MLT
-   { _integrator :: BidirPath
-   , _mpp      :: Flt -- ^ mutations per pixel
-   , _nbootstrap :: Int
-   , _plarge :: Flt
-   , _directSeparate    :: Bool -- ^ do direct lighting in separate pass
+   { _integrator        :: ! BidirPath
+   , _maxDepth          :: ! Int
+   , _mpp               :: ! Flt -- ^ mutations per pixel
+   , _nbootstrap        :: ! Int
+   , _plarge            :: ! Flt
+   , _directSamples     :: ! Int -- ^ spp for direct
    }
 
-maxDepth :: Int
-maxDepth = 7
-
 mkMLT
-   :: Flt -- ^ mutations per pixel
-   -> Int
+   :: Int -- ^ maximum depth
+   -> Flt -- ^ mutations per pixel
+   -> Int -- ^ number of bootstrap samples
    -> Flt -- ^ plarge
-   -> Bool -- ^ direct separate
+   -> Int -- ^ samples per pixel for direct lighting integrator
    -> Metropolis
-mkMLT mpp nboot pl sepDir = MLT integ mpp nboot pl sepDir where
-   integ = if sepDir
-              then mkNoDirectBidirIntegrator maxDepth maxDepth
-              else mkBidirPathIntegrator maxDepth maxDepth
+mkMLT md mpp nboot pl dspp = MLT integ md mpp nboot pl dspp where
+   integ = if dspp > 0
+              then mkNoDirectBidirIntegrator md md
+              else mkBidirPathIntegrator md md
 
 instance Printable Metropolis where
-   prettyPrint (MLT integ mpp _ _ _) = PP.vcat [
+   prettyPrint (MLT integ md mpp _ _ dspp) = PP.vcat [
       PP.text "metropolis light transport",
       PP.text "integrator" PP.<+> prettyPrint integ,
+      PP.text "max. Depth" PP.<+> PP.int md,
+      PP.text "direct lighting samples" PP.<+> PP.int dspp,
       PP.float mpp PP.<+> PP.text "mutations per pixel"]
 
 instance Renderer Metropolis where
-   render (MLT integ mpp nboot plarge directSep) job report = do
-      img <- if directSep
-                then runDirectLighting job report
+   render (MLT integ md mpp nboot plarge dspp) job report = do
+      img <- if dspp > 0
+                then runDirectLighting job md dspp report
                 else return $ mkJobImage job
       {-# SCC "mlt.render" #-} pass img 1 1
       where
@@ -117,11 +118,11 @@ instance Renderer Metropolis where
                then pass img' (p+1) bnext
                else return ()
                
-runDirectLighting :: RenderJob -> (Progress -> IO Bool) -> IO Image
-runDirectLighting job report =
+runDirectLighting :: RenderJob -> Int -> Int -> (Progress -> IO Bool) -> IO Image
+runDirectLighting job maxDepth dspp report =
    let
-      integrator = mkAnySurface $ mkDirectLightingIntegrator False
-      sampler = mkStratifiedSampler 6 6
+      integrator = mkAnySurface $ mkDirectLightingIntegrator maxDepth
+      sampler = mkStratifiedSampler' dspp
       renderer = mkSamplerRenderer sampler integrator
    in do
       imgRef <- newIORef Nothing

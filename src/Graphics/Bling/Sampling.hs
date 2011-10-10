@@ -7,7 +7,8 @@ module Graphics.Bling.Sampling (
 
    -- * Sampling Types
    SampleWindow(..), Sampler, Sampled, mkRandomSampler, mkStratifiedSampler,
-
+   mkStratifiedSampler',
+   
    -- * Sampling
    Sample(..), STVector, mkPrecompSample,
    rnd, rnd2D, rnd', rnd2D', coverWindow, splitWindow, shiftToPixel,
@@ -85,7 +86,13 @@ mkRandomSampler :: Int -> Sampler
 mkRandomSampler = Random
 
 mkStratifiedSampler :: Int -> Int -> Sampler
-mkStratifiedSampler = Stratified
+mkStratifiedSampler nx ny
+   | nx <= 0 || ny <= 0 = error "mkStratifiedSampler: nx and ny must be > 0"
+   | otherwise = Stratified nx ny
+
+mkStratifiedSampler' :: Int -> Sampler
+mkStratifiedSampler' spp = mkStratifiedSampler spp' spp' where
+   spp' = max 1 $ ceiling $ sqrt $ (fromIntegral spp :: Float)
 
 sample :: Sampler -> SampleWindow -> Int -> Int -> Sampled s a -> R.Rand s ()
 sample (Random spp) wnd _ _ c = {-# SCC "sample.Random" #-} do

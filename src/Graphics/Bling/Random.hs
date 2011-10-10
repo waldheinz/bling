@@ -66,12 +66,13 @@ liftR m = Rand $ const m
 -- | shuffles the given mutable vector in-place
 shuffle :: (MV.MVector v a) => v s a -> Rand s ()
 {-# INLINE shuffle #-}
-shuffle v = do
-   forM_ [0..n-1] $ \i -> do
+shuffle v
+   | n < 2 = return () -- nothing to do
+   | otherwise = forM_ [0..n-1] $ \i -> do
       -- the obvious alternative would be to use something like
       -- "rndIntR (0, n - i - 1)", but this performs *much* better
       other <- rndInt
-      liftR $ MV.unsafeSwap v i (abs other `mod` (n - 1))
+      liftR $ MV.unsafeSwap v i (abs other `rem` (n - 1))
    where
       n = MV.length v
 

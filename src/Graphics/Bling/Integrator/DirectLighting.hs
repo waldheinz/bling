@@ -13,26 +13,28 @@ import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Spectrum
 
-data DirectLighting = DirectLighting {
-   _sampleAll :: Bool
+data DirectLighting = DL
+   { maxDepth  :: {-# UNPACK #-} ! Int
    }
 
 -- | creates an instance of @DirectLighting@
-mkDirectLightingIntegrator :: Bool -> DirectLighting
-mkDirectLightingIntegrator = DirectLighting
+mkDirectLightingIntegrator
+   :: Int -- ^ maximum depth
+   -> DirectLighting
+mkDirectLightingIntegrator = DL
 
 instance Printable DirectLighting where
    prettyPrint _ = PP.text "Direct Lighting" 
 
 instance SurfaceIntegrator DirectLighting where
-   sampleCount1D _ = 2
-   sampleCount2D _ = 2
+   sampleCount1D (DL md) = 2 * md
+   sampleCount2D (DL md) = 2 * md
    
-   contrib (DirectLighting sa) s addSample r = do
-      c <- directLighting sa s r >>= \is -> mkContrib is False
+   contrib (DL md) s addSample r = do
+      c <- directLighting md s r >>= \is -> mkContrib is False
       liftSampled $ addSample c
 
-directLighting :: Bool -> Scene -> Ray -> Sampled m WeightedSpectrum
+directLighting :: Int -> Scene -> Ray -> Sampled m WeightedSpectrum
 directLighting _ s r@(Ray _ rd _ _) =
    maybe (return (0, black)) ls (s `intersect` r) where
       ls int = do

@@ -36,7 +36,8 @@ pSurfaceIntegrator = (flip namedBlock) "integrator" $ do
                 _          -> fail $ "unknown debug integrator " ++ dt
                 
         "directLighting" -> do
-           return $ mkAnySurface $ mkDirectLightingIntegrator False
+           md <- ws >> namedInt "maxDepth"
+           return $ mkAnySurface $ mkDirectLightingIntegrator md
 
         "light" -> do
            md <- ws >> namedInt "maxDepth"

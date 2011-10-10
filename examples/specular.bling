@@ -7,7 +7,7 @@ filter mitchell 3.0 3.0 0.333333 0.333333
 #filter box
 
 imageSize 640 480
-# imageSize 320 240
+imageSize 320 240
 
 renderer {
    sampler
@@ -17,7 +17,7 @@ renderer {
    }
 }
 
-# renderer { metropolis  mpp 1 bootstrap 5000 plarge 0.25 separateDirect }
+renderer { metropolis maxDepth 7 mpp 1 bootstrap 5000 plarge 0.25 directSamples 1 }
 
 transform {
    lookAt {
@@ -49,6 +49,7 @@ material {
    }
    sigma { constant 0 }
 }
+
 shape {
    mesh
    vertexCount 4
@@ -64,13 +65,7 @@ shape {
 # light source
 #
 
-light {
-   sunSky
-   up 0 1 0
-   east 1 0 0
-   sunDir 1 0.9 0
-   turbidity 3
-}
+# light { sunSky up 0 1 0 east 1 0 0 sunDir 1 0.9 0 turbidity 3 }
 
 emission { rgb 10 10 10 }
 
@@ -79,16 +74,16 @@ transform {
    translate 0 5 0
 }
 
-#shape {
-#   mesh
-#   vertexCount 4
-#   faceCount 1
-#   v 2.0 15.7 -2.0
-#   v 2.0 15.7 2.0
-#   v -2.0 15.7 2.0
-#   v -2.0 15.7 -2.0
-#   f 3 2 1 0
-#}
+shape {
+   mesh
+   vertexCount 4
+   faceCount 1
+   v 2.0 15.7 -2.0
+   v 2.0 15.7 2.0
+   v -2.0 15.7 2.0
+   v -2.0 15.7 -2.0
+   f 0 1 2 3
+}
 
 emission { none }
 
@@ -183,7 +178,6 @@ transform {
    identity
    translate 5.0 3.0 2.5
 }
-
 
 material { mirror
    kr { constant rgb 0.3 0.7 1 }
