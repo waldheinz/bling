@@ -34,16 +34,10 @@ camera {
 # transform { identity } camera { environment }
 
 transform { identity }
-prim {
-#   waveFront "/home/trem/Downloads/venus.obj"
-   waveFront "/home/trem/Privat/bling-raytracer/examples/meshes/cube.obj"
-}
-
 transform { identity rotateX -90 }
 
 light { infinite
-#   l { rgbeFile "./examples/envmaps/studio015.hdr" }
-   l { constant rgb 1 1 1 }
+   l { rgbeFile "envmaps/studio015.hdr" }
 }
 
 transform { identity }
@@ -191,7 +185,6 @@ material { plastic
 }
 
 shape { sphere radius 2.0 }
-
 
 #
 #

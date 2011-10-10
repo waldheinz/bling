@@ -47,8 +47,7 @@ triangulate = concatMap go where
                         tails fs
 
 line :: WFParser ()
-line =
-   do pUV <|> vertex <|> face <|> ignore
+line = pUV <|> vertex <|> face <|> ignore
 
 pUV :: WFParser ()
 pUV = do
