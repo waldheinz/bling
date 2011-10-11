@@ -225,7 +225,7 @@ sample' (AreaLight _ s r _ _) _ uo ud = (r, ray, ns, pd) where
    dir = if ns `dot` dir' < 0 then -dir' else dir'
    ray = Ray org dir 1e-2 infinity
 
-sample' (Directional r n) bounds uo ud = (r, ray, ns, pd) where
+sample' (Directional r n) bounds uo _ = (r, ray, ns, pd) where
    (wc, wr) = boundingSphere bounds
    (v1, v2) = coordinateSystem'' n
    (d1, d2) = concentricSampleDisk uo
@@ -254,6 +254,11 @@ sample' (Infinite rmap _ dist w2l) bounds uo ud
       pdArea = 1 / (pi * worldRad * worldRad)
       pd = if sint == 0 then 0 else pdDir * pdArea
 
+sample' (PointLight r p) _ _ ud = (r, ray, d, pd) where
+   d = uniformSampleSphere ud
+   ray = Ray p d 0 infinity
+   pd = uniformSpherePdf
+      
 pdf :: Light -- ^ the light to compute the pdf for
     -> Point -- ^ the point from which the light is viewed
     -> Vector -- ^ the wi vector
