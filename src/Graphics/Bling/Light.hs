@@ -20,11 +20,11 @@ import Graphics.Bling.Texture
 import Graphics.Bling.Transform
 
 data LightSample = LightSample {
-   de                :: Spectrum,   -- ^ differential irradiance
-   lightSampleWi     :: Vector,     -- ^ incident direction
-   testRay           :: Ray,        -- ^ for visibility test
-   lightSamplePdf    :: Float,      -- ^ the PDF for this sample
-   lightSampleDelta  :: Bool        -- ^ does that light employ a delta-distributuion?
+   de                :: {-# UNPACK #-} !Spectrum,   -- ^ differential irradiance
+   lightSampleWi     :: {-# UNPACK #-} !Vector,     -- ^ incident direction
+   testRay           :: {-# UNPACK #-} !Ray,        -- ^ for visibility test
+   lightSamplePdf    :: {-# UNPACK #-} !Float,      -- ^ the PDF for this sample
+   lightSampleDelta  :: !Bool        -- ^ does that light employ a delta-distributuion?
    }
 
 data Light
@@ -184,15 +184,6 @@ sample (AreaLight _ s r l2w w2l) p _ us = LightSample r' wi' ray pd False where
    wi = normalize (ps - p') -- incident vector in local space
    pd = S.pdf s p' wi -- pdf (computed in local space)
    ray = transRay l2w (segmentRay ps p') -- vis. test ray (in world space)
-{- 
-sample (Sky _ basis ssd) p n us = LightSample r dw ray pd False where
-   v = cosineSampleHemisphere us
-   c2 = coordinateSystem $ normalize n
-   dw = localToWorld c2 v
-   pd = invPi * (v .! dimZ) * 2
-   r = skySpectrum ssd $ normalize $ worldToLocal basis dw
-   ray = Ray p dw epsilon infinity
- -}
 
 sample (Sky basis ssd) p _ us = LightSample r dw ray pd False where
    dw = uniformSampleSphere us
