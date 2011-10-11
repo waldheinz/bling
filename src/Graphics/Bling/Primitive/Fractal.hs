@@ -54,9 +54,14 @@ instance Primitive FractalPrim where
    intersects (FP (Julia q e mi) _) r = maybe False (\_ -> True) t where
       t = traverseJulia r q mi e
    
+   intersects (Menger _ _ _ _) _ = error "Menger : unimplemented intersects"
+   
+   
    intersect p@(FP (Julia q e mi) m) r =
       traverseJulia r q mi e >>= \(d, o) ->
          Just $ Intersection d (mkDg' o $ normalJulia o q mi e) (mkAnyPrim p) m
+   
+   intersect (Menger _ _ _ _) _ = error "Menger : unimplemented intersects"
 
 prepare :: Ray -> Maybe Flt
 prepare (Ray ro rd rmin rmax)
