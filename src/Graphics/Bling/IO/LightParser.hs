@@ -21,37 +21,28 @@ pLight = pBlock $ do
       "directional"  -> pDirectionalLight
       "infinite"     -> pInfiniteArea
       "point"        -> pPointLight
-      "sunSky"       -> pSunSkyLight
       _              -> fail $ "unknown light type " ++ t
 
    s <- getState
-   setState s { lights = ls ++ (lights s) }
+   setState s { lights = ls : (lights s) }
 
-pInfiniteArea :: JobParser [Light]
+pInfiniteArea :: JobParser Light
 pInfiniteArea = do
    l <- namedSpectrumMap "l"
    s <- getState
-   return $ [mkInfiniteAreaLight l (transform s)]
+   return $ mkInfiniteAreaLight l (transform s)
 
-pSunSkyLight :: JobParser [Light]
-pSunSkyLight = do
-   up <- namedVector "up"
-   east <- ws >> namedVector "east"
-   sunDir <- ws >> namedVector "sunDir"
-   turb <- ws >> namedFloat "turbidity"
-   return $ mkSunSkyLight up east sunDir turb
-
-pPointLight :: JobParser [Light]
+pPointLight :: JobParser Light
 pPointLight = do
    r <- namedSpectrum "intensity"
    p <- ws >> namedVector "position"
-   return $ [mkPointLight r p]
+   return $ mkPointLight r p
 
-pDirectionalLight :: JobParser [Light]
+pDirectionalLight :: JobParser Light
 pDirectionalLight = do
    s <- namedSpectrum "intensity"
    n <- ws >> namedVector "normal"
-   return $ [mkDirectional s n]
+   return $ mkDirectional s n
    
 pEmission :: JobParser ()
 pEmission = pBlock $ do

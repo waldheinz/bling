@@ -7,6 +7,7 @@ import Text.ParserCombinators.Parsec
 
 import Graphics.Bling.Reflection
 import Graphics.Bling.Spectrum
+import Graphics.Bling.SunSky
 import Graphics.Bling.Texture
 import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.RGBE
@@ -16,7 +17,6 @@ import Graphics.Bling.Material.Metal
 import Graphics.Bling.Material.Plastic
 import Graphics.Bling.Material.Specular
 import Graphics.Bling.Material.Substrate
-
 
 defaultMaterial :: Material
 defaultMaterial = mkMatte (constant $ fromRGB (0.9, 0.9, 0.9)) (constant 0)
@@ -180,6 +180,12 @@ pSpectrumMap = pBlock $ do
                  case parseRGBE rgbe of
                       Left e -> fail e
                       Right x -> return $ (rgbeToTextureMap x)
+
+              "sunSky" -> do
+                 east <- namedVector "east"
+                 sunDir <- ws >> namedVector "sunDir"
+                 turb <- ws >> namedFloat "turbidity"
+                 return $ mkSunSkyLight east sunDir turb
                       
               _ -> fail $ "unknown map type " ++ tp
    

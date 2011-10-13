@@ -58,6 +58,7 @@ Library
       Graphics.Bling.Scene,
       Graphics.Bling.Shape,
       Graphics.Bling.Spectrum,
+      Graphics.Bling.SunSky,
       Graphics.Bling.Texture,
       Graphics.Bling.Transform,
       Graphics.Bling.Types,
