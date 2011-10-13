@@ -15,10 +15,13 @@ mkSunSkyLight
    -> Flt -- ^ the sky's turbidity
    -> SpectrumMap
 mkSunSkyLight east sdw turb = mkTextureMap (640, 480) eval where
-   eval cc = skySpectrum ssd $ (sphToDir $ cartToSph cc)
+   eval cc =
+      (skySpectrum ssd $ (sphToDir $ cartToSph cc))-- +
+ --     (sunSpectrum sdw sunR (sphToDir $ cartToSph cc))
    up = mkV (0, 1, 0)
    basis = coordinateSystem' (normalize up) (normalize east)
    ssd = initSky basis (normalize sdw) turb
+   sunR = sunSpectrum' ssd turb
 
 type Perez = (Flt, Flt, Flt, Flt, Flt)
 
@@ -82,8 +85,13 @@ perez (p0, p1, p2, p3, p4) sunT t g lvz = lvz * num / den where
    csg = cos g
    cst = cos sunT
 
-sunSpectrum :: SkyData -> Flt -> Spectrum
-sunSpectrum ssd turb
+sunSpectrum :: Vector -> Spectrum -> Vector -> Spectrum
+sunSpectrum sunD r dir
+   | (sunD `dot` dir) > sunThetaMax = r
+   | otherwise = black
+   
+sunSpectrum' :: SkyData -> Flt -> Spectrum
+sunSpectrum' ssd turb
    | (sunDir ssd) .! dimZ < 0 = black -- below horizon
    | otherwise = fromSpd $ mkSpdFunc sf
    where
