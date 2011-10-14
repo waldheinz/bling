@@ -15,7 +15,7 @@ mkSunSkyLight
    -> Flt -- ^ the sky's turbidity
    -> SpectrumMap
 mkSunSkyLight east sdw turb = mkTextureMap (640, 480) eval where
-   eval cc =
+   eval cc = {-# SCC "eval" #-}
       (skySpectrum ssd $ (sphToDir $ cartToSph cc)) +
       (sunSpectrum (normalize $ worldToLocal basis sdw) sunR (sphToDir $ cartToSph cc))
    up = mkV (0, 1, 0)
@@ -43,7 +43,7 @@ sunThetaMax2 = sqrt $ max 0 (1 - sint2) where
    meanDistance = 1.496e8 -- 149,60 million km
    
 initSky :: LocalCoordinates -> Vector -> Flt -> SkyData
-initSky basis sdw t = SD sd st px py pY zx zy zY where
+initSky basis sdw t = {-# SCC "init" #-} SD sd st px py pY zx zy zY where
    sd = normalize $ worldToLocal basis sdw
    st = acos $ clamp (sd .! dimZ) (-1) 1
    (st2, st3, t2) = (st * st, st * st * st, t * t)

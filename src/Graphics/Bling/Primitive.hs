@@ -145,7 +145,7 @@ data Intersection = Intersection {
    }
 
 intBsdf :: Intersection -> Bsdf
-intBsdf int = intMaterial int dgg dgs where
+intBsdf int = {-# SCC "intBsdf" #-} intMaterial int dgg dgs where
    dgg = _intGeometry int
    dgs = shadingGeometry (intPrimitive int) identity dgg
 
