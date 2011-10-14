@@ -16,8 +16,8 @@ mkSunSkyLight
    -> SpectrumMap
 mkSunSkyLight east sdw turb = mkTextureMap (640, 480) eval where
    eval cc =
-      (skySpectrum ssd $ (sphToDir $ cartToSph cc))-- +
- --     (sunSpectrum sdw sunR (sphToDir $ cartToSph cc))
+      (skySpectrum ssd $ (sphToDir $ cartToSph cc)) +
+      (sunSpectrum (normalize $ worldToLocal basis sdw) sunR (sphToDir $ cartToSph cc))
    up = mkV (0, 1, 0)
    basis = coordinateSystem' (normalize up) (normalize east)
    ssd = initSky basis (normalize sdw) turb
@@ -36,8 +36,8 @@ data SkyData = SD
    , zenithY :: !Flt
    }
 
-sunThetaMax :: Flt
-sunThetaMax = sqrt $ max 0 (1 - sint2) where
+sunThetaMax2 :: Flt
+sunThetaMax2 = sqrt $ max 0 (1 - sint2) where
    sint2 = radius / meanDistance
    radius = 6.955e5 -- km
    meanDistance = 1.496e8 -- 149,60 million km
@@ -87,9 +87,12 @@ perez (p0, p1, p2, p3, p4) sunT t g lvz = lvz * num / den where
 
 sunSpectrum :: Vector -> Spectrum -> Vector -> Spectrum
 sunSpectrum sunD r dir
-   | (sunD `dot` dir) > sunThetaMax = r
+   | d > stm = r
    | otherwise = black
-   
+   where
+      d = (sunD * mkV (1, 1, -1))`dot` dir
+      stm = sunThetaMax2
+      
 sunSpectrum' :: SkyData -> Flt -> Spectrum
 sunSpectrum' ssd turb
    | (sunDir ssd) .! dimZ < 0 = black -- below horizon
