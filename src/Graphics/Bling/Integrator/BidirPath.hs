@@ -64,38 +64,38 @@ instance SurfaceIntegrator BidirPath where
       ulo <- rnd2D' 0
       uld <- rnd2D' 1
       
-      lp <- {-# SCC "lightPath" #-} lightPath scene md ul ulo uld
-      ep <- {-# SCC "eyePath" #-} eyePath scene r md
+      lp <- lightPath scene md ul ulo uld
+      ep <- eyePath scene r md
       
-      -- precompute sum of specular bounces in eye or light path
-      let nspecBouces = countSpec ep lp
-
-      -- if we do separate DL, we must drop the specular bounces at the
-      -- beginning of the eye path to avoid double-counting
-      let nSpec = 1 + (length $ takeWhile (\v -> _vtype v `bxdfIs` Specular) ep)
-      let ep' = if noDirect
-                   then drop nSpec ep
-                   else ep
+      let
+         -- precompute sum of specular bounces in eye or light path
+         nspecBouces = countSpec ep lp
+         -- if we do separate DL, we must drop the specular bounces at the
+         -- beginning of the eye path to avoid double-counting
+         nSpec = 1 + (length $ takeWhile (\v -> _vtype v `bxdfIs` Specular) ep)
+         ep' = if noDirect
+                  then drop nSpec ep
+                  else ep
                    
       -- direct illumination, aka "one light" or S1 subpaths
-      ld <- {-# SCC "directIllum" #-} do
+      ld <- do
           liftM sum $ forM (zip ep' [1..]) $ \(v, i) -> do
           d <- estimateDirect scene v i
           return $ sScale d $ 1 / (fromIntegral i - nspecBouces V.! i)
       
-      let prevSpec = True : map (\v -> _vtype v `bxdfIs` Specular) ep
+      let
+          prevSpec = True : map (\v -> _vtype v `bxdfIs` Specular) ep
 
-      -- light sources directly visible, or via specular reflection
-      let le = if noDirect
+          -- light sources directly visible, or via specular reflection
+          le = if noDirect
                   then black
                   else sum $ map (\v -> _valpha v * (intLe (_vint v) (_vwi v))) $
                              map fst $ filter snd $ zip ep prevSpec
       
-      let ei = zip ep [0..]
-      let li = zip lp [0..]
-
-      let l = {-# SCC "connect" #-} 
-              sum $ parMap rdeepseq (connect scene nspecBouces) $ pairs ei li
+          ei = zip ep [0..]
+          li = zip lp [0..]
+          l = sum $ parMap rdeepseq (connect scene nspecBouces) $ pairs ei li
+          
       mkContrib (1, l + ld + le) False >>= addContrib
       where
          addContrib = liftSampled . addContrib'
@@ -144,11 +144,11 @@ estimateDirect scene (Vert bsdf p wi _ _ _ alpha) depth = do
    lDirU <- rnd2D' $ 0 + 2 + smps2D * depth * 3
    lBsdfCompU <- rnd' $ 1 + 1 + smps1D * depth * 3
    lBsdfDirU <- rnd2D' $ 1 + 2 + smps2D * depth * 3
-   let lHere = sampleOneLight scene p n wi bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU
-   return $ lHere * alpha
-   where
+   let
       n = bsdfShadingNormal bsdf
-
+      lHere = sampleOneLight scene p n wi bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU
+   return $! lHere * alpha
+   
 pairs :: [a] -> [a] -> [(a, a)]
 pairs [] _ = []
 pairs _ [] = []
@@ -166,11 +166,13 @@ eyePath s r md = nextVertex s wi int white 0 md (\d -> 2 + 1 + smps1D * d * 3) (
 
 -- | generates the light path
 lightPath :: Scene -> Int -> Flt -> Rand2D -> Rand2D -> Sampled m Path
-lightPath s md ul ulo uld = do
-   let (li, ray, nl, pdf) = sampleLightRay s ul ulo uld
-   let wo = normalize $ rayDir ray
-   let nl' = normalize nl
-   nextVertex s (-wo) (s `intersect` ray) (sScale li (absDot nl' wo / pdf)) 0 md (\d -> 3 + 1 + smps1D * d * 3) (\d -> 3 + 2 + smps2D * d * 3)
+lightPath s md ul ulo uld =
+   let
+      (li, ray, nl, pdf) = sampleLightRay s ul ulo uld
+      wo = normalize $ rayDir ray
+      nl' = normalize nl
+   in do
+      nextVertex s (-wo) (s `intersect` ray) (sScale li (absDot nl' wo / pdf)) 0 md (\d -> 3 + 1 + smps1D * d * 3) (\d -> 3 + 2 + smps2D * d * 3)
    
 nextVertex
    :: Scene

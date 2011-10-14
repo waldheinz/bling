@@ -76,7 +76,7 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) md t l
          p = bsdfShadingPoint bsdf
          lHere = intl + (sampleOneLight scene p n wo bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU)
          l' = l + t * lHere
-         pc = if depth <= 3 then 1 else min 1 (sY t) -- cont. probability
+         pc = if depth <= 3 then 1 else min 0.5 (sY t) -- cont. probability
         
       rnd' (3 + smp1doff depth) >>= \x -> do
          if x > pc
