@@ -25,7 +25,7 @@ Library
       mtl            == 2.0.*,
       mwc-random     == 0.10.*,
       parsec         == 3.1.*,
-      parallel       == 3.1.*,
+      parallel       == 3.2.*,
       pretty         == 1.0.*,
       primitive      == 0.4.*,
       random         == 1.0.*,
