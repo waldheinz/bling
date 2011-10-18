@@ -14,7 +14,7 @@ renderer {
 
 # renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
 # renderer { lightTracer passCount 10 particles 500000 }
-# renderer { metropolis maxDepth 5 mpp 1 bootstrap 1000 plarge 0.25 directSamples 1 }
+renderer { metropolis maxDepth 5 mpp 1 bootstrap 1000 plarge 0.25 directSamples 16 }
 # renderer { sampler sampled { sampler { stratified xSamples 3 ySamples 3 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 8 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }

@@ -73,7 +73,7 @@ sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n
 sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Spectrum
 {-# INLINE sampleBsdfMis #-}
 sampleBsdfMis (Scene _ sp _ _) l (BsdfSample _ bPdf f wi) n p
-   | isBlack f || bPdf == 0 = black
+   | bPdf == 0  || isBlack f = black
    | isJust lint = maybe black ff $ intLight (fromJust lint)
    | otherwise = sc (le l ray)
    where

@@ -25,7 +25,8 @@ module Graphics.Bling.Reflection (
    -- * BSDF
    
    Bsdf, BsdfSample(..), bsdfShadingNormal, bsdfShadingPoint,
-   bsdfSpecCompCount, mkBsdf, mkBsdf', evalBsdf, sampleBsdf, bsdfPdf,
+   bsdfSpecCompCount, mkBsdf, mkBsdf', evalBsdf, sampleBsdf, sampleBsdf',
+   bsdfPdf,
    
    -- * Working with Vectors in shading coordinate system
 
@@ -189,6 +190,10 @@ bxdfIs :: BxdfType -> BxdfProp -> Bool
 {-# INLINE bxdfIs #-}
 bxdfIs b p = ((fromBxdfProp p) .&. (unBxdfType b)) /= 0
 
+bxdfIs' :: BxdfType -> BxdfType -> Bool
+{-# INLINE bxdfIs' #-}
+bxdfIs' t1 t2 = ((unBxdfType t1) .&. (unBxdfType t2)) == (unBxdfType t1)
+
 isReflection :: (Bxdf b) => b -> Bool
 {-# INLINE isReflection #-}
 isReflection b = bxdfIs (bxdfType b) Reflection
@@ -205,12 +210,35 @@ mkBxdfType :: [BxdfProp] -> BxdfType
 {-# INLINE mkBxdfType #-}
 mkBxdfType ps = BxdfType $ foldl' (\a p -> a .|. (fromBxdfProp p)) 0 ps
 
+combineBxdfType :: BxdfType -> BxdfType -> BxdfType
+{-# INLINE combineBxdfType #-}
+combineBxdfType t1 t2 = BxdfType $ (unBxdfType t1 .|. unBxdfType t2)
+
+-- | for @Diffuse@, @Glossy@ or @Specular@
+bxdfAllTypes :: BxdfType
+bxdfAllTypes = mkBxdfType [Diffuse, Glossy, Specular]
+
+-- | for @Diffuse@, @Glossy@ or @Specular@ @Reflection@s
+bxdfAllReflection :: BxdfType
+bxdfAllReflection = combineBxdfType bxdfAllTypes $ mkBxdfType [Reflection]
+
+-- | for @Diffuse@, @Glossy@ or @Specular@ @Transmission@s
+bxdfAllTransmission :: BxdfType
+bxdfAllTransmission = combineBxdfType bxdfAllTypes $ mkBxdfType [Transmission]
+
+-- | for any kind of scattering
+bxdfAll :: BxdfType
+bxdfAll = combineBxdfType bxdfAllReflection bxdfAllTransmission
+
 class Bxdf a where
    bxdfEval :: a -> Normal -> Normal -> Spectrum
    bxdfSample :: a -> Normal -> Rand2D -> (Spectrum, Normal, Flt)
    bxdfPdf :: a -> Normal -> Normal -> Flt
    bxdfType :: a -> BxdfType
-
+   
+   -- | has this @BxDF@ the provided flags set?
+   bxdfMatches :: a -> BxdfType -> Bool
+   
    bxdfSample a wo u = (f, wi, pdf) where
       wi = toSameHemisphere wo (cosineSampleHemisphere u)
       f = bxdfEval a wo wi
@@ -219,6 +247,8 @@ class Bxdf a where
    bxdfPdf _ wo wi
       | sameHemisphere wo wi = invPi * absCosTheta wi
       | otherwise = 0
+
+   bxdfMatches bxdf flags = bxdfIs' (bxdfType bxdf) flags
 
 data AnyBxdf = forall a. Bxdf a => MkAnyBxdf a
 
@@ -233,10 +263,10 @@ instance Bxdf AnyBxdf where
 --------------------------------------------------------------------------------
 
 data Bsdf = Bsdf
-   { _bsdfBxdfs :: ! (V.Vector AnyBxdf) -- ^ the BxDFs the BSDF is composed of
-   , _bsdfCs    :: {-# UNPACK #-} ! LocalCoordinates -- ^ the shading coordinate system
-   , _bsdfP     :: {-# UNPACK #-} ! Point
-   , _bsdfNg    :: {-# UNPACK #-} ! Normal -- ^ geometric normal
+   { bsdfComponents  :: ! (V.Vector AnyBxdf) -- ^ the BxDFs the BSDF is composed of
+   , _bsdfCs         :: {-# UNPACK #-} ! LocalCoordinates -- ^ the shading coordinate system
+   , _bsdfP          :: {-# UNPACK #-} ! Point
+   , _bsdfNg         :: {-# UNPACK #-} ! Normal -- ^ geometric normal
    }
 
 -- | creates a BSDF
@@ -268,13 +298,14 @@ bsdfShadingPoint :: Bsdf -> Point
 {-# INLINE bsdfShadingPoint #-}
 bsdfShadingPoint bsdf = _bsdfP bsdf
 
+bsdfNumComponents :: BxdfType -> Bsdf -> Int
+bsdfNumComponents t bsdf = V.sum $ V.map go $ bsdfComponents bsdf where
+   go bxdf = if bxdfIs' t (bxdfType bxdf) then 1 else 0
+
 -- | the number of specular BxDFs in a BSDF
 bsdfSpecCompCount :: Bsdf -> Int
 {-# INLINE bsdfSpecCompCount #-}
-bsdfSpecCompCount bsdf = V.sum $ V.map go $ _bsdfBxdfs bsdf where
-   go bxdf
-      | isSpecular bxdf = 1
-      | otherwise = 0
+bsdfSpecCompCount = bsdfNumComponents (mkBxdfType [Specular])
    
 bsdfPdf :: Bsdf -> Vector -> Vector -> Float
 bsdfPdf (Bsdf bs cs _ _) woW wiW 
@@ -291,29 +322,44 @@ data BsdfSample = BsdfSample {
    bsdfSampleWi         :: {-# UNPACK #-} ! Vector
    } deriving (Show)
 
-sampleBsdf :: Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
-sampleBsdf = {-# SCC "sampleBsdf" #-} sampleBsdf'
+sampleBsdf :: Bsdf -> Vector -> Flt -> Rand2D -> BsdfSample
+sampleBsdf = {-# SCC "sampleBsdf" #-} sampleBsdf' bxdfAll
 
-sampleBsdf' :: Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
-{-# INLINE sampleBsdf' #-}
-sampleBsdf' (Bsdf bs cs _ ng) woW uComp uDir
-   | V.null bs || pdf' == 0 = emptyBsdfSample
+sampleBsdf' :: BxdfType -> Bsdf -> Vector -> Flt -> Rand2D -> BsdfSample
+sampleBsdf' = {-# SCC "sampleBsdf'" #-} sampleBsdf''
+
+sampleBsdf'' :: BxdfType -> Bsdf -> Vector -> Flt -> Rand2D -> BsdfSample
+{-# INLINE sampleBsdf'' #-}
+sampleBsdf'' flags (Bsdf bs cs _ ng) woW uComp uDir
+   | cntm == 0 || pdf' == 0 = emptyBsdfSample
    | isSpecular bxdf = BsdfSample t pdf' f' wiW
    | otherwise = BsdfSample t pdf f wiW where
-      (f', wi, pdf') = bxdfSample bxdf wo uDir
-      flt = if woW `dot` ng * wiW `dot` ng < 0 then isTransmission else isReflection
-      f = f' + (V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bs')
-      pdf = (pdf' + (V.sum $ V.map (\b -> bxdfPdf b wo wi) bs')) / (fromIntegral cnt)
-      bs' = V.ifilter (\i _ -> (i /= sNum)) bs -- filter explicitely sampled
-      wiW = localToWorld cs wi
       wo = worldToLocal cs woW
-      bxdf = V.unsafeIndex bs sNum
-      sNum = min (cnt-1) (floor (uComp * fromIntegral cnt)) -- index to sample
-      cnt = V.length bs
+      
+      -- choose BxDF to sample
+      bsm = V.filter (\b -> bxdfMatches b flags) bs
+      cntm = V.length bsm
+      sNum = min (cntm-1) (floor (uComp * fromIntegral cntm)) -- index to sample
+      bxdf = V.unsafeIndex bsm sNum
+
+      -- sample chosen BxDF
+      (f', wi, pdf') = bxdfSample bxdf wo uDir
+      wiW = localToWorld cs wi
+
+      -- overall PDF
+      bs' = V.ifilter (\i _ -> (i /= sNum)) bsm -- filter explicitely sampled from matching
+      pdf = if isSpecular bxdf || cntm == 1
+               then pdf'
+               else (pdf' + (V.sum $ V.map (\b -> bxdfPdf b wo wi) bs')) / (fromIntegral cntm)
+      
+      -- throughput for sampled direction
+      flt = if woW `dot` ng * wiW `dot` ng < 0 then isTransmission else isReflection
+      f = if isSpecular bxdf
+             then f'
+             else V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bsm
       t = bxdfType bxdf
       
 evalBsdf :: Bsdf -> Vector -> Vector -> Spectrum
-
 evalBsdf (Bsdf bxdfs cs _ ng) woW wiW = {-# SCC "evalBsdf" #-}
    V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bxdfs
    where
