@@ -341,7 +341,7 @@ sampleBsdf'' flags (Bsdf bs cs _ ng) woW uComp uDir
    | cntm == 0 || pdf' == 0 = emptyBsdfSample
    | isSpecular bxdf = BsdfSample t (pdf' / fromIntegral cntm) f' wiW
    | otherwise = BsdfSample t pdf f wiW where
-      wo = normalize $ worldToLocal cs woW
+      wo = worldToLocal cs woW
       
       -- choose BxDF to sample
       bsm = V.filter (\b -> bxdfMatches b flags) bs

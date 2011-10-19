@@ -8,7 +8,7 @@ filter triangle 2 2
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 3 ySamples 3 }
+      sampler { stratified xSamples 8 ySamples 8 }
       integrator { bidir maxDepth 7 sampleDepth 5 }
    }
 }

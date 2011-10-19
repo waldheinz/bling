@@ -20,9 +20,9 @@ import Graphics.Bling.Scene
 import Graphics.Bling.Spectrum
 
 data BidirPath = BDP
-   { _maxDepth          :: Int
-   , _sampleDepth       :: Int
-   , _noDirect          :: Bool -- ^ should we skip direct illumination?
+   { _maxDepth    :: {-# UNPACK #-} ! Int
+   , _sampleDepth :: {-# UNPACK #-} ! Int
+   , _noDirect    :: ! Bool -- ^ should we skip direct illumination?
    }
    
 -- | a path vertex
@@ -70,18 +70,17 @@ instance SurfaceIntegrator BidirPath where
       let
          -- precompute sum of specular bounces in eye or light path
          nspecBouces = countSpec ep lp
+         
          -- if we do separate DL, we must drop the specular bounces at the
          -- beginning of the eye path to avoid double-counting
-         nSpec = 1 + (length $ takeWhile (\v -> _vtype v `bxdfIs` Specular) ep)
          ep' = if noDirect
-                  then drop nSpec ep
+                  then dropWhile (\v -> _vtype v `bxdfIs` Specular) $ tail ep
                   else ep
-                   
+      
       -- direct illumination, aka "one light" or S1 subpaths
-      ld <- do
-          liftM sum $ forM (zip ep' [1..]) $ \(v, i) -> do
-          d <- estimateDirect scene v i
-          return $ sScale d $ 1 / (fromIntegral i - nspecBouces V.! i)
+      ld <- liftM sum $ forM (zip ep' [0..]) $ \(v, i) -> do
+         d <- estimateDirect scene v i
+         return $ sScale d (1 / (1 + fromIntegral i - nspecBouces V.! i))
       
       let
           prevSpec = True : map (\v -> _vtype v `bxdfIs` Specular) ep
