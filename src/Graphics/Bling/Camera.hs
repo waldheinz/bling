@@ -56,7 +56,7 @@ fireRay (ProjectiveCamera c2w r2c _ _ lr fd) = {-# SCC "fireRayProjective" #-} d
       r ix iy luv = if lr > 0 then ray' else ray where
          
          -- ray without accounting for lens size
-         ray = Ray (mkPoint' 0 0 0) (normalize pCamera) 0 infinity
+         ray = Ray (mkPoint (0, 0, 0)) (normalize pCamera) 0 infinity
          pCamera = transPoint r2c pRaster
          pRaster = mkPoint' ix iy 0
          

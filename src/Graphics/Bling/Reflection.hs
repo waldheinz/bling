@@ -54,10 +54,10 @@ type Material = DifferentialGeometry -> DifferentialGeometry -> Bsdf
 
 type Fresnel = Flt -> Spectrum
 
--- | a no-or Fresnel implementation, which always returns a fully white
+-- | a no-op Fresnel implementation, which always returns white
 --   @Spectrum@
 frNoOp :: Fresnel
-frNoOp _ = white
+frNoOp = const white
 
 -- | Fresnel incidence effects for dielectrics
 frDielectric :: Flt -> Flt -> Fresnel
@@ -65,13 +65,14 @@ frDielectric etai etat cosi
    | sint >= 1 = white -- total internal reflection
    | otherwise = frDiel' (abs cosi') cost (sConst ei) (sConst et)
    where
-      cost = sqrt $ max 0 (1 - sint * sint)
-      sint = (ei / et) * sqrt (max 0 (1 - cosi' * cosi'))
       cosi' = clamp cosi (-1) 1
       (ei, et) = if cosi' > 0 then (etai, etat) else (etat, etai)
-   
+      -- find sint using Snell's law
+      sint = (ei / et) * sqrt (max 0 (1 - cosi' * cosi'))
+      cost = sqrt $ max 0 (1 - sint * sint)
+      
 frDiel' :: Flt -> Flt -> Spectrum -> Spectrum -> Spectrum
-frDiel' cosi cost etai etat = (rPar * rPar + rPer * rPer) / 2 where
+frDiel' cosi cost etai etat = sScale (rPar * rPar + rPer * rPer) 0.5 where
    rPar = (sScale etat cosi - sScale etai cost) /
           (sScale etat cosi + sScale etai cost)
    rPer = (sScale etai cosi - sScale etat cost) /
@@ -129,18 +130,23 @@ instance Bxdf FresnelBlend where
 --------------------------------------------------------------------------------
 
 cosTheta :: Vector -> Flt
+{-# INLINE cosTheta #-}
 cosTheta = vz
 
 absCosTheta :: Vector -> Flt
+{-# INLINE absCosTheta #-}
 absCosTheta = abs . cosTheta
 
 sinTheta2 :: Vector -> Flt
+{-# INLINE sinTheta2 #-}
 sinTheta2 v = max 0 (1 - cosTheta v * cosTheta v)
 
 sinTheta :: Vector -> Flt
+{-# INLINE sinTheta #-}
 sinTheta = sqrt . sinTheta2
 
 cosPhi :: Vector -> Flt
+{-# INLINE cosPhi #-}
 cosPhi v
    | sint == 0 = 1
    | otherwise = clamp (vx v / sint) (-1) 1
@@ -148,6 +154,7 @@ cosPhi v
          sint = sinTheta v
 
 sinPhi :: Vector -> Flt
+{-# INLINE sinPhi #-}
 sinPhi v
    | sint == 0 = 0
    | otherwise = clamp (vy v / sint) (-1) 1
@@ -332,9 +339,9 @@ sampleBsdf'' :: BxdfType -> Bsdf -> Vector -> Flt -> Rand2D -> BsdfSample
 {-# INLINE sampleBsdf'' #-}
 sampleBsdf'' flags (Bsdf bs cs _ ng) woW uComp uDir
    | cntm == 0 || pdf' == 0 = emptyBsdfSample
-   | isSpecular bxdf = BsdfSample t pdf' f' wiW
+   | isSpecular bxdf = BsdfSample t (pdf' / fromIntegral cntm) f' wiW
    | otherwise = BsdfSample t pdf f wiW where
-      wo = worldToLocal cs woW
+      wo = normalize $ worldToLocal cs woW
       
       -- choose BxDF to sample
       bsm = V.filter (\b -> bxdfMatches b flags) bs
@@ -348,15 +355,13 @@ sampleBsdf'' flags (Bsdf bs cs _ ng) woW uComp uDir
 
       -- overall PDF
       bs' = V.ifilter (\i _ -> (i /= sNum)) bsm -- filter explicitely sampled from matching
-      pdf = if isSpecular bxdf || cntm == 1
+      pdf = if cntm == 1
                then pdf'
                else (pdf' + (V.sum $ V.map (\b -> bxdfPdf b wo wi) bs')) / (fromIntegral cntm)
       
       -- throughput for sampled direction
       flt = if woW `dot` ng * wiW `dot` ng < 0 then isTransmission else isReflection
-      f = if isSpecular bxdf
-             then f'
-             else V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bsm
+      f = V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bsm
       t = bxdfType bxdf
       
 evalBsdf :: Bsdf -> Vector -> Vector -> Spectrum

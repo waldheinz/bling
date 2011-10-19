@@ -2,20 +2,19 @@
 #filter sinc 4.0 4.0 3.0
 #filter triangle 2.0 2.0
 filter mitchell 3.0 3.0 0.333333 0.333333
-#filter box
+# filter box
 
 renderer {
    sampler
    sampled {
-      sampler { random samples 16 }
-      integrator { bidir maxDepth 5 sampleDepth 3 }
+      sampler { stratified xSamples 5 ySamples 5 }
+      integrator { path maxDepth 7 sampleDepth 4 }
    }
 }
 
 # renderer { sampler sampled { sampler { stratified xSamples 8 ySamples 8 } integrator { path maxDepth 7 sampleDepth 4 } } }
-# renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
-
-# renderer { metropolis mpp 1 bootstrap 1000 plarge 0.2 }
+renderer { sampler sampled { sampler { stratified xSamples 3 ySamples 3 } integrator { bidir maxDepth 7 sampleDepth 4 } } }
+# renderer { metropolis maxDepth 7 mpp 1 bootstrap 1000 plarge 0.25 directSamples 16 }
 
 imageSize 480 480
 
@@ -25,9 +24,9 @@ imageSize 480 480
 
 transform {
    lookAt {
-      pos 278.0 273.0 -800.0
-      look 278.0 273.0 0.0
-      up 0.0 1.0 0.0
+      pos   278 273 -800
+      look  278 273 0
+      up    0   1   0
    }
 }
 
@@ -113,8 +112,8 @@ shape {
 
 material { glass
    ior { constant 1.5 }
-   kr { constant spd { 1 0.95 } }
-   kt { constant rgb 0.6 0.6 0.9 }
+   kr { constant rgb 1 1 1 }
+   kt { constant rgb 1 1 1 }
 }
 
 transform { identity translate 400 130 200 }
@@ -124,7 +123,7 @@ shape { sphere radius 130 }
 # mirror sphere
 #
 
-material { mirror kr { constant spd { 1 0.95 } } }
+material { mirror kr { constant rgb 1 1 1 } }
 transform { identity translate 150 100 300 }
 shape { sphere radius 100 }
 transform { identity }

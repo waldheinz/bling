@@ -50,9 +50,8 @@ directLighting d md s r@(Ray _ rd _ _) =
          -- trace rays for specular reflection and transmission
          refl <- cont (d+1) md s bsdf wo $ mkBxdfType [Specular, Reflection]
          trans <- cont (d+1) md s bsdf wo $ mkBxdfType [Specular, Transmission]
-         let indir = sScale (refl + trans) 0.5
              
-         return (1, l + indir + intLe int wo)
+         return $! (1, l + refl + trans + intLe int wo)
 
 cont :: Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Sampled s Spectrum
 cont d md s bsdf wo t

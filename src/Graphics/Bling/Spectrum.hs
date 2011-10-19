@@ -11,7 +11,7 @@ module Graphics.Bling.Spectrum (
    
    isBlack, sNaN, sInfinite,
    fromXYZ,  toRGB, fromRGB, fromSpd, sConst, sBlackBody, sY,
-   sScale, sPow, sClamp, sSqrt, chromaticityToXYZ
+   sScale, sPow, sClamp, sClamp', sSqrt, chromaticityToXYZ
    
    ) where
 
@@ -280,22 +280,26 @@ instance Num Spectrum where
    negate (Spectrum r g b) = Spectrum (-r) (-g) (-b)
    signum (Spectrum r g b) = Spectrum (signum r) (signum g) (signum b)
    fromInteger i = Spectrum i' i' i' where
-      i' = fromIntegral i
+      i' = fromInteger i
    
--- | Decides if a @Spectrum@ is black (within an epsilon value).
+-- | Decides if a @Spectrum@ is black
 isBlack :: Spectrum -> Bool
 {-# INLINE isBlack #-}
 isBlack (Spectrum r g b) = r == 0 && g == 0 && b == 0
 
-sScale :: Spectrum -> Float -> Spectrum
+sScale :: Spectrum -> Flt -> Spectrum
 {-# INLINE sScale #-}
 sScale (Spectrum a b c) f = Spectrum (a*f) (b*f) (c*f)
 
--- | clamps the @Spectrum@ coefficients to [0,1]
+-- | clamps the @Spectrum@ coefficients the specified range
 sClamp :: Flt -> Flt -> Spectrum -> Spectrum
 {-# INLINE sClamp #-}
 sClamp smin smax (Spectrum r g b) = Spectrum (c r) (c g) (c b) where
    c x = max smin $ min smax x
+
+-- | clamps the @Spectrum@ coefficients to [0,1]
+sClamp' :: Spectrum -> Spectrum
+sClamp' = sClamp 0 1
 
 sSqrt :: Spectrum -> Spectrum
 {-# INLINE sSqrt #-}

@@ -24,10 +24,10 @@ glassMaterial
    -> SpectrumTexture -- ^ transmission color
    -> Material
 glassMaterial iort rt tt dgg dgs = mkBsdf' [refl, trans] dgg dgs where
-   refl = MkAnyBxdf $ SpecularReflection r $ frDielectric 1 ior
+   refl = MkAnyBxdf $ mkSpecRefl r $ frDielectric 1 ior
    trans = MkAnyBxdf $ SpecularTransmission t 1 ior
-   r = rt dgs
-   t = tt dgs
+   r = sClamp' $ rt dgs
+   t = sClamp' $ tt dgs
    ior = iort dgs
    
 mirrorMaterial
@@ -38,9 +38,9 @@ mirrorMaterial rt dgg dgs = mkBsdf' [bxdf] dgg dgs where
    r = sClamp 0 1 $ rt dgs
 
 data SpecularTransmission = SpecularTransmission {
-   _specTransT :: {-# UNPACK #-} !Spectrum,
-   _specTransEi :: {-# UNPACK #-} !Float,
-   _specTransEt :: {-# UNPACK #-} !Float
+   _specTransT    :: {-# UNPACK #-} ! Spectrum,
+   _specTransEi   :: {-# UNPACK #-} ! Flt,
+   _specTransEt   :: {-# UNPACK #-} ! Flt
    }
 
 instance Bxdf SpecularTransmission where
@@ -48,23 +48,26 @@ instance Bxdf SpecularTransmission where
    bxdfEval _ _ _ = black
    bxdfPdf _ _ _ = 0
    bxdfSample (SpecularTransmission t ei' et') wo@(Vector wox woy _) _
-      | sint2 > 1 = (black, wo, 0) -- total internal reflection
-      | otherwise = (f, wi, 1.0)
-         where
-               entering = cosTheta wo > 0
-               sint2 = eta * eta * sini2
-               eta = ei / et
-               (ei, et) = if entering then (ei', et') else (et', ei')
-               cost' = sqrt $ max 0 (1 - sint2)
-               cost = if entering then (-cost') else cost'
-               sini2 = sinTheta2 wo
-               wi = Vector (eta * (-wox)) (eta * (-woy)) cost
-               f' = frDielectric ei et $ cosTheta wo
-               f = sScale (t * (white - f')) (((et*et) / (ei*ei)) / abs (cosTheta wi))
+      | sint2 >= 1 = (black, wo, 0) -- total internal reflection
+      | otherwise = (f, wi, 1)
+      where
+         -- find out which eta is incident / transmitted
+         entering = cosTheta wo > 0
+         (ei, et) = if entering then (ei', et') else (et', ei')
+
+         -- find transmitted ray direction
+         sini2 = sinTheta2 wo
+         eta = ei / et
+         sint2 = eta * eta * sini2
+         cost' = sqrt $ max 0 (1 - sint2)
+         cost = if entering then (-cost') else cost'
+         wi = Vector (eta * (-wox)) (eta * (-woy)) cost
+         f' = frDielectric ei' et' $ cosTheta wo
+         f =  (white - f') * sScale t (1 / absCosTheta wi)
 
 data SpecularReflection = SpecularReflection {
-   _specReflR :: {-# UNPACK #-} !Spectrum,
-   _specReflFresnel :: !Fresnel
+   _specReflR        :: {-# UNPACK #-} ! Spectrum,
+   _specReflFresnel  :: ! Fresnel
    }
 
 mkSpecRefl
@@ -78,6 +81,6 @@ instance Bxdf SpecularReflection where
    bxdfType _ = mkBxdfType [Reflection, Specular]
    bxdfEval _ _ _ = black
    bxdfPdf _ _ _ = 0
-   bxdfSample (SpecularReflection r fr) (Vector x y z) _ = (f, wi, 1) where
-      f = sScale (r * fr z) (1.0 / abs z)
+   bxdfSample (SpecularReflection r fr) wo@(Vector x y z) _ = (f, wi, 1) where
       wi = Vector (-x) (-y) z
+      f = sScale (r * fr (cosTheta wo)) (1 / absCosTheta wi)
