@@ -59,7 +59,7 @@ data Progress
    = Started
    | SamplesAdded {
       progRegion :: SampleWindow,
-      currImg :: Image
+      _currImg :: Image
       }
    | RegionStarted {
       progRegStart :: SampleWindow

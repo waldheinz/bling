@@ -89,8 +89,9 @@ Library
       Graphics.Bling.Primitive.Bvh,
       Graphics.Bling.Primitive.Fractal,
       Graphics.Bling.Primitive.KdTree,
-      Graphics.Bling.Primitive.TriangleMesh
-
+      Graphics.Bling.Primitive.TriangleMesh,
+      Graphics.Bling.Renderer.PPM
+      
 Executable bling
    hs-source-dirs:   src/Graphics/Bling/Main
    Main-is:          Main.hs

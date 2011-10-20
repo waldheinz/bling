@@ -126,17 +126,14 @@ runDirectLighting job maxDepth dspp report =
       renderer = mkSamplerRenderer sampler integrator
    in do
       imgRef <- newIORef Nothing
-      render renderer job $ \prog ->
-         case prog of
-           rs@(RegionStarted _) -> report rs
-           sa@(SamplesAdded _ _) -> report sa
-           (PassDone _s img _) -> do
-              writeIORef imgRef $ Just img
-              return False
-           x -> report x
+      render renderer job $ \prog -> case prog of
+                                          (PassDone _s img _) -> do
+                                             writeIORef imgRef $ Just img
+                                             return False
+                                             
+                                          x -> report x -- pass thru
 
-      result <- readIORef imgRef
-      case result of
+      readIORef imgRef >>= \result -> case result of
            Nothing -> error "direct lighting produced no image"
            Just img -> return img
                                        

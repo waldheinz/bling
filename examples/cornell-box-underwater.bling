@@ -18,7 +18,9 @@ renderer {
 # renderer { metropolis mpp 1 bootstrap 5000 plarge 0.25 }
 # renderer { sampler sampled { sampler { stratified xSamples 32 ySamples 32 } integrator { light maxDepth 7 sampleDepth 5 } } }
 
-renderer { light passCount 10 passPhotons 100000 }
+# renderer { light passCount 10 passPhotons 100000 }
+
+renderer { ppm }
 
 imageSize 480 480
 
