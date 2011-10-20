@@ -1,17 +1,24 @@
 
-
 # plastic
 
 filter mitchell 3.0 3.0 0.333333 0.333333
 #filter box
 
 imageSize 640 480
-sampler { stratified xSamples 3 ySamples 3 }
 
+renderer {
+   sampler
+   sampled {
+      sampler { stratified xSamples 6 ySamples 6 }
+      integrator { path maxDepth 7 sampleDepth 4 }
+   }
+}
+
+# renderer { metropolis mpp 1 bootstrap 1000 plarge 0.25 separateDirect }
 
 transform {
    lookAt {
-      pos 7.0 6.0 -3.0
+      pos 9 15 -9
       look 0 1 0
       up 0 1 0
    }
@@ -19,124 +26,110 @@ transform {
 
 camera {
    perspective
-   fov 70
-   lensRadius 0.3
+   fov 45
+   lensRadius 0
    focalDistance 10
 }
 
-beginCamera
-pos 0.0 15.0 -9.0
-lookAt 0.0 1.0 0.0
-up 0.0 1.0 0.0
-fov 1.3
-endCamera
+transform { identity }
 
 #
 # ground plane
 #
 
-beginMaterial type matte
-   beginTexture kd
-      type constant
-      rgb 0.7 0.7 0.7
-   endTexture
-   sigma { constant 0.0 }
-endMaterial
+material {
+   matte
+   kd { constant rgb 0.9 0.9 0.9 }
+   sigma { constant 0 }
+}
 
-beginShape
-   type mesh
+shape {
+   mesh
    vertexCount 4
    faceCount 1
-   v  50.0 0.0 -50.0
-   v -50.0 0.0 -50.0
-   v -50.0 0.0  50.0
-   v  50.0 0.0  50.0
+   v  50.0 1 -50.0
+   v -50.0 1 -50.0
+   v -50.0 1  50.0
+   v  50.0 1  50.0
    f 3 2 1 0
-endShape
+}
 
 #
 # light source
 #
 
-beginEmission
-   rgb 1.9 1.9 1.9
-endEmission
+material { blackbody }
+emission { rgb 10 10 10 }
 
-beginTransform
-   identity
-   scale 5.0 1.0 5.0
-   translate 0.0 5.0 0.0
-endTransform
-
-beginShape
-   type mesh
+shape {
+   mesh
    vertexCount 4
    faceCount 1
-   v 2.0 15.7 -2.0
-   v 2.0 15.7 2.0
-   v -2.0 15.7 2.0
-   v -2.0 15.7 -2.0
-   f 3 2 1 0
-endShape
+   v  10.0 50 -10
+   v  10.0 50 10
+   v -10.0 50 10
+   v -10.0 50 -10
+   f 0 1 2 3
+}
 
-#
-# sphere 1
-#
+emission { none }
 
-beginEmission
-   black
-endEmission
+transform { identity translate -5.0 3 -2.5 }
 
-beginTransform
-   identity
-   translate -5.0 3.0 0.0
-endTransform
+material {
+   matte
+   kd { constant spd { 1 0.78 } }
+   sigma { constant 0 }
+}
 
-beginMaterial type matte
-   beginTexture kd
-      type constant
-      rgb 0.3 0.4 0.2
-   endTexture
-   sigma { constant 0.5 }
-endMaterial
+shape { sphere radius 2.0 }
 
-beginShape type sphere radius 2.0 endShape
+transform { identity translate 0.0 3 -2.5 }
 
-#
-# sphere 2
-#
+material {
+   matte
+   kd { constant spd { 1 0.78 } }
+   sigma { constant 0.2 }
+}
 
-beginTransform
-   identity
-   translate 0.0 3.0 0.0
-endTransform
+shape { sphere radius 2.0 }
 
-beginMaterial type matte
-   beginTexture kd
-      type constant
-      rgb 0.3 0.4 0.2
-   endTexture
-   sigma { constant 5.0 }
-endMaterial
+transform { identity translate 5.0 3 -2.5 }
 
-beginShape type sphere radius 2.0 endShape
+material {
+   matte
+   kd { constant spd { 1 0.78 } }
+   sigma { constant 0.4 }
+}
 
+shape { sphere radius 2.0 }
 
-#
-# sphere 3
-#
+transform { identity translate -5.0 3 2.5 }
 
-beginTransform
-   identity
-   translate 5.0 3.0 0.0
-endTransform
+material {
+   matte
+   kd { constant spd { 1 0.78 } }
+   sigma { constant 0.6 }
+}
 
-beginMaterial type matte
-   beginTexture kd
-      type constant
-      rgb 0.3 0.4 0.2
-   endTexture
-   sigma { constant 50.0 }
-endMaterial
+shape { sphere radius 2.0 }
 
-beginShape type sphere radius 2.0 endShape
+transform { identity translate 0.0 3 2.5 }
+
+material {
+   matte
+   kd { constant spd { 1 0.78 } }
+   sigma { constant 0.8 }
+}
+
+shape { sphere radius 2.0 }
+
+transform { identity translate 5.0 3 2.5 }
+
+material {
+   matte
+   kd { constant spd { 1 0.78 } }
+   sigma { constant 1 }
+}
+
+shape { sphere radius 2.0 }

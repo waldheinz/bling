@@ -389,20 +389,20 @@ instance Bxdf Lambertian where
 --------------------------------------------------------------------------------
 
 data OrenNayar = MkOrenNayar
-   Spectrum -- ^ reflectance
-   Flt -- ^ the A parameter
-   Flt -- ^ the B parameter
+   {-# UNPACK #-} ! Spectrum -- ^ reflectance
+   {-# UNPACK #-} ! Flt -- ^ the A parameter
+   {-# UNPACK #-} ! Flt -- ^ the B parameter
 
 mkOrenNayar
    :: Spectrum -- ^ the relfectance
-   -> Flt -- ^ the sigma parameter
+   -> Flt -- ^ sigma, should be in [0..1] and is clamped otherwise
    -> OrenNayar
 
 mkOrenNayar r sig = MkOrenNayar r a b where
+   sig' = clamp sig 0 1
+   sig2 = sig' * sig'
    a = 1 - (sig2 / (2 * (sig2 + 0.33)))
    b = 0.45 * sig2 / (sig2 + 0.09)
-   sig2 = sig' * sig'
-   sig' = radians sig
 
 instance Bxdf OrenNayar where
    bxdfType _ = mkBxdfType [Reflection, Diffuse]
