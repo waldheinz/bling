@@ -7,6 +7,7 @@ import Text.ParserCombinators.Parsec
 
 import Graphics.Bling.Rendering
 import Graphics.Bling.Sampling
+import Graphics.Bling.Integrator.LightTracer
 import Graphics.Bling.Integrator.Metropolis
 import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.IntegratorParser
@@ -24,7 +25,12 @@ pRenderer = pBlock $ do
    tName <- pString
    ws
    r <- case tName of
-             
+
+             "light" -> do
+               pc <- namedInt "passCount"
+               pp <- ws >> namedInt "passPhotons"
+               return $ mkAnyRenderer $ mkLightTracer pc pp
+  
              "metropolis" -> do
                 md <- namedInt "maxDepth"
                 mpp <- ws >> namedFloat "mpp"

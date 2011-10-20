@@ -9,7 +9,6 @@ import Graphics.Bling.Integrator
 import Graphics.Bling.Integrator.BidirPath
 import Graphics.Bling.Integrator.Debug
 import Graphics.Bling.Integrator.DirectLighting
-import Graphics.Bling.Integrator.LightTracer
 import Graphics.Bling.Integrator.Path
 import Graphics.Bling.IO.ParserCore
 
@@ -39,11 +38,6 @@ pSurfaceIntegrator = (flip namedBlock) "integrator" $ do
            md <- ws >> namedInt "maxDepth"
            return $ mkAnySurface $ mkDirectLightingIntegrator md
 
-        "light" -> do
-           md <- ws >> namedInt "maxDepth"
-           sd <- ws >> namedInt "sampleDepth"
-           return $ mkAnySurface $ mkLightTracer md sd
-  
         "path" -> do
            md <- ws >> namedInt "maxDepth"
            sd <- ws >> namedInt "sampleDepth"

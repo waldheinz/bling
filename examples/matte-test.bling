@@ -10,11 +10,11 @@ renderer {
    sampler
    sampled {
       sampler { stratified xSamples 6 ySamples 6 }
-      integrator { path maxDepth 7 sampleDepth 4 }
+      integrator { path maxDepth 5 sampleDepth 2 }
    }
 }
 
-# renderer { metropolis mpp 1 bootstrap 1000 plarge 0.25 separateDirect }
+# renderer { metropolis maxDepth 5 mpp 1 bootstrap 1000 plarge 0.25 directSamples 4 }
 
 transform {
    lookAt {
