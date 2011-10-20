@@ -17,6 +17,8 @@ import Graphics.Bling.Reflection
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Texture
 
+import Debug.Trace
+
 -- | a glass material
 glassMaterial
    :: ScalarTexture -- ^ index of refraction
@@ -49,6 +51,9 @@ instance Bxdf SpecularTransmission where
    bxdfPdf _ _ _ = 0
    bxdfSample (SpecularTransmission t ei' et') wo@(Vector wox woy _) _
       | sint2 >= 1 = (black, wo, 0) -- total internal reflection
+      | isNaN eta = error "nan eta"
+      | isNaN cost' = error "nan cost'"
+      | sNaN f = error "nan f"
       | otherwise = (f, wi, 1)
       where
          -- find out which eta is incident / transmitted

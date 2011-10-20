@@ -119,7 +119,7 @@ splatSample (MImage w h _ p) (ImageSample sx sy (sw, ss))
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | isNaN sw = trace ("not splatting NaN weight sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
-   | sInfinite ss = trace ("not splatting infinite weight sample at ("
+   | isInfinite sw = trace ("not splatting infinite weight sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | otherwise = {-# SCC "splatSample" #-} do
       (ow, oxyz, (ox, oy, oz)) <- unsafeRead p o
@@ -127,7 +127,7 @@ splatSample (MImage w h _ p) (ImageSample sx sy (sw, ss))
       where
          o = (floor sx + floor sy * w)
          (dx, dy, dz) = (\(x, y, z) -> (x * sw, y * sw, z * sw)) $ toRGB ss
-         
+
 -- | adds a sample to the specified image
 addSample :: MImage s -> ImageSample -> ST s ()
 addSample img smp@(ImageSample sx sy (sw, ss))

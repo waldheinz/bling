@@ -50,7 +50,7 @@ instance Renderer LightTracer where
                runWithSeed seed $ replicateM_ ppp $ oneRay sc (liftR . (splatSample mimg) . sSmp)
                freeze mimg
 
-            cont <- report $ (PassDone (np - n + 1) img' 1)
+            cont <- report $ PassDone (np - n + 1) img' (1 / fromIntegral (n+1))
             if cont
                then pass (n - 1) img'
                else return ()
@@ -59,7 +59,7 @@ instance Renderer LightTracer where
       --   and total number of samples
       sSmp :: ImageSample -> ImageSample
       sSmp (ImageSample x y (w, s)) = ImageSample x y (w * f, s)
-      f = 1 / (fromIntegral $ np * ppp)
+      f = 1 / (fromIntegral $ ppp)
 
 oneRay :: Scene -> (ImageSample -> Rand m ()) -> Rand m ()
 oneRay scene splat = do
@@ -67,9 +67,29 @@ oneRay scene splat = do
    ulo <- rnd2D
    uld <- rnd2D
    let (li, ray, nl, pdf) = sampleLightRay scene ul ulo uld
-   let wo = normalize $ rayDir ray
-   nextVertex scene (-wo) (intersect scene ray) (sScale li (absDot nl wo / pdf)) 0 splat
-
+       wo = normalize $ rayDir ray
+   if (pdf > 0) && not (isBlack li)
+      then nextVertex scene (-wo) (intersect scene ray) (sScale li (absDot nl wo / pdf)) 0 splat
+      else return ()
+      
+connectCam :: Scene -> (ImageSample -> Rand s ()) -> Spectrum -> Bsdf -> Vector -> Rand s ()
+connectCam sc splat li bsdf wi
+   | isBlack f = return ()
+   | isBlack csf = return ()
+   | cPdf == 0 = return ()
+   | sc `intersects` cray = return ()
+   | otherwise = do
+      splat $ ImageSample px py (absDot n we / (cPdf * dCam2), f * li * csf)
+   where
+      (CameraSampleResult csf pCam px py cPdf) = sampleCam (sceneCam sc) p
+      dCam = pCam - p
+      we = normalize $ dCam
+      f = evalBsdf bsdf wi we
+      dCam2 = sqLen dCam
+      cray = segmentRay pCam p
+      n = normalize $ bsdfShadingNormal bsdf
+      p = bsdfShadingPoint bsdf
+      
 nextVertex
    :: Scene
    -> Vector
@@ -84,34 +104,24 @@ nextVertex _ _ Nothing _ _ _ = return ()
 nextVertex sc wi (Just int) li depth splat
    | isBlack li = return ()
    | otherwise = do
-   let (CameraSampleResult csf pCam px py cPdf) = sampleCam (sceneCam sc) p
-   let dCam = pCam - p
-   let we = normalize $ dCam
-   let f = evalBsdf bsdf wi we
-   let dCam2 = sqLen dCam
-   let smpHere = ImageSample px py (absDot n we / (cPdf * dCam2), f * li * csf)
+      ubc <- rnd
+      ubd <- rnd2D
 
-   ubc <- rnd
-   ubd <- rnd2D
-
-   let (BsdfSample _ spdf bf wo) = sampleBsdf bsdf wi ubc ubd
-   let li' = sScale (li * bf) (absDot n wo / (spdf * pcont))
-   let int' = intersect sc $ Ray p wo epsilon infinity
-   let wi' = -wo
-   let cray = segmentRay pCam p
-
-   x <- rnd
-   let rest = if x > pcont
-               then return ()
-               else nextVertex sc wi' int' li' (depth + 1) splat
-
-   if cPdf > 0 && not (isBlack (f * li)) && not (intersects sc cray)
-      then splat smpHere >> rest
-      else rest
-
-   where
-      pcont = if depth > 3 then 0.5 else 1
-      bsdf = intBsdf int
-      n = normalize $ bsdfShadingNormal bsdf
-      p = bsdfShadingPoint bsdf
+      let
+         pcont = if depth > 3 then 0.5 else 1
+         bsdf = intBsdf int
+         n = normalize $ bsdfShadingNormal bsdf
+         p = bsdfShadingPoint bsdf
+         (BsdfSample _ spdf bf wo) = sampleBsdf bsdf wi ubc ubd
+         li' = sScale (li * bf) (absDot n wo / (spdf * pcont))
+         int' = intersect sc $ Ray p wo epsilon infinity
+         wi' = -wo
       
+      connectCam sc splat li bsdf wi
+
+      if (isBlack bf) || spdf == 0
+         then return ()
+         else rnd >>= \x -> if x > pcont
+                             then return ()
+                             else nextVertex sc wi' int' li' (depth + 1) splat
+                             
