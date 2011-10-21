@@ -23,7 +23,7 @@ renderer { metropolis maxDepth 5 mpp 1 bootstrap 1000 plarge 0.25 directSamples 
 renderer { ppm }
 
 imageSize 480 480
-# imageSize 240 240
+imageSize 240 240
 
 #
 # camera

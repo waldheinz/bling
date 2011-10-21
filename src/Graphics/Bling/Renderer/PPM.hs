@@ -11,7 +11,6 @@ import Data.Bits
 import Data.List (foldl')
 import Data.STRef
 import qualified Data.Vector.Mutable as MV
-import Debug.Trace
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Camera
@@ -43,6 +42,7 @@ data HitPoint s = Hit
    { hpBsdf    :: {-# UNPACK #-} ! Bsdf
    , hpPixel   :: {-# UNPACK #-} ! (Flt, Flt)
    , hpW       :: {-# UNPACK #-} ! Vector
+   , hpF       :: {-# UNPACK #-} ! Spectrum
    , hpStats   :: ! (STRef s LocalStats)
    }
 
@@ -55,43 +55,61 @@ mkHitPoints scene img r2 = do
       cam = sceneCam scene
 
    result <- R.newRandRef []
-      
+   
    forM_ (splitWindow $ imageWindow' img) $ \w -> do
       sample (mkRandomSampler 1) w 0 0 $ do
-         p <- fireRay cam >>= traceRay scene r2
-         liftSampled $ modifySTRef result (p++)
+         ray <- fireRay cam
+         hps <- nextV scene (scene `intersect` ray) (-(rayDir ray)) white r2 0 5
+         liftSampled $ modifySTRef result (hps++)
 
    R.readRandRef result
-
-traceRay :: Scene -> Flt -> Ray -> Sampled s [HitPoint s]
-traceRay scene r2 ray = maybe (return $! []) ls (scene `intersect` ray) where
-   ls int = do
---      ubc <- rnd
---      ubd <- rnd2D
-      let
-         bsdf = intBsdf int
---          p = bsdfShadingPoint bsdf
---          n = bsdfShadingNormal bsdf
-         wo = -(rayDir ray)
-
-      -- trace rays for specular reflection and transmission
---      refl <- cont (d+1) md s bsdf wo $ mkBxdfType [Specular, Reflection]
---      trans <- cont (d+1) md s bsdf wo $ mkBxdfType [Specular, Transmission]
-      pxpos <- do
-         cs <- cameraSample
-         return (imageX cs, imageY cs)
-
+   
+mkHitPoint :: Flt -> Bsdf -> Vector -> Spectrum -> Sampled s [HitPoint s]
+mkHitPoint r2 bsdf wo f
+   | not (bsdfHasNonSpecular bsdf) = return []
+   | otherwise = do
+      pxpos <- cameraSample >>= \cs -> return (imageX cs, imageY cs)
       stats <- liftSampled $ newSTRef $ LS r2 0 black
-      return $! [Hit bsdf pxpos wo stats]
+      return $! [Hit bsdf pxpos wo f stats]
+   
+nextV :: Scene -> Maybe Intersection -> Vector ->  Spectrum -> Flt -> Int -> Int -> Sampled s [HitPoint s]
+nextV _ Nothing _ _ _ _ _ = return []
+nextV s (Just int) wo t r2 d md = do
+   let
+      bsdf = intBsdf int
+   
+   -- trace rays for specular reflection and transmission
+   refl <- cont (d+1) md s bsdf wo (mkBxdfType [Specular, Reflection]) t r2
+   trans <- cont (d+1) md s bsdf wo (mkBxdfType [Specular, Transmission]) t r2
+   here <- mkHitPoint r2 bsdf wo t
+   return $! here ++ refl ++ trans
+
+cont :: Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Spectrum -> Flt -> Sampled s [HitPoint s]
+cont d md s bsdf wo tp t r2
+   | d == md = return $! []
+   | otherwise = do
+      let
+         (BsdfSample _ pdf f wi) = sampleBsdf' tp bsdf wo 0.5 (0.5, 0.5)
+         ray = Ray p wi epsilon infinity
+         p = bsdfShadingPoint bsdf
+         n = bsdfShadingNormal bsdf
+         t' = sScale (f * t) (wi `absDot` n / pdf)
+
+      if pdf == 0 || isBlack f
+         then return $! []
+         else do
+            nextV s (s `intersect` ray) (-wi) t' r2 d md
 
 tracePhoton :: Scene -> SpatialHash s -> MImage s -> R.Rand s ()
 tracePhoton scene sh img = do
    ul <- R.rnd
    ulo <- R.rnd2D
    uld <- R.rnd2D
+   
    let (li, ray, nl, pdf) = sampleLightRay scene ul ulo uld
        wo = normalize $ rayDir ray
        splat = addContrib img
+       
    if (pdf > 0) && not (isBlack li)
       then nextVertex scene sh (-wo) (intersect scene ray) (sScale li (absDot nl wo / pdf)) 0 splat
       else return ()
@@ -106,17 +124,19 @@ nextVertex scene sh wi (Just int) li d splat = do
       p = bsdfShadingPoint bsdf
       n = bsdfShadingNormal bsdf
       
-   R.liftR $ hashLookup sh p n $ \hit -> do
-      stats <- readSTRef $ hpStats hit
-      let
-         hn = lsN stats
-         fn = fromIntegral hn
-         g = (fn * alpha + alpha) / (fn * alpha + 1)
-         r2' = lsR2 stats * g
-         hpbsdf = hpBsdf hit
-         f = evalBsdf hpbsdf (hpW hit) wi
-         flux' = sScale (lsFlux stats + f * li) g
-      writeSTRef (hpStats hit) (LS r2' (hn+1) flux')
+   if not $ bsdfHasNonSpecular bsdf
+      then return ()
+      else R.liftR $ hashLookup sh p n $ \hit -> do
+         stats <- readSTRef $ hpStats hit
+         let
+            hn = lsN stats
+            fn = fromIntegral hn
+            g = (fn * alpha + alpha) / (fn * alpha + 1)
+            r2' = lsR2 stats * g
+            hpbsdf = hpBsdf hit
+            f = evalBsdf hpbsdf (hpW hit) wi
+            flux' = sScale (lsFlux stats + f * li) g
+         writeSTRef (hpStats hit) (LS r2' (hn+1) flux')
       
    -- follow the path
    ubc <- R.rnd
@@ -200,7 +220,7 @@ instance Renderer ProgressivePhotonMap where
       let
          scene = jobScene job
          img = mkJobImage job
-         r = 40
+         r = 20
       
       hitPoints <- stToIO $ R.runWithSeed seed $ mkHitPoints scene img (r*r)
       
@@ -209,7 +229,7 @@ instance Renderer ProgressivePhotonMap where
          hitMap <- stToIO $ mkHash hitPoints
          pseed <- R.ioSeed
          stToIO $ R.runWithSeed pseed $
-            replicateM_ 30000 $ tracePhoton scene hitMap $ currImg
+            replicateM_ 3000 $ tracePhoton scene hitMap $ currImg
 
          stToIO $ forM_ hitPoints $ \hp -> do
             stats <- readSTRef $ hpStats hp
@@ -218,7 +238,7 @@ instance Renderer ProgressivePhotonMap where
                (px, py) = hpPixel hp
                
             addContrib currImg $
-               (True, ImageSample px py (1 / (r2 * 30000), lsFlux stats))
+               (True, ImageSample px py (1 / (r2 * 3000), hpF hp * lsFlux stats))
             
          img' <- stToIO $ freeze currImg
          _ <- report $ PassDone passNum img' (1 / fromIntegral passNum)

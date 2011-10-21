@@ -24,9 +24,11 @@ module Graphics.Bling.Reflection (
    
    -- * BSDF
    
-   Bsdf, BsdfSample(..), bsdfShadingNormal, bsdfShadingPoint,
-   bsdfSpecCompCount, mkBsdf, mkBsdf', evalBsdf, sampleBsdf, sampleBsdf',
+   Bsdf, BsdfSample(..), mkBsdf, mkBsdf', evalBsdf, sampleBsdf, sampleBsdf',
    bsdfPdf,
+
+   -- ** Querying BSDF properties
+   bsdfHasNonSpecular, bsdfShadingNormal, bsdfShadingPoint, bsdfSpecCompCount,
    
    -- * Working with Vectors in shading coordinate system
 
@@ -313,7 +315,12 @@ bsdfNumComponents t bsdf = V.sum $ V.map go $ bsdfComponents bsdf where
 bsdfSpecCompCount :: Bsdf -> Int
 {-# INLINE bsdfSpecCompCount #-}
 bsdfSpecCompCount = bsdfNumComponents (mkBxdfType [Specular])
-   
+
+-- | does the @BSDF@ contain non-specular components?
+bsdfHasNonSpecular :: Bsdf -> Bool
+{-# INLINE bsdfHasNonSpecular #-}
+bsdfHasNonSpecular bsdf = V.or $ V.map (\x -> not $ isSpecular x) (bsdfComponents bsdf)
+
 bsdfPdf :: Bsdf -> Vector -> Vector -> Float
 bsdfPdf (Bsdf bs cs _ _) woW wiW 
    | V.null bs = 0
