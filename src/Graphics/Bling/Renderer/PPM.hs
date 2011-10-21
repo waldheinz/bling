@@ -11,6 +11,7 @@ import Data.Bits
 import Data.List (foldl')
 import Data.STRef
 import qualified Data.Vector.Mutable as MV
+import Debug.Trace
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Camera
@@ -182,13 +183,16 @@ hashLookup sh p n fun = do
    
 mkHash :: [HitPoint s] -> ST s (SpatialHash s)
 mkHash hits = do
-   r <- fmap maximum $ forM hits $ \hp -> do
+   rs <- forM hits $ \hp -> do
       stats <- readSTRef $ hpStats hp
       return $ sqrt $ lsR2 stats
       
    let
-      sc = 1 / (2 * r)
+      r = maximum rs
       cnt = length hits
+      ravg = sum rs / fromIntegral cnt
+      sc = trace ("r_avg=" ++ show ravg) $ 1 / (2 * r)
+      
       bounds = foldl' go emptyAABB hits where
          go b h = let p = bsdfShadingPoint $ hpBsdf h
                   in extendAABB b $ mkAABB (p - vpromote r) (p + vpromote r)
@@ -221,7 +225,7 @@ instance Renderer ProgressivePhotonMap where
          scene = jobScene job
          img = mkJobImage job
          r = 20
-         n = 10000
+         n = 50000
       
       hitPoints <- stToIO $ R.runWithSeed seed $ mkHitPoints scene img (r*r)
       

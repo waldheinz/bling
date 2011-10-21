@@ -44,28 +44,35 @@ import Graphics.Bling.Types
 --
 
 infinity :: Flt
+{-# INLINE infinity #-}
 infinity = 1 / 0
 
 epsilon :: Flt
-epsilon = 0.001
+{-# INLINE epsilon #-}
+epsilon = 0.01
 
 invPi :: Flt
+{-# INLINE invPi #-}
 invPi = 1 / pi
 
 invTwoPi :: Flt
+{-# INLINE invTwoPi #-}
 invTwoPi = 1 / (2 * pi)
 
 twoPi :: Flt
+{-# INLINE twoPi #-}
 twoPi = 2.0 * pi
 
 -- | converts an angle from degrees to radians
 radians
    :: Flt -- ^ the angle in degrees
    -> Flt -- ^ the angle in radions
+{-# INLINE radians #-}
 radians x = (x / 180 * pi)
 
 -- | like @atan2@, but returns positive values in [0..2pi]
 atan2' :: Flt -> Flt -> Flt
+{-# INLINE atan2' #-}
 atan2' y x
    | a < 0 = a + twoPi
    | otherwise = a
