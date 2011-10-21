@@ -41,7 +41,9 @@ pRenderer = pBlock $ do
                 return $ mkAnyRenderer $ mkMLT md mpp nboot plarge dspp
                 
              "ppm" -> do
-                return $ mkAnyRenderer $ mkProgressivePhotonMap
+                n <- namedInt "photonCount"
+                r <- ws >> namedFloat "radius"
+                return $ mkAnyRenderer $ mkProgressivePhotonMap n r
                 
              "sampler" -> do
                 sr <- pSamplerRenderer
