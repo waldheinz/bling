@@ -25,7 +25,7 @@ module Graphics.Bling.Reflection (
    -- * BSDF
    
    Bsdf, BsdfSample(..), mkBsdf, mkBsdf', evalBsdf, sampleBsdf, sampleBsdf',
-   bsdfPdf,
+   bsdfPdf, sampleAdjBsdf, sampleAdjBsdf',
 
    -- ** Querying BSDF properties
    bsdfHasNonSpecular, bsdfShadingNormal, bsdfShadingPoint, bsdfSpecCompCount,
@@ -240,10 +240,12 @@ bxdfAll :: BxdfType
 bxdfAll = combineBxdfType bxdfAllReflection bxdfAllTransmission
 
 class Bxdf a where
-   bxdfEval :: a -> Normal -> Normal -> Spectrum
-   bxdfSample :: a -> Normal -> Rand2D -> (Spectrum, Normal, Flt)
-   bxdfPdf :: a -> Normal -> Normal -> Flt
-   bxdfType :: a -> BxdfType
+   bxdfEval    :: a -> Normal -> Normal -> Spectrum
+   bxdfSample  :: a -> Normal -> Rand2D -> (Spectrum, Normal, Flt)
+   -- | samples the adjoint @Bxdf@
+   bxdfSample' :: a -> Normal -> Rand2D -> (Spectrum, Normal, Flt)
+   bxdfPdf     :: a -> Normal -> Normal -> Flt
+   bxdfType    :: a -> BxdfType
    
    -- | has this @BxDF@ the provided flags set?
    bxdfMatches :: a -> BxdfType -> Bool
@@ -252,6 +254,8 @@ class Bxdf a where
       wi = toSameHemisphere wo (cosineSampleHemisphere u)
       f = bxdfEval a wo wi
       pdf = bxdfPdf a wo wi
+
+   bxdfSample' = bxdfSample
       
    bxdfPdf _ wo wi
       | sameHemisphere wo wi = invPi * absCosTheta wi
@@ -340,11 +344,17 @@ sampleBsdf :: Bsdf -> Vector -> Flt -> Rand2D -> BsdfSample
 sampleBsdf = {-# SCC "sampleBsdf" #-} sampleBsdf' bxdfAll
 
 sampleBsdf' :: BxdfType -> Bsdf -> Vector -> Flt -> Rand2D -> BsdfSample
-sampleBsdf' = {-# SCC "sampleBsdf'" #-} sampleBsdf''
+sampleBsdf' = {-# SCC "sampleBsdf'" #-} sampleBsdf'' False
 
-sampleBsdf'' :: BxdfType -> Bsdf -> Vector -> Flt -> Rand2D -> BsdfSample
+sampleAdjBsdf :: Bsdf -> Vector -> Flt -> Rand2D -> BsdfSample
+sampleAdjBsdf = {-# SCC "sampleAdjBsdf" #-} sampleAdjBsdf' bxdfAll
+
+sampleAdjBsdf' :: BxdfType -> Bsdf -> Vector -> Flt -> Rand2D -> BsdfSample
+sampleAdjBsdf' = {-# SCC "sampleAdjBsdf'" #-} sampleBsdf'' True
+
+sampleBsdf'' :: Bool -> BxdfType -> Bsdf -> Vector -> Flt -> Rand2D -> BsdfSample
 {-# INLINE sampleBsdf'' #-}
-sampleBsdf'' flags (Bsdf bs cs _ ng) woW uComp uDir
+sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
    | cntm == 0 || pdf' == 0 = emptyBsdfSample
    | isSpecular bxdf = BsdfSample t (pdf' / fromIntegral cntm) f' wiW
    | otherwise = BsdfSample t pdf f wiW where
@@ -357,7 +367,8 @@ sampleBsdf'' flags (Bsdf bs cs _ ng) woW uComp uDir
       bxdf = V.unsafeIndex bsm sNum
 
       -- sample chosen BxDF
-      (f', wi, pdf') = bxdfSample bxdf wo uDir
+      (f', wi, pdf') = let fun = if adj then bxdfSample' else bxdfSample
+                       in fun bxdf wo uDir
       wiW = localToWorld cs wi
 
       -- overall PDF

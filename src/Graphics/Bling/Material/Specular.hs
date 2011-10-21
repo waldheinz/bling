@@ -17,8 +17,6 @@ import Graphics.Bling.Reflection
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Texture
 
-import Debug.Trace
-
 -- | a glass material
 glassMaterial
    :: ScalarTexture -- ^ index of refraction
@@ -49,26 +47,31 @@ instance Bxdf SpecularTransmission where
    bxdfType _ = mkBxdfType [Transmission, Specular]
    bxdfEval _ _ _ = black
    bxdfPdf _ _ _ = 0
-   bxdfSample (SpecularTransmission t ei' et') wo@(Vector wox woy _) _
-      | sint2 >= 1 = (black, wo, 0) -- total internal reflection
-      | isNaN eta = error "nan eta"
-      | isNaN cost' = error "nan cost'"
-      | sNaN f = error "nan f"
-      | otherwise = (f, wi, 1)
-      where
-         -- find out which eta is incident / transmitted
-         entering = cosTheta wo > 0
-         (ei, et) = if entering then (ei', et') else (et', ei')
+   bxdfSample st wo = sampleSpecTrans False st wo
+   bxdfSample' st wo = sampleSpecTrans True st wo
 
-         -- find transmitted ray direction
-         sini2 = sinTheta2 wo
-         eta = ei / et
-         sint2 = eta * eta * sini2
-         cost' = sqrt $ max 0 (1 - sint2)
-         cost = if entering then (-cost') else cost'
-         wi = Vector (eta * (-wox)) (eta * (-woy)) cost
-         f' = frDielectric ei' et' $ cosTheta wo
-         f =  (white - f') * sScale t (1 / absCosTheta wi)
+sampleSpecTrans :: Bool -> SpecularTransmission -> Vector -> (Flt, Flt) -> (Spectrum, Vector, Flt)
+sampleSpecTrans adj (SpecularTransmission t ei' et') wo@(Vector wox woy _) _
+   | sint2 >= 1 = (black, wo, 0) -- total internal reflection
+   | isNaN eta = error "nan eta"
+   | isNaN cost' = error "nan cost'"
+   | sNaN f = error "nan f"
+   | otherwise = (f, wi, 1)
+   where
+      -- find out which eta is incident / transmitted
+      entering = cosTheta wo > 0
+      (ei, et) = if entering then (ei', et') else (et', ei')
+
+      -- find transmitted ray direction
+      sini2 = sinTheta2 wo
+      eta = ei / et
+      sint2 = eta * eta * sini2
+      cost' = sqrt $ max 0 (1 - sint2)
+      cost = if entering then (-cost') else cost'
+      wi = Vector (eta * (-wox)) (eta * (-woy)) cost
+      f' = frDielectric ei' et' $ cosTheta wo
+      x = if adj then 1 else (et * et) / (ei * ei)
+      f =  (white - f') * sScale t (x / absCosTheta wi)
 
 data SpecularReflection = SpecularReflection {
    _specReflR        :: {-# UNPACK #-} ! Spectrum,

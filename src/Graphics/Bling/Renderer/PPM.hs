@@ -142,7 +142,7 @@ nextVertex scene sh wi (Just int) li d splat = do
    ubc <- R.rnd
    ubd <- R.rnd2D
    let
-      (BsdfSample _ spdf f wo) = sampleBsdf bsdf wi ubc ubd
+      (BsdfSample _ spdf f wo) = sampleAdjBsdf bsdf wi ubc ubd
       pcont = if d > 3 then 0.5 else 1
       li' = sScale (f * li) (absDot wo n / (spdf * pcont))
       ray = Ray p wo epsilon infinity
@@ -221,6 +221,7 @@ instance Renderer ProgressivePhotonMap where
          scene = jobScene job
          img = mkJobImage job
          r = 20
+         n = 10000
       
       hitPoints <- stToIO $ R.runWithSeed seed $ mkHitPoints scene img (r*r)
       
@@ -229,7 +230,7 @@ instance Renderer ProgressivePhotonMap where
          hitMap <- stToIO $ mkHash hitPoints
          pseed <- R.ioSeed
          stToIO $ R.runWithSeed pseed $
-            replicateM_ 3000 $ tracePhoton scene hitMap $ currImg
+            replicateM_ n $ tracePhoton scene hitMap $ currImg
 
          stToIO $ forM_ hitPoints $ \hp -> do
             stats <- readSTRef $ hpStats hp
@@ -238,7 +239,7 @@ instance Renderer ProgressivePhotonMap where
                (px, py) = hpPixel hp
                
             addContrib currImg $
-               (True, ImageSample px py (1 / (r2 * 3000), hpF hp * lsFlux stats))
+               (True, ImageSample px py (1 / (r2 * fromIntegral n), hpF hp * lsFlux stats))
             
          img' <- stToIO $ freeze currImg
          _ <- report $ PassDone passNum img' (1 / fromIntegral passNum)
