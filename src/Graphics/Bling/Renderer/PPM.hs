@@ -7,7 +7,11 @@ module Graphics.Bling.Renderer.PPM (
 
 import Control.Monad
 import Control.Monad.ST
+import Data.Bits
+import Data.List (foldl')
 import Data.STRef
+import qualified Data.Vector.Mutable as MV
+import Debug.Trace
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Camera
@@ -29,18 +33,24 @@ instance Printable ProgressivePhotonMap where
 mkProgressivePhotonMap :: ProgressivePhotonMap
 mkProgressivePhotonMap = PPM
 
-data HitPoint = Hit
+data LocalStats = LS
+   { lsR2      :: {-# UNPACK #-} ! Flt
+   , lsN       :: {-# UNPACK #-} ! Int
+   , lsFlux    :: {-# UNPACK #-} ! Spectrum
+   }
+
+data HitPoint s = Hit
    { hpBsdf    :: {-# UNPACK #-} ! Bsdf
    , hpPixel   :: {-# UNPACK #-} ! (Flt, Flt)
    , hpW       :: {-# UNPACK #-} ! Vector
-   , hpR2      :: {-# UNPACK #-} ! Flt
+   , hpStats   :: ! (STRef s LocalStats)
    }
 
 alpha :: Flt
 alpha = 0.7
 
-mkHitPoints :: Scene -> Image -> R.Rand s [HitPoint]
-mkHitPoints scene img = do
+mkHitPoints :: Scene -> Image -> Flt -> R.Rand s [HitPoint s]
+mkHitPoints scene img r2 = do
    let
       cam = sceneCam scene
 
@@ -48,13 +58,13 @@ mkHitPoints scene img = do
       
    forM_ (splitWindow $ imageWindow' img) $ \w -> do
       sample (mkRandomSampler 1) w 0 0 $ do
-         p <- fireRay cam >>= traceRay scene
+         p <- fireRay cam >>= traceRay scene r2
          liftSampled $ modifySTRef result (p++)
 
    R.readRandRef result
 
-traceRay :: Scene -> Ray -> Sampled s [HitPoint]
-traceRay scene ray = maybe (return $! []) ls (scene `intersect` ray) where
+traceRay :: Scene -> Flt -> Ray -> Sampled s [HitPoint s]
+traceRay scene r2 ray = maybe (return $! []) ls (scene `intersect` ray) where
    ls int = do
 --      ubc <- rnd
 --      ubd <- rnd2D
@@ -70,17 +80,12 @@ traceRay scene ray = maybe (return $! []) ls (scene `intersect` ray) where
       pxpos <- do
          cs <- cameraSample
          return (imageX cs, imageY cs)
-         
-      return $! [Hit bsdf pxpos wo (20*20)]
 
-lookupHits :: [HitPoint] -> Point -> Normal -> [HitPoint]
-lookupHits ps p n = filter f ps where
-   f hit = n `dot` hpn > 0 && sqLen v <= hpR2 hit where
-      hpn = bsdfShadingNormal $ hpBsdf hit
-      v = (bsdfShadingPoint $ hpBsdf hit) - p
+      stats <- liftSampled $ newSTRef $ LS r2 0 black
+      return $! [Hit bsdf pxpos wo stats]
 
-tracePhoton :: Scene -> [HitPoint] -> MImage s -> R.Rand s ()
-tracePhoton scene hps img = do
+tracePhoton :: Scene -> SpatialHash s -> MImage s -> R.Rand s ()
+tracePhoton scene sh img = do
    ul <- R.rnd
    ulo <- R.rnd2D
    uld <- R.rnd2D
@@ -88,27 +93,31 @@ tracePhoton scene hps img = do
        wo = normalize $ rayDir ray
        splat = addContrib img
    if (pdf > 0) && not (isBlack li)
-      then nextVertex scene hps (-wo) (intersect scene ray) (sScale li (absDot nl wo / pdf)) 0 splat
+      then nextVertex scene sh (-wo) (intersect scene ray) (sScale li (absDot nl wo / pdf)) 0 splat
       else return ()
 
-nextVertex :: Scene -> [HitPoint] -> Vector -> Maybe Intersection -> Spectrum -> Int -> ((Bool, ImageSample) -> ST s ()) -> R.Rand s ()
+nextVertex :: Scene -> SpatialHash s -> Vector -> Maybe Intersection -> Spectrum -> Int -> ((Bool, ImageSample) -> ST s ()) -> R.Rand s ()
 nextVertex _ _ _ Nothing _ _ _ = return ()
-nextVertex scene hps wi (Just int) li d splat = do
+nextVertex scene sh wi (Just int) li d splat = do
    
    -- add contribution for this photon hit
    let
       bsdf = intBsdf int
       p = bsdfShadingPoint bsdf
       n = bsdfShadingNormal bsdf
-      hps' = lookupHits hps p n
-
-   forM_ hps' $ \hp -> do
+      
+   R.liftR $ hashLookup sh p n $ \hit -> do
+      stats <- readSTRef $ hpStats hit
       let
-         (px, py) = hpPixel hp
-         hpbsdf = hpBsdf hp
-         f = evalBsdf hpbsdf (hpW hp) wi
-      R.liftR $ splat $ (True, ImageSample px py (1 / (pi * pi * hpR2 hp), f * li))
-
+         hn = lsN stats
+         fn = fromIntegral hn
+         g = (fn * alpha + alpha) / (fn * alpha + 1)
+         r2' = lsR2 stats * g
+         hpbsdf = hpBsdf hit
+         f = evalBsdf hpbsdf (hpW hit) wi
+         flux' = sScale (lsFlux stats + f * li) g
+      writeSTRef (hpStats hit) (LS r2' (hn+1) flux')
+      
    -- follow the path
    ubc <- R.rnd
    ubd <- R.rnd2D
@@ -122,22 +131,95 @@ nextVertex scene hps wi (Just int) li d splat = do
       then return ()
       else R.rnd >>= \x -> if x > pcont
          then return ()
-         else nextVertex scene hps (-wo) (scene `intersect` ray) li' (d+1) splat
+         else nextVertex scene sh (-wo) (scene `intersect` ray) li' (d+1) splat
+
+data SpatialHash s = SH
+   { shBounds  :: {-# UNPACK #-} ! AABB
+   , shEntries :: ! (MV.MVector s [HitPoint s])
+   , shScale   :: {-# UNPACK #-} ! Flt -- ^ bucket size
+   }
+
+hash :: (Int, Int, Int) -> Int
+hash (x, y, z) = abs $ (x * 73856093) `xor` (y * 19349663) `xor` (z * 83492791)
+
+hashLookup :: SpatialHash s -> Point -> Normal -> (HitPoint s -> ST s ()) -> ST s ()
+hashLookup sh p n fun = do
+   let
+      Vector x y z = abs $ (p - (aabbMin $ shBounds sh)) * vpromote (shScale sh)
+      idx = hash (floor x, floor y, floor z) `rem` MV.length (shEntries sh)
+
+   hps <- MV.read (shEntries sh) idx
+   forM_ hps $ \hit -> do
+      stats <- readSTRef $ hpStats hit
+      
+      let
+         hpn = bsdfShadingNormal $ hpBsdf hit
+         v = (bsdfShadingPoint $ hpBsdf hit) - p
+
+      if n `dot` hpn > 0 && sqLen v <= lsR2 stats
+         then fun hit
+         else return ()
+   
+mkHash :: [HitPoint s] -> ST s (SpatialHash s)
+mkHash hits = do
+   r <- fmap maximum $ forM hits $ \hp -> do
+      stats <- readSTRef $ hpStats hp
+      return $ sqrt $ lsR2 stats
+      
+   let
+      sc = 1 / (2 * r)
+      cnt = length hits
+      bounds = foldl' go emptyAABB hits where
+         go b h = let p = bsdfShadingPoint $ hpBsdf h
+                  in extendAABB b $ mkAABB (p - vpromote r) (p + vpromote r)
+   
+   v <- MV.replicate cnt []
+   forM_ hits $ \hp -> do
+      stats <- readSTRef $ hpStats hp
+      
+      let
+         p = bsdfShadingPoint $ hpBsdf hp
+         rp = sqrt $ lsR2 stats
+         pmin = aabbMin bounds
+         Vector x0 y0 z0 = abs $ (p - vpromote rp - pmin) * vpromote sc
+         Vector x1 y1 z1 = abs $ (p + vpromote rp - pmin) * vpromote sc
+         xs = [floor x0 .. floor x1]
+         ys = [floor y0 .. floor y1]
+         zs = [floor z0 .. floor z1]
+         
+      forM_ [(x, y, z) | x <- xs, y <- ys, z <- zs] $ \pos -> do
+         let idx = hash pos `rem` cnt
+         old <- MV.read v idx
+         MV.write v idx (hp : old)
+   
+   return $ SH bounds v sc
 
 instance Renderer ProgressivePhotonMap where
    render (PPM) job report = do
       seed <- R.ioSeed
       let
-         img = mkJobImage job
          scene = jobScene job
+         img = mkJobImage job
+         r = 40
       
-      hitPoints <- stToIO $ R.runWithSeed seed $ mkHitPoints scene img
-
-      currImg <- stToIO $ thaw img
+      hitPoints <- stToIO $ R.runWithSeed seed $ mkHitPoints scene img (r*r)
       
       forM_ [1..] $ \passNum -> do
+         currImg <- stToIO $ thaw img
+         hitMap <- stToIO $ mkHash hitPoints
          pseed <- R.ioSeed
-         stToIO $ R.runWithSeed pseed $ replicateM_ 100 $ tracePhoton scene hitPoints $ currImg
+         stToIO $ R.runWithSeed pseed $
+            replicateM_ 30000 $ tracePhoton scene hitMap $ currImg
+
+         stToIO $ forM_ hitPoints $ \hp -> do
+            stats <- readSTRef $ hpStats hp
+            let
+               r2 = lsR2 stats
+               (px, py) = hpPixel hp
+               
+            addContrib currImg $
+               (True, ImageSample px py (1 / (r2 * 30000), lsFlux stats))
+            
          img' <- stToIO $ freeze currImg
          _ <- report $ PassDone passNum img' (1 / fromIntegral passNum)
          return ()
