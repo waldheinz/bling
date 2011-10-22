@@ -20,7 +20,7 @@ renderer { metropolis maxDepth 5 mpp 1 bootstrap 1000 plarge 0.25 directSamples 
 # renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 # renderer { sampler sampled { sampler { random samples 128 } integrator { debug reference } } }
-renderer { ppm }
+renderer { ppm photonCount 20000 radius 15 }
 
 imageSize 480 480
 imageSize 240 240

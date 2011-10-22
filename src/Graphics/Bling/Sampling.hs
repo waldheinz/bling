@@ -94,9 +94,9 @@ mkStratifiedSampler' :: Int -> Sampler
 mkStratifiedSampler' spp = mkStratifiedSampler spp' spp' where
    spp' = max 1 $ ceiling $ sqrt $ (fromIntegral spp :: Float)
 
-sample :: Sampler -> SampleWindow -> Int -> Int -> Sampled s a -> R.Rand s ()
+sample :: Sampler -> SampleWindow -> Int -> Int -> Sampled s a -> R.Rand s [a]
 sample (Random spp) wnd _ _ c = {-# SCC "sample.Random" #-} do
-   {-# SCC "sample.forM_" #-} CM.forM_ (coverWindow wnd) $ \ (ix, iy) -> do
+   liftM concat $ forM (coverWindow wnd) $ \ (ix, iy) -> do
       let (fx, fy) = (fromIntegral ix, fromIntegral iy)
       CM.replicateM spp $ do
          ox <- R.rnd
@@ -109,7 +109,7 @@ sample (Stratified nu nv) wnd n1d n2d c = {-# SCC "sample.Stratified" #-} do
    v1d <- R.liftR $ V.new (nu * nv * n1d)
    v2d <- R.liftR $ V.new (nu * nv * n2d)
    
-   forM_ (coverWindow wnd) $ \ (ix, iy) -> do
+   liftM concat $ forM (coverWindow wnd) $ \ (ix, iy) -> do
       ps <- stratified2D nu nv -- pixel samples
       lens <- stratified2D nu nv >>= shuffle (nu*nv) -- lens samples
       let (fx, fy) = (fromIntegral ix, fromIntegral iy)
@@ -117,10 +117,11 @@ sample (Stratified nu nv) wnd n1d n2d c = {-# SCC "sample.Stratified" #-} do
       fill v1d n1d (nu*nv) (stratified1D (nu*nv))
       fill v2d n2d (nu*nv) (stratified2D nu nv)
       
-      forM_ (zip3 ps lens [0..]) $ \((ox, oy), luv, n) -> do
-         let cs = CameraSample (fx + ox) (fy + oy) luv
-         let s = PrecomSample cs (V.slice (n*n1d) n1d v1d) (V.slice (n*n2d) n2d v2d)
-         randToSampled c s
+      forM (zip3 ps lens [0..]) $ \((ox, oy), luv, n) ->
+         let
+            cs = CameraSample (fx + ox) (fy + oy) luv
+            s = PrecomSample cs (V.slice (n*n1d) n1d v1d) (V.slice (n*n2d) n2d v2d)
+         in randToSampled c s
          
 -- | shuffles a list
 shuffle
