@@ -72,7 +72,7 @@ instance SurfaceIntegrator DebugIntegrator where
                             bsdf = intBsdf int
                         in do
                            wi <- uniformSampleSphere `liftM` rnd2D
-                           let f = evalBsdf bsdf wo wi
+                           let f = evalBsdf False bsdf wo wi
                            if isBlack f
                               then return (1, le)
                               else do

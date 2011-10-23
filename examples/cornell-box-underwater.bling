@@ -20,7 +20,7 @@ renderer {
 
 # renderer { light passCount 10 passPhotons 100000 }
 
-renderer { ppm photonCount 100000 radius 30 }
+renderer { ppm photonCount 25000 radius 25 }
 
 imageSize 480 480
 

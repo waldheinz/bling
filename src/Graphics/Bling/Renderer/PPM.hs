@@ -141,7 +141,7 @@ nextVertex scene sh wi (Just int) li d = {-# SCC "nextVertex" #-} do
             g = (fn * alpha + alpha) / (fn * alpha + 1)
             r2' = lsR2 stats * g
             hpbsdf = hpBsdf hit
-            f = evalBsdf hpbsdf (hpW hit) wi
+            f = evalBsdf True hpbsdf (hpW hit) wi
             flux' = sScale (lsFlux stats + f * li) g
          writeSTRef (hpStats hit) (LS r2' (hn+1) flux')
       

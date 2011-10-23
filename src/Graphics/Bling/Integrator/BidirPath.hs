@@ -130,9 +130,9 @@ connect scene nspec
           g = ((absDot ne w) * (absDot nl w)) / sqLen (pl - pe)
           w = normalize $ pl - pe
           nspece = fromIntegral $ bsdfSpecCompCount bsdfe
-          fe = sScale (evalBsdf bsdfe wie w) (1 + nspece)
+          fe = sScale (evalBsdf False bsdfe wie w) (1 + nspece)
           nspecl = fromIntegral $ bsdfSpecCompCount bsdfl
-          fl = sScale (evalBsdf bsdfl (-w) wil) (1 + nspecl)
+          fl = sScale (evalBsdf True bsdfl (-w) wil) (1 + nspecl)
           r = segmentRay pl pe
           ne = bsdfShadingNormal bsdfe
           nl = bsdfShadingNormal bsdfl
@@ -159,7 +159,7 @@ pairs (x:xs) ys = zip (repeat x) ys ++ pairs xs ys
 
 -- | generates the eye path
 eyePath :: Scene -> Ray -> Int -> Sampled m Path
-eyePath s r md = nextVertex s wi int white 0 md (\d -> 2 + 1 + smps1D * d * 3) (\d -> 2 + 2 + smps2D * d * 3) where
+eyePath s r md = nextVertex False s wi int white 0 md (\d -> 2 + 1 + smps1D * d * 3) (\d -> 2 + 2 + smps2D * d * 3) where
    wi = normalize $ (-(rayDir r))
    int = s `intersect` r
 
@@ -171,10 +171,11 @@ lightPath s md ul ulo uld =
       wo = normalize $ rayDir ray
       nl' = normalize nl
    in do
-      nextVertex s (-wo) (s `intersect` ray) (sScale li (absDot nl' wo / pdf)) 0 md (\d -> 3 + 1 + smps1D * d * 3) (\d -> 3 + 2 + smps2D * d * 3)
+      nextVertex True s (-wo) (s `intersect` ray) (sScale li (absDot nl' wo / pdf)) 0 md (\d -> 3 + 1 + smps1D * d * 3) (\d -> 3 + 2 + smps2D * d * 3)
    
 nextVertex
-   :: Scene
+   :: Bool -- ^ adjoint ?
+   -> Scene
    -> Vector
    -> Maybe Intersection
    -> Spectrum -- ^ alpha
@@ -184,15 +185,15 @@ nextVertex
    -> (Int -> Int) -- ^ 2d offsets
    -> Sampled m Path
 -- nothing hit, terminate path
-nextVertex _ _ Nothing _ _ _ _ _ = return []
-nextVertex sc wi (Just int) alpha depth md f1d f2d
+nextVertex _ _ _ Nothing _ _ _ _ _ = return []
+nextVertex adj sc wi (Just int) alpha depth md f1d f2d
    | depth == md = return []
    | otherwise = do
       ubc <- rnd' $ f1d depth -- bsdf component
       ubd <- rnd2D' $ f2d depth -- bsdf dir
       rr <- rnd' $ 1 + f1d depth -- russian roulette
-      
-      let (BsdfSample t spdf f wo) = sampleBsdf bsdf wi ubc ubd
+      let fun = if adj then sampleAdjBsdf else sampleBsdf
+      let (BsdfSample t spdf f wo) = fun bsdf wi ubc ubd
       let int' = intersect sc $ Ray p wo epsilon infinity
       let wi' = -wo
       let vHere = Vert bsdf p wi wo int t alpha
@@ -201,7 +202,7 @@ nextVertex sc wi (Just int) alpha depth md f1d f2d
       let alpha' = sScale (pathScale * alpha) (1 / rrProb)
       let rest = if rr > rrProb
                   then return [] -- terminate
-                  else nextVertex sc wi' int' alpha' (depth + 1) md f1d f2d
+                  else nextVertex adj sc wi' int' alpha' (depth + 1) md f1d f2d
    
       if isBlack f || spdf == 0
          then return [vHere]

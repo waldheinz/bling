@@ -354,10 +354,10 @@ sampleAdjBsdf' = {-# SCC "sampleAdjBsdf'" #-} sampleBsdf'' True
 
 sampleBsdf'' :: Bool -> BxdfType -> Bsdf -> Vector -> Flt -> Rand2D -> BsdfSample
 {-# INLINE sampleBsdf'' #-}
-sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
-   | cntm == 0 || pdf' == 0 = emptyBsdfSample
-   | isSpecular bxdf = BsdfSample t (pdf' / fromIntegral cntm) f' wiW
-   | otherwise = BsdfSample t pdf f wiW where
+sampleBsdf'' adj flags bsdf@(Bsdf bs cs _ ng) woW uComp uDir
+   | cntm == 0 || pdf' == 0 || sideTest == 0 = emptyBsdfSample
+   | isSpecular bxdf = BsdfSample t (pdf' / fromIntegral cntm) (sScale f' ff) wiW
+   | otherwise = BsdfSample t pdf (sScale f ff) wiW where
       wo = worldToLocal cs woW
       
       -- choose BxDF to sample
@@ -378,17 +378,27 @@ sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
                else (pdf' + (V.sum $ V.map (\b -> bxdfPdf b wo wi) bs')) / (fromIntegral cntm)
       
       -- throughput for sampled direction
-      flt = if woW `dot` ng * wiW `dot` ng < 0 then isTransmission else isReflection
+      sideTest = woW `dot` ng * wiW `dot` ng
+      flt = if sideTest < 0 then isTransmission else isReflection
       f = V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bsm
       t = bxdfType bxdf
       
-evalBsdf :: Bsdf -> Vector -> Vector -> Spectrum
-evalBsdf (Bsdf bxdfs cs _ ng) woW wiW = {-# SCC "evalBsdf" #-}
-   V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bxdfs
+      -- correct throughput in presence of shading normals
+      ns = bsdfShadingNormal bsdf
+      ff = if adj then abs (ns `dot` woW / ng `dot` woW) else 1
+
+      
+evalBsdf :: Bool -> Bsdf -> Vector -> Vector -> Spectrum
+evalBsdf adj bsdf@(Bsdf bxdfs cs _ ng) woW wiW = {-# SCC "evalBsdf" #-} sScale f ff
    where
+      f = V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bxdfs
       flt = if dot woW ng * dot wiW ng < 0 then isTransmission else isReflection
       wo = worldToLocal cs woW
       wi = worldToLocal cs wiW
+      
+      -- correct throughput in presence of shading normals
+      ns = bsdfShadingNormal bsdf
+      ff = if adj then abs (ns `dot` woW / ng `dot` woW) else 1
 
 emptyBsdfSample :: BsdfSample
 emptyBsdfSample = BsdfSample (mkBxdfType [Reflection, Diffuse]) 0 black (Vector 0 1 0)
