@@ -35,7 +35,7 @@ mkProgressivePhotonMap = PPM
 
 data LocalStats = LS
    { lsR2      :: {-# UNPACK #-} ! Flt
-   , lsN       :: {-# UNPACK #-} ! Int
+   , lsN       :: {-# UNPACK #-} ! Flt
    , lsFlux    :: {-# UNPACK #-} ! Spectrum
    }
 
@@ -58,19 +58,20 @@ mkHitPoint r2 bsdf wo f
    | otherwise = do
       pxpos <- cameraSample >>= \cs -> return (imageX cs, imageY cs)
       stats <- liftSampled $ newSTRef $ LS r2 0 black
-      let result = Hit bsdf pxpos wo f stats
+      let
+         result = Hit bsdf pxpos wo f stats
       seq result $ return $! [result]
 
 escaped :: Ray -> Scene -> Spectrum
-escaped ray s = (V.sum $ V.map (`le` ray) (sceneLights s))
+escaped ray s = V.sum $ V.map (`le` ray) (sceneLights s)
 
 mkHitPoints :: Scene -> MImage s -> Flt -> R.Rand s [HitPoint s]
-mkHitPoints scene img r2 = {-# SCC "mkHitPoints" #-} do
-   liftM concat $ forM (splitWindow $ imageWindow img) $ \w -> do
+mkHitPoints scene img r2 = {-# SCC "mkHitPoints" #-}
+   liftM concat $ forM (splitWindow $ imageWindow img) $ \w ->
       liftM concat $ sample (mkRandomSampler 1) w 0 0 $ do
          ray <- fireRay $ sceneCam scene
          
-         (hps, ls) <- case (scene `intersect` ray) of
+         (hps, ls) <- case scene `intersect` ray of
                            Just int -> nextV scene int (-(rayDir ray)) white r2 0 7
                            Nothing -> return $! ([], escaped ray scene)
                            
@@ -104,7 +105,7 @@ cont d md s bsdf wo tp t r2
 
       if pdf == 0 || isBlack f
          then return $! ([], black)
-         else case (s `intersect` ray) of
+         else case s `intersect` ray of
                    Just int -> nextV s int (-wi) t' r2 d md
                    Nothing -> return $! ([], escaped ray s)
 
@@ -117,9 +118,8 @@ tracePhoton scene sh = {-# SCC "tracePhoton" #-} do
    let (li, ray, nl, pdf) = sampleLightRay scene ul ulo uld
        wo = normalize $ rayDir ray
        
-   if (pdf > 0) && not (isBlack li)
-      then nextVertex scene sh (-wo) (intersect scene ray) (sScale li (absDot nl wo / pdf)) 0
-      else return ()
+   when ((pdf > 0) && not (isBlack li)) $
+      nextVertex scene sh (-wo) (scene `intersect` ray) (sScale li (absDot nl wo / pdf)) 0
 
 nextVertex :: Scene -> SpatialHash s -> Vector -> Maybe Intersection -> Spectrum -> Int -> Sampled s ()
 nextVertex _ _ _ Nothing _ _ = return ()
@@ -131,39 +131,34 @@ nextVertex scene sh wi (Just int) li d = {-# SCC "nextVertex" #-} do
       p = bsdfShadingPoint bsdf
       n = bsdfShadingNormal bsdf
       
-   if not $ bsdfHasNonSpecular bsdf
-      then return ()
-      else liftSampled $ hashLookup sh p n $ \hit -> do
-         stats <- readSTRef $ hpStats hit
-         let
-            hn = lsN stats
-            fn = fromIntegral hn
-            g = (fn * alpha + alpha) / (fn * alpha + 1)
-            r2' = lsR2 stats * g
-            hpbsdf = hpBsdf hit
-            f = evalBsdf True hpbsdf (hpW hit) wi
-            flux' = sScale (lsFlux stats + f * li) g
-         writeSTRef (hpStats hit) (LS r2' (hn+1) flux')
+   when (bsdfHasNonSpecular bsdf) $ liftSampled $ hashLookup sh p n $ \hit -> do
+      stats <- readSTRef $ hpStats hit
+      let
+         nn = lsN stats
+         ratio = (nn + alpha) / (nn + 1)
+         r2' = lsR2 stats * ratio
+         f = evalBsdf True (hpBsdf hit) (hpW hit) wi
+         flux' = sScale (lsFlux stats + (li * f)) ratio
+                    
+      writeSTRef (hpStats hit) $ LS r2' (nn + alpha) flux'
       
    -- follow the path
    ubc <- rnd' $ 1 + d * 2
    ubd <- rnd2D' $ 2 + d
    let
       (BsdfSample _ spdf f wo) = sampleAdjBsdf bsdf wi ubc ubd
-      pcont = if d > 3 then 0.5 else 1
+      pcont = if d > 4 then 0.8 else 1
       li' = sScale (f * li) (absDot wo n / (spdf * pcont))
       ray = Ray p wo epsilon infinity
       
-   if (spdf == 0) || isBlack li'
-      then return ()
-      else rnd' (2 + d * 2) >>= \x -> if x > pcont
-         then return ()
-         else nextVertex scene sh (-wo) (scene `intersect` ray) li' (d+1)
+   unless (spdf == 0 || isBlack li') $
+      rnd' (2 + d * 2) >>= \x -> unless (x > pcont) $
+         nextVertex scene sh (-wo) (scene `intersect` ray) li' (d+1)
 
 data SpatialHash s = SH
    { shBounds  :: {-# UNPACK #-} ! AABB
    , shEntries :: ! (V.Vector (V.Vector (HitPoint s)))
-   , shScale   :: {-# UNPACK #-} ! Flt -- ^ bucket size
+   , shScale   :: {-# UNPACK #-} ! Flt -- ^ 1 / bucket size
    }
 
 hash :: (Int, Int, Int) -> Int
@@ -172,7 +167,7 @@ hash (x, y, z) = abs $ (x * 73856093) `xor` (y * 19349663) `xor` (z * 83492791)
 hashLookup :: SpatialHash s -> Point -> Normal -> (HitPoint s -> ST s ()) -> ST s ()
 hashLookup sh p n fun = {-# SCC "hashLookup" #-} do
    let
-      Vector x y z = abs $ (p - (aabbMin $ shBounds sh)) * vpromote (shScale sh)
+      Vector x y z = abs $ (p - aabbMin (shBounds sh)) * vpromote (shScale sh)
       idx = hash (floor x, floor y, floor z) `rem` V.length (shEntries sh)
    
    V.forM_ (shEntries sh V.! idx) $ \hit -> do
@@ -180,12 +175,10 @@ hashLookup sh p n fun = {-# SCC "hashLookup" #-} do
       
       let
          hpn = bsdfShadingNormal $ hpBsdf hit
-         v = (bsdfShadingPoint $ hpBsdf hit) - p
+         v = bsdfShadingPoint (hpBsdf hit) - p
 
-      if n `dot` hpn > 0 && sqLen v <= lsR2 stats
-         then fun hit
-         else return ()
-   
+      when (n `dot` hpn > 0 && sqLen v <= lsR2 stats) $ fun hit
+      
 mkHash :: V.Vector (HitPoint s) -> ST s (SpatialHash s)
 mkHash hits = {-# SCC "mkHash" #-} do
    r2 <- let
@@ -193,8 +186,7 @@ mkHash hits = {-# SCC "mkHash" #-} do
                stats <- readSTRef $ hpStats hp
                return $! max (lsR2 stats) m
          in V.foldM' go 0 hits
-
-      
+   
    let
       r = sqrt r2
       sc = 1 / (2 * r)
@@ -222,9 +214,8 @@ mkHash hits = {-# SCC "mkHash" #-} do
          let idx = hash pos `rem` cnt
          in MV.read v' idx >>= \old -> MV.write v' idx (hp : old)
 
-   v <- V.generateM (MV.length v') $ \i -> do
-      l <- MV.read v' i
-      return $ V.fromList l
+   -- convert to an array of arrays
+   v <- V.generateM (MV.length v') $ \i -> fmap V.fromList (MV.read v' i)
    
    return $ SH bounds v sc
 
@@ -237,7 +228,7 @@ instance Renderer ProgressivePhotonMap where
          d = 3 -- sample depth
          n1d = 2 * d + 1
          n2d = d + 2
-         sn = max 1 $ ceiling $ sqrt $ (fromIntegral n' :: Float)
+         sn = max 1 $ ceiling $ sqrt (fromIntegral n' :: Float)
          n = sn * sn
 
       imgd <- stToIO $ thaw $ mkJobImage job
@@ -257,7 +248,9 @@ instance Renderer ProgressivePhotonMap where
                r2 = lsR2 stats
                (px, py) = hpPixel hp
                
-            addContrib currImg $
+            addContrib currImg
+               -- we can skip the 1 / pi factor because in accumulation above we
+               -- have that factor implicitly
                (True, ImageSample px py (1 / (r2 * fromIntegral n), hpF hp * lsFlux stats))
             
          img' <- stToIO $ freeze currImg
