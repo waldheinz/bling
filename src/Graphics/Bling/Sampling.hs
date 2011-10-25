@@ -37,10 +37,10 @@ import qualified Graphics.Bling.Random as R
 
 -- | An (image) region which should be covered with samples
 data SampleWindow = SampleWindow {
-   xStart :: ! Int, -- ^ first image row to cover
-   xEnd :: ! Int, -- ^ last row to cover
-   yStart :: ! Int, -- ^ first line to cover
-   yEnd :: ! Int -- ^ last line to cover
+   xStart   :: {-# UNPACK #-} ! Int,   -- ^ first image row to cover
+   xEnd     :: {-# UNPACK #-} ! Int,   -- ^ last row to cover
+   yStart   :: {-# UNPACK #-} ! Int,   -- ^ first line to cover
+   yEnd     :: {-# UNPACK #-} ! Int    -- ^ last line to cover
    } deriving (Show)
 
 data CameraSample = CameraSample {

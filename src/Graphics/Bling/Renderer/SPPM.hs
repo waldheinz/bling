@@ -1,14 +1,13 @@
 
-module Graphics.Bling.Renderer.PPM (
+module Graphics.Bling.Renderer.SPPM (
 
-   ProgressivePhotonMap, mkProgressivePhotonMap
+   SPPM, mkSPPM
    
    ) where
 
 import Control.Monad
 import Control.Monad.ST
 import Data.Bits
-import Data.STRef
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector as V
 import qualified Text.PrettyPrint as PP
@@ -24,27 +23,25 @@ import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Spectrum
 
-data ProgressivePhotonMap = PPM Int Flt -- ^ #photons and initial radius
+data SPPM = SPPM Int Flt -- ^ #photons and initial radius
 
-instance Printable ProgressivePhotonMap where
-   prettyPrint (PPM _ _) = PP.vcat [
+instance Printable SPPM where
+   prettyPrint (SPPM _ _) = PP.vcat [
       PP.text "Progressive Photon Map" ]
 
-mkProgressivePhotonMap :: Int -> Flt -> ProgressivePhotonMap
-mkProgressivePhotonMap = PPM
+mkSPPM :: Int -> Flt -> SPPM
+mkSPPM = SPPM
 
 data LocalStats = LS
    { lsR2      :: {-# UNPACK #-} ! Flt
    , lsN       :: {-# UNPACK #-} ! Flt
-   , lsFlux    :: {-# UNPACK #-} ! Spectrum
    }
 
-data HitPoint s = Hit
+data HitPoint = Hit
    { hpBsdf    :: {-# UNPACK #-} ! Bsdf
    , hpPixel   :: {-# UNPACK #-} ! (Flt, Flt)
    , hpW       :: {-# UNPACK #-} ! Vector
    , hpF       :: {-# UNPACK #-} ! Spectrum
-   , hpStats   :: ! (STRef s LocalStats)
    }
 
 alpha :: Flt
@@ -52,27 +49,24 @@ alpha = 0.7
 
 -- | creates a new @HitPoint@ if the provided @Bsdf@ contains non-specular
 --   components, or an empty list otherwise
-mkHitPoint :: Flt -> Bsdf -> Vector -> Spectrum -> Sampled s [HitPoint s]
-mkHitPoint r2 bsdf wo f
+mkHitPoint :: Bsdf -> Vector -> Spectrum -> Sampled s [HitPoint]
+mkHitPoint bsdf wo f
    | not (bsdfHasNonSpecular bsdf) = return $! []
    | otherwise = do
       pxpos <- cameraSample >>= \cs -> return (imageX cs, imageY cs)
-      stats <- liftSampled $ newSTRef $ LS r2 0 black
-      let
-         result = Hit bsdf pxpos wo f stats
-      seq result $ return $! [result]
+      return $! [Hit bsdf pxpos wo f]
 
 escaped :: Ray -> Scene -> Spectrum
 escaped ray s = V.sum $ V.map (`le` ray) (sceneLights s)
 
-mkHitPoints :: Scene -> MImage s -> Flt -> R.Rand s [HitPoint s]
-mkHitPoints scene img r2 = {-# SCC "mkHitPoints" #-}
+mkHitPoints :: Scene -> MImage s -> R.Rand s [HitPoint]
+mkHitPoints scene img = {-# SCC "mkHitPoints" #-}
    liftM concat $ forM (splitWindow $ imageWindow img) $ \w ->
       liftM concat $ sample (mkRandomSampler 1) w 0 0 $ do
          ray <- fireRay $ sceneCam scene
          
          (hps, ls) <- case scene `intersect` ray of
-                           Just int -> nextV scene int (-(rayDir ray)) white r2 0 7
+                           Just int -> nextV scene int (-(rayDir ray)) white 0 7
                            Nothing -> return $! ([], escaped ray scene)
                            
          (px, py) <- cameraSample >>= \cs -> return (imageX cs, imageY cs)
@@ -80,20 +74,20 @@ mkHitPoints scene img r2 = {-# SCC "mkHitPoints" #-}
          return $! hps
    
 nextV :: Scene -> Intersection -> Vector -> Spectrum
-   -> Flt -> Int -> Int -> Sampled s ([HitPoint s], Spectrum)
-nextV s int wo t r2 d md = {-# SCC "nextV" #-} do
+   -> Int -> Int -> Sampled s ([HitPoint], Spectrum)
+nextV s int wo t d md = {-# SCC "nextV" #-} do
    let
       bsdf = intBsdf int
       ls = intLe int wo
    
    -- trace rays for specular reflection and transmission
-   (refl, lsr) <- cont (d+1) md s bsdf wo (mkBxdfType [Specular, Reflection]) t r2
-   (trans, lst) <- cont (d+1) md s bsdf wo (mkBxdfType [Specular, Transmission]) t r2
-   here <- mkHitPoint r2 bsdf wo t
+   (refl, lsr) <- cont (d+1) md s bsdf wo (mkBxdfType [Specular, Reflection]) t
+   (trans, lst) <- cont (d+1) md s bsdf wo (mkBxdfType [Specular, Transmission]) t
+   here <- mkHitPoint bsdf wo t
    seq refl $ seq trans $ seq here $ return $! (here ++ refl ++ trans, t * (lsr + lst + ls))
 
-cont :: Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Spectrum -> Flt -> Sampled s ([HitPoint s], Spectrum)
-cont d md s bsdf wo tp t r2
+cont :: Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Spectrum -> Sampled s ([HitPoint], Spectrum)
+cont d md s bsdf wo tp t
    | d == md = return $! ([], black)
    | otherwise = do
       let
@@ -106,24 +100,48 @@ cont d md s bsdf wo tp t r2
       if pdf == 0 || isBlack f
          then return $! ([], black)
          else case s `intersect` ray of
-                   Just int -> nextV s int (-wi) t' r2 d md
+                   Just int -> nextV s int (-wi) t' d md
                    Nothing -> return $! ([], escaped ray s)
 
-tracePhoton :: Scene -> SpatialHash s -> Sampled s ()
-tracePhoton scene sh = {-# SCC "tracePhoton" #-} do
+tracePhoton :: Scene -> SpatialHash -> MImage s -> PixelStats s -> Sampled s ()
+tracePhoton scene sh img ps = {-# SCC "tracePhoton" #-} do
    ul <- rnd' 0
    ulo <- rnd2D' 0
    uld <- rnd2D' 1
    
-   let (li, ray, nl, pdf) = sampleLightRay scene ul ulo uld
-       wo = normalize $ rayDir ray
+   let
+      (li, ray, nl, pdf) = sampleLightRay scene ul ulo uld
+      wi = -(normalize $ rayDir ray)
+      ls = sScale li (absDot nl wi / pdf)
        
    when ((pdf > 0) && not (isBlack li)) $
-      nextVertex scene sh (-wo) (scene `intersect` ray) (sScale li (absDot nl wo / pdf)) 0
+      nextVertex scene sh wi (scene `intersect` ray) ls 0 img ps
 
-nextVertex :: Scene -> SpatialHash s -> Vector -> Maybe Intersection -> Spectrum -> Int -> Sampled s ()
-nextVertex _ _ _ Nothing _ _ = return ()
-nextVertex scene sh wi (Just int) li d = {-# SCC "nextVertex" #-} do
+data PixelStats s = PS (MV.MVector s LocalStats) SampleWindow
+
+mkPixelStats :: SampleWindow -> Flt -> ST s (PixelStats s)
+mkPixelStats wnd r2 = do
+   v <- MV.replicate ((xEnd wnd - xStart wnd + 1) * (yEnd wnd - yStart wnd + 1)) (LS r2 0)
+   return $! PS v wnd
+
+sIdx :: PixelStats s -> HitPoint -> Int
+sIdx (PS _ wnd) hit = w * (iy - yStart wnd) + (ix - xStart wnd) where
+   (w, h) = (xEnd wnd - xStart wnd, yEnd wnd - yStart wnd)
+   (px, py) = hpPixel hit
+   (ix, iy) = (min (w-1) (floor px), min (h-1) (floor py))
+
+slup :: PixelStats s -> HitPoint -> ST s LocalStats
+slup ps@(PS v _) hit = MV.read v (sIdx ps hit)
+
+sUpdate :: PixelStats s -> HitPoint -> LocalStats -> ST s ()
+sUpdate ps@(PS v _) hit ls = MV.write v (sIdx ps hit) ls
+
+nextVertex :: Scene -> SpatialHash -> Vector ->
+   Maybe Intersection -> Spectrum -> Int ->
+   MImage s -> PixelStats s -> Sampled s ()
+   
+nextVertex _ _ _ Nothing _ _ _ _ = return ()
+nextVertex scene sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} do
    
    -- add contribution for this photon hit
    let
@@ -131,16 +149,20 @@ nextVertex scene sh wi (Just int) li d = {-# SCC "nextVertex" #-} do
       p = bsdfShadingPoint bsdf
       n = bsdfShadingNormal bsdf
       
-   when (bsdfHasNonSpecular bsdf) $ liftSampled $ hashLookup sh p n $ \hit -> do
-      stats <- readSTRef $ hpStats hit
+   when (bsdfHasNonSpecular bsdf) $ liftSampled $ hashLookup sh p n ps $ \hit -> do
+      stats <- slup ps hit
       let
          nn = lsN stats
          ratio = (nn + alpha) / (nn + 1)
-         r2' = lsR2 stats * ratio
+         r2 = lsR2 stats
+         r2' = r2 * ratio
          f = evalBsdf True (hpBsdf hit) (hpW hit) wi
-         flux' = sScale (lsFlux stats + (li * f)) ratio
-                    
-      writeSTRef (hpStats hit) $ LS r2' (nn + alpha) flux'
+         flux = sScale (li * f) ratio
+         nn' = nn + alpha
+         (px, py) = hpPixel hit
+      
+      addContrib img (True, ImageSample px py (1 / (r2'), hpF hit * flux))
+      sUpdate ps hit $ LS r2' nn'
       
    -- follow the path
    ubc <- rnd' $ 1 + d * 2
@@ -153,38 +175,34 @@ nextVertex scene sh wi (Just int) li d = {-# SCC "nextVertex" #-} do
       
    unless (spdf == 0 || isBlack li') $
       rnd' (2 + d * 2) >>= \x -> unless (x > pcont) $
-         nextVertex scene sh (-wo) (scene `intersect` ray) li' (d+1)
+         nextVertex scene sh (-wo) (scene `intersect` ray) li' (d+1) img ps
 
-data SpatialHash s = SH
+data SpatialHash = SH
    { shBounds  :: {-# UNPACK #-} ! AABB
-   , shEntries :: ! (V.Vector (V.Vector (HitPoint s)))
+   , shEntries :: ! (V.Vector (V.Vector HitPoint))
    , shScale   :: {-# UNPACK #-} ! Flt -- ^ 1 / bucket size
    }
 
 hash :: (Int, Int, Int) -> Int
 hash (x, y, z) = abs $ (x * 73856093) `xor` (y * 19349663) `xor` (z * 83492791)
 
-hashLookup :: SpatialHash s -> Point -> Normal -> (HitPoint s -> ST s ()) -> ST s ()
-hashLookup sh p n fun = {-# SCC "hashLookup" #-} do
+hashLookup :: SpatialHash -> Point -> Normal -> PixelStats s -> (HitPoint -> ST s ()) -> ST s ()
+hashLookup sh p n ps fun = {-# SCC "hashLookup" #-}
    let
       Vector x y z = abs $ (p - aabbMin (shBounds sh)) * vpromote (shScale sh)
       idx = hash (floor x, floor y, floor z) `rem` V.length (shEntries sh)
    
-   V.forM_ (shEntries sh V.! idx) $ \hit -> do
-      stats <- readSTRef $ hpStats hit
-      
+   in V.forM_ (shEntries sh V.! idx) $ \hit -> do
+      stats <- slup ps hit
       let
          hpn = bsdfShadingNormal $ hpBsdf hit
          v = bsdfShadingPoint (hpBsdf hit) - p
-
       when (n `dot` hpn > 0 && sqLen v <= lsR2 stats) $ fun hit
       
-mkHash :: V.Vector (HitPoint s) -> ST s (SpatialHash s)
-mkHash hits = {-# SCC "mkHash" #-} do
+mkHash :: V.Vector HitPoint -> PixelStats s -> ST s SpatialHash
+mkHash hits ps = {-# SCC "mkHash" #-} do
    r2 <- let
-            go m hp = do
-               stats <- readSTRef $ hpStats hp
-               return $! max (lsR2 stats) m
+            go m hp = slup ps hp >>= \stats -> return $! max (lsR2 stats) m
          in V.foldM' go 0 hits
    
    let
@@ -198,11 +216,11 @@ mkHash hits = {-# SCC "mkHash" #-} do
    
    v' <- MV.replicate cnt []
    V.forM_ hits $ \hp -> do
-      stats <- readSTRef $ hpStats hp
-      
+      stats <- slup ps hp
       let
          p = bsdfShadingPoint $ hpBsdf hp
-         rp = sqrt $ lsR2 stats
+         r2p = lsR2 stats
+         rp = sqrt $ r2
          pmin = aabbMin bounds
          Vector x0 y0 z0 = abs $ (p - vpromote rp - pmin) * vpromote sc
          Vector x1 y1 z1 = abs $ (p + vpromote rp - pmin) * vpromote sc
@@ -210,7 +228,7 @@ mkHash hits = {-# SCC "mkHash" #-} do
          ys = [floor y0 .. floor y1]
          zs = [floor z0 .. floor z1]
          
-      forM_ [(x, y, z) | x <- xs, y <- ys, z <- zs] $ \pos ->
+      unless (r2p == 0) $ forM_ [(x, y, z) | x <- xs, y <- ys, z <- zs] $ \pos ->
          let idx = hash pos `rem` cnt
          in MV.read v' idx >>= \old -> MV.write v' idx (hp : old)
 
@@ -219,9 +237,9 @@ mkHash hits = {-# SCC "mkHash" #-} do
    
    return $ SH bounds v sc
 
-instance Renderer ProgressivePhotonMap where
-   render (PPM n' r) job report = {-# SCC "render" #-} do
-      seed <- R.ioSeed
+instance Renderer SPPM where
+   render (SPPM n' r) job report = {-# SCC "render" #-} do
+      
       let
          scene = jobScene job
          w = SampleWindow 0 0 0 0 -- just a hack, should split off camera sample generation
@@ -231,31 +249,19 @@ instance Renderer ProgressivePhotonMap where
          sn = max 1 $ ceiling $ sqrt (fromIntegral n' :: Float)
          n = sn * sn
 
-      imgd <- stToIO $ thaw $ mkJobImage job
-      hitPoints <- liftM V.fromList $ stToIO $ R.runWithSeed seed $ mkHitPoints scene imgd (r*r)
-      img <- stToIO $ freeze imgd
+      img <- stToIO $ thaw $ mkJobImage job
+      pxStats <- stToIO $ mkPixelStats (imageWindow img) (r*r)
       
       forM_ [1..] $ \passNum -> do
-         currImg <- stToIO $ thaw img
-         hitMap <- stToIO $ mkHash hitPoints
+         seed <- R.ioSeed
+         hitPoints <- liftM V.fromList $ stToIO $ R.runWithSeed seed $ mkHitPoints scene img
+         hitMap <- stToIO $ mkHash hitPoints pxStats
          pseed <- R.ioSeed
          _ <- stToIO $ R.runWithSeed pseed $
-            sample (mkStratifiedSampler sn sn) w n1d n2d $ tracePhoton scene hitMap
-
-         stToIO $ V.forM_ hitPoints $ \hp -> do
-            stats <- readSTRef $ hpStats hp
-            let
-               r2 = lsR2 stats
-               (px, py) = hpPixel hp
-               
-            addContrib currImg
-               -- we can skip the 1 / pi factor because in accumulation above we
-               -- have that factor implicitly
-               (True, ImageSample px py (1 / (r2 * fromIntegral n), hpF hp * lsFlux stats))
-            
-         img' <- stToIO $ freeze currImg
-         _ <- report $ PassDone passNum img' (1 / fromIntegral passNum)
+            sample (mkStratifiedSampler sn sn) w n1d n2d $ tracePhoton scene hitMap img pxStats
+         
+         img' <- stToIO $ freeze img
+         _ <- report $ PassDone passNum img' (1 / fromIntegral (passNum * n))
          return ()
          
       return ()
-

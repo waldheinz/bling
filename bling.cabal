@@ -90,7 +90,7 @@ Library
       Graphics.Bling.Primitive.Fractal,
       Graphics.Bling.Primitive.KdTree,
       Graphics.Bling.Primitive.TriangleMesh,
-      Graphics.Bling.Renderer.PPM
+      Graphics.Bling.Renderer.SPPM
       
 Executable bling
    hs-source-dirs:   src/Graphics/Bling/Main

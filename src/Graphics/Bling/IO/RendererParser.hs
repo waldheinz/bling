@@ -11,7 +11,7 @@ import Graphics.Bling.Integrator.LightTracer
 import Graphics.Bling.Integrator.Metropolis
 import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.IntegratorParser
-import Graphics.Bling.Renderer.PPM
+import Graphics.Bling.Renderer.SPPM
 
 defaultRenderer :: AnyRenderer
 defaultRenderer = mkAnyRenderer r where
@@ -40,10 +40,10 @@ pRenderer = pBlock $ do
                 dspp <- ws >> namedInt "directSamples"
                 return $ mkAnyRenderer $ mkMLT md mpp nboot plarge dspp
                 
-             "ppm" -> do
+             "sppm" -> do
                 n <- namedInt "photonCount"
                 r <- ws >> namedFloat "radius"
-                return $ mkAnyRenderer $ mkProgressivePhotonMap n r
+                return $ mkAnyRenderer $ mkSPPM n r
                 
              "sampler" -> do
                 sr <- pSamplerRenderer
