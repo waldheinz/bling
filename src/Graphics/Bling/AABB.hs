@@ -2,7 +2,7 @@
 module Graphics.Bling.AABB (
    AABB(..), mkAABB,
    emptyAABB, extendAABB, extendAABBP, maximumExtent, centroid, surfaceArea,
-   intersectAABB, splitAABB, boundingSphere
+   intersectAABB, splitAABB, boundingSphere, diagonal
 ) where
 
 import Graphics.Bling.Math
@@ -50,6 +50,10 @@ centroid :: AABB -> Point
 {-# INLINE centroid #-}
 centroid (AABB pmin pmax) = pmin + (pmax - pmin) * 0.5 
 
+diagonal :: AABB -> Vector
+{-# INLINE diagonal #-}
+diagonal (AABB pmin pmax) = pmax - pmin
+
 -- | finds the bounding sphere of an @AABB@
 boundingSphere
    :: AABB -- ^ the box to get the bounding sphere for
@@ -75,12 +79,13 @@ intersectAABB (AABB bMin bMax) (Ray o d tmin tmax) = testSlabs allDimensions tmi
    testSlabs [] n f
       | n > f = Nothing
       | otherwise = Just (n, f)
+      
    testSlabs (dim:ds) near far
       | near > far = Nothing
       | otherwise = testSlabs ds (max near near') (min far far') where
-	 (near', far') = if tNear > tFar then (tFar, tNear) else (tNear, tFar)
-	 tFar = (bMax .! dim - oc) * dInv
-	 tNear = (bMin .! dim - oc) * dInv
-	 oc = o .! dim
-	 dInv = 1 / d .! dim
+         (near', far') = if tNear > tFar then (tFar, tNear) else (tNear, tFar)
+         tFar = (bMax .! dim - oc) * dInv
+         tNear = (bMin .! dim - oc) * dInv
+         oc = o .! dim
+         dInv = 1 / d .! dim
    
