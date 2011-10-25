@@ -20,7 +20,8 @@ renderer {
 # renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 # renderer { sampler sampled { sampler { random samples 128 } integrator { debug reference } } }
-renderer { ppm photonCount 1000 radius 10 }
+
+renderer { sppm photonCount 10000 radius 50 }
 
 imageSize 480 480
 imageSize 240 240

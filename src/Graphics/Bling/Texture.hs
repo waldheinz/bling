@@ -10,7 +10,9 @@ module Graphics.Bling.Texture (
    identityMapping3d,
    
    -- * Creating Textures
-   constant, scaleTexture, graphPaper, checkerBoard, noiseTexture, woodTexture
+   
+   constant, scaleTexture, graphPaper, checkerBoard, noiseTexture, fbmTexture,
+   woodTexture
    ) where
 
 import Data.Bits
@@ -102,6 +104,21 @@ woodTexture dg = wood where
    grain = abs $ g - fromIntegral (floor g :: Int)
    wood = fromRGB (grain, grain, 0.1)
    (Vector x y z) = dgP dg
+
+--------------------------------------------------------------------------------
+-- Fractal Brownian Motion (FBM)
+--------------------------------------------------------------------------------
+
+fbmTexture
+   :: Int               -- ^ number of octaves (higher -> more detail)
+   -> Flt               -- ^ lambda (roughness)
+   -> TextureMapping3d  -- ^ the texture mapping to use
+   -> ScalarTexture
+fbmTexture octaves omega t dg = sum $ take octaves go where
+   go = map (\(l, o) -> o * perlin3d (px * l, py * l, pz * l)) $ zip ls os
+   ls = iterate (1.99 *) 1
+   os = iterate (omega *) 1
+   (px, py, pz) = t dg
    
 --
 -- Perlin Noise

@@ -114,15 +114,21 @@ pScalarTexture = namedBlock $ do
       "constant" -> do
          v <- flt
          return (constant v)
+
+      "fbm" -> do
+         oct <- namedInt "octaves"
+         omg <- ws >> namedFloat "omega"
+         m <- ws >> pTextureMapping3d "map"
+         return $ fbmTexture oct omg m
+
+      "perlin" -> do
+         m <- pTextureMapping3d "map"
+         return $ noiseTexture m
       
       "scale" -> do
          s <- flt
          t <- ws >> pScalarTexture "texture"
          return $ scaleTexture s t
-         
-      "perlin" -> do
-         m <- pTextureMapping3d "map"
-         return $ noiseTexture m
       
       _ -> fail ("unknown texture type " ++ tp)
 

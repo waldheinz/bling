@@ -24,6 +24,8 @@ import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Spectrum
 
+import Debug.Trace
+
 data SPPM = SPPM Int Flt -- ^ #photons and initial radius
 
 instance Printable SPPM where
@@ -215,8 +217,8 @@ mkHash hits ps = {-# SCC "mkHash" #-} do
    
    let
       r = sqrt r2
-      cnt = V.length hits
-      invSize = 4 / (2 * r)
+      cnt = trace ("r_max=" ++ show r) $ V.length hits
+      invSize = 1 / (2 * r)
       bounds = V.foldl' go emptyAABB hits where
          go b h = let p = bsdfShadingPoint $ hpBsdf h
                   in extendAABB b $ mkAABB (p - vpromote r) (p + vpromote r)

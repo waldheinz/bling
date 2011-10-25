@@ -13,13 +13,14 @@ renderer {
    }
 }
 
-renderer { sampler sampled { sampler { random samples 64 } integrator { path maxDepth 7 sampleDepth 5 } } }
+# renderer { sampler sampled { sampler { random samples 64 } integrator { path maxDepth 7 sampleDepth 5 } } }
+renderer { sampler sampled { sampler { stratified xSamples 16 ySamples 16 } integrator { path maxDepth 7 sampleDepth 5 } } }
 # renderer { lightTracer passCount 1 particles 300000 }
 # renderer { metropolis mpp 1 bootstrap 5000 plarge 0.25 }
 # renderer { sampler sampled { sampler { stratified xSamples 32 ySamples 32 } integrator { light maxDepth 7 sampleDepth 5 } } }
 # renderer { light passCount 10 passPhotons 100000 }
 
-renderer { sppm photonCount 25000 radius 20 }
+renderer { sppm photonCount 500000 radius 10 }
 
 imageSize 480 480
 # imageSize 200 200
@@ -113,18 +114,17 @@ transform { identity scale 0.05 0.05 0.05 }
 
 material {
    bumpMap
-   bump { scale 40 texture { perlin map { identity } } }
+   bump { scale 40 texture { fbm octaves 3 omega 0.2 map { identity } } }
    
    glass
    ior { constant 1.33 }
-   kr { constant spd { 1 0.98 } }
-   kt { constant spd { 1 0.98 } }
+   kr { constant rgb 1 1 1 }
+   kt { constant rgb 1 1 1 }
 }
 
 transform { identity }
 
 shape { mesh vertexCount 4 faceCount 1 v 570 550 -10 v -10 550 -10 v -10 550 570 v 570 550 570 f 3 2 1 0 }
-
 
 #
 # mirror sphere
@@ -216,16 +216,16 @@ material {
 }
 
 emission {
-   spd { 400.0 0, 500.0 160.0, 600.0 312, 700.0 386 }
+   spd { 400 0, 500 1600, 600 3120, 700 3860 }
 }
 
 shape {
    mesh
    vertexCount 4
    faceCount 1
-   v 300.0 700 260.0
-   v 300.0 700 300.0
-   v 260.0 700 300.0
-   v 260.0 700 260.0
+   v 285 750 275
+   v 285 750 285
+   v 275 750 285
+   v 275 750 275
    f 0 1 2 3
 }
