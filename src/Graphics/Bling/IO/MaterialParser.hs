@@ -141,6 +141,13 @@ pTextureMapping2d :: String -> JobParser TextureMapping2d
 pTextureMapping2d = namedBlock $ do
    n <- pString
    ws >> case n of
+      "planar" -> do
+         vu <- pVec
+         vv <- ws >> pVec
+         ou <- ws >> flt
+         ov <- ws >> flt
+         return $ planarMapping (vu, vv) (ou, ov)
+         
       "uv"   -> do
          su <- flt
          sv <- ws >> flt

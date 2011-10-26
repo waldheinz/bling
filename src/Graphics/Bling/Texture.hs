@@ -8,12 +8,13 @@ module Graphics.Bling.Texture (
    
    -- * Texture Mappings
 
-   identityMapping3d, uvMapping,
+   identityMapping3d, uvMapping, planarMapping,
    
-   -- * Creating Textures
+   -- * Textures
    
    constant, scaleTexture, graphPaper, checkerBoard, noiseTexture, fbmTexture,
    woodTexture, quasiCrystal, spectrumBlend
+   
    ) where
 
 import Data.Bits
@@ -62,7 +63,7 @@ spectrumBlend t1 t2 f dg
    where
       (v1, v2, x) = (t1 dg, t2 dg, f dg)
 
-  --------------------------------------------------------------------------------
+--------------------------------------------------------------------------------
 -- Texture Mappings
 --------------------------------------------------------------------------------
 
@@ -79,12 +80,22 @@ constant
    -> Texture a
 constant r _ = r
 
--- | Extracts the (u, v) parametization from the @DifferentialGeometry@
+-- | Extracts the (u, v) parametization from the @DifferentialGeometry@ and
+--   applies a scale / offset to them.
 uvMapping
    :: (Flt, Flt)     -- ^ scale factor for (u, v)
    -> (Flt, Flt)     -- ^ offsets for (u, v)
    -> TextureMapping2d
 uvMapping (su, sv) (ou, ov) dg = (su * dgU dg + ou, sv * dgV dg + ov)
+
+planarMapping
+   :: (Vector, Vector)  -- ^ vectors defining the plane
+   -> (Flt, Flt)        -- ^ offsets for (u, v)
+   -> TextureMapping2d
+planarMapping (vu, vv) (ou, ov) dg = (u + ou, v + ov) where
+   p = dgP dg
+   u = p `dot` vu
+   v = p `dot` vv
 
 --------------------------------------------------------------------------------
 -- Textures

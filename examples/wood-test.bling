@@ -2,14 +2,14 @@
 # plastic
 
 filter mitchell 3.0 3.0 0.333333 0.333333
-filter box
+# filter box
 
 imageSize 640 480
 
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 2 ySamples 2 }
+      sampler { stratified xSamples 3 ySamples 3 }
       integrator { path maxDepth 3 sampleDepth 3 }
    }
 }
@@ -37,7 +37,17 @@ transform { identity }
 
 material {
    matte
-   kd { constant rgb 0.9 0.9 0.9 }
+   kd { blend
+      tex1 { constant rgb 0.9 0.56 0.1 }
+      tex2 { constant rgb 0.56 0.1 0.7 }
+      f { crystal octaves 7 map {
+         planar
+         10 0 0
+         0 0 10
+         1 1
+         }
+      }
+   }
    sigma { constant 0.5 }
 }
 
@@ -56,25 +66,13 @@ shape {
 # light source
 #
 
-emission { rgb 20 20 20 }
+transform { identity rotateX -90 }
 
-transform {
-   identity
-   translate 0 5 0
+light { infinite
+   l { rgbeFile "envmaps/studio015.hdr" }
 }
 
-shape {
-   mesh
-   vertexCount 4
-   faceCount 1
-   v  2 15 -2
-   v  2 15  2
-   v -2 15  2
-   v -2 15 -2
-   f 0 1 2 3
-}
-
-emission { none }
+transform { identity }
 
 #
 # sphere 1
@@ -86,14 +84,9 @@ transform {
 }
 
 material { plastic
-   kd { blend
-      tex1 { constant rgb 0.9 0.56 0.1 }
-      tex2 { constant rgb 0.56 0.1 0.7 }
-      f { crystal octaves 21 map { uv 200 200 0 0 } }
-   }
-   
-   ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.005 }
+   kd { constant rgb 0.01 0.01 0.01 }
+   ks { constant rgb 0.9 0.9 0.9 }
+   rough { crystal octaves 5 map { uv 100 100 0 0 } }
 }
 
 shape { sphere radius 5 }
