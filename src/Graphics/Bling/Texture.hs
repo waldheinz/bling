@@ -1,21 +1,23 @@
 
 module Graphics.Bling.Texture (
+
    -- * Texture Types
    
-   Texture, SpectrumTexture, ScalarTexture, TextureMapping3d,
+   Texture, SpectrumTexture, ScalarTexture, TextureMapping3d, TextureMapping2d,
    TextureMap(..), SpectrumMap, constSpectrumMap, mkTextureMap,
    
    -- * Texture Mappings
 
-   identityMapping3d,
+   identityMapping3d, uvMapping,
    
    -- * Creating Textures
    
    constant, scaleTexture, graphPaper, checkerBoard, noiseTexture, fbmTexture,
-   woodTexture
+   woodTexture, quasiCrystal, spectrumBlend
    ) where
 
 import Data.Bits
+import Data.Fixed (divMod')
 import qualified Data.Vector.Unboxed as V
 
 import Graphics.Bling.DifferentialGeometry
@@ -32,6 +34,7 @@ type SpectrumTexture = Texture Spectrum
 type ScalarTexture = Texture Flt
 
 type TextureMapping3d = DifferentialGeometry -> (Flt, Flt, Flt)
+type TextureMapping2d = DifferentialGeometry -> (Flt, Flt)
 
 data TextureMap a = TexMap
    { texMapEval   :: CartesianCoords -> a
@@ -46,7 +49,20 @@ type SpectrumMap = TextureMap Spectrum
 constSpectrumMap :: Spectrum -> SpectrumMap
 constSpectrumMap x = TexMap (const x) (1, 1)
 
---------------------------------------------------------------------------------
+-- | Blends between two spectrum textures using a scalar to specify ratio.
+spectrumBlend
+   :: SpectrumTexture   -- ^ the first spectrum
+   -> SpectrumTexture   -- ^ the second spectrum
+   -> ScalarTexture     -- ^ the scalar (in [0, 1]) specifying the blending between the two spectra
+   -> SpectrumTexture
+spectrumBlend t1 t2 f dg
+   | x <= 0 = v1
+   | x >= 1 = v2
+   | otherwise = sScale (sScale v1 (1 - x) + sScale v2 x) 0.5
+   where
+      (v1, v2, x) = (t1 dg, t2 dg, f dg)
+
+  --------------------------------------------------------------------------------
 -- Texture Mappings
 --------------------------------------------------------------------------------
 
@@ -63,12 +79,19 @@ constant
    -> Texture a
 constant r _ = r
 
+-- | Extracts the (u, v) parametization from the @DifferentialGeometry@
+uvMapping
+   :: (Flt, Flt)     -- ^ scale factor for (u, v)
+   -> (Flt, Flt)     -- ^ offsets for (u, v)
+   -> TextureMapping2d
+uvMapping (su, sv) (ou, ov) dg = (su * dgU dg + ou, sv * dgV dg + ov)
+
 --------------------------------------------------------------------------------
 -- Textures
 --------------------------------------------------------------------------------
 
 scaleTexture :: (Num a) => a -> Texture a -> Texture a
-scaleTexture s t dg = s * (t dg)
+scaleTexture s t dg = s * t dg
 
 graphPaper :: Flt -> SpectrumTexture -> SpectrumTexture -> SpectrumTexture
 graphPaper lw p l dg
@@ -105,10 +128,26 @@ woodTexture dg = wood where
    wood = fromRGB (grain, grain, 0.1)
    (Vector x y z) = dgP dg
 
---------------------------------------------------------------------------------
--- Fractal Brownian Motion (FBM)
---------------------------------------------------------------------------------
+quasiCrystal
+   :: Int               -- ^ number of octaves (higher adds mor detail)
+   -> TextureMapping2d
+   -> ScalarTexture
+quasiCrystal o t dg = combine (map wave (angles o)) (t dg) where
+   angles :: Int -> [Flt]
+   angles n = take n $ enumFromThen 0 (pi / fromIntegral n)
+   
+   combine :: [(Flt, Flt) -> Flt] -> ((Flt, Flt) -> Flt)
+   combine xs = wrap . sum . sequence xs where
+      wrap n = case divMod' n 1 of
+         (k, v) | odd (k::Int) -> 1 - v
+                | otherwise    -> v
 
+   wave :: Flt -> (Flt, Flt) -> Flt
+   wave th = f where
+      (cth, sth) = (cos th, sin th)
+      f (x, y) = (cos (cth * x + sth * y) + 1) / 2
+
+-- | A Fractal Brownian Motion (FBM) texture.
 fbmTexture
    :: Int               -- ^ number of octaves (higher -> more detail)
    -> Flt               -- ^ lambda (roughness)
@@ -120,11 +159,10 @@ fbmTexture octaves omega t dg = sum $ take octaves go where
    os = iterate (omega *) 1
    (px, py, pz) = t dg
    
---
--- Perlin Noise
---
-
-noiseTexture :: TextureMapping3d -> ScalarTexture
+-- | A simple Perlin noise in 3D using the specified texture mapping.
+noiseTexture
+   :: TextureMapping3d  -- ^ the texture mapping to use
+   -> ScalarTexture     -- ^ the resulting texture
 noiseTexture texMap dg = perlin3d $ texMap dg
 
 perlin3d :: (Flt, Flt, Flt) -> Flt
@@ -164,8 +202,8 @@ grad :: Int -> Int -> Int -> Flt -> Flt -> Flt -> Flt
 grad x y z dx dy dz = u + v where
    u = if (h .&. 1) /= 0 then (-u') else u'
    v = if h .&. 2 /= 0 then (-v') else v'
-   u' = if h < 8 || h == 12 || h == 13 then dx else dy
-   v' = if h < 4 || h == 12 || h == 13 then dy else dz
+   u' = if h < 8 || h `elem` [12, 13] then dx else dy
+   v' = if h < 4 || h `elem` [12, 13] then dy else dz
    h = h' .&. 15
    h' = noisePerms V.! ((noisePerms V.! ((noisePerms V.! x) + y)) + z)
    

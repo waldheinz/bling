@@ -120,10 +120,15 @@ pScalarTexture = namedBlock $ do
          omg <- ws >> namedFloat "omega"
          m <- ws >> pTextureMapping3d "map"
          return $ fbmTexture oct omg m
-
+      
       "perlin" -> do
          m <- pTextureMapping3d "map"
          return $ noiseTexture m
+
+      "crystal" -> do
+         o <- namedInt "octaves"
+         m <- pTextureMapping2d "map"
+         return $ quasiCrystal o m
       
       "scale" -> do
          s <- flt
@@ -131,6 +136,19 @@ pScalarTexture = namedBlock $ do
          return $ scaleTexture s t
       
       _ -> fail ("unknown texture type " ++ tp)
+
+pTextureMapping2d :: String -> JobParser TextureMapping2d
+pTextureMapping2d = namedBlock $ do
+   n <- pString
+   ws >> case n of
+      "uv"   -> do
+         su <- flt
+         sv <- ws >> flt
+         ou <- ws >> flt
+         ov <- ws >> flt
+         return $ uvMapping (su, sv) (ou, ov)
+         
+      _      -> fail $ "unknown 2d mapping " ++ n
 
 pTextureMapping3d :: String -> JobParser TextureMapping3d
 pTextureMapping3d = namedBlock $ do
@@ -140,12 +158,18 @@ pTextureMapping3d = namedBlock $ do
                  s <- getState
                  return $ identityMapping3d (transform s)
                  
-              _ -> fail $ "unknown mapping " ++ mt
+              _ -> fail $ "unknown 3d mapping " ++ mt
 
 pSpectrumTexture :: String -> JobParser SpectrumTexture
 pSpectrumTexture = namedBlock $ do
    tp <- many alphaNum
    ws >> case tp of
+      "blend" -> do
+         t1 <- pSpectrumTexture "tex1"
+         t2 <- ws >> pSpectrumTexture "tex2"
+         f <- ws >> pScalarTexture "f"
+         return $ spectrumBlend t1 t2 f
+         
       "constant" -> do
          s <- pSpectrum
          return (constant s)

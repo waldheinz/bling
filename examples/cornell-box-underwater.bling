@@ -20,7 +20,7 @@ renderer { sampler sampled { sampler { stratified xSamples 16 ySamples 16 } inte
 # renderer { sampler sampled { sampler { stratified xSamples 32 ySamples 32 } integrator { light maxDepth 7 sampleDepth 5 } } }
 # renderer { light passCount 10 passPhotons 100000 }
 
-renderer { sppm photonCount 500000 radius 10 }
+renderer { sppm photonCount 1000 radius 10 }
 
 imageSize 480 480
 # imageSize 200 200
@@ -130,7 +130,11 @@ shape { mesh vertexCount 4 faceCount 1 v 570 550 -10 v -10 550 -10 v -10 550 570
 # mirror sphere
 #
 
-material { mirror kr { constant spd { 1 0.95 } } }
+material {
+   bumpMap
+   bump { scale 40 texture { crystal map { uv 1 1 0 0 } } }
+   mirror kr { constant spd { 1 0.95 } }
+}
 transform { identity translate 150 100 300 }
 shape { sphere radius 100 }
 transform { identity }

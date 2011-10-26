@@ -10,7 +10,7 @@ renderer {
    sampler
    sampled {
       sampler { stratified xSamples 2 ySamples 2 }
-      integrator { path maxDepth 3 }
+      integrator { path maxDepth 3 sampleDepth 3 }
    }
 }
 
@@ -37,18 +37,18 @@ transform { identity }
 
 material {
    matte
-   kd { wood }
-   sigma { constant 0.0 }
+   kd { constant rgb 0.9 0.9 0.9 }
+   sigma { constant 0.5 }
 }
 
 shape {
    mesh
    vertexCount 4
    faceCount 1
-   v  50.0 0.0 -50.0
-   v -50.0 0.0 -50.0
-   v -50.0 0.0  50.0
-   v  50.0 0.0  50.0
+   v  50 0 -50
+   v -50 0 -50
+   v -50 0  50
+   v  50 0  50
    f 3 2 1 0
 }
 
@@ -56,23 +56,22 @@ shape {
 # light source
 #
 
-emission { temp 3100 }
+emission { rgb 20 20 20 }
 
 transform {
    identity
-   scale 5.0 1.0 5.0
-   translate 0.0 5.0 0.0
+   translate 0 5 0
 }
 
 shape {
    mesh
    vertexCount 4
    faceCount 1
-   v 2.0 15.7 -2.0
-   v 2.0 15.7 2.0
-   v -2.0 15.7 2.0
-   v -2.0 15.7 -2.0
-   f 3 2 1 0
+   v  2 15 -2
+   v  2 15  2
+   v -2 15  2
+   v -2 15 -2
+   f 0 1 2 3
 }
 
 emission { none }
@@ -83,101 +82,18 @@ emission { none }
 
 transform {
    identity
-   translate -5.0 3.0 -2.5
+   translate 0 5 0
 }
 
 material { plastic
-   kd { constant rgb 0.49 0.3 0.02 }
+   kd { blend
+      tex1 { constant rgb 0.9 0.56 0.1 }
+      tex2 { constant rgb 0.56 0.1 0.7 }
+      f { crystal octaves 21 map { uv 200 200 0 0 } }
+   }
+   
    ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.2 }
+   rough { constant 0.005 }
 }
 
-shape { sphere radius 2.0 }
-
-#
-#
-#
-
-transform {
-   identity
-   translate 0.0 3.0 -2.5
-}
-
-material { plastic
-   kd { constant rgb 0.4 0.02 0.4 }
-   ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.05 }
-}
-
-shape { sphere radius 2.0 }
-
-
-#
-#
-#
-
-transform {
-   identity
-   translate 5.0 3.0 -2.5
-}
-
-material { plastic
-   kd { constant rgb 0.3 0.4 0.2 }
-   ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.0125 }
-}
-
-shape { sphere radius 2.0 }
-
-#
-# sphere 1
-#
-
-transform {
-   identity
-   translate -5.0 3.0 2.5
-}
-
-material { plastic
-   kd { constant rgb 0.1 0.2 0.4 }
-   ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.003125 }
-}
-
-shape { sphere radius 2.0 }
-
-#
-#
-#
-
-transform {
-   identity
-   translate 0.0 3.0 2.5
-}
-
-material { plastic
-   kd { constant rgb 0.3 0.15 0.01 }
-   ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.00078125 }
-}
-
-shape { sphere radius 2.0 }
-
-
-#
-#
-#
-
-transform {
-   identity
-   translate 5.0 3.0 2.5
-}
-
-material { plastic
-   kd { constant rgb 0.01 0.4 0.35 }
-   ks { constant rgb 0.5 0.5 0.5 }
-   rough { constant 0.000195312 }
-}
-
-shape { sphere radius 2.0 }
-
+shape { sphere radius 5 }
