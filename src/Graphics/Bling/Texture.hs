@@ -18,7 +18,6 @@ module Graphics.Bling.Texture (
    ) where
 
 import Data.Bits
-import Data.Fixed (divMod')
 import qualified Data.Vector.Unboxed as V
 
 import Graphics.Bling.DifferentialGeometry
@@ -149,10 +148,14 @@ quasiCrystal o t dg = combine (map wave (angles o)) (t dg) where
    
    combine :: [(Flt, Flt) -> Flt] -> ((Flt, Flt) -> Flt)
    combine xs = wrap . sum . sequence xs where
-      wrap n = case divMod' n 1 of
+      wrap n = case aux n of
          (k, v) | odd (k::Int) -> 1 - v
                 | otherwise    -> v
 
+      aux n = case properFraction n of
+         kv@(k, v) | v < 0     -> (k - 1, 1 + v)
+                   | otherwise -> kv
+   
    wave :: Flt -> (Flt, Flt) -> Flt
    wave th = f where
       (cth, sth) = (cos th, sin th)
