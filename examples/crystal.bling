@@ -9,14 +9,14 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 3 ySamples 3 }
+      sampler { stratified xSamples 8 ySamples 8 }
       integrator { path maxDepth 3 sampleDepth 3 }
    }
 }
 
 transform {
    lookAt {
-      pos 9 15 -9
+      pos 0 15 -12
       look 0 1 0
       up 0 1 0
    }
@@ -38,13 +38,13 @@ transform { identity }
 material {
    matte
    kd { blend
-      tex1 { constant rgb 0.9 0.56 0.1 }
-      tex2 { constant rgb 0.56 0.1 0.7 }
-      f { crystal octaves 7 map {
+      tex1 { constant rgb 0.9 0.9 0.9 }
+      tex2 { constant rgb 0.1 0.1 0.1 }
+      f { crystal octaves 17 map {
          planar
-         10 0 0
-         0 0 10
-         1 1
+         8 0 0
+         0 0 8
+         -32 0
          }
       }
    }
@@ -80,13 +80,13 @@ transform { identity }
 
 transform {
    identity
-   translate 0 5 0
+   translate -4 4 0
 }
 
-material { plastic
-   kd { constant rgb 0.01 0.01 0.01 }
-   ks { constant rgb 0.9 0.9 0.9 }
-   rough { crystal octaves 5 map { uv 100 100 0 0 } }
+material { glass
+   ior { constant 1.5 }
+   kr { constant rgb 1 1 1 }
+   kt { constant rgb 0.6 1 0.6 }
 }
 
-shape { sphere radius 5 }
+shape { sphere radius 4 }
