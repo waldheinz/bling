@@ -1,13 +1,10 @@
 
 module Graphics.Bling.Shape (
    Shape,
-
-   -- * Triangles and Meshes
-   Vertex(..), triangulate,
    
    -- * Creating shapes
    
-   mkCylinder, mkDisk, mkQuad, mkSphere, mkTriangle, mkBox,
+   mkBox, mkCylinder, mkDisk, mkQuad, mkSphere, 
 
    -- * Working with shapes
    
@@ -15,16 +12,11 @@ module Graphics.Bling.Shape (
    objectBounds, worldBounds, intersect, intersects
    ) where
 
-import Data.List (foldl')
 import Data.Maybe
 
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Montecarlo
 import Graphics.Bling.Random
-
-data Vertex = Vertex {
-   vertexPos :: {-# UNPACK #-} !Point
-   } deriving (Eq, Show)   
 
 data Shape
    = Box {-# UNPACK #-} !Point {-# UNPACK #-} !Point
@@ -41,8 +33,6 @@ data Shape
    | Sphere
       {-# UNPACK #-} !Flt
       -- radius
-   | Triangle
-      Vertex Vertex Vertex
       
    deriving (Eq, Show)
 
@@ -85,16 +75,6 @@ mkSphere
    :: Flt -- ^ the sphere radius
    -> Shape
 mkSphere = Sphere
-
-mkTriangle
-   :: (Vertex, Vertex, Vertex)
-   -> Shape
-mkTriangle (v1, v2, v3) = Triangle v1 v2 v3
-
-triangulate :: [[Vertex]] -> [Shape]
-triangulate vs = concatMap tr' vs where
-   tr' (v1:v2:v3:xs) = Triangle v1 v2 v3 : tr' (v1:v3:xs)
-   tr' _ = []
 
 intersect :: Shape -> Ray -> Maybe (Flt, DifferentialGeometry)
 
@@ -230,29 +210,6 @@ intersect (Sphere r) ray@(Ray ro rd tmin tmax)
       dndv = vpromote ((g*f' - f*g') * invEGF2) * dpdu +
              vpromote ((f*f' - g*e') * invEGF2) * dpdv
       
-intersect (Triangle v1 v2 v3) r@(Ray ro rd tmin tmax)
-   | divisor == 0 = Nothing
-   | b1 < 0 || b1 > 1 = Nothing
-   | b2 < 0 || b1 + b2 > 1 = Nothing
-   | t < tmin || t > tmax = Nothing
-   | otherwise = Just (t, mkDg' (rayAt r t) n)
-   where
-      (p1, p2, p3) = (vertexPos v1, vertexPos v2, vertexPos v3)
-      (e1, e2) = (p2 - p1, p3 - p1)
-      s1 = rd `cross` e2
-      divisor = dot s1 e1
-      invDiv = 1 / divisor
-      
-      -- first barycentric
-      b1 = dot d s1 * invDiv 
-      d = ro - p1
-
-      -- second barycentric
-      b2 = dot rd s2 * invDiv
-      s2 = cross d e1
-      t = dot e2 s2 * invDiv
-      n = normalize $ cross e1 e2
-      
 intersects :: Shape -> Ray -> Bool
 
 intersects (Box pmin pmax) r = isJust $ intersectAABB (mkAABB pmin pmax) r
@@ -310,39 +267,12 @@ intersects (Sphere rad) (Ray ro rd tmin tmax) = si where
    b = 2 * dot ro rd
    c = sqLen ro - (rad * rad)
    roots = solveQuadric a b c
-   
-intersects (Triangle v1 v2 v3) (Ray ro rd tmin tmax)
-   | divisor == 0 = False
-   | b1 < 0 || b1 > 1 = False
-   | b2 < 0 || b1 + b2 > 1 = False
-   | t < tmin || t > tmax = False
-   | otherwise = True
-   where
-      t = dot e2 s2 * invDiv
-      b2 = dot rd s2 * invDiv -- second barycentric
-      s2 = cross d e1
-      b1 = dot d s1 * invDiv -- first barycentric
-      d = ro - p1
-      invDiv = 1 / divisor
-      divisor = dot s1 e1
-      s1 = cross rd e2
-      e1 = p2 - p1
-      e2 = p3 - p1
-      p1 = vertexPos v1
-      p2 = vertexPos v2
-      p3 = vertexPos v3
 
 -- | computes the world-space bounds of a shape
 worldBounds :: Shape -- ^ the shape to get the world bounds for
             -> Transform -- ^ the transform placing the shape into world space
             -> AABB
 
--- for triangles, transform the vertices to world space and
--- compute the bounds of them
-worldBounds (Triangle v1 v2 v3) t = foldl' extendAABBP emptyAABB pl where
-      pl = map (transPoint t) pl'
-      pl' = [vertexPos v1, vertexPos v2, vertexPos v3]
-      
 -- otherwise just transform the object bounds to world space
 worldBounds s t = transBox t (objectBounds s)
 
@@ -368,9 +298,6 @@ objectBounds (Quad sx sy) = mkAABB (mkPoint' (-sx) (-sy) 0) (mkPoint' sx sy 0)
 objectBounds (Sphere r) = mkAABB (mkPoint' nr nr nr) (mkPoint' r r r) where
    nr = -r
 
-objectBounds (Triangle v1 v2 v3) = foldl' extendAABBP emptyAABB pl where
-   pl = [vertexPos v1, vertexPos v2, vertexPos v3]
-
 -- | computes the surface area of a @Shape@
 area
    :: Shape -- ^ the @Shape@ to get the surface area for
@@ -387,10 +314,6 @@ area (Disk _ rmax rmin _) = pi * (rmax2 - rmin2) where
    rmax2 = rmax * rmax
 area (Quad sx sz) = 2 * sx * sz
 area (Sphere r) = r * r * 4 * pi
-area (Triangle v1 v2 v3) = 0.5 * len ((p2 - p1) `cross` (p3 - p1)) where
-      p1 = vertexPos v1
-      p2 = vertexPos v2
-      p3 = vertexPos v3
       
 insideSphere :: Flt -> Point -> Bool
 insideSphere r pt = sqLen pt - r * r < 1e-4
@@ -462,9 +385,3 @@ sample' (Quad sx sy) (u1, u2) = (p, mkV (0, 0, -1)) where
    
 sample' (Sphere r) us = (p * vpromote r, p) where
    p = uniformSampleSphere us 
-
-sample' (Triangle v1 v2 v3) us = (p, n) where
-   (p1, p2, p3) = (vertexPos v1, vertexPos v2, vertexPos v3)
-   (b1, b2) = uniformSampleTriangle us
-   p = p1 * vpromote b1 + p2 * vpromote b2 + p3 * vpromote (1 - b1 - b2)
-   n = normalize $ (p2 - p1) `cross` (p3 - p1)

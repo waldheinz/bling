@@ -1,13 +1,15 @@
 
-module Graphics.Bling.IO.ShapeParser (
+module Graphics.Bling.IO.PrimitiveParser (
    
    pShape, pPrimitive, pGeometry
    
    ) where
 
-import qualified Data.Vector as V
+import qualified Data.Vector.Unboxed as V
 
+import Graphics.Bling.Math
 import Graphics.Bling.Primitive
+import Graphics.Bling.Primitive.TriangleMesh
 import Graphics.Bling.Shape
 import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.WaveFront
@@ -41,6 +43,8 @@ pPrimitive = pBlock $ do
          level <- ws >> namedInt "level"
          s <- getState
          return $ mkAnyPrim $ mkMengerSponge shape (material s) level (transform s)
+         
+      "mesh" -> fmap mkAnyPrim pMesh
          
       "shape" -> do
          shp <- ws >> pShape
@@ -135,8 +139,6 @@ pGeometry = pBlock $ do
          r <- ws >> namedFloat "radius"
          return [mkSphere r]
          
-      "mesh" -> pMesh
-      
       _ -> fail $ "unknown shape type \"" ++ t ++ "\""
    
    s <- getState
@@ -155,27 +157,26 @@ pBezierPatch = (flip namedBlock) "p" $ do
         (Right p) -> return p
         (Left err) -> fail $ "error parsing bezier patch: " ++ err
 
-pMesh :: JobParser [Shape]
+pMesh :: JobParser TriangleMesh
 pMesh = do
    vc <- ws >> (namedInt "vertexCount" <|> fail "vertexCount missing")
    fc <- ws >> (namedInt "faceCount"  <|> fail "faceCount missing")
-   vertices <- count vc vertex
-   let va = V.fromList vertices
-   faces <- (count fc (face va) <|> fail "error parsing faces")
-   return (triangulate faces)
    
-face :: (V.Vector Vertex) -> JobParser [Vertex]
-face vs = do
+   vs <- count vc vertex
+   fs <- fmap concat $ count fc face
+   
+   t <- currentTransform
+   m <- currentMaterial
+   
+   return $ mkTriangleMesh t m (V.fromList vs) (V.fromList fs) Nothing Nothing 
+   
+face :: JobParser [Int]
+face = do
    _ <- ws >> char 'f'
-   many1 $ try $ do
-      idx <- ws >> integ
-      if idx >= V.length vs
-         then fail $ "vertex index " ++ show idx ++ " out of bounds (" ++ show (V.length vs - 1) ++ ")"
-         else return $ V.unsafeIndex vs idx
+   count 3 (ws >> integ)
 
-vertex :: JobParser Vertex
+vertex :: JobParser Point
 vertex = do
    _ <- ws >> char 'v'
-   v <- ws >> pVec
-   return (Vertex v)
+   ws >> pVec
    

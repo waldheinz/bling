@@ -4,13 +4,16 @@ module Graphics.Bling.IO.ParserCore (
       
    -- * Data Types
 
-   JobParser, PState(..), nextId,
+   JobParser, PState(..), 
    
    -- * Core Parsing Primitives
    
    flt, ws, pVec, pSpectrum, pBlock, namedBlock, namedInt, namedFloat,
    namedVector, namedSpectrum, integ, pString, pQString,
 
+   -- * State Handling
+   currentTransform, currentMaterial, nextId,
+   
    -- * Reading External Resources
 
    readFileBS, readFileString
@@ -51,12 +54,28 @@ data PState = PState {
    basePath :: FilePath
    }
 
+--------------------------------------------------------------------------------
+-- State Handling
+--------------------------------------------------------------------------------
+
+-- | Returns the currently active @Transform@.
+currentTransform :: JobParser Transform
+currentTransform = fmap transform getState
+
+-- | Returns the currently active @Material@.
+currentMaterial :: JobParser Material
+currentMaterial = fmap material getState
+
 nextId :: JobParser Int
 nextId = do
    s <- getState
    let nid = currId s
    setState s { currId = nid + 1 }
    return nid
+
+--------------------------------------------------------------------------------
+-- Parsing Utilities
+--------------------------------------------------------------------------------
 
 pString :: JobParser String
 pString = many1 alphaNum

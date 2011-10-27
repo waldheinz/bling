@@ -54,7 +54,7 @@ data Triangle = Tri {-# UNPACK #-} !Int ! TriangleMesh
 
 mkTri :: TriangleMesh -> Int -> Triangle
 mkTri mesh n
-   | V.length (mvidx mesh) <= (n*3+2) = error "this triangle should not exist"
+   | V.length (mvidx mesh) <= (n*3+2) = error "this triangle does not exist"
    | otherwise = Tri (n*3) mesh
 
 triOffsets :: Triangle -> (Int, Int, Int)

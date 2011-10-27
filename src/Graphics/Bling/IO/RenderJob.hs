@@ -14,8 +14,8 @@ import Graphics.Bling.IO.CameraParser
 import Graphics.Bling.IO.LightParser
 import Graphics.Bling.IO.MaterialParser
 import Graphics.Bling.IO.ParserCore
+import Graphics.Bling.IO.PrimitiveParser
 import Graphics.Bling.IO.RendererParser
-import Graphics.Bling.IO.ShapeParser
 import Graphics.Bling.IO.TransformParser
 
 startState :: FilePath -> PState

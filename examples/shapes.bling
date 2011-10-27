@@ -45,15 +45,16 @@ material {
    sigma { constant 0 }
 }
 
-shape {
+prim {
    mesh
    vertexCount 4
-   faceCount 1
+   faceCount 2
    v  50.0 0.0 -50.0
    v -50.0 0.0 -50.0
    v -50.0 0.0  50.0
    v  50.0 0.0  50.0
-   f 3 2 1 0
+   f 3 2 1
+   f 3 1 0
 }
 
 #

@@ -8,7 +8,7 @@ module Graphics.Bling.Primitive (
 
    -- * Primitives
 
-   Primitive(..), Geometry, mkGeom, mkMesh, nearest, nearest',
+   Primitive(..), Geometry, mkGeom, nearest, nearest',
    AnyPrim(..), mkAnyPrim
    
    ) where
@@ -91,15 +91,6 @@ mkGeom
    -> Int
    -> Geometry
 mkGeom t ro m e s gid = MkGeometry gid t (inverse t) ro s m e
-
-mkMesh
-   :: Material
-   -> Maybe Spectrum
-   -> Transform
-   -> [[S.Vertex]]
-   -> Int -- ^ geometry id
-   -> [Geometry]
-mkMesh m e t vs gid = map (\s -> mkGeom t False m e s gid) (S.triangulate vs)
 
 instance Primitive Geometry where
    flatten g = [MkAnyPrim g]
