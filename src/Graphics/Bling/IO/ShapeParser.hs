@@ -22,32 +22,38 @@ pPrimitive :: JobParser AnyPrim
 pPrimitive = pBlock $ do
    t <- pString
    p <- case t of
-             "bezier" -> do
-                subdivs <- ws >> namedInt "subdivs"
-                patches <- many1 (try pBezierPatch)
-                optional ws
-                s <- getState
-                return $ mkAnyPrim $ tesselateBezier subdivs patches (transform s) (material s)
+      "bezier" -> do
+         subdivs <- ws >> namedInt "subdivs"
+         patches <- many1 (try pBezierPatch)
+         optional ws
+         s <- getState
+         return $ mkAnyPrim $ tesselateBezier subdivs patches (transform s) (material s)
                 
-             "julia" -> do
-                c <- ws >> pNamedQuat "c"
-                e <- ws >> namedFloat "epsilon"
-                i <- ws >> namedInt "iterations"
-                s <- getState
-                return $ mkAnyPrim $ mkFractalPrim (mkJuliaQuat c e i) (material s)
+      "julia" -> do
+         c <- ws >> pNamedQuat "c"
+         e <- ws >> namedFloat "epsilon"
+         i <- ws >> namedInt "iterations"
+         s <- getState
+         return $ mkAnyPrim $ mkFractalPrim (mkJuliaQuat c e i) (material s)
                 
-             "menger" -> do
-                shape <- ws >> pShape
-                level <- ws >> namedInt "level"
-                s <- getState
-                return $ mkAnyPrim $ mkMengerSponge shape (material s) level (transform s)
+      "menger" -> do
+         shape <- ws >> pShape
+         level <- ws >> namedInt "level"
+         s <- getState
+         return $ mkAnyPrim $ mkMengerSponge shape (material s) level (transform s)
+         
+      "shape" -> do
+         shp <- ws >> pShape
+         s <- getState
+         sid <- nextId
+         return $ mkAnyPrim $ mkGeom (transform s) False (material s) (emit s) shp sid
+         
+      "waveFront" -> do
+         fname <- ws >> pQString
+         m <- parseWaveFront fname
+         return $ mkAnyPrim m
 
-             "waveFront" -> do
-                fname <- ws >> pQString
-                m <- parseWaveFront fname
-                return $ mkAnyPrim m
-                
-             _ -> fail $ "unknown fractal type " ++ t
+      _ -> fail $ "unknown fractal type " ++ t
 
    return $ p
 
@@ -90,6 +96,11 @@ pShape = pBlock $ do
          phiMax <- ws >> namedFloat "phiMax"
          return $ mkDisk h r ri phiMax
 
+      "quad" -> do
+         sx <- ws >> flt
+         sz <- ws >> flt
+         return $ mkQuad sx sz
+         
       "sphere" -> do
          r <- ws >> namedFloat "radius"
          return $ mkSphere r

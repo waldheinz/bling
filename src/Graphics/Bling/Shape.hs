@@ -7,7 +7,7 @@ module Graphics.Bling.Shape (
    
    -- * Creating shapes
    
-   mkCylinder, mkDisk, mkSphere, mkTriangle, mkBox,
+   mkCylinder, mkDisk, mkQuad, mkSphere, mkTriangle, mkBox,
 
    -- * Working with shapes
    
@@ -28,15 +28,19 @@ data Vertex = Vertex {
 
 data Shape
    = Box {-# UNPACK #-} !Point {-# UNPACK #-} !Point
-      -- ^ a box with it's minimum and maximum extent
+      -- minimum and maximum extent
    | Cylinder
-      {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt
-       -- ^ radius zmin zmax phimax
+      {-# UNPACK #-} ! Flt {-# UNPACK #-} ! Flt {-# UNPACK #-} ! Flt {-# UNPACK #-} ! Flt
+      -- radius zmin zmax phimax
    | Disk
-      {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt {-# UNPACK #-}!Flt
-      -- ^ height, radius, inner radius, phimax
+      {-# UNPACK #-} ! Flt {-# UNPACK #-} ! Flt {-# UNPACK #-} ! Flt {-# UNPACK #-} ! Flt
+      -- height, radius, inner radius, phimax
+   | Quad
+      {-# UNPACK #-} ! Flt {-# UNPACK #-} ! Flt
+      -- size in the (x,y) plane
    | Sphere
-      {-# UNPACK #-} !Flt -- ^ radius
+      {-# UNPACK #-} !Flt
+      -- radius
    | Triangle
       Vertex Vertex Vertex
       
@@ -60,9 +64,9 @@ mkCylinder r z0 z1 phimax = Cylinder r zmin zmax pm where
    zmax = max z0 z1
    pm = radians $ clamp phimax 0 360
 
--- | a disk parallel to the xz - plane
+-- | a disk parallel to the xy - plane
 mkDisk
-   :: Flt -- ^ offset from xz - plane (aka height)
+   :: Flt -- ^ offset from xy - plane (aka height)
    -> Flt -- ^ outer radius
    -> Flt -- ^ inner radius
    -> Flt -- ^ maximum phi angle in [degrees]
@@ -71,6 +75,10 @@ mkDisk h r0 r1 mp = Disk h ro ri mp' where
    ro = max r0 r1
    ri = min r0 r1
    mp' = radians $ clamp mp 0 360
+
+-- | creates a quad with the specified origin and size in the (x,y) plane
+mkQuad :: Flt -> Flt-> Shape
+mkQuad = Quad
 
 -- | creates a sphere around the origin
 mkSphere
@@ -90,7 +98,8 @@ triangulate vs = concatMap tr' vs where
 
 intersect :: Shape -> Ray -> Maybe (Flt, DifferentialGeometry)
 
-intersect (Box pmin pmax) ray@(Ray o d tmin tmax) = testSlabs allDimensions tmin tmax 0 >>= go where
+intersect (Box pmin pmax) ray@(Ray o d tmin tmax) =
+      testSlabs allDimensions tmin tmax 0 >>= go where
    
    go (t, axis) = Just (t, mkDg' p n) where
       p = rayAt ray t
@@ -154,6 +163,15 @@ intersect (Disk h rad irad phimax) ray@(Ray ro rd tmin tmax)
       d2 = px * px + py * py
       phi = atan2' py px
       n = mkV (0, 0, -1)
+
+intersect (Quad sx sz) ray@(Ray ro rd tmin tmax)
+   | abs (vz rd) < 1e-7 = Nothing -- ray parallel to quad
+   | t < tmin || t > tmax = Nothing -- ray parametric distance
+   | abs (vx p) > sx || abs (vy p) > sz = Nothing -- not inside extent
+   | otherwise = Just (t, mkDg' p (mkV (0, 0, -1)))
+   where
+      t = -(vz ro) / vz rd
+      p = rayAt ray t
 
 intersect (Sphere r) ray@(Ray ro rd tmin tmax)
    | isNothing times = Nothing
@@ -273,6 +291,15 @@ intersects (Disk h rad irad phimax) ray@(Ray ro rd tmin tmax)
       d2 = px * px + py * py
       phi = atan2' py px
 
+intersects (Quad sx sy) ray@(Ray ro rd tmin tmax)
+   | abs (vz rd) < 1e-7 = False -- ray parallel to quad
+   | t < tmin || t > tmax = False -- ray parametric distance
+   | abs (vx p) > sx || abs (vy p) > sy = False -- not inside extent
+   | otherwise = True
+   where
+      t = -(vz ro) / vz rd
+      p = rayAt ray t
+
 intersects (Sphere rad) (Ray ro rd tmin tmax) = si where
    si = maybe False cb roots
    cb (t0, t1) -- check with ray bounds
@@ -336,6 +363,8 @@ objectBounds (Disk h r _ _) = mkAABB p1 p2 where
    p2 = mkPoint' r r h
    nr = -r
 
+objectBounds (Quad sx sy) = mkAABB (mkPoint' (-sx) (-sy) 0) (mkPoint' sx sy 0)
+
 objectBounds (Sphere r) = mkAABB (mkPoint' nr nr nr) (mkPoint' r r r) where
    nr = -r
 
@@ -356,6 +385,7 @@ area (Cylinder r z0 z1 _) = 2 * pi * r * h where
 area (Disk _ rmax rmin _) = pi * (rmax2 - rmin2) where
    rmin2 = rmin * rmin
    rmax2 = rmax * rmax
+area (Quad sx sz) = 2 * sx * sz
 area (Sphere r) = r * r * 4 * pi
 area (Triangle v1 v2 v3) = 0.5 * len ((p2 - p1) `cross` (p3 - p1)) where
       p1 = vertexPos v1
@@ -422,11 +452,13 @@ sample' (Cylinder r z0 z1 _) (u1, u2) = (p, n) where
    phi = lerp u2 0 twoPi
    n = normalize $ mkV (vx p, vy p, 0)
 
-sample' (Disk h rmax rmin phiMax) (u1, u2) = (p, n) where
+sample' (Disk h rmax rmin phiMax) (u1, u2) = (p, mkV (0, 0, -1)) where
    p = mkPoint' (r * cos phi) (r * sin phi) h
    r = lerp u1 rmin rmax
    phi = lerp u2 0 phiMax
-   n = mkV (0, 0, -1)
+
+sample' (Quad sx sy) (u1, u2) = (p, mkV (0, 0, -1)) where
+   p = mkPoint (lerp u1 (-sx) sx, lerp u2 (-sy) sy, 0)
    
 sample' (Sphere r) us = (p * vpromote r, p) where
    p = uniformSampleSphere us 
