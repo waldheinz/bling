@@ -123,6 +123,49 @@ tracePhoton scene sh img ps = {-# SCC "tracePhoton" #-} do
    when ((pdf > 0) && not (isBlack li)) $
       nextVertex scene sh wi (scene `intersect` ray) ls 0 img ps
 
+
+nextVertex :: Scene -> SpatialHash -> Vector ->
+   Maybe Intersection -> Spectrum -> Int ->
+   MImage s -> PixelStats s -> Sampled s ()
+
+nextVertex _ _ _ Nothing _ _ _ _ = return ()
+nextVertex scene sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} do
+
+   -- add contribution for this photon hit
+   let
+      bsdf = intBsdf int
+      p = bsdfShadingPoint bsdf
+      n = bsdfShadingNormal bsdf
+
+   when (bsdfHasNonSpecular bsdf) $ liftSampled $ hashLookup sh p n ps $ \hit -> {-# SCC "contrib" #-} do
+      stats <- slup ps hit
+      let
+         nn = lsN stats
+         ratio = (nn + alpha) / (nn + 1)
+         r2 = lsR2 stats
+         r2' = r2 * ratio
+         f = evalBsdf True (hpBsdf hit) (hpW hit) wi
+         n = bsdfShadingNormal $ hpBsdf hit
+         nn' = nn + alpha
+         (px, py) = hpPixel hit
+
+      addContrib img (True,
+         ImageSample px py (wi `absDot` n / (r2 * pi), hpF hit * f * li))
+      sUpdate ps hit (r2', nn')
+
+   -- follow the path
+   ubc <- rnd' $ 1 + d * 2
+   ubd <- rnd2D' $ 2 + d
+   let
+      (BsdfSample _ spdf f wo) = sampleAdjBsdf bsdf wi ubc ubd
+      pcont = if d > 4 then 0.8 else 1
+      li' = sScale (f * li) (absDot wo n / (spdf * pcont))
+      ray = Ray p wo epsilon infinity
+
+   unless (spdf == 0 || isBlack li') $
+      rnd' (2 + d * 2) >>= \x -> unless (x > pcont) $
+         nextVertex scene sh (-wo) (scene `intersect` ray) li' (d+1) img ps
+
 data PixelStats s = PS (UMV.MVector s Stats) SampleWindow
 
 mkPixelStats :: SampleWindow -> Flt -> ST s (PixelStats s)
@@ -144,47 +187,6 @@ slup ps@(PS v _) hit = UMV.read v (sIdx ps hit)
 sUpdate :: PixelStats s -> HitPoint -> Stats -> ST s ()
 {-# INLINE sUpdate #-}
 sUpdate ps@(PS v _) hit = UMV.write v (sIdx ps hit)
-
-nextVertex :: Scene -> SpatialHash -> Vector ->
-   Maybe Intersection -> Spectrum -> Int ->
-   MImage s -> PixelStats s -> Sampled s ()
-   
-nextVertex _ _ _ Nothing _ _ _ _ = return ()
-nextVertex scene sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} do
-   
-   -- add contribution for this photon hit
-   let
-      bsdf = intBsdf int
-      p = bsdfShadingPoint bsdf
-      n = bsdfShadingNormal bsdf
-      
-   when (bsdfHasNonSpecular bsdf) $ liftSampled $ hashLookup sh p n ps $ \hit -> {-# SCC "contrib" #-} do
-      stats <- slup ps hit
-      let
-         nn = lsN stats
-         ratio = (nn + alpha) / (nn + 1)
-         r2 = lsR2 stats
-         r2' = r2 * ratio
-         f = evalBsdf True (hpBsdf hit) (hpW hit) wi
-         flux = sScale (li * f) ratio
-         nn' = nn + alpha
-         (px, py) = hpPixel hit
-      
-      addContrib img (True, ImageSample px py (1 / r2, hpF hit * flux))
-      sUpdate ps hit (r2', nn')
-      
-   -- follow the path
-   ubc <- rnd' $ 1 + d * 2
-   ubd <- rnd2D' $ 2 + d
-   let
-      (BsdfSample _ spdf f wo) = sampleAdjBsdf bsdf wi ubc ubd
-      pcont = if d > 4 then 0.8 else 1
-      li' = sScale (f * li) (absDot wo n / (spdf * pcont))
-      ray = Ray p wo epsilon infinity
-      
-   unless (spdf == 0 || isBlack li') $
-      rnd' (2 + d * 2) >>= \x -> unless (x > pcont) $
-         nextVertex scene sh (-wo) (scene `intersect` ray) li' (d+1) img ps
 
 data SpatialHash = SH
    { shBounds  :: {-# UNPACK #-} ! AABB

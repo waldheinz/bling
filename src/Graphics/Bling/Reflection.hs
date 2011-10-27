@@ -387,7 +387,6 @@ sampleBsdf'' adj flags bsdf@(Bsdf bs cs _ ng) woW uComp uDir
       ns = bsdfShadingNormal bsdf
       ff = if adj then abs (ns `dot` woW / ng `dot` woW) else 1
 
-      
 evalBsdf :: Bool -> Bsdf -> Vector -> Vector -> Spectrum
 evalBsdf adj bsdf@(Bsdf bxdfs cs _ ng) woW wiW
    | sideTest == 0 = black
