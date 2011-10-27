@@ -7,7 +7,7 @@ filter mitchell 3.0 3.0 0.333333 0.333333
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 4 ySamples 4 }
+      sampler { stratified xSamples 1 ySamples 1 }
       integrator { path maxDepth 7 sampleDepth 4 }
    }
 }
@@ -19,9 +19,9 @@ renderer {
 # renderer { sampler sampled { sampler { random samples 16 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
-# renderer { sampler sampled { sampler { random samples 128 } integrator { debug reference } } }
+# renderer { sampler sampled { sampler { random samples 32 } integrator { debug reference } } }
 
-renderer { sppm photonCount 10000 radius 50 }
+# renderer { sppm photonCount 10000 radius 50 }
 
 imageSize 480 480
 imageSize 240 240
@@ -73,7 +73,7 @@ material {
 # floor
 #
 
-shape {
+prim {
    mesh
    vertexCount 4
    faceCount 1
@@ -88,7 +88,7 @@ shape {
 # ceiling
 #
 
-shape {
+prim {
    mesh
    vertexCount 4
    faceCount 1
@@ -103,7 +103,7 @@ shape {
 # back wall
 #
 
-shape {
+prim {
    mesh
    vertexCount 4
    faceCount 1
@@ -120,7 +120,7 @@ shape {
 
 # material { glass ior 1.5 r { constant spd { 1 0.95 } } }
 
-shape {
+prim {
    mesh
    vertexCount 20
    faceCount 5
@@ -158,7 +158,7 @@ shape {
 #material { mirror spd { 1 0.95 } }
 #material { glass ior 1.5 r { constant spd { 1 0.95 } } }
 
-shape {
+prim {
    mesh
    vertexCount 20
    faceCount 5
@@ -213,7 +213,7 @@ material {
    sigma { constant 0 }
 }
 
-shape {
+prim {
    mesh
    vertexCount 4
    faceCount 1
@@ -248,7 +248,7 @@ material {
    sigma { constant 0 }
 }
 
-shape {
+prim {
    mesh
    vertexCount 4
    faceCount 1
@@ -273,13 +273,6 @@ emission {
    spd { 400.0 0.0, 500.0 8.0, 600.0 15.6, 700.0 18.4 }
 }
 
-shape {
-   mesh
-   vertexCount 4
-   faceCount 1
-   v 343.0 548.7 227.0
-   v 343.0 548.7 332.0
-   v 213.0 548.7 332.0
-   v 213.0 548.7 227.0
-   f 0 1 2 3
-}
+transform { identity rotateX -90 translate 278 548.7 279.5  }
+prim { shape { quad 65 52.2 } }
+# prim { shape { disk height 0 radius 150 innerRadius 80 phiMax 360 } }

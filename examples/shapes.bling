@@ -45,29 +45,21 @@ material {
    sigma { constant 0 }
 }
 
-prim {
-   mesh
-   vertexCount 4
-   faceCount 2
-   v  50.0 0.0 -50.0
-   v -50.0 0.0 -50.0
-   v -50.0 0.0  50.0
-   v  50.0 0.0  50.0
-   f 3 2 1
-   f 3 1 0
-}
+transform { rotateX 90 }
+prim { shape { quad 50 50 } }
 
 #
 # light source
 #
 
-emission {
-   rgb 12 12 12
-}
-
+emission { rgb 12 12 12 }
 transform { identity rotateX -90 translate 0 15 0  }
 prim { shape { quad 3 3 } }
 emission { none }
+
+#
+# the shapes
+#
 
 transform { identity translate -3 3 3 }
 prim { shape { sphere radius 1 } }

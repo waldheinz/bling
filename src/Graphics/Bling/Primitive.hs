@@ -125,7 +125,7 @@ nearest' :: (Primitive a, V.Vector v a)
 nearest' ps x = V.foldl' near x ps
 
 --
--- Intersections TODO: strictness here? :TODO
+-- Intersections
 --
 
 data Intersection = Intersection {
@@ -143,8 +143,8 @@ intBsdf int = {-# SCC "intBsdf" #-} intMaterial int dgg dgs where
 -- | the light emitted at an @Intersection@
 intLe
    :: Intersection -- ^ the intersection to query for the emitted light
-   -> Normal -- ^ the outgoing direction
-   -> Spectrum -- ^ the resulting spectrum
+   -> Vector       -- ^ the outgoing direction (must be normalized)
+   -> Spectrum     -- ^ the resulting spectrum
 {-# INLINE intLe #-}
 intLe (Intersection _ dg prim _) wo =
    maybe black (\l -> L.lEmit l p n wo) (light prim) where

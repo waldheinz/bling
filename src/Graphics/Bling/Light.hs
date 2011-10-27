@@ -35,11 +35,11 @@ data Light
    | Directional !Spectrum !Normal
    | PointLight !Spectrum !Point
    | AreaLight {
-      _alId :: !Int,
-      _alShape :: !S.Shape,
-      _areaRadiance :: !Spectrum,
-      _l2w :: !Transform, -- ^ the light-to-world transformation
-      _w2l :: !Transform -- ^ the world-to-light transformation
+      _alId          :: !Int,
+      _alShape       :: !S.Shape,
+      _areaRadiance  :: !Spectrum,
+      _l2w           :: !Transform, -- ^ light-to-world
+      _w2l           :: !Transform  -- ^ world-to-light
       }
       
 -- two lights are considered equal if they have the same id

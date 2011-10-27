@@ -7,7 +7,6 @@ module Graphics.Bling.IO.PrimitiveParser (
 
 import qualified Data.Vector.Unboxed as V
 
-import Graphics.Bling.Math
 import Graphics.Bling.Primitive
 import Graphics.Bling.Primitive.TriangleMesh
 import Graphics.Bling.Shape
@@ -125,21 +124,16 @@ pMesh = do
    vc <- ws >> (namedInt "vertexCount" <|> fail "vertexCount missing")
    fc <- ws >> (namedInt "faceCount"  <|> fail "faceCount missing")
    
-   vs <- count vc vertex
-   fs <- fmap concat $ count fc face
+   vs <- count vc $ do
+      _ <- ws >> char 'v'
+      ws >> pVec
+
+   fs <- fmap triangulate $ count fc $ do
+      _ <- ws >> char 'f'
+      many1 (try (ws >> integ))
    
    t <- currentTransform
    m <- currentMaterial
    
    return $ mkTriangleMesh t m (V.fromList vs) (V.fromList fs) Nothing Nothing 
-   
-face :: JobParser [Int]
-face = do
-   _ <- ws >> char 'f'
-   count 3 (ws >> integ)
-
-vertex :: JobParser Point
-vertex = do
-   _ <- ws >> char 'v'
-   ws >> pVec
    

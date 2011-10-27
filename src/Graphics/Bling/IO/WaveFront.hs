@@ -7,7 +7,6 @@ import Graphics.Bling.Transform
 import Graphics.Bling.IO.ParserCore hiding (space)
 import Graphics.Bling.Primitive.TriangleMesh
 
-import Data.List (tails)
 import qualified Data.Vector.Unboxed as V
 import Text.Parsec.String
 
@@ -37,14 +36,6 @@ waveFrontParser = do
    let vs' = V.fromList $ triangulate fs
 
    return (ps', vs')
-
-triangulate :: [Face] -> [Int]
-triangulate = concatMap go where
-   go [] = []
-   go (f0:fs) = concatMap (f0:) $
-                        map (take 2) $
-                        takeWhile (\x -> length x >= 2) $
-                        tails fs
 
 line :: WFParser ()
 line = pUV <|> vertex <|> face <|> ignore

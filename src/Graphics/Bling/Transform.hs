@@ -28,24 +28,6 @@ data Matrix = MkMatrix {
    m30 :: {-# UNPACK #-} !Flt, m31 :: {-# UNPACK #-} !Flt, m32 :: {-# UNPACK #-} !Flt, m33 :: {-# UNPACK #-} !Flt
    } deriving (Eq)
 
-{-# INLINE m00 #-}
-{-# INLINE m01 #-}
-{-# INLINE m02 #-}
-{-# INLINE m03 #-}
-{-# INLINE m10 #-}
-{-# INLINE m11 #-}
-{-# INLINE m12 #-}
-{-# INLINE m13 #-}
-{-# INLINE m20 #-}
-{-# INLINE m21 #-}
-{-# INLINE m22 #-}
-{-# INLINE m23 #-}
-{-# INLINE m30 #-}
-{-# INLINE m31 #-}
-{-# INLINE m32 #-}
-{-# INLINE m33 #-}
-
-
 toList :: Matrix -> [[Flt]]
 toList m = [
    [m00 m, m01 m, m02 m, m03 m],
@@ -93,8 +75,8 @@ instance Show Matrix where
 
 -- | An affine transformation
 data Transform = MkTransform {
-   _matrix :: Matrix,
-   _inverted :: Matrix
+   _matrix     :: ! Matrix,
+   _inverted   :: ! Matrix
    } deriving (Eq)
 
 instance Show Transform where
@@ -233,7 +215,7 @@ transVector (MkTransform m _) (Vector x y z) = Vector xp yp zp where
 -- | Applies a @Transform@ to a @Normal@
 transNormal :: Transform -> Normal -> Normal
 {-# INLINE transNormal #-}
-transNormal (MkTransform m _) (Vector x y z) = mkNormal xp yp zp where
+transNormal (MkTransform _ m) (Vector x y z) = mkNormal xp yp zp where
    xp = m00 m * x + m10 m * y + m20 m * z
    yp = m01 m * x + m11 m * y + m21 m * z
    zp = m02 m * x + m12 m * y + m22 m * z

@@ -1,11 +1,11 @@
 
 module Graphics.Bling.Primitive.TriangleMesh (
 
-   TriangleMesh, mkTriangleMesh
+   TriangleMesh, mkTriangleMesh, triangulate
    
    ) where
 
-import Data.List (foldl')
+import Data.List (foldl', tails)
 import Data.Maybe (fromJust, isNothing)
 import qualified Data.Vector.Unboxed as V
 
@@ -36,7 +36,15 @@ mkTriangleMesh o2w mat p i n uv
    | otherwise = Mesh i p' n uv mat
    where
       p' = V.map (transPoint o2w) p
-   
+
+triangulate :: [[Int]] -> [Int]
+triangulate = concatMap go where
+   go [] = []
+   go (f0:fs) = concatMap (f0:) $
+                        map (take 2) $
+                        takeWhile (\x -> length x >= 2) $
+                        tails fs
+
 instance Primitive TriangleMesh where
    flatten mesh = map mkAnyPrim $ map (mkTri mesh) is where
       is = [0..((V.length $ mvidx mesh) `div` 3 - 1)]

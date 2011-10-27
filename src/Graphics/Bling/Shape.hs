@@ -289,14 +289,12 @@ objectBounds (Cylinder r z0 z1 _) = mkAABB p1 p2 where
    nr = -r
 
 objectBounds (Disk h r _ _) = mkAABB p1 p2 where
-   p1 = mkPoint' nr nr h
+   p1 = mkPoint' (-r) (-r) h
    p2 = mkPoint' r r h
-   nr = -r
 
 objectBounds (Quad sx sy) = mkAABB (mkPoint' (-sx) (-sy) 0) (mkPoint' sx sy 0)
 
-objectBounds (Sphere r) = mkAABB (mkPoint' nr nr nr) (mkPoint' r r r) where
-   nr = -r
+objectBounds (Sphere r) = mkAABB (mkPoint' (-r) (-r) (-r)) (mkPoint' r r r)
 
 -- | computes the surface area of a @Shape@
 area
@@ -312,9 +310,9 @@ area (Cylinder r z0 z1 _) = 2 * pi * r * h where
 area (Disk _ rmax rmin _) = pi * (rmax2 - rmin2) where
    rmin2 = rmin * rmin
    rmax2 = rmax * rmax
-area (Quad sx sz) = 2 * sx * sz
+area (Quad sx sz) = 4 * sx * sz
 area (Sphere r) = r * r * 4 * pi
-      
+
 insideSphere :: Flt -> Point -> Bool
 insideSphere r pt = sqLen pt - r * r < 1e-4
 
