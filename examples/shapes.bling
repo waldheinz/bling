@@ -70,16 +70,16 @@ prim { shape { quad 3 3 } }
 emission { none }
 
 transform { identity translate -3 3 3 }
-shape { sphere radius 1 }
+prim { shape { sphere radius 1 } }
 
 transform { translate 3 0 0 }
-shape { cylinder radius 1 zmin -1 zmax 1 phiMax 360 }
+prim { shape { cylinder radius 1 zmin -1 zmax 1 phiMax 360 } }
 
 transform { translate 3 0 0 }
-shape { disk height 0 radius 1 innerRadius 0.5 phiMax 360 }
+prim { shape { disk height 0 radius 1 innerRadius 0.5 phiMax 360 } }
 
 transform { identity translate -1.5 3 -3 }
-shape { box pmin -1 -1 -1 pmax 1 1 1 }
+prim { shape { box pmin -1 -1 -1 pmax 1 1 1 } }
 
 transform { translate 3 0 0 }
 prim { shape { quad 1 1 } }

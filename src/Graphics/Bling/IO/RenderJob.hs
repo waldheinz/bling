@@ -48,7 +48,6 @@ object = do
    ws
    
    case objName of
-        "shape" -> pGeometry
         "filter" -> pFilter
         "prim" -> do -- a top-level primitive
             p <- pPrimitive
@@ -62,20 +61,7 @@ object = do
         "material" -> pMaterial
         "emission" -> pEmission
         _ -> fail $ "unknwon object type " ++ objName
-{- 
-object = 
-       do try pShape
-      <|> try pRenderer
-      <|> try pCamera
-      <|> pFilter
-      <|> try pSize
-      <|> try pEmission
-      <|> try pLight
-      <|> pMaterial
-      <|> pTransform
-      <|> pFractal
-      <|> ws
-      -}
+
 --  | parses the image size
 pSize :: JobParser ()
 pSize = do

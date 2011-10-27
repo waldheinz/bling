@@ -1,7 +1,7 @@
 
 module Graphics.Bling.IO.PrimitiveParser (
    
-   pShape, pPrimitive, pGeometry
+   pShape, pPrimitive
    
    ) where
 
@@ -111,43 +111,6 @@ pShape = pBlock $ do
 
       _ -> fail $ "unknown shape type " ++ t
       
-pGeometry :: JobParser ()
-pGeometry = pBlock $ do
-   t <- many alphaNum
-   
-   sh <- case t of
-      "box" -> do
-         pmin <- ws >> namedVector "pmin"
-         pmax <- ws >> namedVector "pmax"
-         return [mkBox pmin pmax]
-         
-      "cylinder" -> do
-         r <- ws >> namedFloat "radius"
-         zmin <- ws >> namedFloat "zmin"
-         zmax <- ws >> namedFloat "zmax"
-         phiMax <- ws >> namedFloat "phiMax"
-         return [mkCylinder r zmin zmax phiMax]
-
-      "disk" -> do
-         h <- ws >> namedFloat "height"
-         r <- ws >> namedFloat "radius"
-         ri <- ws >> namedFloat "innerRadius"
-         phiMax <- ws >> namedFloat "phiMax"
-         return [mkDisk h r ri phiMax]
-         
-      "sphere" -> do
-         r <- ws >> namedFloat "radius"
-         return [mkSphere r]
-         
-      _ -> fail $ "unknown shape type \"" ++ t ++ "\""
-   
-   s <- getState
-   p <- (flip mapM) sh $ \shp -> do
-      sid <- nextId
-      return $ mkGeom (transform s) False (material s) (emit s) shp sid
-      
-   setState s {prims = map MkAnyPrim p ++ (prims s), currId = (currId s) + 1 }
-
 pBezierPatch :: JobParser Patch
 pBezierPatch = (flip namedBlock) "p" $ do
    xs <- flt `sepBy` (optional ws >> char ',' >> optional ws)
