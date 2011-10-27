@@ -30,7 +30,7 @@ data SPPM = SPPM Int Flt -- ^ #photons and initial radius
 
 instance Printable SPPM where
    prettyPrint (SPPM _ _) = PP.vcat [
-      PP.text "Progressive Photon Map" ]
+      PP.text "Stochastic Progressive Photon Map" ]
 
 mkSPPM :: Int -> Flt -> SPPM
 mkSPPM = SPPM

@@ -7,7 +7,7 @@ filter mitchell 3.0 3.0 0.333333 0.333333
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 1 ySamples 1 }
+      sampler { stratified xSamples 3 ySamples 3 }
       integrator { path maxDepth 7 sampleDepth 4 }
    }
 }
@@ -21,10 +21,10 @@ renderer {
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 # renderer { sampler sampled { sampler { random samples 32 } integrator { debug reference } } }
 
-# renderer { sppm photonCount 10000 radius 50 }
+# renderer { sppm photonCount 10000 radius 10 }
 
 imageSize 480 480
-imageSize 240 240
+# imageSize 240 240
 
 #
 # camera
@@ -275,4 +275,4 @@ emission {
 
 transform { identity rotateX -90 translate 278 548.7 279.5  }
 prim { shape { quad 65 52.2 } }
-# prim { shape { disk height 0 radius 150 innerRadius 80 phiMax 360 } }
+# prim { shape { disk height 0 radius 150 innerRadius 120 phiMax 360 } }

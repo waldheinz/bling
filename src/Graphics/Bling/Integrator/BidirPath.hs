@@ -119,7 +119,7 @@ countSpec ep lp = runST $ do
 connect :: Scene -> V.Vector Flt -> ((Vertex, Int),  (Vertex, Int)) -> Spectrum
 connect scene nspec
    ((Vert bsdfe pe _ wie _ te alphae, i),  -- eye vertex
-    (Vert bsdfl pl _ wil _ tl alphal, j))   -- camera vertex
+    (Vert bsdfl pl _ wil _ tl alphal, j))  -- camera vertex
        | te `bxdfIs` Specular = black
        | tl `bxdfIs` Specular = black
        | isBlack fe || isBlack fl = black

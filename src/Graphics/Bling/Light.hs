@@ -164,12 +164,14 @@ sample'
    -> (Spectrum, Ray, Normal, Flt)
       -- ^ (radiance, outgoing ray, normal at light source, PDF)
 
-sample' (AreaLight _ s r _ _) _ uo ud = (r, ray, ns, pd) where
+sample' (AreaLight _ s r t _) _ uo ud = (r, rayW, nsW, pd) where
    (org, ns) = S.sample' s uo
+   nsW = transNormal t ns
    pd = invTwoPi * S.pdf' s org
    dir' = uniformSampleSphere ud
    dir = if ns `dot` dir' < 0 then -dir' else dir'
    ray = Ray org dir 1e-2 infinity
+   rayW = transRay t ray
 
 sample' (Directional r n) bounds uo _ = (r, ray, ns, pd) where
    (wc, wr) = boundingSphere bounds

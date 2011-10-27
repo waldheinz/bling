@@ -97,16 +97,18 @@ instance Primitive Geometry where
    
    worldBounds g = S.worldBounds (shape g) (o2w g)
    
-   intersects g rw = {-# SCC "intersects.Geometry" #-} S.intersects (shape g) (transRay (w2o g) rw)
+   intersects g rw = {-# SCC "intersects.Geometry" #-}
+      S.intersects (shape g) (transRay (w2o g) rw)
    
    light g = emission g >>= \e ->
       Just $ mkAreaLight (shape g) e (o2w g) (geomId g)
    
-   intersect g rw = {-# SCC "intersect.Geometry" #-} (S.intersect (shape g) ro) >>= int where
-      int (t, dg) = Just $ Intersection t (transDg (o2w g) dg) p m
-      m = material g
-      p = mkAnyPrim g
-      ro = transRay (w2o g) rw -- ray in object space
+   intersect g rw = {-# SCC "intersect.Geometry" #-}
+      (S.intersect (shape g) ro) >>= int where
+         int (t, dg) = Just $ Intersection t (transDg (o2w g) dg) p m
+         m = material g
+         p = mkAnyPrim g
+         ro = transRay (w2o g) rw -- ray in object space
    
 near :: (Primitive a) => (Ray, Maybe Intersection) -> a -> (Ray, Maybe Intersection)
 {-# INLINE near #-}
@@ -130,14 +132,14 @@ nearest' ps x = V.foldl' near x ps
 
 data Intersection = Intersection {
    intDist        :: {-# UNPACK #-} ! Float,
-   _intGeometry   :: {-# UNPACK #-} ! DifferentialGeometry,
+   intGeometry    :: {-# UNPACK #-} ! DifferentialGeometry,
    intPrimitive   :: ! AnyPrim,
    intMaterial    :: ! Material
    }
 
 intBsdf :: Intersection -> Bsdf
 intBsdf int = {-# SCC "intBsdf" #-} intMaterial int dgg dgs where
-   dgg = _intGeometry int
+   dgg = intGeometry int
    dgs = shadingGeometry (intPrimitive int) identity dgg
 
 -- | the light emitted at an @Intersection@
