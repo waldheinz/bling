@@ -69,7 +69,7 @@ sampleSpecTrans adj (SpecularTransmission t ei' et') wo@(Vector wox woy _) _
       cost' = sqrt $ max 0 (1 - sint2)
       cost = if entering then (-cost') else cost'
       wi = Vector (eta * (-wox)) (eta * (-woy)) cost
-      f' = frDielectric ei' et' $ cosTheta wo
+      f' = black -- frDielectric ei' et' $ cosTheta wo
       x = if adj then 1 else eta * eta
       f =  (white - f') * sScale t (x / absCosTheta wi)
 

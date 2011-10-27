@@ -72,8 +72,8 @@ mkHitPoints scene img = {-# SCC "mkHitPoints" #-}
          ray <- fireRay $ sceneCam scene
          
          (hps, ls) <- case scene `intersect` ray of
-                           Just int -> nextV scene int (-(rayDir ray)) white 0 7
-                           Nothing -> return $! ([], escaped ray scene)
+            Just int -> nextV scene int (-(rayDir ray)) white 0 7
+            Nothing  -> return $! ([], escaped ray scene)
                            
          (px, py) <- cameraSample >>= \cs -> return (imageX cs, imageY cs)
          liftSampled $ addContrib img (False, ImageSample px py (1, ls))
@@ -87,10 +87,10 @@ nextV s int wo t d md = {-# SCC "nextV" #-} do
       ls = intLe int wo
    
    -- trace rays for specular reflection and transmission
-   (refl, lsr) <- cont (d+1) md s bsdf wo (mkBxdfType [Specular, Reflection]) t
-   (trans, lst) <- cont (d+1) md s bsdf wo (mkBxdfType [Specular, Transmission]) t
+   (re, lsr) <- cont (d+1) md s bsdf wo (mkBxdfType [Specular, Reflection]) t
+   (tr, lst) <- cont (d+1) md s bsdf wo (mkBxdfType [Specular, Transmission]) t
    here <- mkHitPoint bsdf wo t
-   seq refl $ seq trans $ seq here $ return $! (here ++ refl ++ trans, t * (lsr + lst + ls))
+   seq re $ seq tr $ seq here $ return $! (here ++ re ++ tr, t * (lsr + lst + ls))
 
 cont :: Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Spectrum -> Sampled s ([HitPoint], Spectrum)
 cont d md s bsdf wo tp t
@@ -102,7 +102,6 @@ cont d md s bsdf wo tp t
          p = bsdfShadingPoint bsdf
          n = bsdfShadingNormal bsdf
          t' = sScale (f * t) (wi `absDot` n / pdf)
-
       in if pdf == 0 || isBlack f
          then return $! ([], black)
          else case s `intersect` ray of
@@ -145,12 +144,12 @@ nextVertex scene sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} do
          r2 = lsR2 stats
          r2' = r2 * ratio
          f = evalBsdf True (hpBsdf hit) (hpW hit) wi
-         n = bsdfShadingNormal $ hpBsdf hit
+    --     n = bsdfShadingNormal $ hpBsdf hit
          nn' = nn + alpha
          (px, py) = hpPixel hit
 
       addContrib img (True,
-         ImageSample px py (wi `absDot` n / (r2 * pi), hpF hit * f * li))
+         ImageSample px py (1 / (r2 * pi), hpF hit * f * li))
       sUpdate ps hit (r2', nn')
 
    -- follow the path
