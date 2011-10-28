@@ -254,8 +254,11 @@ class Bxdf a where
       wi = toSameHemisphere wo (cosineSampleHemisphere u)
       f = bxdfEval a wo wi
       pdf = bxdfPdf a wo wi
-
-   bxdfSample' = bxdfSample
+   
+   bxdfSample' a wo u = (f, wi, pdf) where
+      wi = toSameHemisphere wo (cosineSampleHemisphere u)
+      f = bxdfEval a wi wo
+      pdf = bxdfPdf a wo wi
       
    bxdfPdf _ wo wi
       | sameHemisphere wo wi = invPi * absCosTheta wi
@@ -268,6 +271,7 @@ data AnyBxdf = forall a. Bxdf a => MkAnyBxdf a
 instance Bxdf AnyBxdf where
    bxdfEval (MkAnyBxdf a) = bxdfEval a
    bxdfSample (MkAnyBxdf a) = bxdfSample a
+   bxdfSample' (MkAnyBxdf a) = bxdfSample' a
    bxdfPdf (MkAnyBxdf a) = bxdfPdf a
    bxdfType (MkAnyBxdf a) = bxdfType a
 
@@ -372,7 +376,7 @@ sampleBsdf'' adj flags bsdf@(Bsdf bs cs _ ng) woW uComp uDir
       wiW = localToWorld cs wi
 
       -- overall PDF
-      bs' = V.ifilter (\i _ -> (i /= sNum)) bsm -- filter explicitely sampled from matching
+      bs' = V.ifilter (\i _ -> (i /= sNum)) bsm -- filter explicitly sampled from matching
       pdf = if cntm == 1
                then pdf'
                else (pdf' + (V.sum $ V.map (\b -> bxdfPdf b wo wi) bs')) / (fromIntegral cntm)
@@ -385,7 +389,7 @@ sampleBsdf'' adj flags bsdf@(Bsdf bs cs _ ng) woW uComp uDir
       
       -- correct throughput in presence of shading normals
       ns = bsdfShadingNormal bsdf
-      ff = if adj then abs (ns `dot` woW / ng `dot` woW) else 1
+      ff = if adj then 1 else abs (ns `dot` woW / ng `dot` woW)
 
 evalBsdf :: Bool -> Bsdf -> Vector -> Vector -> Spectrum
 evalBsdf adj bsdf@(Bsdf bxdfs cs _ ng) woW wiW
@@ -394,13 +398,14 @@ evalBsdf adj bsdf@(Bsdf bxdfs cs _ ng) woW wiW
    where
       sideTest = woW `dot` ng * wiW `dot` ng
       flt = if sideTest < 0 then isTransmission else isReflection
-      f = V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bxdfs
+      fun = \b -> if adj then bxdfEval b wi wo else bxdfEval b wo wi
+      f = V.sum $ V.map fun $ V.filter flt bxdfs
       wo = worldToLocal cs woW
       wi = worldToLocal cs wiW
       
       -- correct throughput in presence of shading normals
       ns = bsdfShadingNormal bsdf
-      ff = if adj then abs (ns `dot` woW / ng `dot` woW) else 1
+      ff = if adj then 1 else abs (ns `dot` woW / ng `dot` woW)
 
 emptyBsdfSample :: BsdfSample
 emptyBsdfSample = BsdfSample (mkBxdfType [Reflection, Diffuse]) 0 black (Vector 0 1 0)

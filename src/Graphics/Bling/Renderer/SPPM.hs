@@ -97,7 +97,7 @@ cont d md s bsdf wo tp t
    | d == md = return $! ([], black)
    | otherwise =
       let
-         (BsdfSample _ pdf f wi) = sampleBsdf' tp bsdf wo 0.5 (0.5, 0.5)
+         (BsdfSample _ pdf f wi) = sampleAdjBsdf' tp bsdf wo 0.5 (0.5, 0.5)
          ray = Ray p wi epsilon infinity
          p = bsdfShadingPoint bsdf
          n = bsdfShadingNormal bsdf
@@ -106,7 +106,7 @@ cont d md s bsdf wo tp t
          then return $! ([], black)
          else case s `intersect` ray of
             Just int -> nextV s int (-wi) t' d md
-            Nothing  -> return $! ([], escaped ray s)
+            Nothing  -> return $! ([], t * escaped ray s)
 
 tracePhoton :: Scene -> SpatialHash -> MImage s -> PixelStats s -> Sampled s ()
 tracePhoton scene sh img ps = {-# SCC "tracePhoton" #-} do
@@ -143,7 +143,7 @@ nextVertex scene sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} do
          ratio = (nn + alpha) / (nn + 1)
          r2 = lsR2 stats
          r2' = r2 * ratio
-         f = evalBsdf True (hpBsdf hit) (hpW hit) wi
+         f = evalBsdf False (hpBsdf hit) (hpW hit) wi
     --     n = bsdfShadingNormal $ hpBsdf hit
          nn' = nn + alpha
          (px, py) = hpPixel hit
@@ -156,7 +156,7 @@ nextVertex scene sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} do
    ubc <- rnd' $ 1 + d * 2
    ubd <- rnd2D' $ 2 + d
    let
-      (BsdfSample _ spdf f wo) = sampleAdjBsdf bsdf wi ubc ubd
+      (BsdfSample _ spdf f wo) = sampleBsdf bsdf wi ubc ubd
       pcont = if d > 4 then 0.8 else 1
       li' = sScale (f * li) (absDot wo n / (spdf * pcont))
       ray = Ray p wo epsilon infinity

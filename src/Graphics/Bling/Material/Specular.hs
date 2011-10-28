@@ -53,9 +53,6 @@ instance Bxdf SpecularTransmission where
 sampleSpecTrans :: Bool -> SpecularTransmission -> Vector -> (Flt, Flt) -> (Spectrum, Vector, Flt)
 sampleSpecTrans adj (SpecularTransmission t ei' et') wo@(Vector wox woy _) _
    | sint2 >= 1 = (black, wo, 0) -- total internal reflection
-   | isNaN eta = error "nan eta"
-   | isNaN cost' = error "nan cost'"
-   | sNaN f = error "nan f"
    | otherwise = (f, wi, 1)
    where
       -- find out which eta is incident / transmitted
@@ -68,10 +65,13 @@ sampleSpecTrans adj (SpecularTransmission t ei' et') wo@(Vector wox woy _) _
       sint2 = eta * eta * sini2
       cost' = sqrt $ max 0 (1 - sint2)
       cost = if entering then (-cost') else cost'
-      wi = Vector (eta * (-wox)) (eta * (-woy)) cost
-      f' = black -- frDielectric ei' et' $ cosTheta wo
-      x = if adj then 1 else eta * eta
-      f =  (white - f') * sScale t (x / absCosTheta wi)
+      wi = mkV (eta * (-wox), eta * (-woy), cost)
+      fr = frDielectric ei' et' $ if adj then cost else cosTheta wo
+      f'' = ((white - fr) * t)
+      f = if adj
+             then sScale f'' (1 / (eta * eta * absCosTheta wi))
+             else sScale f'' (abs $ (absCosTheta wo / (cost * cost)))
+--      f =  (white - f') * sScale t (x / absCosTheta wi)
 
 data SpecularReflection = SpecularReflection {
    _specReflR        :: {-# UNPACK #-} ! Spectrum,
@@ -92,3 +92,5 @@ instance Bxdf SpecularReflection where
    bxdfSample (SpecularReflection r fr) wo@(Vector x y z) _ = (f, wi, 1) where
       wi = Vector (-x) (-y) z
       f = sScale (r * fr (cosTheta wo)) (1 / absCosTheta wi)
+
+   bxdfSample' = bxdfSample

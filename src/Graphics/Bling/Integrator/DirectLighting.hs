@@ -59,7 +59,7 @@ cont d md s bsdf wo t
    | otherwise = do
       let
          ray = Ray p wi epsilon infinity
-         (BsdfSample _ pdf f wi) = sampleBsdf' t bsdf wo 0.5 (0.5, 0.5)
+         (BsdfSample _ pdf f wi) = sampleAdjBsdf' t bsdf wo 0.5 (0.5, 0.5)
          p = bsdfShadingPoint bsdf
          n = bsdfShadingNormal bsdf
 
