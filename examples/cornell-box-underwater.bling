@@ -14,12 +14,12 @@ renderer {
 }
 
 # renderer { sampler sampled { sampler { random samples 64 } integrator { path maxDepth 7 sampleDepth 5 } } }
-renderer { sampler sampled { sampler { stratified xSamples 6 ySamples 6 } integrator { path maxDepth 7 sampleDepth 5 } } }
+renderer { sampler sampled { sampler { stratified xSamples 8 ySamples 8 } integrator { path maxDepth 7 sampleDepth 5 } } }
 # renderer { lightTracer passCount 1 particles 300000 }
-renderer { metropolis maxDepth 5 mpp 1 bootstrap 1000 plarge 0.25 directSamples 8 }
+# renderer { metropolis maxDepth 5 mpp 1 bootstrap 1000 plarge 0.25 directSamples 8 }
 # renderer { sampler sampled { sampler { stratified xSamples 32 ySamples 32 } integrator { light maxDepth 7 sampleDepth 5 } } }
 # renderer { light passCount 10 passPhotons 100000 }
-# renderer { sppm photonCount 10000 radius 8 }
+# renderer { sppm photonCount 50000 radius 20 }
 
 imageSize 480 480
 # imageSize 240 240
@@ -108,10 +108,11 @@ prim { shape { sphere radius 130 } }
 #
 # water
 #
+transform { identity scale 0.05 0.05 0.05 }
 
 material {
-#   bumpMap
-#   bump { scale 40 texture { fbm octaves 3 omega 0.2 map { identity } } }
+   bumpMap
+   bump { scale 3 texture { fbm octaves 3 omega 0.2 map { identity } } }
    
    glass
    ior { constant 1.33 }
@@ -123,7 +124,7 @@ transform { identity rotateX 90 translate 280 450 280 }
 
 # prim { mesh vertexCount 4 faceCount 1 v 570 550 -10 v -10 550 -10 v -10 550 570 v 570 550 570 f 3 2 1 0 }
 
-prim { shape { quad 320 320 } }
+prim { shape { quad 350 350 } }
 
 #
 # mirror sphere
@@ -219,9 +220,10 @@ material {
 
 emission {
 #    spd { 400 0, 500 160, 600 312, 700 386 }
-   rgb 4 4 4
+#   rgb 4 4 4
+   temp 4000
 }
 
 transform { identity rotateX -90 translate 278 600 279.5  }
 
-prim { shape { quad 150 150 } }
+prim { shape { quad 10 10 } }

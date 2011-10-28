@@ -71,7 +71,6 @@ sampleSpecTrans adj (SpecularTransmission t ei' et') wo@(Vector wox woy _) _
       f = if adj
              then sScale f'' (1 / (eta * eta * absCosTheta wi))
              else sScale f'' (abs $ (absCosTheta wo / (cost * cost)))
---      f =  (white - f') * sScale t (x / absCosTheta wi)
 
 data SpecularReflection = SpecularReflection {
    _specReflR        :: {-# UNPACK #-} ! Spectrum,

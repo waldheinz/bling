@@ -48,10 +48,10 @@ directLighting d md s r@(Ray _ rd _ _) =
             l = sampleOneLight s p n wo bsdf $ RLS uln uld ubc ubd
 
          -- trace rays for specular reflection and transmission
-         refl <- cont (d+1) md s bsdf wo $ mkBxdfType [Specular, Reflection]
-         trans <- cont (d+1) md s bsdf wo $ mkBxdfType [Specular, Transmission]
+         re <- cont (d+1) md s bsdf wo $ mkBxdfType [Specular, Reflection]
+         tr <- cont (d+1) md s bsdf wo $ mkBxdfType [Specular, Transmission]
              
-         return $! (1, l + refl + trans + intLe int wo)
+         return $! (1, l + re + tr + intLe int wo)
 
 cont :: Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Sampled s Spectrum
 cont d md s bsdf wo t

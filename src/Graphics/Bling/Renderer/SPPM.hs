@@ -72,7 +72,11 @@ mkHitPoints scene img = {-# SCC "mkHitPoints" #-}
          ray <- fireRay $ sceneCam scene
          
          (hps, ls) <- case scene `intersect` ray of
-            Just int -> nextV scene int (-(rayDir ray)) white 0 7
+            Just int -> let wo = (-(rayDir ray))
+                            ls = intLe int wo
+                        in do
+                           (hs, ls') <- nextV scene int wo white 0 7
+                           return $! (hs, ls' + ls)
             Nothing  -> return $! ([], escaped ray scene)
                            
          (px, py) <- cameraSample >>= \cs -> return (imageX cs, imageY cs)
@@ -84,13 +88,13 @@ nextV :: Scene -> Intersection -> Vector -> Spectrum
 nextV s int wo t d md = {-# SCC "nextV" #-} do
    let
       bsdf = intBsdf int
-      ls = intLe int wo
+  --    ls = intLe int wo
    
    -- trace rays for specular reflection and transmission
    (re, lsr) <- cont (d+1) md s bsdf wo (mkBxdfType [Specular, Reflection]) t
    (tr, lst) <- cont (d+1) md s bsdf wo (mkBxdfType [Specular, Transmission]) t
    here <- mkHitPoint bsdf wo t
-   seq re $ seq tr $ seq here $ return $! (here ++ re ++ tr, t * (lsr + lst + ls))
+   seq re $ seq tr $ seq here $ return $! (here ++ re ++ tr, t * (lsr + lst))
 
 cont :: Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Spectrum -> Sampled s ([HitPoint], Spectrum)
 cont d md s bsdf wo tp t
@@ -105,7 +109,10 @@ cont d md s bsdf wo tp t
       in if pdf == 0 || isBlack f
          then return $! ([], black)
          else case s `intersect` ray of
-            Just int -> nextV s int (-wi) t' d md
+            Just int -> let ls = intLe int wo
+                        in do
+                           (hs, ls') <- nextV s int (-wi) t' d md
+                           return $! (hs, ls' + ls)
             Nothing  -> return $! ([], t * escaped ray s)
 
 tracePhoton :: Scene -> SpatialHash -> MImage s -> PixelStats s -> Sampled s ()
