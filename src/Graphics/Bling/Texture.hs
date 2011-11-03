@@ -135,7 +135,7 @@ woodTexture :: SpectrumTexture
 woodTexture dg = wood where
    g = perlin3d (x * 4, y * 4, z * 4)
    grain = abs $ g - fromIntegral (floor g :: Int)
-   wood = fromRGB (grain, grain, 0.1)
+   wood = fromRGB (grain * 0.498, grain * 0.367, 0.291)
    (Vector x y z) = dgP dg
 
 quasiCrystal

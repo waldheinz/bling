@@ -190,7 +190,7 @@ pSpectrumTexture = namedBlock $
          return (graphPaper s t1 t2)
          
       "wood" -> return woodTexture
-         
+      
       _ -> fail ("unknown texture type " ++ tp)
 
 --------------------------------------------------------------------------------
