@@ -24,24 +24,19 @@ import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Spectrum
 
-import Debug.Trace
-
+-- | the Stochastic Progressive Photon Mapping Renderer
 data SPPM = SPPM Int Flt -- ^ #photons and initial radius
 
 instance Printable SPPM where
    prettyPrint (SPPM _ _) = PP.vcat [
       PP.text "Stochastic Progressive Photon Map" ]
 
-mkSPPM :: Int -> Flt -> SPPM
+-- | creates a SPPM renderer
+mkSPPM
+   :: Int -- ^ the number of photons to emit per pass
+   -> Flt -- ^ the initial search radius for collecting photons
+   -> SPPM
 mkSPPM = SPPM
-
-type Stats = (Flt, Flt) -- (radius², #photons)
-
-lsN :: Stats -> Flt
-lsN = snd
-
-lsR2 :: Stats -> Flt
-lsR2 = fst
 
 data HitPoint = Hit
    { hpBsdf    :: {-# UNPACK #-} ! Bsdf
@@ -50,8 +45,14 @@ data HitPoint = Hit
    , hpF       :: {-# UNPACK #-} ! Spectrum
    }
 
+-- | the algorithm's alpha parameter, determining the ratio of new photons
+--   to keep in each pass
 alpha :: Flt
 alpha = 0.7
+
+--------------------------------------------------------------------------------
+-- Tracing Camera Rays for Hitpoint Creation
+--------------------------------------------------------------------------------
 
 -- | creates a new @HitPoint@ if the provided @Bsdf@ contains non-specular
 --   components, or an empty list otherwise
@@ -88,7 +89,6 @@ nextV :: Scene -> Intersection -> Vector -> Spectrum
 nextV s int wo t d md = {-# SCC "nextV" #-} do
    let
       bsdf = intBsdf int
-  --    ls = intLe int wo
    
    -- trace rays for specular reflection and transmission
    (re, lsr) <- cont (d+1) md s bsdf wo (mkBxdfType [Specular, Reflection]) t
@@ -109,11 +109,14 @@ cont d md s bsdf wo tp t
       in if pdf == 0 || isBlack f
          then return $! ([], black)
          else case s `intersect` ray of
-            Just int -> let ls = intLe int wo
-                        in do
-                           (hs, ls') <- nextV s int (-wi) t' d md
-                           return $! (hs, ls' + ls)
+            Just int -> do
+               (hs, ls') <- nextV s int (-wi) t' d md
+               return $! (hs, ls' + intLe int wo)
             Nothing  -> return $! ([], t * escaped ray s)
+
+--------------------------------------------------------------------------------
+-- Tracing Photons from the Light Sources and adding Image Contribution
+--------------------------------------------------------------------------------
 
 tracePhoton :: Scene -> SpatialHash -> MImage s -> PixelStats s -> Sampled s ()
 tracePhoton scene sh img ps = {-# SCC "tracePhoton" #-} do
@@ -151,7 +154,6 @@ nextVertex scene sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} do
          r2 = lsR2 stats
          r2' = r2 * ratio
          f = evalBsdf False (hpBsdf hit) (hpW hit) wi
-    --     n = bsdfShadingNormal $ hpBsdf hit
          nn' = nn + alpha
          (px, py) = hpPixel hit
 
@@ -172,13 +174,30 @@ nextVertex scene sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} do
       rnd' (2 + d * 2) >>= \x -> unless (x > pcont) $
          nextVertex scene sh (-wo) (scene `intersect` ray) li' (d+1) img ps
 
+--------------------------------------------------------------------------------
+-- Per-Pixel Accumulation Stats
+--------------------------------------------------------------------------------
+
+-- | the per-pixel accumulation statistics
+type Stats = (Flt, Flt) -- (radius², #photons)
+
+-- | extracts the number of collected photons from the @Stats@
+lsN :: Stats -> Flt
+lsN = snd
+
+-- | extracts the current search radius from the @Stats@
+lsR2 :: Stats -> Flt
+lsR2 = fst
+
 data PixelStats s = PS (UMV.MVector s Stats) SampleWindow
 
 mkPixelStats :: SampleWindow -> Flt -> ST s (PixelStats s)
 mkPixelStats wnd r2 = do
-   v <- UMV.replicate ((xEnd wnd - xStart wnd + 1) * (yEnd wnd - yStart wnd + 1)) (r2, 0)
+   v <- UMV.replicate ((w + 1) * (h + 1)) (r2, 0)
    return $! PS v wnd
-
+   where
+      (w, h) = (xEnd wnd - xStart wnd, yEnd wnd - yStart wnd)
+      
 sIdx :: PixelStats s -> HitPoint -> Int
 {-# INLINE sIdx #-}
 sIdx (PS _ wnd) hit = w * (iy - yStart wnd) + (ix - xStart wnd) where
@@ -188,11 +207,15 @@ sIdx (PS _ wnd) hit = w * (iy - yStart wnd) + (ix - xStart wnd) where
 
 slup :: PixelStats s -> HitPoint -> ST s Stats
 {-# INLINE slup #-}
-slup ps@(PS v _) hit = UMV.read v (sIdx ps hit)
+slup ps@(PS v _) hit = UMV.unsafeRead v (sIdx ps hit)
 
 sUpdate :: PixelStats s -> HitPoint -> Stats -> ST s ()
 {-# INLINE sUpdate #-}
-sUpdate ps@(PS v _) hit = UMV.write v (sIdx ps hit)
+sUpdate ps@(PS v _) hit = UMV.unsafeWrite v (sIdx ps hit)
+
+--------------------------------------------------------------------------------
+-- Spatial Hashing for the Hitpoints
+--------------------------------------------------------------------------------
 
 data SpatialHash = SH
    { shBounds  :: {-# UNPACK #-} ! AABB
@@ -207,7 +230,7 @@ hash (x, y, z) = abs $ (x * 73856093) `xor` (y * 19349663) `xor` (z * 83492791)
 hashLookup :: SpatialHash -> Point -> Normal -> PixelStats s -> (HitPoint -> ST s ()) -> ST s ()
 hashLookup sh p n ps fun = {-# SCC "hashLookup" #-}
    let
-      Vector x y z = abs $ (p - (aabbMin $ shBounds sh)) * vpromote (shScale sh)
+      Vector x y z = abs $ (p - aabbMin (shBounds sh)) * vpromote (shScale sh)
       idx = hash (floor x, floor y, floor z) `rem` V.length (shEntries sh)
       hits = V.unsafeIndex (shEntries sh) idx
    in V.forM_ hits $ \hit -> do
@@ -225,7 +248,7 @@ mkHash hits ps = {-# SCC "mkHash" #-} do
    
    let
       r = sqrt r2
-      cnt = trace ("r_max=" ++ show r) $ V.length hits
+      cnt = V.length hits
       invSize = 1 / (2 * r)
       bounds = V.foldl' go emptyAABB hits where
          go b h = let p = bsdfShadingPoint $ hpBsdf h
@@ -239,21 +262,25 @@ mkHash hits ps = {-# SCC "mkHash" #-} do
          rp = sqrt r2p
          pmin = aabbMin bounds
          
-         p = (bsdfShadingPoint $ hpBsdf hp)
+         p = bsdfShadingPoint $ hpBsdf hp
          Vector x0 y0 z0 = abs $ (p - vpromote rp - pmin) * vpromote invSize
          Vector x1 y1 z1 = abs $ (p + vpromote rp - pmin) * vpromote invSize
          xs = [floor x0 .. floor x1]
          ys = [floor y0 .. floor y1]
          zs = [floor z0 .. floor z1]
          
-      unless (r2p == 0) $ forM_ [(x, y, z) | x <- xs, y <- ys, z <- zs] $ \pos -> -- trace (show pos) $
-         let idx = hash pos `rem` cnt
-         in MV.read v' idx >>= \old -> MV.write v' idx (hp : old)
+      unless (r2p == 0) $ forM_ [(x, y, z) | x <- xs, y <- ys, z <- zs] $ \i ->
+         let idx = hash i `rem` cnt
+         in MV.read v' idx >>= \o -> MV.write v' idx (hp : o)
 
-   -- convert to an array of arrays
+   -- convert to an (non-mutable) array of arrays
    v <- V.generateM (MV.length v') $ \i -> fmap V.fromList (MV.read v' i)
 
    return $ SH bounds v invSize
+
+--------------------------------------------------------------------------------
+-- Main Rendering Loop
+--------------------------------------------------------------------------------
 
 instance Renderer SPPM where
    render (SPPM n' r) job report = {-# SCC "render" #-} do
@@ -282,4 +309,3 @@ instance Renderer SPPM where
          _ <- report $ PassDone passNum img' (1 / fromIntegral (passNum * n))
          return ()
          
-      return ()

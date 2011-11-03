@@ -21,10 +21,10 @@ renderer {
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 # renderer { sampler sampled { sampler { random samples 32 } integrator { debug reference } } }
 
-# renderer { sppm photonCount 20000 radius 10 }
+renderer { sppm photonCount 25000 radius 10 }
 
 imageSize 480 480
-imageSize 240 240
+# imageSize 240 240
 
 #
 # camera
