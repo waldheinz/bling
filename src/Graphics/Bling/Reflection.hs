@@ -428,9 +428,10 @@ data OrenNayar = MkOrenNayar
    {-# UNPACK #-} ! Flt -- ^ the A parameter
    {-# UNPACK #-} ! Flt -- ^ the B parameter
 
+-- Creates an Oren Nayar BxDF
 mkOrenNayar
-   :: Spectrum -- ^ the relfectance
-   -> Flt -- ^ sigma, should be in [0..1] and is clamped otherwise
+   :: Spectrum -- ^ the reflectance
+   -> Flt      -- ^ sigma, should be in [0..1] and is clamped otherwise
    -> OrenNayar
 
 mkOrenNayar r sig = MkOrenNayar r a b where
@@ -462,9 +463,9 @@ instance Bxdf OrenNayar where
 --------------------------------------------------------------------------------
 
 data Microfacet = Microfacet {
-   distribution   :: ! Distribution,
-   fresnel        :: ! Fresnel,
-   reflectance    :: {-# UNPACK #-} ! Spectrum
+   mfDist      :: ! Distribution,
+   mfFresnel   :: ! Fresnel,
+   mfRefl      :: {-# UNPACK #-} ! Spectrum
    }
 
 instance Bxdf Microfacet where
@@ -482,7 +483,8 @@ instance Bxdf Microfacet where
          costh = wi `dot` wh
 
    bxdfSample mf wo dirU = mfSample dirU mf wo
-
+   bxdfSample' = bxdfSample
+   
    bxdfPdf (Microfacet d _ _) wo wi
       | sameHemisphere wo wi = mfDistPdf d wo wi
       | otherwise = 0
@@ -505,8 +507,8 @@ mfG wo wi wh = min 1 $ min
          woDotWh = wo `absDot` wh
 
 data Distribution
-   = Blinn {-# UNPACK #-} !Flt -- ^ e
-   | Anisotropic {-# UNPACK #-} !Flt {-# UNPACK #-} !Flt -- ^ ex and ey
+   = Blinn        {-# UNPACK #-} !Flt -- ^ e
+   | Anisotropic  {-# UNPACK #-} !Flt {-# UNPACK #-} !Flt -- ^ ex and ey
 
 -- | fixes the exponent for microfacet distribution to a usable range
 fixExponent :: Flt -> Flt

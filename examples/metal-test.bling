@@ -49,7 +49,7 @@ material {
    sigma { constant 0.0 }
 }
 
-shape {
+prim {
    mesh
    vertexCount 4
    faceCount 1
@@ -68,16 +68,8 @@ emission {
    rgb 12 12 12
 }
 
-shape {
-   mesh
-   vertexCount 4
-   faceCount 1
-   v 5.0 15.7 -5.0
-   v 5.0 15.7 5.0
-   v -5.0 15.7 5.0
-   v -5.0 15.7 -5.0
-   f 0 1 2 3
-}
+transform { identity rotateX -90 translate 0 15 0  }
+prim { shape { quad 5 5 } }
 
 #
 # Gold Sphere (left)
@@ -141,7 +133,7 @@ material {
    rough { constant 0.002 }
 }
 
-shape { sphere radius 2.0 }
+prim { shape { sphere radius 2 } }
 
 #
 # Aluminium Sphere (center)
@@ -203,7 +195,7 @@ material {
    rough { constant 0.001 }
 }
 
-shape { sphere radius 2.0 }
+prim { shape { sphere radius 2 } }
 
 #
 # Copper Shpere (right)
@@ -248,10 +240,9 @@ material {
    rough { constant 0.01 }
 }
 
-
 transform {
    scale 10 10 10
 }
 
-shape { sphere radius 2.0 }
+prim { shape { sphere radius 2 } }
 
