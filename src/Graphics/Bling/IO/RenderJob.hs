@@ -45,8 +45,6 @@ jobParser = do
 object :: JobParser ()
 object = do
    objName <- try $ optional ws >> pString
-   ws
-   
    case objName of
         "filter" -> pFilter
         "prim" -> do -- a top-level primitive
@@ -55,7 +53,10 @@ object = do
             setState s {prims = p : (prims s)}
         "imageSize" -> pSize
         "renderer" -> pRenderer
-        "transform" -> pTransform
+        "transform" -> pGlobalTrans
+        "newTransform" -> do
+           getState >>= \s -> setState s { transform = identity }
+           pGlobalTrans
         "camera" -> pCamera
         "light" -> pLight
         "material" -> pMaterial
@@ -75,26 +76,25 @@ pSize = do
 pFilter :: JobParser ()
 pFilter = do
    t <- pString
-   _ <- ws
    f <- case t of
       "box" -> return mkBoxFilter
       
       "sinc" -> do
          xw <- flt
-         yw <- ws >> flt
-         tau <- ws >> flt
+         yw <- flt
+         tau <- flt
          return (mkSincFilter xw yw tau)
          
       "triangle" -> do
          xw <- flt
-         yw <- ws >> flt
+         yw <- flt
          return (mkTriangleFilter xw yw)
 
       "mitchell" -> do
          xw <- flt
-         yw <- ws >> flt
-         b <- ws >> flt
-         c <- ws >> flt
+         yw <- flt
+         b <- flt
+         c <- flt
          return (mkMitchellFilter xw yw b c)
          
       _ -> fail ("unknown pixel filter function \"" ++ t ++ "\"")

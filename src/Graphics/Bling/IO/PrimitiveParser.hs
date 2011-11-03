@@ -24,29 +24,29 @@ pPrimitive = pBlock $ do
    t <- pString
    p <- case t of
       "bezier" -> do
-         subdivs <- ws >> namedInt "subdivs"
+         subdivs <- namedInt "subdivs"
          patches <- many1 (try pBezierPatch)
          optional ws
          s <- getState
          return $ mkAnyPrim $ tesselateBezier subdivs patches (transform s) (material s)
                 
       "julia" -> do
-         c <- ws >> pNamedQuat "c"
-         e <- ws >> namedFloat "epsilon"
-         i <- ws >> namedInt "iterations"
+         c <- pNamedQuat "c"
+         e <- namedFloat "epsilon"
+         i <- namedInt "iterations"
          s <- getState
          return $ mkAnyPrim $ mkFractalPrim (mkJuliaQuat c e i) (material s)
                 
       "menger" -> do
-         shape <- ws >> pShape
-         level <- ws >> namedInt "level"
+         shape <- pShape
+         level <- namedInt "level"
          s <- getState
          return $ mkAnyPrim $ mkMengerSponge shape (material s) level (transform s)
          
       "mesh" -> fmap mkAnyPrim pMesh
          
       "shape" -> do
-         shp <- ws >> pShape
+         shp <- pShape
          s <- getState
          sid <- nextId
          return $ mkAnyPrim $ mkGeom (transform s) False (material s) (emit s) shp sid
@@ -77,35 +77,33 @@ pQuaternion = do
 
 pShape :: JobParser Shape
 pShape = pBlock $ do
-   t <- pString
-   
-   case t of
+   pString >>= \t -> case t of
       "box" -> do
-         pmin <- ws >> namedVector "pmin"
-         pmax <- ws >> namedVector "pmax"
+         pmin <- namedVector "pmin"
+         pmax <- namedVector "pmax"
          return $ mkBox pmin pmax
 
       "cylinder" -> do
-         r <- ws >> namedFloat "radius"
-         zmin <- ws >> namedFloat "zmin"
-         zmax <- ws >> namedFloat "zmax"
-         phiMax <- ws >> namedFloat "phiMax"
+         r <- namedFloat "radius"
+         zmin <- namedFloat "zmin"
+         zmax <- namedFloat "zmax"
+         phiMax <- namedFloat "phiMax"
          return $ mkCylinder r zmin zmax phiMax
 
       "disk" -> do
-         h <- ws >> namedFloat "height"
-         r <- ws >> namedFloat "radius"
-         ri <- ws >> namedFloat "innerRadius"
+         h <- namedFloat "height"
+         r <- namedFloat "radius"
+         ri <- namedFloat "innerRadius"
          phiMax <- ws >> namedFloat "phiMax"
          return $ mkDisk h r ri phiMax
 
       "quad" -> do
-         sx <- ws >> flt
-         sz <- ws >> flt
+         sx <- flt
+         sz <- flt
          return $ mkQuad sx sz
          
       "sphere" -> do
-         r <- ws >> namedFloat "radius"
+         r <- namedFloat "radius"
          return $ mkSphere r
 
       _ -> fail $ "unknown shape type " ++ t
@@ -121,16 +119,16 @@ pBezierPatch = (flip namedBlock) "p" $ do
 
 pMesh :: JobParser TriangleMesh
 pMesh = do
-   vc <- ws >> (namedInt "vertexCount" <|> fail "vertexCount missing")
-   fc <- ws >> (namedInt "faceCount"  <|> fail "faceCount missing")
+   vc <- namedInt "vertexCount" <|> fail "vertexCount missing"
+   fc <- namedInt "faceCount"  <|> fail "faceCount missing"
    
    vs <- count vc $ do
-      _ <- ws >> char 'v'
+      _ <- char 'v'
       ws >> pVec
 
    fs <- fmap triangulate $ count fc $ do
-      _ <- ws >> char 'f'
-      many1 (try (ws >> integ))
+      _ <- char 'f'
+      ws >> many1 (try integ)
    
    t <- currentTransform
    m <- currentMaterial

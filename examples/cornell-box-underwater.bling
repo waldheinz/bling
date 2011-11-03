@@ -19,7 +19,7 @@ renderer { sampler sampled { sampler { stratified xSamples 8 ySamples 8 } integr
 # renderer { metropolis maxDepth 5 mpp 1 bootstrap 1000 plarge 0.25 directSamples 8 }
 # renderer { sampler sampled { sampler { stratified xSamples 32 ySamples 32 } integrator { light maxDepth 7 sampleDepth 5 } } }
 # renderer { light passCount 10 passPhotons 100000 }
-# renderer { sppm photonCount 50000 radius 20 }
+renderer { sppm photonCount 10000 radius 20 }
 
 imageSize 480 480
 # imageSize 240 240
@@ -43,7 +43,7 @@ camera {
    focalDistance 10
 }
 
-transform { identity }
+newTransform { }
 
 # the "white" material
 
@@ -102,13 +102,13 @@ prim {
 #
 
 material { glass ior { constant 1.5 } kr { constant spd { 1 0.95 } } kt { constant rgb 0.6 0.6 0.9 } }
-transform { identity translate 390 130 200 }
+newTransform { translate 390 130 200 }
 prim { shape { sphere radius 130 } }
 
 #
 # water
 #
-transform { identity scale 0.05 0.05 0.05 }
+newTransform { scale 0.05 0.05 0.05 }
 
 material {
    bumpMap
@@ -120,7 +120,7 @@ material {
    kt { constant rgb 1 1 1 }
 }
 
-transform { identity rotateX 90 translate 280 450 280 }
+newTransform { rotateX 90 translate 280 450 280 }
 
 # prim { mesh vertexCount 4 faceCount 1 v 570 550 -10 v -10 550 -10 v -10 550 570 v 570 550 570 f 3 2 1 0 }
 
@@ -134,9 +134,9 @@ material {
    mirror kr { constant spd { 1 0.95 } }
 }
 
-transform { identity translate 150 100 300 }
+newTransform { translate 150 100 300 }
 prim { shape { sphere radius 100 } }
-transform { identity }
+newTransform { }
 
 #
 # right (green) wall
@@ -224,6 +224,6 @@ emission {
    temp 4000
 }
 
-transform { identity rotateX -90 translate 278 600 279.5  }
+newTransform { rotateX -90 translate 278 600 279.5  }
 
 prim { shape { quad 10 10 } }

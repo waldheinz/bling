@@ -78,7 +78,7 @@ nextId = do
 --------------------------------------------------------------------------------
 
 pString :: JobParser String
-pString = many1 alphaNum
+pString = many1 alphaNum >>= \s -> (optional ws >> (return $! s))
 
 -- | parses a "quoted" string, and returns it without the quotes
 pQString :: JobParser String
@@ -97,63 +97,62 @@ pQString = do
                        return ['\\',r]
                     <?> "quoted pair"
                     
-comment :: JobParser ()
+comment :: (Monad m) => (ParsecT String u m) ()
 comment = char '#' >> many (noneOf "\n") >> char '\n' >> return () <?> "comment"
 
 -- | skips over whitespace and comments
-ws :: JobParser ()
+ws :: (Monad m) => (ParsecT String u m) ()
 ws = many1 (choice [space >> return (), comment]) >> return ()
 
 -- | parse a floating point number
 flt :: (Monad m) => (ParsecT String u m) Flt
-{-# INLINE flt #-}
 flt = do
-  sign <- option 1 ( do s <- oneOf "+-"
-                        return $ if s == '-' then (-1.0) else 1.0)
-  i <- many digit
-  d <- option "0" (char '.' >> try (many digit))
-  return $ sign * read (i++"."++d)
+   sign <- option 1 $ do
+      s <- oneOf "+-"
+      return $ if s == '-' then (-1) else 1
+      
+   i <- many digit
+   d <- option "0" (char '.' >> try (many digit))
+   optional ws
+   return $ sign * read (i ++ "." ++ d)
 
 -- | parse a vector
 pVec :: JobParser Vector
 pVec = do
    x <- flt
-   y <- ws >> flt
-   z <- ws >> flt
-   return (Vector x y z)
+   y <- flt
+   z <- flt
+   return $! Vector x y z
 
 namedVector :: String -> JobParser Vector
-namedVector n = do string n >> ws; pVec
+namedVector n = do string n >> ws; pVec <?> ("vector " ++ n)
 
 pSpectrum :: JobParser Spectrum
-pSpectrum = do
-   t <- many alphaNum
-   ws
-   case t of
-      "rgb" -> do
-         r <- flt
-         g <- ws >> flt
-         b <- ws >> flt
-         return (fromRGB (r, g, b))
+pSpectrum = pString >>= \t -> case t of
+   "rgb" -> do
+      r <- flt
+      g <- flt
+      b <- flt
+      return (fromRGB (r, g, b))
          
-      "spd" -> pSpectrumSpd
-      "temp" -> do
-         temp <- flt
-         return (sBlackBody temp)
-      _ -> fail ("unknown spectrum type " ++ t)
+   "spd" -> pSpectrumSpd
+   "temp" -> do
+      temp <- flt
+      return (sBlackBody temp)
+   _ -> fail ("unknown spectrum type " ++ t)
 
 namedSpectrum :: String -> JobParser Spectrum
 namedSpectrum n = string n >> ws >> pSpectrum
       
 pSpectrumSpd :: JobParser Spectrum
 pSpectrumSpd = do
-   spd <- between (char '{' >> optional ws) (optional ws >> char '}') ss
-   return (fromSpd (mkSpd spd)) where
-      ss = sepBy1 s (char ',' >> optional ws)
-      s = do l <- flt; v <- ws >> flt; optional ws; return (l, v)
+   spd <- pBlock $ sepBy1 s (char ',' >> optional ws)
+   return $! fromSpd (mkSpd spd)
+   where
+      s = do l <- flt; v <- flt; optional ws; return (l, v)
 
 pBlock :: JobParser a -> JobParser a
-pBlock = between (char '{' >> optional ws) (optional ws >> char '}')
+pBlock = between (char '{' >> optional ws) (optional ws >> char '}' >> optional ws)
       
 namedBlock :: JobParser a -> String -> JobParser a
 namedBlock p n = optional ws >> string n >> optional ws >> pBlock p
@@ -167,15 +166,14 @@ namedFloat n = do
 namedInt :: String -> JobParser Int
 namedInt n = do
    _ <- string n
-   _ <- spaces
-   integ <|> fail ("cannot parse " ++ n ++ " value")
+   ws >> (integ <|> fail ("cannot parse " ++ n ++ " value"))
 
 -- | parse an integer
 integ :: (Monad m) => (ParsecT String u m) Int
-{-# INLINE integ #-}
 integ = do
    x <- many1 digit
-   return (read x)
+   optional ws
+   return $! read x
 
 --------------------------------------------------------------------------------
 -- External Resources

@@ -1,7 +1,9 @@
 
 module Graphics.Bling.IO.TransformParser (
-   pTransform
+   pTransform, pGlobalTrans
    ) where
+
+import Data.List (foldl')
 
 import Graphics.Bling.Math
 import Graphics.Bling.Transform
@@ -11,67 +13,46 @@ import Graphics.Bling.IO.ParserCore
 -- parsing transformations
 --
 
-pTransform :: JobParser ()
-pTransform = pBlock (many1 ts) >> return () where
-   ts = choice [ ws,
-      tIdentity, try tRotX,
-      try tRotY,
-      tRotZ,
-      tScale,
-      tTrans,
-      tMatrix,
-      tLookAt ]
-
-tLookAt :: JobParser ()
-tLookAt = (flip namedBlock) "lookAt" $ do
-   pos <- namedVector "pos"
-   look <- ws >> namedVector "look"
-   up <- ws >> namedVector "up"
+pGlobalTrans :: JobParser ()
+pGlobalTrans = pBlock $ do
+   t <- pTransform
    s <- getState
-   setState s { transform = lookAt pos look up }
+   setState s { transform = t }
    
-tIdentity :: JobParser ()
-tIdentity = do
-   _ <- string "identity"
-   s <- getState
-   setState s { transform = identity }
+pTransform :: JobParser Transform
+pTransform = do
+   ts <- many anyTransform
+   return $! foldl' concatTrans identity ts
 
-tRotX :: JobParser ()
-tRotX = do
-   deg <- string "rotateX" >> ws >> flt
-   s <- getState
-   setState s { transform = concatTrans (transform s) (rotateX deg) }
+anyTransform :: JobParser Transform
+anyTransform = choice [
+   try tRotX, try tRotY, tRotZ,
+   tScale, tTrans, tMatrix, tLookAt]
 
-tRotY :: JobParser ()
-tRotY = do
-   deg <- string "rotateY" >> ws >> flt
-   s <- getState
-   setState s { transform = concatTrans (transform s) (rotateY deg) }
+tLookAt :: JobParser Transform
+tLookAt = (flip namedBlock) "lookAt" $ do
+   pos <- namedVector "pos" <?> "position"
+   look <- namedVector "look" <?> "look at point"
+   up <- namedVector "up" <?> "up vector"
+   return $! lookAt pos look up
+   
+tRotX :: JobParser Transform
+tRotX = string "rotateX" >> ws >> flt >>= return . rotateX
 
-tRotZ :: JobParser ()
-tRotZ = do
-   deg <- string "rotateZ" >> ws >> flt
-   s <- getState
-   setState s { transform = concatTrans (transform s) (rotateZ deg) }
+tRotY :: JobParser Transform
+tRotY = string "rotateY" >> ws >> flt >>= return . rotateY
 
-tScale :: JobParser ()
-tScale = do
-   d <- string "scale" >> ws >> pVec
-   s <- getState
-   setState s { transform = concatTrans (transform s) (scale d) }
+tRotZ :: JobParser Transform
+tRotZ = string "rotateZ" >> ws >> flt >>= return . rotateZ
 
-tTrans :: JobParser ()
-tTrans = do
-   d <- string "translate" >> ws >> pVec
-   s <- getState
-   setState s { transform = concatTrans (transform s) (translate d) }
+tScale :: JobParser Transform
+tScale = string "scale" >> ws >> pVec >>= return . scale
 
-tMatrix :: JobParser ()
-tMatrix = (flip namedBlock) "matrix" $ do
-   m <- mtr 'm'
-   let t = fromMatrix' m
-   s <- getState
-   setState s { transform = concatTrans (transform s) t }
+tTrans :: JobParser Transform
+tTrans = string "translate" >> ws >> pVec >>= return . translate
+
+tMatrix :: JobParser Transform
+tMatrix = (flip namedBlock) "matrix" $ mtr 'm' >>= return . fromMatrix'
 
 mtr :: Char -> JobParser [[Flt]]
 mtr p = count 4 row where
@@ -80,4 +61,3 @@ mtr p = count 4 row where
       r <- count 4 (try (do ws; flt))
       _ <- ws
       return r
-   

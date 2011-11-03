@@ -45,7 +45,7 @@ camera {
    focalDistance 10
 }
 
-transform { identity }
+newTransform { }
 
 # the "white" material
 
@@ -273,6 +273,7 @@ emission {
    spd { 400.0 0.0, 500.0 8.0, 600.0 15.6, 700.0 18.4 }
 }
 
-transform { identity rotateX -90 translate 278 548.7 279.5  }
+newTransform { rotateX -90 translate 278 548.7 279.5  }
+
 prim { shape { quad 65 52.2 } }
 # prim { shape { disk height 0 radius 150 innerRadius 120 phiMax 360 } }

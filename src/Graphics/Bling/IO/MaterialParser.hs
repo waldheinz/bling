@@ -32,41 +32,38 @@ pMaterial = pBlock $ do
    setState s { material = m }
 
 pMaterial' :: JobParser Material
-pMaterial' = do
-   t <- pString
-   ws
-   case t of
-      "blackbody"    -> return blackBodyMaterial
-      "bumpMap"      -> pBumpMap
-      "glass"        -> pGlass
-      "measured"     -> pMeasuredMaterial
-      "metal"        -> pMetalMaterial
-      "shinyMetal"   -> pShinyMetal
-      "substrate"    -> pSubstrateMaterial
-      "plastic"      -> pPlasticMaterial
-      "matte"        -> pMatteMaterial
-      "mirror"       -> pMirrorMaterial
-      _              -> fail ("unknown material type " ++ t)
+pMaterial' = pString >>= \t -> case t of
+   "blackbody"    -> return blackBodyMaterial
+   "bumpMap"      -> pBumpMap
+   "glass"        -> pGlass
+   "measured"     -> pMeasuredMaterial
+   "metal"        -> pMetalMaterial
+   "shinyMetal"   -> pShinyMetal
+   "substrate"    -> pSubstrateMaterial
+   "plastic"      -> pPlasticMaterial
+   "matte"        -> pMatteMaterial
+   "mirror"       -> pMirrorMaterial
+   _              -> fail ("unknown material type " ++ t)
 
 pBumpMap :: JobParser Material
 pBumpMap = do
    d <- pScalarTexture "bump"
-   m <- ws >> pMaterial'
-   return $ bumpMapped d m
+   m <- pMaterial'
+   return $! bumpMapped d m
 
 pSubstrateMaterial :: JobParser Material
 pSubstrateMaterial = do
    kd <- pSpectrumTexture "kd"
-   ks <- ws >> pSpectrumTexture "ks"
-   urough <- ws >> pScalarTexture "urough"
-   vrough <- ws >> pScalarTexture "vrough"
+   ks <- pSpectrumTexture "ks"
+   urough <- pScalarTexture "urough"
+   vrough <- pScalarTexture "vrough"
    return $ mkSubstrate kd ks urough vrough
 
 pGlass :: JobParser Material
 pGlass = do
    ior <- pScalarTexture "ior"
-   rt <- ws >> pSpectrumTexture "kr"
-   tt <- ws >> pSpectrumTexture "kt"
+   rt <- pSpectrumTexture "kr"
+   tt <- pSpectrumTexture "kt"
    return $ glassMaterial ior rt tt
 
 pMetalMaterial :: JobParser Material
@@ -79,8 +76,8 @@ pMetalMaterial = do
 pShinyMetal :: JobParser Material
 pShinyMetal = do
    kr <- pSpectrumTexture "kr"
-   ks <- ws >> pSpectrumTexture "ks"
-   rough <- ws >> pScalarTexture "rough"
+   ks <- pSpectrumTexture "ks"
+   rough <- pScalarTexture "rough"
    return $ mkShinyMetal kr ks rough
 
 pMirrorMaterial :: JobParser Material
@@ -91,8 +88,8 @@ pMirrorMaterial = do
 pMatteMaterial :: JobParser Material
 pMatteMaterial = do
    kd <- pSpectrumTexture "kd"
-   sig <- ws >> pScalarTexture "sigma"
-   return (mkMatte kd sig)
+   sig <- pScalarTexture "sigma"
+   return $! mkMatte kd sig
    
 pMeasuredMaterial :: JobParser Material
 pMeasuredMaterial = do
@@ -117,8 +114,8 @@ pScalarTexture = namedBlock $ do
 
       "fbm" -> do
          oct <- namedInt "octaves"
-         omg <- ws >> namedFloat "omega"
-         m <- ws >> pTextureMapping3d "map"
+         omg <- namedFloat "omega"
+         m <- pTextureMapping3d "map"
          return $ fbmTexture oct omg m
       
       "perlin" -> do
@@ -132,7 +129,7 @@ pScalarTexture = namedBlock $ do
       
       "scale" -> do
          s <- flt
-         t <- ws >> pScalarTexture "texture"
+         t <- pScalarTexture "texture"
          return $ scaleTexture s t
       
       _ -> fail ("unknown texture type " ++ tp)
@@ -143,24 +140,23 @@ pTextureMapping2d = namedBlock $ do
    ws >> case n of
       "planar" -> do
          vu <- pVec
-         vv <- ws >> pVec
-         ou <- ws >> flt
-         ov <- ws >> flt
+         vv <- pVec
+         ou <- flt
+         ov <- flt
          return $ planarMapping (vu, vv) (ou, ov)
          
       "uv"   -> do
          su <- flt
-         sv <- ws >> flt
-         ou <- ws >> flt
-         ov <- ws >> flt
+         sv <- flt
+         ou <- flt
+         ov <- flt
          return $ uvMapping (su, sv) (ou, ov)
          
       _      -> fail $ "unknown 2d mapping " ++ n
 
 pTextureMapping3d :: String -> JobParser TextureMapping3d
-pTextureMapping3d = namedBlock $ do
-   mt <- pString
-   ws >> case mt of
+pTextureMapping3d = namedBlock $
+   pString >>= \ mt -> case mt of
               "identity" -> do
                  s <- getState
                  return $ identityMapping3d (transform s)
@@ -168,13 +164,12 @@ pTextureMapping3d = namedBlock $ do
               _ -> fail $ "unknown 3d mapping " ++ mt
 
 pSpectrumTexture :: String -> JobParser SpectrumTexture
-pSpectrumTexture = namedBlock $ do
-   tp <- many alphaNum
-   ws >> case tp of
+pSpectrumTexture = namedBlock $ 
+   pString >>= \tp -> case tp of
       "blend" -> do
          t1 <- pSpectrumTexture "tex1"
-         t2 <- ws >> pSpectrumTexture "tex2"
-         f <- ws >> pScalarTexture "f"
+         t2 <- pSpectrumTexture "tex2"
+         f <- pScalarTexture "f"
          return $ spectrumBlend t1 t2 f
          
       "constant" -> do
@@ -183,14 +178,14 @@ pSpectrumTexture = namedBlock $ do
       
       "checker" -> do
          s <- pVec
-         t1 <- ws >> pSpectrumTexture "tex1"
-         t2 <- ws >> pSpectrumTexture "tex2"
+         t1 <- pSpectrumTexture "tex1"
+         t2 <- pSpectrumTexture "tex2"
          return (checkerBoard s t1 t2)
 
       "graphPaper" -> do
          s <- flt
-         t1 <- ws >> pSpectrumTexture "tex1"
-         t2 <- ws >> pSpectrumTexture "tex2"
+         t1 <- pSpectrumTexture "tex1"
+         t2 <- pSpectrumTexture "tex2"
          return (graphPaper s t1 t2)
          
       "wood" -> return woodTexture
@@ -207,22 +202,22 @@ namedSpectrumMap n = string n >> ws >> pSpectrumMap
 pSpectrumMap :: JobParser SpectrumMap
 pSpectrumMap = pBlock $ do
    tp <- pString
-   ws >> case tp of
-              "constant" -> do
-                 s <- pSpectrum
-                 return $ constSpectrumMap s
+   case tp of
+      "constant" -> do
+         s <- pSpectrum
+         return $ constSpectrumMap s
 
-              "rgbeFile" -> do
-                 rgbe <- pQString >>= readFileBS
-                 case parseRGBE rgbe of
-                      Left e -> fail e
-                      Right x -> return $ (rgbeToTextureMap x)
+      "rgbeFile" -> do
+         rgbe <- pQString >>= readFileBS
+         case parseRGBE rgbe of
+            Left e -> fail e
+            Right x -> return $ (rgbeToTextureMap x)
 
-              "sunSky" -> do
-                 east <- namedVector "east"
-                 sunDir <- ws >> namedVector "sunDir"
-                 turb <- ws >> namedFloat "turbidity"
-                 return $ mkSunSkyLight east sunDir turb
+      "sunSky" -> do
+         east <- namedVector "east"
+         sunDir <- namedVector "sunDir"
+         turb <- namedFloat "turbidity"
+         return $ mkSunSkyLight east sunDir turb
                       
-              _ -> fail $ "unknown map type " ++ tp
+      _ -> fail $ "unknown map type " ++ tp
    

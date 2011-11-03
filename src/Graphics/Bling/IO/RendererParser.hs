@@ -24,25 +24,24 @@ defaultSampler = mkStratifiedSampler 2 2
 pRenderer :: JobParser ()
 pRenderer = pBlock $ do
    tName <- pString
-   ws
    r <- case tName of
 
              "light" -> do
                pc <- namedInt "passCount"
-               pp <- ws >> namedInt "passPhotons"
+               pp <- namedInt "passPhotons"
                return $ mkAnyRenderer $ mkLightTracer pc pp
   
              "metropolis" -> do
                 md <- namedInt "maxDepth"
-                mpp <- ws >> namedFloat "mpp"
-                nboot <- ws >> namedInt "bootstrap"
-                plarge <- ws >> namedFloat "plarge"
-                dspp <- ws >> namedInt "directSamples"
+                mpp <- namedFloat "mpp"
+                nboot <- namedInt "bootstrap"
+                plarge <- namedFloat "plarge"
+                dspp <- namedInt "directSamples"
                 return $ mkAnyRenderer $ mkMLT md mpp nboot plarge dspp
                 
              "sppm" -> do
                 n <- namedInt "photonCount"
-                r <- ws >> namedFloat "radius"
+                r <- namedFloat "radius"
                 return $ mkAnyRenderer $ mkSPPM n r
                 
              "sampler" -> do
@@ -57,22 +56,19 @@ pRenderer = pBlock $ do
 pSamplerRenderer :: JobParser SamplerRenderer
 pSamplerRenderer = (flip namedBlock) "sampled" $ do
    s <- pSampler
-   i <- ws >> pSurfaceIntegrator
-   return $ mkSamplerRenderer s i
+   i <- pSurfaceIntegrator
+   return $! mkSamplerRenderer s i
    
 pSampler :: JobParser Sampler
-pSampler = (flip namedBlock) "sampler" $ do
-   t <- many1 alphaNum
-   
-   case t of  
-             "stratified" -> do
-                nx <- ws >> namedInt "xSamples"
-                ny <- ws >> namedInt "ySamples"
-                return $ mkStratifiedSampler nx ny
+pSampler = (flip namedBlock) "sampler" $ pString >>= \t -> case t of
+   "stratified" -> do
+      nx <- namedInt "xSamples"
+      ny <- namedInt "ySamples"
+      return $ mkStratifiedSampler nx ny
                 
-             "random" -> do
-                ns <- ws >> namedInt "samples"
-                return $ mkRandomSampler ns
+   "random" -> do
+      ns <- namedInt "samples"
+      return $ mkRandomSampler ns
                 
-             _ -> fail $ "unknown sampler type " ++ t
+   _ -> fail $ "unknown sampler type " ++ t
    

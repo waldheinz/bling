@@ -29,9 +29,9 @@ pCamera = pBlock $ do
 
 pPerspectiveCam :: PState -> JobParser Camera
 pPerspectiveCam s = do
-   fov <- ws >> namedFloat "fov"
-   lr <- ws >> namedFloat "lensRadius"
-   fd <- ws >> namedFloat "focalDistance"
+   fov <- namedFloat "fov"
+   lr <- namedFloat "lensRadius"
+   fd <- namedFloat "focalDistance"
    let sx = fromIntegral $ resX s
    let sy = fromIntegral $ resY s
    let c2w = transform s

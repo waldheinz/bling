@@ -15,7 +15,7 @@ renderer {
    }
 }
 
-renderer { metropolis }
+# renderer { metropolis }
 
 transform {
    lookAt {
@@ -32,23 +32,28 @@ camera {
    focalDistance 6.4
 }
 
-transform { identity }
+transform { identity rotateX -90 }
 
 light {
-   sunSky
-   up 0 1 0
-   east 0 0 1
-   sunDir 0.5 1 1
-   turbidity 5
+   infinite
+   l {
+      sunSky
+      east 0 0 1
+      sunDir 0.5 1 1
+      turbidity 5
+   }
 }
 
 #
 # ground plane
 #
 
+transform { identity scale 2.01 2.01 2.01 }
+
 material {
    bumpMap
-   bump { scale 0.1 texture { perlin } }
+   bump { scale 0.5 texture { fbm octaves 5 omega 0.5 map { identity } } }
+   # bump { scale 0.1 texture { perlin } }
    
    metal
    eta {
@@ -101,7 +106,7 @@ material {
    rough { constant 0.002 }
 }
 
-shape {
+prim {
    mesh
    vertexCount 4
    faceCount 1
@@ -123,4 +128,4 @@ transform {
    translate 0 1.5 0
 }
 
-shape { sphere radius 1.5 }
+prim { shape { sphere radius 1.5 } }
