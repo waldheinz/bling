@@ -6,8 +6,9 @@ module Graphics.Bling.IO.LightParser (
    ) where
 
 import Graphics.Bling.Light
-import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.MaterialParser
+import Graphics.Bling.IO.ParserCore
+import Graphics.Bling.IO.TransformParser
 
 --
 -- parsing light sources
@@ -16,7 +17,6 @@ import Graphics.Bling.IO.MaterialParser
 pLight :: JobParser ()
 pLight = pBlock $ do
    t <- pString
-   ws
    ls <- case t of
       "directional"  -> pDirectionalLight
       "infinite"     -> pInfiniteArea
@@ -28,20 +28,20 @@ pLight = pBlock $ do
 
 pInfiniteArea :: JobParser Light
 pInfiniteArea = do
+   t <- pTransform
    l <- namedSpectrumMap "l"
-   s <- getState
-   return $ mkInfiniteAreaLight l (transform s)
-
+   return $ mkInfiniteAreaLight l t
+   
 pPointLight :: JobParser Light
 pPointLight = do
    r <- namedSpectrum "intensity"
-   p <- ws >> namedVector "position"
+   p <- namedVector "position"
    return $ mkPointLight r p
 
 pDirectionalLight :: JobParser Light
 pDirectionalLight = do
    s <- namedSpectrum "intensity"
-   n <- ws >> namedVector "normal"
+   n <- namedVector "normal"
    return $ mkDirectional s n
    
 pEmission :: JobParser ()

@@ -58,33 +58,33 @@ pSubstrateMaterial = do
    ks <- pSpectrumTexture "ks"
    urough <- pScalarTexture "urough"
    vrough <- pScalarTexture "vrough"
-   return $ mkSubstrate kd ks urough vrough
+   return $! mkSubstrate kd ks urough vrough
 
 pGlass :: JobParser Material
 pGlass = do
    ior <- pScalarTexture "ior"
    rt <- pSpectrumTexture "kr"
    tt <- pSpectrumTexture "kt"
-   return $ glassMaterial ior rt tt
+   return $! glassMaterial ior rt tt
 
 pMetalMaterial :: JobParser Material
 pMetalMaterial = do
    eta <- pSpectrumTexture "eta"
-   k <- ws >> pSpectrumTexture "k"
-   rough <- ws >> pScalarTexture "rough"
-   return (mkMetal eta k rough)
+   k <- pSpectrumTexture "k"
+   rough <- pScalarTexture "rough"
+   return $! mkMetal eta k rough
 
 pShinyMetal :: JobParser Material
 pShinyMetal = do
    kr <- pSpectrumTexture "kr"
    ks <- pSpectrumTexture "ks"
    rough <- pScalarTexture "rough"
-   return $ mkShinyMetal kr ks rough
+   return $! mkShinyMetal kr ks rough
 
 pMirrorMaterial :: JobParser Material
 pMirrorMaterial = do
    kr <- pSpectrumTexture "kr"
-   return $ mirrorMaterial kr
+   return $! mirrorMaterial kr
 
 pMatteMaterial :: JobParser Material
 pMatteMaterial = do
@@ -96,19 +96,19 @@ pMeasuredMaterial :: JobParser Material
 pMeasuredMaterial = do
    _ <- string "name" >> ws
    n <- many alphaNum
-   return $ measuredMaterial (read n)
+   return $! measuredMaterial (read n)
    
 pPlasticMaterial :: JobParser Material
 pPlasticMaterial = do
    kd <- pSpectrumTexture "kd"
-   ks <- ws >> pSpectrumTexture "ks"
-   rough <- ws >> pScalarTexture "rough"
-   return (mkPlastic kd ks rough)
+   ks <- pSpectrumTexture "ks"
+   rough <- pScalarTexture "rough"
+   return $! mkPlastic kd ks rough
 
 pScalarTexture :: String -> JobParser ScalarTexture
 pScalarTexture = namedBlock $ do
-   tp <- many alphaNum
-   ws >> case tp of
+   tp <- pString
+   case tp of
       "constant" -> do
          v <- flt
          return (constant v)
@@ -138,7 +138,7 @@ pScalarTexture = namedBlock $ do
 pTextureMapping2d :: String -> JobParser TextureMapping2d
 pTextureMapping2d = namedBlock $ do
    n <- pString
-   ws >> case n of
+   case n of
       "planar" -> do
          vu <- pVec
          vv <- pVec

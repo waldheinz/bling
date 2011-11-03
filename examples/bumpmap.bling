@@ -6,6 +6,7 @@
 filter mitchell 3 3 0.333333 0.333333
 
 imageSize 640 480
+imageSize 200 150
 
 renderer {
    sampler
@@ -15,7 +16,7 @@ renderer {
    }
 }
 
-# renderer { metropolis }
+renderer { sppm photonCount 5000 radius 1 }
 
 transform {
    lookAt {
@@ -32,10 +33,10 @@ camera {
    focalDistance 6.4
 }
 
-transform { identity rotateX -90 }
+newTransform { }
 
 light {
-   infinite
+   infinite { rotateX -90 }
    l {
       sunSky
       east 0 0 1
@@ -48,11 +49,12 @@ light {
 # ground plane
 #
 
-transform { identity scale 2.01 2.01 2.01 }
-
 material {
    bumpMap
-   bump { scale 0.5 texture { fbm octaves 5 omega 0.5 map { identity } } }
+   bump { scale 0.1 texture { fbm octaves 5 omega 0.5 map {
+      identity { scale 2 2 2 }
+   }}}
+   
    # bump { scale 0.1 texture { perlin } }
    
    metal
@@ -123,9 +125,5 @@ material {
    sigma { constant 0.3 }
 }
 
-transform {
-   identity
-   translate 0 1.5 0
-}
-
+newTransform { translate 0 1.5 0 }
 prim { shape { sphere radius 1.5 } }

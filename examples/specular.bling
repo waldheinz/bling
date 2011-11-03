@@ -17,7 +17,8 @@ renderer {
    }
 }
 
-renderer { metropolis maxDepth 7 mpp 1 bootstrap 5000 plarge 0.25 directSamples 4 }
+# renderer { metropolis maxDepth 7 mpp 1 bootstrap 5000 plarge 0.25 directSamples 4 }
+renderer { sppm photonCount 5000 radius 0.5 }
 
 transform {
    lookAt {
@@ -34,7 +35,7 @@ camera {
    focalDistance 10
 }
 
-transform { identity }
+newTransform { }
 
 #
 # ground plane
@@ -50,7 +51,7 @@ material {
    sigma { constant 0 }
 }
 
-shape {
+prim {
    mesh
    vertexCount 4
    faceCount 1
@@ -69,21 +70,12 @@ shape {
 
 emission { rgb 100 100 100 }
 
-transform {
-   identity
-   translate 0 5 0
+newTransform {
+   rotateX -90
+   translate 0 25 0
 }
 
-shape {
-   mesh
-   vertexCount 4
-   faceCount 1
-   v 2.0 15.7 -2.0
-   v 2.0 15.7 2.0
-   v -2.0 15.7 2.0
-   v -2.0 15.7 -2.0
-   f 0 1 2 3
-}
+prim { shape { quad 2 2 } }
 
 emission { none }
 
@@ -91,8 +83,7 @@ emission { none }
 # sphere 1
 #
 
-transform {
-   identity
+newTransform {
    translate -5.0 3.0 -2.5
 }
 
@@ -102,14 +93,13 @@ material { glass
    kt { constant rgb 1 1 1 }
 }
 
-shape { sphere radius 2.0 }
+prim { shape { sphere radius 2.0 } }
 
 #
 #
 #
 
-transform {
-   identity
+newTransform {
    translate 0.0 3.0 -2.5
 }
 
@@ -119,15 +109,14 @@ material { glass
    kt { constant rgb 1 1 1 }
 }
 
-shape { sphere radius 2.0 }
+prim { shape { sphere radius 2.0 } }
 
 
 #
 #
 #
 
-transform {
-   identity
+newTransform {
    translate 5.0 3.0 -2.5
 }
 
@@ -137,14 +126,13 @@ material { glass
    kt { constant rgb 1 0.5 0.6 }
 }
 
-shape { sphere radius 2.0 }
+prim { shape { sphere radius 2.0 } }
 
 #
 # sphere 1
 #
 
-transform {
-   identity
+newTransform {
    translate -5.0 3.0 2.5
 }
 
@@ -153,14 +141,13 @@ material { mirror
    kr { constant rgb 1 1 1 }
 }
 
-shape { sphere radius 2.0 }
+prim { shape { sphere radius 2.0 } }
 
 #
 #
 #
 
-transform {
-   identity
+newTransform {
    translate 0.0 3.0 2.5
 }
 
@@ -168,14 +155,13 @@ material { mirror
    kr { constant rgb 1 0.7 0.3 }
 }
 
-shape { sphere radius 2.0 }
+prim { shape { sphere radius 2.0 } }
 
 #
 #
 #
 
-transform {
-   identity
+newTransform {
    translate 5.0 3.0 2.5
 }
 
@@ -183,5 +169,5 @@ material { mirror
    kr { constant rgb 0.3 0.7 1 }
 }
 
-shape { sphere radius 2.0 }
+prim { shape { sphere radius 2.0 } }
 

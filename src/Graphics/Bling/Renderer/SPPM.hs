@@ -112,7 +112,7 @@ cont d md s bsdf wo tp t
             Just int -> do
                (hs, ls') <- nextV s int (-wi) t' d md
                return $! (hs, ls' + (t' * intLe int (-wi)))
-            Nothing  -> return $! ([], t * escaped ray s)
+            Nothing  -> return $! ([], t' * escaped ray s)
 
 --------------------------------------------------------------------------------
 -- Tracing Photons from the Light Sources and adding Image Contribution
