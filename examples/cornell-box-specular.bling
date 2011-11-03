@@ -16,7 +16,7 @@ renderer {
 # renderer { sampler sampled { sampler { stratified xSamples 3 ySamples 3 } integrator { bidir maxDepth 7 sampleDepth 4 } } }
 # renderer { metropolis maxDepth 7 mpp 1 bootstrap 1000 plarge 0.25 directSamples 16 }
 
-renderer { ppm photonCount 20000 radius 10 }
+renderer { sppm photonCount 10000 radius 10 }
 
 imageSize 480 480
 
@@ -39,7 +39,7 @@ camera {
    focalDistance 10
 }
 
-transform { identity }
+newTransform { }
 
 # the "white" material
 
@@ -67,7 +67,7 @@ material {
 # floor
 #
 
-shape {
+prim {
    mesh
    vertexCount 4
    faceCount 1
@@ -82,7 +82,7 @@ shape {
 # ceiling
 #
 
-shape {
+prim {
    mesh
    vertexCount 4
    faceCount 1
@@ -97,7 +97,7 @@ shape {
 # back wall
 #
 
-shape {
+prim {
    mesh
    vertexCount 4
    faceCount 1
@@ -118,17 +118,17 @@ material { glass
    kt { constant rgb 1 1 1 }
 }
 
-transform { identity translate 400 130 200 }
-shape { sphere radius 130 }
+newTransform { translate 400 130 200 }
+prim { shape { sphere radius 130 } }
 
 #
 # mirror sphere
 #
 
 material { mirror kr { constant rgb 1 1 1 } }
-transform { identity translate 150 100 300 }
-shape { sphere radius 100 }
-transform { identity }
+newTransform { translate 150 100 300 }
+prim { shape { sphere radius 100 } }
+newTransform { }
 
 #
 # right (green) wall
@@ -154,7 +154,7 @@ material {
    sigma { constant 0 }
 }
 
-shape {
+prim {
    mesh
    vertexCount 4
    faceCount 1
@@ -189,7 +189,7 @@ material {
    sigma { constant 0 }
 }
 
-shape {
+prim {
    mesh
    vertexCount 4
    faceCount 1
@@ -214,13 +214,6 @@ emission {
    spd { 400.0 0.0, 500.0 8.0, 600.0 15.6, 700.0 18.4 }
 }
 
-shape {
-   mesh
-   vertexCount 4
-   faceCount 1
-   v 343.0 548.7 227.0
-   v 343.0 548.7 332.0
-   v 213.0 548.7 332.0
-   v 213.0 548.7 227.0
-   f 0 1 2 3
-}
+newTransform { rotateX -90 translate 278 548.7 279.5  }
+
+prim { shape { quad 65 52.2 } }

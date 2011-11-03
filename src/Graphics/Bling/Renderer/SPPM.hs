@@ -94,7 +94,7 @@ nextV s int wo t d md = {-# SCC "nextV" #-} do
    (re, lsr) <- cont (d+1) md s bsdf wo (mkBxdfType [Specular, Reflection]) t
    (tr, lst) <- cont (d+1) md s bsdf wo (mkBxdfType [Specular, Transmission]) t
    here <- mkHitPoint bsdf wo t
-   seq re $ seq tr $ seq here $ return $! (here ++ re ++ tr, t * (lsr + lst))
+   seq re $ seq tr $ seq here $ return $! (here ++ re ++ tr, lsr + lst)
 
 cont :: Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Spectrum -> Sampled s ([HitPoint], Spectrum)
 cont d md s bsdf wo tp t
@@ -111,7 +111,7 @@ cont d md s bsdf wo tp t
          else case s `intersect` ray of
             Just int -> do
                (hs, ls') <- nextV s int (-wi) t' d md
-               return $! (hs, ls' + intLe int wo)
+               return $! (hs, ls' + (t' * intLe int (-wi)))
             Nothing  -> return $! ([], t * escaped ray s)
 
 --------------------------------------------------------------------------------

@@ -11,6 +11,7 @@ import Graphics.Bling.SunSky
 import Graphics.Bling.Texture
 import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.RGBE
+import Graphics.Bling.IO.TransformParser
 import Graphics.Bling.Material.Lafortune
 import Graphics.Bling.Material.Matte
 import Graphics.Bling.Material.Metal
@@ -158,8 +159,8 @@ pTextureMapping3d :: String -> JobParser TextureMapping3d
 pTextureMapping3d = namedBlock $
    pString >>= \ mt -> case mt of
               "identity" -> do
-                 s <- getState
-                 return $ identityMapping3d (transform s)
+                 t <- pTransform
+                 return $ identityMapping3d t
                  
               _ -> fail $ "unknown 3d mapping " ++ mt
 

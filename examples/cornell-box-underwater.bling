@@ -108,11 +108,16 @@ prim { shape { sphere radius 130 } }
 #
 # water
 #
-newTransform { scale 0.05 0.05 0.05 }
 
 material {
    bumpMap
-   bump { scale 3 texture { fbm octaves 3 omega 0.2 map { identity } } }
+   bump {
+      scale 3 texture {
+         fbm octaves 3 omega 0.2 map {
+            identity { scale 0.05 0.05 0.05 }
+         }
+      }
+   }
    
    glass
    ior { constant 1.33 }

@@ -14,13 +14,13 @@ import Graphics.Bling.IO.ParserCore
 --
 
 pGlobalTrans :: JobParser ()
-pGlobalTrans = pBlock $ do
+pGlobalTrans = do
    t <- pTransform
    s <- getState
    setState s { transform = t }
    
 pTransform :: JobParser Transform
-pTransform = do
+pTransform = pBlock $ do
    ts <- many anyTransform
    return $! foldl' concatTrans identity ts
 
