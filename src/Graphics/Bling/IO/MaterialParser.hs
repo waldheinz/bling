@@ -181,23 +181,31 @@ pSpectrumTexture = namedBlock $
          t1 <- pSpectrumTexture "tex1"
          t2 <- pSpectrumTexture "tex2"
          f <- pScalarTexture "f"
-         return $ spectrumBlend t1 t2 f
+         return $! spectrumBlend t1 t2 f
          
       "constant" -> do
          s <- pSpectrum
-         return (constant s)
+         return $! constant s
       
       "checker" -> do
          s <- pVec
          t1 <- pSpectrumTexture "tex1"
          t2 <- pSpectrumTexture "tex2"
-         return (checkerBoard s t1 t2)
-
+         return $! checkerBoard s t1 t2
+      
+      "gradient" -> do
+         f <- pScalarTexture "f"
+         steps <- (flip namedBlock) "steps" $ (flip sepBy) (char ',' >> optional ws) $ do
+            pos <- flt
+            col <- pSpectrum
+            return $! (pos, col)
+            
+         return $! gradient (mkGradient steps) f
       "graphPaper" -> do
          s <- flt
          t1 <- pSpectrumTexture "tex1"
          t2 <- pSpectrumTexture "tex2"
-         return (graphPaper s t1 t2)
+         return $! graphPaper s t1 t2
          
       "wood" -> return woodTexture
       

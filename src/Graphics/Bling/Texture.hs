@@ -15,6 +15,10 @@ module Graphics.Bling.Texture (
    constant, scaleTexture, graphPaper, checkerBoard, noiseTexture, fbmTexture,
    woodTexture, quasiCrystal, spectrumBlend,
 
+   -- ** Gradients
+
+   Gradient, mkGradient, gradient,
+   
    -- ** Worley's Cell Noise
    
    cellNoise, euclidianDist, sqEuclidianDist, manhattanDist, chebyshevDist
@@ -22,6 +26,9 @@ module Graphics.Bling.Texture (
    ) where
 
 import Data.Bits
+import Data.Function (on)
+import Data.List (sortBy)
+import Data.Maybe (fromJust)
 import qualified Data.Vector.Unboxed as V
 
 import Graphics.Bling.DifferentialGeometry
@@ -136,11 +143,40 @@ checkerBoard (Vector sx sy sz) t1 t2 dg
 --
 
 woodTexture :: SpectrumTexture
-woodTexture dg = wood where
-   g = perlin3d (x * 4, y * 4, z * 4)
-   grain = abs $ g - fromIntegral (floor g :: Int)
-   wood = fromRGB (grain * 0.498, grain * 0.367, 0.291)
-   (Vector x y z) = dgP dg
+woodTexture dg = gradient g (cellNoise euclidianDist (identityMapping3d $ scale $ mkV (2, 2, 2))) dg where
+   g = mkGradient [(0, fromRGB (1, 0, 0)), (0.2, fromRGB (0, 1, 0)), (0.3, fromRGB (0, 0, 1))] -- [(0, c1), (1, black)]
+   c1 = fromRGB (0.498, 0.367, 0.291)
+
+--------------------------------------------------------------------------------
+-- Gradients
+--------------------------------------------------------------------------------
+
+data Gradient = Gradient
+   { gradCols  :: ! (V.Vector (Flt, Spectrum))
+   , gradMax   :: {-# UNPACK #-} ! Flt
+   , gradMin   :: {-# UNPACK #-} ! Flt
+   } deriving (Show)
+
+mkGradient :: [(Flt, Spectrum)] -> Gradient
+mkGradient ss
+   | null ss = error "empty list given to mkGradient"
+   | otherwise = Gradient cols (V.maximum ps) (V.minimum ps)
+   where
+      cols = V.fromList $ sortBy (compare `on` fst) ss
+      ps = V.map fst cols
+
+gradient :: Gradient -> ScalarTexture -> SpectrumTexture
+gradient g t dg
+   | f <= gradMin g = snd $ V.head $ gradCols g
+   | f >= gradMax g = snd $ V.last $ gradCols g
+   | otherwise = sScale c0 (1 - weight) + sScale c1 weight
+   where
+      f = t dg
+      idx = fromJust $ V.findIndex ((> f) . fst) (gradCols g)
+      e0 = V.unsafeIndex (gradCols g) (idx-1)
+      e1 = V.unsafeIndex (gradCols g) idx
+      (c0, c1) = (snd e0, snd e1)
+      weight = (f - fst e0) / (fst e1 - fst e0)
 
 --------------------------------------------------------------------------------
 -- Worley's Cell Noise
@@ -192,7 +228,7 @@ cellNoise dist m dg = {-# SCC "cellNoise" #-} minimum $ map (dist p) allPoints
       lcg x = (1103515245 * x + 12345) `rem` 4294967296;
       
       hash :: (Int, Int, Int) -> Int
-      hash (x, y, z) = (abs $ (x * 73856093) `xor` (y * 19349663) `xor` (z * 83492791)) `rem` 4294967296
+      hash (x, y, z) = abs ((x * 73856093) `xor` (y * 19349663) `xor` (z * 83492791)) `rem` 4294967296
       
       -- | a lut for getting a fast poisson distribution
       prob :: Int -> Int
@@ -215,7 +251,7 @@ quasiCrystal o t dg = {-# SCC "quasiCrystal" #-} combine (map wave (angles o)) (
    angles :: Int -> [Flt]
    angles n = take n $ enumFromThen 0 (pi / fromIntegral n)
    
-   combine :: [(Flt, Flt) -> Flt] -> ((Flt, Flt) -> Flt)
+   combine :: [(Flt, Flt) -> Flt] -> (Flt, Flt) -> Flt
    combine xs = wrap . sum . sequence xs where
       wrap n = case aux n of
          (k, v) | odd (k::Int) -> 1 - v
