@@ -30,7 +30,7 @@ bernstein u x
    | x == 1 = 3 * u * i * i
    | x == 2 = 3 * u * u * i
    | x == 3 = 1 * u * u * u
-   | otherwise = error $ "bernstein for " ++ (show x)
+   | otherwise = error $ "bernstein for " ++ show x
    where
       i = 1 - u
 
@@ -38,11 +38,11 @@ type BernsteinDeriv = Int -> Flt
 
 bernsteinDeriv :: Flt -> BernsteinDeriv
 bernsteinDeriv u x
-   | x == 0 = 3 * (0 - i * i)
+   | x == 0 = 3 * negate (i * i)
    | x == 1 = 3 * (i * i - 2 * u * i)
    | x == 2 = 3 * (2 * u * i - u * u)
-   | x == 3 = 3 * (u * u - 0)
-   | otherwise = error $ "bernsteinDeriv for " ++ (show x)
+   | x == 3 = 3 * (u * u)
+   | otherwise = error $ "bernsteinDeriv for " ++ show x
    where
       i = 1 - u
 
@@ -68,12 +68,12 @@ onePatch subdivs p = {-# SCC "onePatch" #-} (is, ps, uvs) where
    vstride = subdivs + 1
    is = concat [mkTris i j | i <- [0..subdivs-1], j <- [0..subdivs-1]]
    mkTris i j = [v00, v10, v01, v10, v11, v01] where
-      v00 = ((i + 0) * vstride + (j + 0))
-      v10 = ((i + 1) * vstride + (j + 0))
-      v01 = ((i + 0) * vstride + (j + 1))
-      v11 = ((i + 1) * vstride + (j + 1))
+      v00 = (i + 0) * vstride + (j + 0)
+      v10 = (i + 1) * vstride + (j + 0)
+      v01 = (i + 0) * vstride + (j + 1)
+      v11 = (i + 1) * vstride + (j + 1)
    uvs = [(fromIntegral i * step, fromIntegral j * step) | i <- [0..subdivs], j <- [0..subdivs]]
-   ps = concat $ [evalv (bernstein (fromIntegral i * step)) (bernsteinDeriv (fromIntegral i * step)) | i <- [0 .. subdivs]]
+   ps = concat [evalv (bernstein (fromIntegral i * step)) (bernsteinDeriv (fromIntegral i * step)) | i <- [0 .. subdivs]]
    evalv bu bdu = [evalPatch p bu bdu (bernstein (fromIntegral j * step)) (bernsteinDeriv  (fromIntegral j * step)) | j <- [0 .. subdivs]]
    
 tesselateBezier :: Int -> [Patch] -> Transform -> Material -> TriangleMesh
@@ -89,7 +89,7 @@ tesselateBezier subs patches t mat = {-# SCC "tesselateBezier" #-} mesh where
       forM_ (zip patches [0..]) $ \(p, pn) -> do
          let (pis, pps, uv) = onePatch subs p
          
-         forM_ (zip pis [0..]) $ \(vi, o) -> do -- indices
+         forM_ (zip pis [0..]) $ \(vi, o) -> -- indices
             MV.write iv (pn * subs * subs * 3 * 2 + o) (vi + pn * stride)
             
          forM_ (zip3 pps uv [0..]) $ \((vp, dpdu, dpdv), (u, v), o) -> do
