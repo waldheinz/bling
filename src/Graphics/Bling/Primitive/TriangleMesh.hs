@@ -33,9 +33,10 @@ mkTriangleMesh o2w mat p i n uv
    | V.length i `rem` 3 /= 0 = error "mkTriangleMesh: number of indices must be multiple of 3"
    | V.any (>= V.length p) i = error "mkTriangleMesh: contains out of bounds indices"
    | V.any (< 0) i = error "mkTriangleMesh: contains negative indices"
-   | otherwise = Mesh i p' n uv mat
+   | otherwise = Mesh i p' n' uv mat
    where
       p' = V.map (transPoint o2w) p
+      n' = n >>= \ns -> return $ V.map (transNormal o2w) ns
 
 triangulate :: [[Int]] -> [Int]
 triangulate = concatMap go where
@@ -46,8 +47,8 @@ triangulate = concatMap go where
                         tails fs
 
 instance Primitive TriangleMesh where
-   flatten mesh = map mkAnyPrim $ map (mkTri mesh) is where
-      is = [0..((V.length $ mvidx mesh) `div` 3 - 1)]
+   flatten mesh = map (mkAnyPrim . mkTri mesh) is where
+      is = [0..(V.length (mvidx mesh) `div` 3 - 1)]
 
    worldBounds mesh = V.foldl' extendAABBP emptyAABB $ mps mesh
 
@@ -68,17 +69,17 @@ mkTri mesh n
 triOffsets :: Triangle -> (Int, Int, Int)
 {-# INLINE triOffsets #-}
 triOffsets (Tri idx m) = (o1, o2, o3) where
-   o1 = (mvidx m) V.! (idx + 0)
-   o2 = (mvidx m) V.! (idx + 1)
-   o3 = (mvidx m) V.! (idx + 2)
+   o1 = mvidx m V.! (idx + 0)
+   o2 = mvidx m V.! (idx + 1)
+   o3 = mvidx m V.! (idx + 2)
 
 triPoints :: Triangle -> (Point, Point, Point)
 {-# INLINE triPoints #-}
 triPoints t@(Tri _ m) = (p1, p2, p3) where
    (o1, o2, o3) = triOffsets t
-   p1 = (mps m) V.! o1
-   p2 = (mps m) V.! o2
-   p3 = (mps m) V.! o3
+   p1 = mps m V.! o1
+   p2 = mps m V.! o2
+   p3 = mps m V.! o3
 
 -- | assumes that the mesh actually *has* normals
 triNormals :: Triangle -> (Normal, Normal, Normal)
@@ -120,7 +121,7 @@ instance Primitive Triangle where
          ss' = normalize $ dgDPDU dgg
          ts' = ss' `cross` ns
          (ss, ts) = if sqLen ts' > 0
-                       then ((normalize $ ts') `cross` ns, normalize $ ts')
+                       then (normalize ts' `cross` ns, normalize ts')
                        else coordinateSystem'' ns
 
 

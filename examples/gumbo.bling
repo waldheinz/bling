@@ -11,8 +11,8 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 2 ySamples 2 }
-      integrator { path maxDepth 5 sampleDepth 3 }
+      sampler { stratified xSamples 6 ySamples 6 }
+      integrator { path maxDepth 25 sampleDepth 3 }
    }
 }
 
@@ -24,33 +24,27 @@ renderer {
 
 transform {
    lookAt {
-      pos 5 25 22
-      look 0 0 0
+      pos -20 15 -15
+      look 0 10 0
       up 0 1 0
    }
 }
 
 camera {
    perspective
-   fov 65
+   fov 55
    lensRadius 0
    focalDistance 6.4
 }
 
-transform { identity }
+light { infinite { rotateX -90 }
+   l { rgbeFile "envmaps/studio015.hdr" }
+}
 
 # light { sunSky up 0 0 1 east 1 0 0 sunDir -1 0 0.3 turbidity 8 }
- light { directional intensity rgb 1 1 1 normal 0 1 0 }
+# light { directional intensity rgb 1 1 1 normal 0 1 0 }
 
-transform { identity rotateX 180 }
-
-#light {
-#   infinite
-#   l { rgbeFile "./examples/envmaps/studio015.hdr" }
-#   l { rgbeFile "/home/trem/Downloads/garage4_hd.hdr" }
-#}
-
-transform { identity }
+newTransform { }
 
 #
 # light source
@@ -62,29 +56,16 @@ transform { identity }
 # ground plane
 #
 
-transform { identity scale 10 10 1 }
-
 material { plastic
-   kd { constant rgb 0.1 0.1 0.1 }
-   ks { constant rgb 0.5 0.5 0.5 }
+   kd { constant rgb 0.05 0.05 0.05 }
+   ks { constant rgb 0.8 0.8 0.8 }
    rough { constant 0.00078125 }
 }
 
-shape {
-   mesh
-   vertexCount 4
-   faceCount 1
-   v  50.0 -50.0 0
-   v -50.0 -50.0 0
-   v -50.0  50.0 0
-   v  50.0  50.0 0
-   f 3 2 1 0
-}
+# material { matte kd { constant rgb 0.8 0.8 0.8 } sigma { constant 0 } }
 
-transform {
-   identity
-  # rotateX -90
-}
+newTransform { rotateX 90 }
+prim { shape { quad 50 50 } }
 
 material {
    metal
@@ -116,9 +97,16 @@ material {
 # material { measured name Clay }
 # material { mirror kr { constant rgb 0.9 0.9 0.9 } }
 
+material { glass ior { constant 1.5 } kr { constant rgb 1 1 1 } kt { constant rgb 1 1 1 } }
+
+newTransform {
+   rotateX -90
+   translate -10 0 10
+}
+
 prim {
    bezier
-   subdivs 5
+   subdivs 7
    p { 10.0000,  2.00000,  0.00000, 10.0000,  2.00000,  0.00000,
        14.0000,  2.00000,  0.00000, 14.0000,  2.00000,  0.00000,
        10.0000,  2.00000,  0.00000, 10.2277,  2.22776, -0.91104,

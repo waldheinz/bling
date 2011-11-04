@@ -34,6 +34,8 @@ import Graphics.Bling.Spectrum
 -- textures and texture maps
 --------------------------------------------------------------------------------
 
+type Gradient = Flt -> Spectrum
+
 -- | A @Texture@ transforms a @DifferentialGeomerty@ to some value
 type Texture a = DifferentialGeometry -> a
 
@@ -160,7 +162,7 @@ cellNoise
    :: DistFunc
    -> TextureMapping3d
    -> ScalarTexture
-cellNoise dist m dg = {-# SCC cellNoise #-} minimum $ map (dist p) allPoints
+cellNoise dist m dg = {-# SCC "cellNoise" #-} minimum $ map (dist p) allPoints
    where
       p = mkPoint $ m dg
       
@@ -179,7 +181,7 @@ quasiCrystal
    :: Int               -- ^ number of octaves (higher adds mor detail)
    -> TextureMapping2d
    -> ScalarTexture
-quasiCrystal o t dg = {-# SCC quasiCrystal #-} combine (map wave (angles o)) (t dg) where
+quasiCrystal o t dg = {-# SCC "quasiCrystal" #-} combine (map wave (angles o)) (t dg) where
    angles :: Int -> [Flt]
    angles n = take n $ enumFromThen 0 (pi / fromIntegral n)
    
