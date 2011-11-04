@@ -33,10 +33,10 @@ camera {
 
 # transform { identity } camera { environment }
 
-transform { identity }
-transform { identity rotateX -90 }
+# transform { identity }
+# transform { identity rotateX -90 }
 
-light { infinite
+light { infinite { rotateX -90 }
    l { rgbeFile "envmaps/studio015.hdr" }
 }
 

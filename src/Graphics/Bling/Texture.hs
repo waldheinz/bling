@@ -13,14 +13,21 @@ module Graphics.Bling.Texture (
    -- * Textures
    
    constant, scaleTexture, graphPaper, checkerBoard, noiseTexture, fbmTexture,
-   woodTexture, quasiCrystal, spectrumBlend
+   woodTexture, quasiCrystal, spectrumBlend,
+
+   -- ** Worley's Cell Noise
+
+   cellNoise, euclidianDist
    
    ) where
 
+import Control.Monad (replicateM)
+import Control.Monad.ST
 import Data.Bits
 import qualified Data.Vector.Unboxed as V
 
 import Graphics.Bling.DifferentialGeometry
+import Graphics.Bling.Random
 import Graphics.Bling.Spectrum
 
 --------------------------------------------------------------------------------
@@ -138,11 +145,41 @@ woodTexture dg = wood where
    wood = fromRGB (grain * 0.498, grain * 0.367, 0.291)
    (Vector x y z) = dgP dg
 
+--------------------------------------------------------------------------------
+-- Worley's Cell Noise
+--------------------------------------------------------------------------------
+
+-- | a distance function takes two points and returns their distance
+type DistFunc = Point -> Point -> Flt
+
+euclidianDist :: DistFunc
+euclidianDist a b = len (a - b)
+
+-- | Worley's cell noise, creating Voronoi patterns.
+cellNoise
+   :: DistFunc
+   -> TextureMapping3d
+   -> ScalarTexture
+cellNoise dist m dg = {-# SCC cellNoise #-} minimum $ map (dist p) allPoints
+   where
+      p = mkPoint $ m dg
+      
+      allPoints = concatMap cellPoints ps where
+         ps = [(x + ox, y + oy, z + oz) | x <- [-1..1], y <- [-1..1], z <- [-1..1]]
+         (ox, oy, oz) = (floor $ vx p, floor $ vy p, floor $ vz p)
+      
+      cellPoints (x, y, z) = runST $ runWithSeed (intSeed [x, y, z]) $ do
+         rndIntR (1, 9) >>= \np -> replicateM np $ do
+            ox <- rnd
+            oy <- rnd
+            oz <- rnd
+            return $! mkPoint (fromIntegral x + ox, fromIntegral y + oy, fromIntegral z + oz)
+      
 quasiCrystal
    :: Int               -- ^ number of octaves (higher adds mor detail)
    -> TextureMapping2d
    -> ScalarTexture
-quasiCrystal o t dg = combine (map wave (angles o)) (t dg) where
+quasiCrystal o t dg = {-# SCC quasiCrystal #-} combine (map wave (angles o)) (t dg) where
    angles :: Int -> [Flt]
    angles n = take n $ enumFromThen 0 (pi / fromIntegral n)
    

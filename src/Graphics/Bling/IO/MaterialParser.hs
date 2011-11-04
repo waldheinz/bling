@@ -106,32 +106,35 @@ pPlasticMaterial = do
    return $! mkPlastic kd ks rough
 
 pScalarTexture :: String -> JobParser ScalarTexture
-pScalarTexture = namedBlock $ do
-   tp <- pString
-   case tp of
+pScalarTexture = namedBlock $
+   pString >>= \ tp -> case tp of
       "constant" -> do
          v <- flt
-         return (constant v)
+         return $! constant v
+
+      "cellNoise" -> do
+         m <- pTextureMapping3d "map"
+         return $! cellNoise euclidianDist m
 
       "fbm" -> do
          oct <- namedInt "octaves"
          omg <- namedFloat "omega"
          m <- pTextureMapping3d "map"
-         return $ fbmTexture oct omg m
+         return $! fbmTexture oct omg m
       
       "perlin" -> do
          m <- pTextureMapping3d "map"
-         return $ noiseTexture m
+         return $! noiseTexture m
 
       "crystal" -> do
          o <- namedInt "octaves"
          m <- pTextureMapping2d "map"
-         return $ quasiCrystal o m
+         return $! quasiCrystal o m
       
       "scale" -> do
          s <- flt
          t <- pScalarTexture "texture"
-         return $ scaleTexture s t
+         return $! scaleTexture s t
       
       _ -> fail ("unknown texture type " ++ tp)
 

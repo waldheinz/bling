@@ -1,5 +1,4 @@
 
-
 # metal
 
 filter mitchell 3.0 3.0 0.333333 0.333333
@@ -10,8 +9,7 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      # sampler { stratified xSamples 2 ySamples 2 }
-      sampler { random samples 16 }
+      sampler { stratified xSamples 2 ySamples 2 }
       integrator { path maxDepth 7 sampleDepth 3}
    }
 }
@@ -20,7 +18,7 @@ renderer {
 
 transform {
    lookAt {
-      pos 0.0 8.0 -7.0
+      pos 0 8 -7
       look 0 1 0
       up 0 1 0
    }
@@ -37,7 +35,7 @@ camera {
 # ground plane
 #
 
-transform { identity }
+newTransform { }
 
 material {
    matte
@@ -46,43 +44,37 @@ material {
       tex1 { constant rgb 0.95 0.95 0.95 }
       tex2 { constant rgb 0.05 0.05 0.05 }
    }
-   sigma { constant 0.0 }
+   sigma { constant 0 }
 }
 
-prim {
-   mesh
-   vertexCount 4
-   faceCount 1
-   v  50.0 0.0 -50.0
-   v -50.0 0.0 -50.0
-   v -50.0 0.0  50.0
-   v  50.0 0.0  50.0
-   f 3 2 1 0
-}
+newTransform { rotateX 90 }
+prim { shape { quad 50 50 } }
 
 #
 # light source
 #
 
-emission {
-   rgb 12 12 12
-}
+emission { rgb 12 12 12 }
+newTransform { rotateX -90 translate 0 15 0  }
+# prim { shape { quad 5 5 } }
+emission { none }
 
-transform { identity rotateX -90 translate 0 15 0  }
-prim { shape { quad 5 5 } }
+light { infinite { rotateX -90 }
+   l { rgbeFile "envmaps/studio015.hdr" }
+}
 
 #
 # Gold Sphere (left)
 #
 
-emission { none }
 
-transform {
-   identity
-   translate -5.0 3.0 0.0
-}
+
+newTransform { translate -5 3 0 }
 
 material {
+   bumpMap
+   bump { scale 0.01 texture { cellNoise map { identity { scale 5 5 5 } } } }
+   
    metal
    eta {
       constant spd {
@@ -139,10 +131,7 @@ prim { shape { sphere radius 2 } }
 # Aluminium Sphere (center)
 #
 
-transform {
-   identity
-   translate 0.0 3.0 0.0
-}
+newTransform { translate 0 3 0 }
 
 material {
    metal
@@ -201,18 +190,11 @@ prim { shape { sphere radius 2 } }
 # Copper Shpere (right)
 #
 
-transform {
-   identity
-   translate 5.0 3.0 0.0
-}
-
-transform {
-   scale 0.1 0.1 0.1
-}
+newTransform { translate 5 3 0 }
 
 material {
    bumpMap
-   bump { scale 0.5 texture { perlin map { identity } } }
+   bump { scale 0.01 texture { perlin map { identity { scale 10 10 10 } } } }
    
    metal
    eta {
@@ -238,10 +220,6 @@ material {
       }
    }
    rough { constant 0.01 }
-}
-
-transform {
-   scale 10 10 10
 }
 
 prim { shape { sphere radius 2 } }

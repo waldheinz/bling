@@ -45,15 +45,12 @@ runWithSeed seed m = runRand m =<< MWC.restore seed
 
 -- | create a new seed using the system's random source
 ioSeed :: IO MWC.Seed
-ioSeed = MWC.withSystemRandom $ do
-   s' <- MWC.save :: MWC.Gen (PrimState IO) -> IO MWC.Seed
-   return s'
+ioSeed = MWC.withSystemRandom (MWC.save :: MWC.Gen (PrimState IO) -> IO MWC.Seed)
 
 intSeed :: [Int] -> MWC.Seed
 intSeed seed = runST $ do
       g <- MWC.initialize (V.fromList $ map fromIntegral seed)
-      s <- MWC.save g -- :: MWC.Gen (PrimState (ST s)) -> ST s MWC.Seed
-      return s
+      MWC.save g
 
 runRandIO :: Rand RealWorld a -> IO a
 runRandIO = MWC.withSystemRandom . runRand
@@ -89,18 +86,18 @@ rndInt = Rand MWC.uniform
 
 rndIntR :: (Int, Int) -> Rand s Int
 {-# INLINE rndIntR #-}
-rndIntR r = {-# SCC "rndIntR" #-} Rand $ MWC.uniformR r
+rndIntR r = Rand $ MWC.uniformR r
 
 rndIntList
    :: Int
    -> Rand s [Int]
-rndIntList n = replicateM n $ rndInt
+rndIntList n = replicateM n rndInt
 
 -- | generates a list of given length of random numbers in [0..1)
 rndList
    :: Int -- ^ the length of the list to generate
    -> Rand s [Float]
-rndList n = replicateM n $ rnd
+rndList n = replicateM n rnd
 {-# INLINE rndList #-}
 
 -- | generates a list of given length containing tuples of random numbers
