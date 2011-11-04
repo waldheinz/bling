@@ -592,9 +592,11 @@ mfDistD (Blinn e) wh = (e + 2) * invTwoPi * (costh ** e) where
 --------------------------------------------------------------------------------
 
 bumpMapped :: ScalarTexture -> Material -> Material
-bumpMapped d mat dgg dgs = mat dgg dgBump where
+bumpMapped d mat dgg dgs = mat dgg $ bump d dgg dgs
+
+bump :: ScalarTexture -> DifferentialGeometry -> DifferentialGeometry -> DifferentialGeometry
+bump d dgg dgs = {-# SCC "bump" #-} dgBump where
    dgBump = dgs { dgN = nn, dgDPDU = dpdu, dgDPDV = dpdv }
-   
    uDisp = d dgeu
    vDisp = d dgev
    disp = d dgs

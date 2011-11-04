@@ -21,20 +21,15 @@ module Graphics.Bling.Texture (
    
    ) where
 
-import Control.Monad (replicateM)
-import Control.Monad.ST
 import Data.Bits
 import qualified Data.Vector.Unboxed as V
 
 import Graphics.Bling.DifferentialGeometry
-import Graphics.Bling.Random
 import Graphics.Bling.Spectrum
 
 --------------------------------------------------------------------------------
 -- textures and texture maps
 --------------------------------------------------------------------------------
-
-type Gradient = Flt -> Spectrum
 
 -- | A @Texture@ transforms a @DifferentialGeomerty@ to some value
 type Texture a = DifferentialGeometry -> a
@@ -170,12 +165,36 @@ cellNoise dist m dg = {-# SCC "cellNoise" #-} minimum $ map (dist p) allPoints
          ps = [(x + ox, y + oy, z + oz) | x <- [-1..1], y <- [-1..1], z <- [-1..1]]
          (ox, oy, oz) = (floor $ vx p, floor $ vy p, floor $ vz p)
       
-      cellPoints (x, y, z) = runST $ runWithSeed (intSeed [x, y, z]) $ do
-         rndIntR (1, 9) >>= \np -> replicateM np $ do
-            ox <- rnd
-            oy <- rnd
-            oz <- rnd
-            return $! mkPoint (fromIntegral x + ox, fromIntegral y + oy, fromIntegral z + oz)
+      cellPoints :: (Int, Int, Int) -> [Point]
+      cellPoints pt@(x, y, z) = map fst $ take n $ tail $ iterate go (undefined, us) where
+         us = lcg $ hash pt
+         n = prob us
+         go (_, u0) = (mkPoint (fromIntegral x + ox, fromIntegral y + oy, fromIntegral z + oz), u3) where
+            u1 = lcg u0
+            u2 = lcg u1
+            u3 = lcg u2
+            ox = fromIntegral u1 / 4294967296
+            oy = fromIntegral u2 / 4294967296
+            oz = fromIntegral u3 / 4294967296
+      
+      lcg :: Int -> Int
+      lcg x = (1103515245 * x + 12345) `rem` 4294967296;
+      
+      hash :: (Int, Int, Int) -> Int
+      hash (x, y, z) = (abs $ (x * 73856093) `xor` (y * 19349663) `xor` (z * 83492791)) `rem` 4294967296
+      
+      -- | a lut for getting a fast poisson distribution
+      prob :: Int -> Int
+      prob value
+         | value < 393325350  = 1
+         | value < 1022645910 = 2
+         | value < 1861739990 = 3
+         | value < 2700834071 = 4
+         | value < 3372109335 = 5
+         | value < 3819626178 = 6
+         | value < 4075350088 = 7
+         | value < 4203212043 = 8
+         | otherwise          = 9
       
 quasiCrystal
    :: Int               -- ^ number of octaves (higher adds mor detail)

@@ -40,21 +40,22 @@ instance Monad (Rand s) where
 
 -- | Run monad using seed
 runWithSeed :: MWC.Seed -> Rand s a -> ST s a
-runWithSeed seed m = runRand m =<< MWC.restore seed
 {-# INLINE runWithSeed #-}
+runWithSeed seed m = runRand m =<< MWC.restore seed
 
 -- | create a new seed using the system's random source
 ioSeed :: IO MWC.Seed
 ioSeed = MWC.withSystemRandom (MWC.save :: MWC.Gen (PrimState IO) -> IO MWC.Seed)
 
 intSeed :: [Int] -> MWC.Seed
+{-# INLINE intSeed #-}
 intSeed seed = runST $ do
       g <- MWC.initialize (V.fromList $ map fromIntegral seed)
       MWC.save g
 
 runRandIO :: Rand RealWorld a -> IO a
-runRandIO = MWC.withSystemRandom . runRand
 {-# INLINE runRandIO #-}
+runRandIO = MWC.withSystemRandom . runRand
 
 liftR :: ST s a -> Rand s a
 {-# INLINE liftR #-}

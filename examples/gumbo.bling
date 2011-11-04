@@ -11,7 +11,7 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 6 ySamples 6 }
+      sampler { stratified xSamples 1 ySamples 1 }
       integrator { path maxDepth 25 sampleDepth 3 }
    }
 }
@@ -38,7 +38,8 @@ camera {
 }
 
 light { infinite { rotateX -90 }
-   l { rgbeFile "envmaps/studio015.hdr" }
+#   l { rgbeFile "envmaps/studio015.hdr" }
+   l { rgbeFile "/home/trem/Downloads/Alexs_Apartment/Alexs_Apt_2k.hdr" }
 }
 
 # light { sunSky up 0 0 1 east 1 0 0 sunDir -1 0 0.3 turbidity 8 }
