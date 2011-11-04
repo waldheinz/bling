@@ -16,8 +16,8 @@ module Graphics.Bling.Texture (
    woodTexture, quasiCrystal, spectrumBlend,
 
    -- ** Worley's Cell Noise
-
-   cellNoise, euclidianDist
+   
+   cellNoise, euclidianDist, sqEuclidianDist, manhattanDist, chebyshevDist
    
    ) where
 
@@ -151,6 +151,17 @@ type DistFunc = Point -> Point -> Flt
 
 euclidianDist :: DistFunc
 euclidianDist a b = len (a - b)
+
+sqEuclidianDist :: DistFunc
+sqEuclidianDist a b = sqLen (a - b)
+
+manhattanDist :: DistFunc
+manhattanDist a b = abs (vx d) + abs (vy d) + abs (vz d) where
+   d = a - b
+
+chebyshevDist :: DistFunc
+chebyshevDist a b = maximum [abs (vx d), abs (vy d), abs (vz d)] where
+   d = a - b
 
 -- | Worley's cell noise, creating Voronoi patterns.
 cellNoise

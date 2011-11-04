@@ -107,14 +107,21 @@ pPlasticMaterial = do
 
 pScalarTexture :: String -> JobParser ScalarTexture
 pScalarTexture = namedBlock $
-   pString >>= \ tp -> case tp of
+   pString >>= \tp -> case tp of
       "constant" -> do
          v <- flt
          return $! constant v
 
       "cellNoise" -> do
+         d <- pString >>= \dn -> return $ case dn of
+            "euclidian"    -> euclidianDist
+            "euclidian2"   -> sqEuclidianDist
+            "manhattan"    -> manhattanDist
+            "chebyshev"    -> chebyshevDist
+            _              -> fail $ "unknown distance function " ++ dn
+            
          m <- pTextureMapping3d "map"
-         return $! cellNoise euclidianDist m
+         return $! cellNoise d m
 
       "fbm" -> do
          oct <- namedInt "octaves"
