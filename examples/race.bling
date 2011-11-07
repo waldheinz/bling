@@ -40,13 +40,21 @@ camera {
 # light source
 #
 
-light { sunSky up 0 1 0 east 1 0 0 sunDir 1 0.3 0 turbidity 5 }
+
+light { infinite { rotateX -90 }
+   l {
+      sunSky
+      east 1 0 0
+      sunDir 1 0.2 0
+      turbidity 5
+   }
+}
 
 #
 # sphere
 #
 
-transform { identity translate 3 1 -4 }
+newTransform { translate 3 1 -4 }
 
 material {
    metal
@@ -105,76 +113,73 @@ material {
 # cylinders
 #
 
-transform {
-   identity
-   translate -13 0 0
-}
+newTransform { translate -13 0 0 }
 
 # h = 0
 material { plastic kd { constant rgb 0.8 0.04 0.04 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
-shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+prim { shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 } }
 
 # h = 26
 transform { translate 2 0 0 }
 material { plastic kd { constant rgb 0.8 0.37 0.04 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
-shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+prim { shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 } }
 
 # h = 51
 transform { translate 2 0 0 }
 material { plastic kd { constant rgb 0.8 0.67 0.16 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
-shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+prim { shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 } }
 
 # h = 77
 transform { translate 2 0 0 }
 material { plastic kd { constant rgb 0.58 0.80 0.04 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
-shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+prim { shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 } }
 
 # h = 103
 transform { translate 2 0 0 }
 material { plastic kd { constant rgb 0.25 0.80 0.04 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
-shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+prim { shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 } }
 
 # h = 129
 transform { translate 2 0 0 }
 material { plastic kd { constant rgb 0.04 0.80 0.15 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
-shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+prim { shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 } }
 
 # h = 154
 transform { translate 2 0 0 }
 material { plastic kd { constant rgb 0.04 0.80 0.47 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
-shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+prim { shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 } }
 
 # h = 180
 transform { translate 2 0 0 }
 material { plastic kd { constant rgb 0.04 0.80 0.80 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
-shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+prim { shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 } }
 
 # h = 206
 transform { translate 2 0 0 }
 material { plastic kd { constant rgb 0.04 0.47 0.80 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
-shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+prim { shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 } }
 
 # h = 231
 transform { translate 2 0 0 }
 material { plastic kd { constant rgb 0.04 0.15 0.80 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
-shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+prim { shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 } }
 
 # h = 257
 transform { translate 2 0 0 }
 material { plastic kd { constant rgb 0.25 0.04 0.80 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
-shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+prim { shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 } }
 
 # h = 282
 transform { translate 2 0 0 }
 material { plastic kd { constant rgb 0.57 0.04 0.80 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
-shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+prim { shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 } }
 
 # h = 309
 transform { translate 2 0 0 }
 material { plastic kd { constant rgb 0.80 0.04 0.67 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
-shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+prim { shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 } }
 
 # h = 334
 transform { translate 2 0 0 }
 material { plastic kd { constant rgb 0.80 0.04 0.37 } ks { constant rgb 0.8 0.8 0.8 } rough { constant 0.001 } }
-shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 }
+prim { shape { cylinder radius 1 zmin -16 zmax 8 phiMax 360 } }
