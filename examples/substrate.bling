@@ -9,8 +9,8 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 5 ySamples 5 }
-      integrator { path maxDepth 7 }
+      sampler { stratified xSamples 2 ySamples 2 }
+      integrator { path maxDepth 7 sampleDepth 3 }
    }
 }
 
@@ -29,7 +29,7 @@ camera {
    focalDistance 8.6
 }
 
-transform { identity }
+newTransform { }
 
 #
 # ground plane
@@ -45,7 +45,7 @@ material {
    sigma { constant 0.005 }
 }
 
-shape {
+prim {
    mesh
    vertexCount 4
    faceCount 1
@@ -60,23 +60,14 @@ shape {
 # light source
 #
 
-emission { rgb 10 10 10 }
+emission { rgbIllum 10 10 10 }
 
-transform {
-   identity
-   translate 0.0 5.0 0.0
+newTransform {
+   rotateX -90
+   translate 0 20 0
 }
 
-shape {
-   mesh
-   vertexCount 4
-   faceCount 1
-   v  4 15 -4
-   v  4 15  4
-   v -4 15  4
-   v -4 15 -4
-   f 3 2 1 0
-}
+prim { shape { quad 4 4 } }
 
 emission { none }
 
@@ -84,8 +75,7 @@ emission { none }
 # sphere 1
 #
 
-transform {
-   identity
+newTransform {
    translate -3 2 0
 }
 
@@ -111,7 +101,7 @@ material { substrate
    vrough { constant 0.0002 }
 }
 
-shape { sphere radius 2 }
+prim { shape { sphere radius 2 } }
 
 transform {
    translate 6 0 0
@@ -138,10 +128,9 @@ material { substrate
    vrough { constant 0.005 }
 }
 
-shape { sphere radius 2 }
+prim { shape { sphere radius 2 } }
 
-transform {
-   identity
+newTransform {
    translate 0 2 4
 }
 
@@ -167,4 +156,4 @@ material {
    vrough { constant 0.005 }
 }
 
-shape { sphere radius 2 }
+prim { shape { sphere radius 2 } }

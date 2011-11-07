@@ -17,7 +17,7 @@ pGlobalTrans :: JobParser ()
 pGlobalTrans = do
    t <- pTransform
    s <- getState
-   setState s { transform = t }
+   setState s { transform = concatTrans t (transform s) }
    
 pTransform :: JobParser Transform
 pTransform = pBlock $ do

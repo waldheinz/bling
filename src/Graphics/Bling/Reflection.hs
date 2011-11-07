@@ -122,7 +122,9 @@ instance Bxdf FresnelBlend where
       wi = if u1 < 0.5
               then toSameHemisphere wo $ cosineSampleHemisphere (u1 * 2, u2)
               else snd $ mfDistSample d (2 * (u1 - 0.5), u2) wo
-              
+
+   bxdfSample' = bxdfSample
+             
    bxdfPdf (FB _ _ d) wo wi
       | sameHemisphere wo wi = 0.5 * (absCosTheta wi * invPi + mfDistPdf d wo wi)
       | otherwise = 0
