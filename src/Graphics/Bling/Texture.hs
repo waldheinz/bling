@@ -13,7 +13,7 @@ module Graphics.Bling.Texture (
    -- * Textures
    
    constant, scaleTexture, graphPaper, checkerBoard, noiseTexture, fbmTexture,
-   woodTexture, quasiCrystal, spectrumBlend,
+   quasiCrystal, spectrumBlend,
 
    -- ** Gradients
 
@@ -138,14 +138,6 @@ checkerBoard (Vector sx sy sz) t1 t2 dg
    | otherwise = t2 dg
    where
       (Vector x y z) = dgP dg
---
--- Wood
---
-
-woodTexture :: SpectrumTexture
-woodTexture dg = gradient g (cellNoise euclidianDist (identityMapping3d $ scale $ mkV (2, 2, 2))) dg where
-   g = mkGradient [(0, fromRGB (1, 0, 0)), (0.2, fromRGB (0, 1, 0)), (0.3, fromRGB (0, 0, 1))] -- [(0, c1), (1, black)]
-   c1 = fromRGB (0.498, 0.367, 0.291)
 
 --------------------------------------------------------------------------------
 -- Gradients

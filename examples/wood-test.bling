@@ -47,7 +47,7 @@ prim { shape { quad 50 50 } }
 # light source
 #
 
-emission { rgb 100 100 100 }
+emission { rgbIllum 100 100 100 }
 
 newTransform {
    rotateX -90

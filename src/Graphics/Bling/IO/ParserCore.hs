@@ -20,6 +20,7 @@ module Graphics.Bling.IO.ParserCore (
    
    ) where
 
+import Control.Monad (liftM3)
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.ByteString.Lazy as BS
 import System.FilePath as FP
@@ -134,7 +135,9 @@ pSpectrum = pString >>= \t -> case t of
       g <- flt
       b <- flt
       return (fromRGB (r, g, b))
-         
+
+   "rgbIllum" -> liftM3 fromRGBIllum flt flt flt
+   
    "spd" -> pSpectrumSpd
    "temp" -> do
       temp <- flt

@@ -18,6 +18,7 @@ import Graphics.Bling.Material.Metal
 import Graphics.Bling.Material.Plastic
 import Graphics.Bling.Material.Specular
 import Graphics.Bling.Material.Substrate
+import Graphics.Bling.Material.Wood
 
 defaultMaterial :: Material
 defaultMaterial = mkMatte (constant $ fromRGB (0.9, 0.9, 0.9)) (constant 0)

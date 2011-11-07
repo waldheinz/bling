@@ -10,7 +10,7 @@ module Graphics.Bling.Spectrum (
    Spd, mkSpd, mkSpd', mkSpdFunc, fromCIExy, spdToXYZ, evalSpd,
    
    isBlack, sNaN, sInfinite,
-   fromXYZ,  toRGB, fromRGB, fromSpd, sConst, sBlackBody, sY,
+   fromXYZ,  toRGB, fromRGB, fromRGBIllum, fromSpd, sConst, sBlackBody, sY,
    sScale, sPow, sClamp, sClamp', sSqrt, chromaticityToXYZ
    
    ) where
@@ -64,7 +64,7 @@ instance MV.MVector V.MVector Spectrum where
       r <- MV.unsafeRead v idx'
       g <- MV.unsafeRead v (idx' + 1)
       b <- MV.unsafeRead v (idx' + 2)
-      return $ fromRGB (r, g, b)
+      return $! Spectrum r g b
       where
          idx' = idx * bands
    {-# INLINE basicUnsafeRead #-}
@@ -95,7 +95,7 @@ instance GV.Vector V.Vector Spectrum where
       r <- GV.unsafeIndexM v (idx' + 0)
       g <- GV.unsafeIndexM v (idx' + 1)
       b <- GV.unsafeIndexM v (idx' + 2)
-      return $ fromRGB (r, g, b)
+      return $! Spectrum r g b
       where
          idx' = idx * bands
    {-# INLINE basicUnsafeIndexM #-}
@@ -127,7 +127,11 @@ white :: Spectrum
 white = Spectrum 1 1 1
 
 fromRGB :: (Float, Float, Float) -> Spectrum
-fromRGB (r, g, b) = Spectrum r g b
+fromRGB (r, g, b) = Spectrum (r ** ga) (g ** ga) (b ** ga) where
+   ga = 2.2
+
+fromRGBIllum :: Float-> Float -> Float -> Spectrum
+fromRGBIllum = Spectrum
 
 fromXYZ :: (Float, Float, Float) -> Spectrum
 fromXYZ (x, y, z) = fromRGB (r, g, b) where
