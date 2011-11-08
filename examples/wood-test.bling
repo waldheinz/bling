@@ -9,8 +9,8 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 1 ySamples 1 }
-      integrator { path maxDepth 3 sampleDepth 3 }
+      sampler { stratified xSamples 8 ySamples 8 }
+      integrator { path maxDepth 5 sampleDepth 3 }
    }
 }
 
@@ -47,11 +47,11 @@ prim { shape { quad 50 50 } }
 # light source
 #
 
-emission { rgbIllum 100 100 100 }
+emission { rgbIllum 10 10 10 }
 
 newTransform {
-   rotateX -90
-   translate 0 25 0
+   rotateX -120
+   translate -5 10 -5
 }
 
 prim { shape { quad 2 2 } }
@@ -64,9 +64,7 @@ emission { none }
 # }
 
 material {
-   matte
-   kd { wood }
-   sigma { constant 0.5 }
+   wood
 }
 
 newTransform {
@@ -75,5 +73,5 @@ newTransform {
 
 prim { shape { sphere radius 2 } }
 
-transform { translate 0 0 0 }
+transform { translate 0 -4 0 }
 prim { shape { box pmin -3 0 -3 pmax 3 2 3 } }

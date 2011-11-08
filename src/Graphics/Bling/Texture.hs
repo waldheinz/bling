@@ -12,8 +12,8 @@ module Graphics.Bling.Texture (
    
    -- * Textures
    
-   constant, scaleTexture, graphPaper, checkerBoard, noiseTexture, fbmTexture,
-   quasiCrystal, spectrumBlend,
+   constant, scaleTexture, addTexture, graphPaper, checkerBoard, noiseTexture,
+   fbmTexture, quasiCrystal, spectrumBlend,
 
    -- ** Gradients
 
@@ -113,6 +113,9 @@ planarMapping (vu, vv) (ou, ov) dg = (u + ou, v + ov) where
 
 scaleTexture :: (Num a) => a -> Texture a -> Texture a
 scaleTexture s t dg = s * t dg
+
+addTexture :: (Num a) => Texture a -> Texture a -> Texture a
+addTexture t1 t2 dg = t1 dg + t2 dg
 
 graphPaper :: Flt -> SpectrumTexture -> SpectrumTexture -> SpectrumTexture
 graphPaper lw p l dg
@@ -236,8 +239,8 @@ cellNoise dist m dg = {-# SCC "cellNoise" #-} minimum $ map (dist p) allPoints
          | otherwise          = 9
       
 quasiCrystal
-   :: Int               -- ^ number of octaves (higher adds mor detail)
-   -> TextureMapping2d
+   :: Int               -- ^ number of octaves (higher adds more detail)
+   -> TextureMapping2d  -- ^ the texture mapping to use
    -> ScalarTexture
 quasiCrystal o t dg = {-# SCC "quasiCrystal" #-} combine (map wave (angles o)) (t dg) where
    angles :: Int -> [Flt]

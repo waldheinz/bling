@@ -5,7 +5,7 @@ module Graphics.Bling.Reflection (
    
    -- * Materials and Bump Mapping
 
-   Material, blackBodyMaterial, bumpMapped,
+   Material, blackBodyMaterial, bump, bumpMapped,
    
    -- * Fresnel incidence effects
    

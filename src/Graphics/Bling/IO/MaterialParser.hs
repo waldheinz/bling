@@ -45,6 +45,7 @@ pMaterial' = pString >>= \t -> case t of
    "plastic"      -> pPlasticMaterial
    "matte"        -> pMatteMaterial
    "mirror"       -> pMirrorMaterial
+   "wood"         -> return mkWood
    _              -> fail ("unknown material type " ++ t)
 
 pBumpMap :: JobParser Material
