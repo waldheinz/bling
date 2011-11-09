@@ -14,6 +14,14 @@ renderer {
    }
 }
 
+renderer {
+   sampler
+   sampled {
+      sampler { stratified xSamples 4 ySamples 4 }
+      integrator { directLighting maxDepth 5 }
+   }
+}
+
 transform {
    lookAt {
       pos 0 7 -5

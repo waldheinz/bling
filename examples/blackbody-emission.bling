@@ -2,7 +2,7 @@
 # test scene for geometric light sources
 
 
-filter triangle 2.0 2.0
+filter triangle 2 2
 #filter box
 #filter mitchell 3.0 3.0 0.333333 0.333333
 imageSize 640 480
@@ -11,7 +11,7 @@ renderer {
    sampler
    sampled {
       sampler { stratified xSamples 1 ySamples 1 }
-      integrator { directLighting }
+      integrator { directLighting maxDepth 5 }
    }
 }
 
@@ -30,99 +30,86 @@ camera {
    focalDistance 4
 }
 
-transform { identity }
-
+#
 # ground plane
+#
 
-material { shinyMetal
-   kr { constant rgb 0.05 0.05 0.05 }
-   ks { constant rgb 0.25 0.25 0.25 }
-   rough { constant 0.005 }
+newTransform { rotateX 90 }
+
+material { plastic
+   kd { constant rgb 0.0001 0.0001 0.0001 }
+   ks { constant rgb 0.0005 0.0005 0.0005 }
+   rough { constant 0.00078125 }
 }
 
-shape {
-   mesh
-   vertexCount 4
-   faceCount 1
-   v  50.0 0.0 -50.0
-   v -50.0 0.0 -50.0
-   v -50.0 0.0  50.0
-   v  50.0 0.0  50.0
-   f 3 2 1 0
-}
+prim { shape { quad 50 50 } }
+
+#
+# the emissive spheres
+#
 
 material { blackbody }
 
-
-transform {
-   identity
-   translate -2 0.5 -1
-}
+newTransform { translate -2 0.5 -1 }
 
 emission { temp 9000 }
-shape { sphere radius 0.0023255954 }
+prim { shape { sphere radius 0.0023255954 } }
 transform { translate 1 0 0 }
 
 emission { temp 8500 }
-shape { sphere radius 0.0025443658 }
+prim { shape { sphere radius 0.0025443658 } }
 transform { translate 1 0 0 }
 
 emission { temp 8000 }
-shape { sphere radius 0.0028124535 }
+prim { shape { sphere radius 0.0028124535 } }
 transform { translate 1 0 0 }
 
 emission { temp 7500 }
-shape { sphere radius 0.0031473541 }
+prim { shape { sphere radius 0.0031473541 } }
 transform { translate 1 0 0 }
 
 emission { temp 7000 }
-shape { sphere radius 0.0035752829 }
+prim { shape { sphere radius 0.0035752829 } }
 
-transform {
-   identity
-   translate -2 0.5 0
-}
+newTransform { translate -2 0.5 0 }
 
 emission { temp 6500 }
-shape { sphere radius 0.0041370103 }
+prim { shape { sphere radius 0.0041370103 } }
 transform { translate 1 0 0 }
 
 emission { temp 6000 }
-shape { sphere radius 0.0048987344 }
+prim { shape { sphere radius 0.0048987344 } }
 transform { translate 1 0 0 }
 
 emission { temp 5500 }
-shape { sphere radius 0.005973678 }
+prim { shape { sphere radius 0.005973678 } }
 transform { translate 1 0 0 }
 
 emission { temp 5000 }
-shape { sphere radius 0.007568171 }
+prim { shape { sphere radius 0.007568171 } }
 transform { translate 1 0 0 }
 
 emission { temp 4500 }
-shape { sphere radius 0.010088972 }
+prim { shape { sphere radius 0.010088972 } }
 transform { translate 1 0 0 }
 
-transform {
-   identity
-   translate -2 0.5 1
-}
+newTransform { translate -2 0.5 1 }
 
 emission { temp 4000 }
-shape { sphere radius 0.014422736 }
+prim { shape { sphere radius 0.014422736 } }
 transform { translate 1 0 0 }
 
 emission { temp 3500 }
-shape { sphere radius 0.022774793 }
+prim { shape { sphere radius 0.022774793 } }
 transform { translate 1 0 0 }
 
 emission { temp 3000 }
-shape { sphere radius 0.041717213 }
+prim { shape { sphere radius 0.041717213 } }
 transform { translate 1 0 0 }
 
 emission { temp 2500 }
-shape { sphere radius 0.0967 }
+prim { shape { sphere radius 0.0967 } }
 transform { translate 1 0 0 }
 
 emission { temp 2000 }
-shape { sphere radius 0.5 }
+prim { shape { sphere radius 0.5 } }

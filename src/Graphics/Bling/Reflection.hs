@@ -91,7 +91,11 @@ frConductor eta k cosi = (rPer2 + rPar2) / 2 where
    tmp = sScale (eta * eta + k * k) (acosi * acosi)
    tmpF = eta * eta + k * k
    acosi = abs cosi
-   
+
+--------------------------------------------------------------------------------
+-- Frensnel Blend BRDF
+--------------------------------------------------------------------------------
+
 data FresnelBlend = FB !Spectrum !Spectrum !Distribution
 
 mkFresnelBlend :: Spectrum -> Spectrum -> Distribution -> FresnelBlend

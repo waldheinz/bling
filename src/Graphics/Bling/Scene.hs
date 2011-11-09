@@ -18,11 +18,11 @@ import Graphics.Bling.Reflection
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Primitive.KdTree
 
-data Scene = Scene {
-   _scenePrimCount :: Int, -- just for reference
-   scenePrim :: KdTree,
-   sceneLights :: V.Vector Light,
-   sceneCam :: Camera
+data Scene = Scene
+   { _scenePrimCount   :: ! Int     -- just for reference
+   , scenePrim         :: ! KdTree
+   , sceneLights       :: ! (V.Vector Light)
+   , sceneCam          :: ! Camera
    }
    
 instance Printable Scene where
@@ -68,7 +68,7 @@ sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n
    | otherwise = sScale (f * li) (absDot wi n * weight / lpdf)
    where
          f = evalBsdf True bsdf wo wi
-         weight =  powerHeuristic (1, lpdf) (1, bsdfPdf bsdf wo wi)
+         weight = powerHeuristic (1, lpdf) (1, bsdfPdf bsdf wo wi)
 
 sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Spectrum
 {-# INLINE sampleBsdfMis #-}
