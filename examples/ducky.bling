@@ -18,8 +18,8 @@ renderer {
 
 transform {
    lookAt {
-      pos 0 100 -300
-      look 0 0 0
+      pos 0 35 -10
+      look 0 30 0
       up 0 1 0
    }
 }
@@ -34,7 +34,7 @@ camera {
 # transform { identity } camera { environment }
 
 
-newTransform { rotateX -90 rotateY 90 rotateZ -90 }
+newTransform { }
 
 material {
    matte
@@ -43,7 +43,7 @@ material {
 }
 
 prim {
-   waveFront "meshes/ducky.obj"
+   waveFront "meshes/angel.obj"
 }
 
 light { infinite { rotateX -90 }
