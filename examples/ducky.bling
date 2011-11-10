@@ -18,7 +18,7 @@ renderer {
 
 transform {
    lookAt {
-      pos 0 0 -300
+      pos 0 100 -300
       look 0 0 0
       up 0 1 0
    }
@@ -34,7 +34,7 @@ camera {
 # transform { identity } camera { environment }
 
 
-transform { identity rotateX -90 rotateY 90 rotateZ -90 }
+newTransform { rotateX -90 rotateY 90 rotateZ -90 }
 
 material {
    matte
@@ -46,11 +46,9 @@ prim {
    waveFront "meshes/ducky.obj"
 }
 
-transform { identity rotateX -90 }
-
-light { infinite
-#   l { rgbeFile "./examples/envmaps/studio015.hdr" }
+light { infinite { rotateX -90 }
+   l { rgbeFile "envmaps/studio015.hdr" }
 #   l { rgbeFile "/home/trem/Downloads/garage4_hd.hdr" }
 #   l { rgbeFile "/home/trem/Downloads/ennis.hdr" }
-   l { constant rgb 1 1 1 }
+#   l { constant rgb 1 1 1 }
 }

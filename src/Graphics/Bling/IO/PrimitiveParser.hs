@@ -52,7 +52,7 @@ pPrimitive = pBlock $ do
          return $ mkAnyPrim $ mkGeom (transform s) False (material s) (emit s) shp sid
          
       "waveFront" -> do
-         fname <- ws >> pQString
+         fname <- pQString
          m <- parseWaveFront fname
          return $ mkAnyPrim m
 

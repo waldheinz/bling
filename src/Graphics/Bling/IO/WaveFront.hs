@@ -43,9 +43,9 @@ line = pUV <|> vertex <|> face <|> ignore
 pUV :: WFParser ()
 pUV = do
    _ <- try $ string "vt"
-   _ <- space >> flt -- u
-   _ <- space >> flt -- v
-   _ <- optional $ space >> flt -- w
+   _ <- space >> flt' -- u
+   _ <- space >> flt' -- v
+   _ <- optional $ space >> flt' -- w
    return ()
    
 ignore :: WFParser ()
@@ -60,9 +60,9 @@ face = do
    
    indices <- many1 $ try $ do
       space
-      vidx <- integ
-      _ <- option Nothing $ char '/' >> integ >>= \t -> return $ Just t -- uv index
-      _ <- option Nothing $ char '/' >> integ >>= \t -> return $ Just t -- normal index
+      vidx <- integ'
+      _ <- option Nothing $ char '/' >> integ' >>= \t -> return $ Just t -- uv index
+      _ <- option Nothing $ char '/' >> integ' >>= \t -> return $ Just t -- normal index
       return vidx
 
    optional space >> eol
@@ -72,10 +72,10 @@ face = do
 vertex :: WFParser ()
 vertex = do
    _ <- char 'v'
-   x <- space >> flt
-   y <- space >> flt
-   z <- space >> flt
-   _ <- optional $ space >> flt
+   x <- space >> flt'
+   y <- space >> flt'
+   z <- space >> flt'
+   _ <- optional $ space >> flt'
    eol
    (WFState vs ts) <- getState
    setState (WFState (mkPoint (x, y, z) : vs) ts)

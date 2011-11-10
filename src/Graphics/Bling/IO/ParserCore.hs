@@ -8,8 +8,8 @@ module Graphics.Bling.IO.ParserCore (
    
    -- * Core Parsing Primitives
    
-   flt, ws, pVec, pSpectrum, pBlock, namedBlock, namedInt, namedFloat,
-   namedVector, namedSpectrum, integ, pString, pQString,
+   flt, flt', ws, pVec, pSpectrum, pBlock, namedBlock, namedInt, namedFloat,
+   namedVector, namedSpectrum, integ, integ', pString, pQString,
 
    -- * State Handling
    currentTransform, currentMaterial, nextId,
@@ -20,7 +20,7 @@ module Graphics.Bling.IO.ParserCore (
    
    ) where
 
-import Control.Monad (liftM3)
+import Control.Monad (liftM, liftM3)
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.ByteString.Lazy as BS
 import System.FilePath as FP
@@ -106,16 +106,22 @@ ws :: (Monad m) => (ParsecT String u m) ()
 ws = many1 (choice [space >> return (), comment]) >> return ()
 
 -- | parse a floating point number
-flt :: (Monad m) => (ParsecT String u m) Flt
-flt = do
+flt' :: (Monad m) => (ParsecT String u m) Flt
+flt' = do
    sign <- option 1 $ do
       s <- oneOf "+-"
       return $ if s == '-' then (-1) else 1
       
    i <- many digit
    d <- option "0" (char '.' >> try (many digit))
-   optional ws
    return $ sign * read (i ++ "." ++ d)
+
+-- | parse a floating point number and consume optional trailing whitespace
+flt :: (Monad m) => (ParsecT String u m) Flt
+flt = do
+   x <- flt'
+   optional ws
+   return $! x
 
 -- | parse a vector
 pVec :: JobParser Vector
@@ -171,13 +177,17 @@ namedInt n = do
    _ <- string n
    ws >> (integ <|> fail ("cannot parse " ++ n ++ " value"))
 
--- | parse an integer
+-- | parse an positive integer
+integ' :: (Monad m) => (ParsecT String u m) Int
+integ' = liftM read $ many1 digit
+
+-- | parse an positive integer and consume optional trailing whitespace
 integ :: (Monad m) => (ParsecT String u m) Int
 integ = do
-   x <- many1 digit
+   x <- integ'
    optional ws
-   return $! read x
-
+   return $! x
+   
 --------------------------------------------------------------------------------
 -- External Resources
 --------------------------------------------------------------------------------
