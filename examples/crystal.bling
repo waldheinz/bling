@@ -9,7 +9,7 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 8 ySamples 8 }
+      sampler { stratified xSamples 3 ySamples 3 }
       integrator { path maxDepth 3 sampleDepth 3 }
    }
 }
@@ -28,8 +28,6 @@ camera {
    lensRadius 0
    focalDistance 10
 }
-
-transform { identity }
 
 #
 # ground plane
@@ -51,37 +49,14 @@ material {
    sigma { constant 0.5 }
 }
 
-shape {
-   mesh
-   vertexCount 4
-   faceCount 1
-   v  50 0 -50
-   v -50 0 -50
-   v -50 0  50
-   v  50 0  50
-   f 3 2 1 0
-}
+newTransform { rotateX 90 }
+prim { shape { quad 50 50 } }
 
-#
-# light source
-#
-
-transform { identity rotateX -90 }
-
-light { infinite
+light { infinite { rotateX -90 }
    l { rgbeFile "envmaps/studio015.hdr" }
 }
 
-transform { identity }
-
-#
-# sphere 1
-#
-
-transform {
-   identity
-   translate -4 4 0
-}
+newTransform { translate -4 4 0 }
 
 material { glass
    ior { constant 1.5 }
@@ -89,4 +64,4 @@ material { glass
    kt { constant rgb 0.6 1 0.6 }
 }
 
-shape { sphere radius 4 }
+prim { shape { sphere radius 4 } }
