@@ -54,7 +54,7 @@ waveFrontParser = {-# SCC "waveFrontParser" #-} do
    ps' <- lift $ V.freeze (MV.take psc ps)
    vs' <- lift $ V.freeze (MV.take fsc fs)
 
-   return $! (V.reverse ps', vs')
+   return $! (V.reverse $ V.force ps', V.force vs')
 
 pUV :: WFParser s ()
 pUV = {-# SCC "pUV" #-}do
