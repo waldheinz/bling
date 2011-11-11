@@ -28,6 +28,7 @@ import Text.Parsec.Prim as PS
 import Text.Parsec.Combinator as PS
 import Text.Parsec.Char as PS
 import Text.Parsec.String()
+import Text.Parsec.ByteString.Lazy()
 
 import Graphics.Bling.Camera
 import Graphics.Bling.Filter

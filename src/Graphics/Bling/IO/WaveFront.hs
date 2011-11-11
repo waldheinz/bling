@@ -7,11 +7,13 @@ import Graphics.Bling.Transform
 import Graphics.Bling.IO.ParserCore hiding (space)
 import Graphics.Bling.Primitive.TriangleMesh
 
+import qualified Data.ByteString.Lazy as BS
 import Control.Monad (foldM)
 import Control.Monad.ST
 import Control.Monad.Trans.Class (lift)
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as MV
+import Text.Parsec.ByteString.Lazy ()
 
 -- the state consists of a list of vertex positions and faces
 data WFState s = WFState
@@ -27,12 +29,12 @@ initialState = do
    fs <- MV.new 64
    return $! WFState ps 0 fs 0
 
-type WFParser s a = ParsecT String (WFState s) (ST s) a
+type WFParser s a = ParsecT BS.ByteString (WFState s) (ST s) a
 
 -- | parses a WaveFront .obj file into a triangle mesh
 parseWaveFront :: FilePath -> JobParser TriangleMesh
 parseWaveFront fname = {-# SCC "parseWaveFront" #-} do
-   inp <- readFileString fname
+   inp <- readFileBS fname
    
    let
       res = runST $ do
@@ -54,14 +56,14 @@ waveFrontParser = {-# SCC "waveFrontParser" #-} do
    ps' <- lift $ V.freeze (MV.take psc ps)
    vs' <- lift $ V.freeze (MV.take fsc fs)
 
-   return $! (V.reverse $ V.force ps', V.force vs')
+   return $! (V.force ps', V.force vs')
 
 pUV :: WFParser s ()
 pUV = {-# SCC "pUV" #-}do
    _ <- try $ string "vt"
-   _ <- space >> flt' -- u
-   _ <- space >> flt' -- v
-   _ <- optional $ space >> flt' -- w
+   _ <- space >> float -- u
+   _ <- space >> float -- v
+   _ <- optional $ space >> float -- w
    return ()
    
 ignore :: WFParser s ()
@@ -73,9 +75,9 @@ face = {-# SCC "face" #-}do
    
    indices <- many1 $ try $ do
       space
-      vidx <- integ'
-      _ <- option Nothing $ fmap Just $ char '/' >> integ' -- uv index
-      _ <- option Nothing $ fmap Just $ char '/' >> integ' -- normal index
+      vidx <- int
+      _ <- option Nothing $ fmap Just $ char '/' >> int -- uv index
+      _ <- option Nothing $ fmap Just $ char '/' >> int -- normal index
       return vidx
 
    optional space >> eol
@@ -92,10 +94,10 @@ face = {-# SCC "face" #-}do
 vertex :: WFParser s ()
 vertex = {-# SCC "vertex" #-}do
    _ <- char 'v'
-   x <- space >> flt'
-   y <- space >> flt'
-   z <- space >> flt'
-   _ <- optional $ space >> flt' -- ignore w component
+   x <- space >> float
+   y <- space >> float
+   z <- space >> float
+   _ <- optional $ space >> float -- ignore w component
    optional space >> eol
    
    st <- getState
@@ -108,6 +110,21 @@ space = skipMany1 (char ' ') <?> "space"
 
 eol :: WFParser s ()
 eol = char '\n' >> return ()
+
+-- | parse a floating point number
+float :: (Monad m) => (ParsecT BS.ByteString u m) Flt
+float = {-# SCC "float" #-} do
+   sign <- option 1 $ do
+      s <- oneOf "+-"
+      return $! if s == '-' then (-1) else 1
+
+   i <- many digit
+   d <- option "0" (char '.' >> try (many digit))
+   return $! sign * read (i ++ "." ++ d)
+
+-- | parse an positive integer
+int :: (Monad m) => (ParsecT BS.ByteString u m) Int
+int = {-# SCC "int" #-} fmap read $ many1 digit
 
 addElement :: MV.Unbox a => MV.STVector s a -> Int -> a -> WFParser s (MV.STVector s a)
 addElement v cnt e = lift $ do
