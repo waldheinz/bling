@@ -32,7 +32,7 @@ startState base = PState 640 480 defaultRenderer mkBoxFilter
 parseJob :: FilePath -> IO (Either ParseError (RenderJob, AnyRenderer))
 parseJob fname = do
    file <- readFile fname
-   runPT jobParser (startState $ takeDirectory fname)fname file
+   runPT jobParser (startState $ takeDirectory fname) fname file
 
 jobParser :: JobParser (RenderJob, AnyRenderer)
 jobParser = do

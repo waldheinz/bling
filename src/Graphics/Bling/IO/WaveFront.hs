@@ -7,40 +7,56 @@ import Graphics.Bling.Transform
 import Graphics.Bling.IO.ParserCore hiding (space)
 import Graphics.Bling.Primitive.TriangleMesh
 
+import Control.Monad (foldM)
+import Control.Monad.ST
+import Control.Monad.Trans.Class (lift)
 import qualified Data.Vector.Unboxed as V
-import Text.Parsec.String
-
--- a face is a list of vertex indices
-type Face = [Int]
+import qualified Data.Vector.Unboxed.Mutable as MV
 
 -- the state consists of a list of vertex positions and faces
-data WFState = WFState [Point] [Face]
+data WFState s = WFState
+   { stPoints     :: ! (MV.STVector s Point)
+   , stPointCount :: ! Int
+   , stFaces      :: ! (MV.STVector s Int)
+   , stFaceCount  :: ! Int
+   }
+   
+initialState :: ST s (WFState s)
+initialState = do
+   ps <- MV.new 64
+   fs <- MV.new 64
+   return $! WFState ps 0 fs 0
 
-type WFParser a = GenParser Char WFState a
+type WFParser s a = ParsecT String (WFState s) (ST s) a
 
 -- | parses a WaveFront .obj file into a triangle mesh
 parseWaveFront :: FilePath -> JobParser TriangleMesh
 parseWaveFront fname = {-# SCC "parseWaveFront" #-} do
    inp <- readFileString fname
-   let res = runParser waveFrontParser (WFState [] []) fname inp
+   
+   let
+      res = runST $ do
+         st <- initialState
+         runPT waveFrontParser st fname inp
+   
    case res of
         (Left e) -> fail $ show e
         (Right (ps, fs)) -> do
            s <- getState
            return $! mkTriangleMesh (transform s) (material s) ps fs Nothing Nothing
 
-waveFrontParser :: WFParser (V.Vector Point, V.Vector Int)
-waveFrontParser = {-# SCC "waveFrontParser" #-}do
-   _ <- many $ pUV <|> vertex <|> face <|> ignore
+waveFrontParser :: WFParser s (V.Vector Point, V.Vector Int)
+waveFrontParser = {-# SCC "waveFrontParser" #-} do
+   many (pUV <|> vertex <|> face <|> ignore) >> return ()
    
-   (WFState ps fs) <- getState
+   (WFState ps psc fs fsc) <- getState
    
-   let ps' = V.fromList $ reverse ps
-   let vs' = V.fromList $ triangulate fs
+   ps' <- lift $ V.freeze (MV.take psc ps)
+   vs' <- lift $ V.freeze (MV.take fsc fs)
 
-   return (ps', vs')
+   return $! (V.reverse ps', vs')
 
-pUV :: WFParser ()
+pUV :: WFParser s ()
 pUV = {-# SCC "pUV" #-}do
    _ <- try $ string "vt"
    _ <- space >> flt' -- u
@@ -48,13 +64,13 @@ pUV = {-# SCC "pUV" #-}do
    _ <- optional $ space >> flt' -- w
    return ()
    
-ignore :: WFParser ()
+ignore :: WFParser s ()
 ignore = {-# SCC "ignore" #-}do
    _ <- many (noneOf "\n")
    eol
    return ()
 
-face :: WFParser ()
+face :: WFParser s ()
 face = {-# SCC "face" #-}do
    _ <- char 'f'
    
@@ -66,10 +82,17 @@ face = {-# SCC "face" #-}do
       return vidx
 
    optional space >> eol
-   (WFState vs ts) <- getState
-   setState (WFState vs (map pred indices : ts))
+   st <- getState
    
-vertex :: WFParser ()
+   let
+      fs = stFaces st
+      fsc = stFaceCount st
+      add (v, l) e = addElement v l e >>= \v' -> return $! (v', l + 1)
+
+   (fs', fsc') <- foldM add (fs, fsc) (triangulate $ [map pred indices])
+   setState st { stFaces = fs', stFaceCount = fsc' }
+   
+vertex :: WFParser s ()
 vertex = {-# SCC "vertex" #-}do
    _ <- char 'v'
    x <- space >> flt'
@@ -77,11 +100,25 @@ vertex = {-# SCC "vertex" #-}do
    z <- space >> flt'
    _ <- optional $ space >> flt' -- ignore w component
    optional space >> eol
-   (WFState vs ts) <- getState
-   setState (WFState (mkPoint (x, y, z) : vs) ts)
+   
+   st <- getState
+   let cnt = stPointCount st
+   ps' <- addElement (stPoints st) (stPointCount st) $ mkPoint (x, y, z)
+   setState st { stPoints = ps', stPointCount = cnt + 1 }
 
-space :: WFParser ()
+space :: WFParser s ()
 space = (many1 (char ' ') <?> "space") >> return ()
 
-eol :: WFParser ()
+eol :: WFParser s ()
 eol = char '\n' >> return ()
+
+addElement :: MV.Unbox a => MV.STVector s a -> Int -> a -> WFParser s (MV.STVector s a)
+addElement v cnt e = lift $ do
+   let l = MV.length v
+   
+   v' <- if l < cnt + 1
+            then MV.grow v l
+            else return v
+
+   MV.write v' cnt e
+   return v'

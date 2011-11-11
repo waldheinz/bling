@@ -116,7 +116,7 @@ rnd2D :: Rand s Rand2D
 rnd2D = do
    u1 <- rnd
    u2 <- rnd
-   return (u1, u2)
+   return $! (u1, u2)
 
 --------------------------------------------------------------------------------
 -- STRefs in Rand
