@@ -29,7 +29,7 @@ instance Show RGBEImage where
    show (RGBE size px) = "RGBE Image (size=" ++ (show size) ++ (show px) ++ ")"
 
 rgbeToTextureMap :: RGBEImage -> SpectrumMap
-rgbeToTextureMap (RGBE size@(w, h) px) = mkTextureMap size eval where
+rgbeToTextureMap (RGBE size@(w, h) px) = {-# SCC "rgbeToTextureMap" #-} mkTextureMap size eval where
    eval cs = eval' $ unCartesian cs
    eval' (u, v) = px UV.! o where
       o = max 0 $ min (UV.length px - 1) $ y * w + x
@@ -40,8 +40,8 @@ type RGBEHeader = (PixelSize)
 
 parseRGBE :: BS.ByteString -> Either String RGBEImage
 parseRGBE bs
-   | isNothing header = Left "error parsing RGBE header"
-   | otherwise = Right $ RGBE (fromJust header) (UV.fromList (concat pixels))
+   | isNothing header = {-# SCC "parseRGBE" #-} Left "error parsing RGBE header"
+   | otherwise = {-# SCC "parseRGBE" #-} Right $ RGBE (fromJust header) (UV.fromList (concat pixels))
    where
       (rest, header) = parseRGBEHeader bs
       (_, pixels) = parseRGBEPixels rest (fromJust header)

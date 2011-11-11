@@ -18,21 +18,22 @@ Flag Devel
 Library
    Hs-Source-Dirs:   src
    Build-Depends:
-      base           >= 3 && < 5,
-      bytestring     == 0.9.*,
-      deepseq        == 1.1.*,
-      filepath       == 1.2.*,
-      mtl            == 2.0.*,
-      mwc-random     == 0.10.*,
-      parsec         == 3.1.*,
-      parallel       == 3.2.*,
-      pretty         == 1.0.*,
-      primitive      == 0.4.*,
-      random         == 1.0.*,
-      random-shuffle == 0.0.2,
-      transformers   == 0.2.*,
-      Vec            == 0.9.*,
-      vector         == 0.9.*
+      base              >= 3 && < 5,
+      bytestring        == 0.9.*,
+      deepseq           == 1.1.*,
+      filepath          == 1.2.*,
+      mtl               == 2.0.*,
+      mwc-random        == 0.10.*,
+      parsec            == 3.1.*,
+      parallel          == 3.2.*,
+      pretty            == 1.0.*,
+      primitive         == 0.4.*,
+      random            == 1.0.*,
+      random-shuffle    == 0.0.2,
+      transformers      == 0.2.*,
+      Vec               == 0.9.*,
+      vector            == 0.9.*,
+      vector-algorithms == 0.5.*
       
    Ghc-Options:
       -Wall -O2 -fexcess-precision -fspec-constr-count=64 -threaded -optc-O3 -optc-march=native -optc-msse4

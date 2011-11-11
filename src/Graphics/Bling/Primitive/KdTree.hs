@@ -9,12 +9,14 @@ module Graphics.Bling.Primitive.KdTree (
    ppKdTree, dbgTraverse, TraversalStats(..)
    ) where
 
+import Control.Monad (forM_)
+import Control.Monad.ST
 import Control.Parallel
 import Data.Maybe (fromMaybe)
-import Text.PrettyPrint
-
-import Data.List (sort)   
+import Text.PrettyPrint   
 import qualified Data.Vector as V
+import qualified Data.Vector.Algorithms.Intro as VA
+import qualified Data.Vector.Mutable as MV
 
 import Graphics.Bling.AABB
 import Graphics.Bling.Math
@@ -23,7 +25,7 @@ import Graphics.Bling.Primitive
 data KdTree = KdTree !AABB !KdTreeNode deriving (Show)
 
 data KdTreeNode
-   = Interior !KdTreeNode !KdTreeNode {-# UNPACK #-} !Flt {-# UNPACK #-} !Dimension
+   = Interior KdTreeNode KdTreeNode {-# UNPACK #-} !Flt {-# UNPACK #-} !Dimension
    | Leaf {-# UNPACK #-} !(V.Vector AnyPrim)
    
 instance Show KdTreeNode where
@@ -69,11 +71,9 @@ leafCount t = leafCount' t where
    leafCount' (Leaf _) = 1
    leafCount' (Interior l r _ _) = leafCount' l + leafCount' r
 
---
--- construction
---
-
--- first some constants to tune SAH behaviour
+--------------------------------------------------------------------------------
+-- Construction
+--------------------------------------------------------------------------------
 
 -- | cost for traversal
 cT :: Flt
@@ -99,7 +99,7 @@ instance Show Edge where
 
 data BP = BP
    { bpPrim    :: ! AnyPrim
-   , bpBounds  :: ! AABB
+   , bpBounds  :: {-# UNPACK #-} ! AABB
    }
 
 mkKdTree :: [AnyPrim] -> KdTree
@@ -112,12 +112,12 @@ mkKdTree ps = {-# SCC "mkKdTree" #-} KdTree bounds root where
 buildTree :: AABB -> V.Vector BP -> Int -> KdTreeNode
 buildTree bounds bps depth
    | depth == 0 || V.length bps <= 1 = {-# SCC "buildTree.leaf" #-} leaf
-   | otherwise = {-# SCC "buildTree.trySplit" #-} fromMaybe leaf $ trySplit bounds bps depth
+   | otherwise = fromMaybe leaf $ trySplit bounds bps depth
    where
       leaf = Leaf $ V.map bpPrim bps
       
 trySplit :: AABB -> V.Vector BP -> Int -> Maybe KdTreeNode
-trySplit bounds bps depth = go Nothing axii where
+trySplit bounds bps depth = {-# SCC "trySplit" #-} go Nothing axii where
    axii = [a `mod` 3 | a <- take 3 [(maximumExtent bounds)..]]
    oldCost = cI * fromIntegral (V.length bps)
    
@@ -142,7 +142,7 @@ filterSplits axis b = filter (\(_, t, _, _) -> (t > tmin) && (t < tmax)) where
    tmax = aabbMax b .! axis
 
 partition :: V.Vector Edge -> Int -> (V.Vector BP, V.Vector BP)
-partition es i = (lp, rp) where
+partition es i = {-# SCC "partition" #-} (lp, rp) where
    lp = V.map (\(Edge p _ _) -> p) $ V.filter (\(Edge _ _ st) -> st) le
    rp = V.map (\(Edge p _ _) -> p) $ V.filter (\(Edge _ _ st) -> not st) re
    (le, re) = (V.take i es, V.drop (i+1) es) 
@@ -151,7 +151,7 @@ partition es i = (lp, rp) where
 type Split = (Int, Flt, Int, Int)
 
 bestSplit :: AABB -> Dimension -> [Split] -> (Flt, Split)
-bestSplit bounds axis fs = go fs (infinity, undefined) where
+bestSplit bounds axis fs = {-# SCC "bestSplit" #-} go fs (infinity, undefined) where
    go [] s = s
    go (s@(_, t, nl, nr):xs) x@(c, _)
       | c' < c = go xs (c', s)
@@ -165,9 +165,21 @@ allSplits es = go 0 (V.toList es) 0 (V.length es `div` 2) where
    go _ [] _ _ = []
 
 edges :: V.Vector BP -> Dimension -> V.Vector Edge
-edges bps axis = V.fromList $ sort $ concatMap te $ V.toList bps where
-   te bp = [Edge bp (pmin .! axis) True, Edge bp (pmax .! axis) False] where
-      (AABB pmin pmax) = bpBounds bp
+edges bps axis = {-# SCC "edges" #-} runST $ do
+   v <- MV.new (2 * V.length bps)
+   
+   forM_ [0..V.length bps-1] $ \idx -> do
+      let
+         bp = bps V.! idx
+         (AABB pmin pmax) = bpBounds bp
+         e1 = Edge bp (pmin .! axis) True
+         e2 = Edge bp (pmax .! axis) False
+         
+      seq e1 $ MV.write v (2 * idx + 0) e1
+      seq e2 $ MV.write v (2 * idx + 1) e2
+   
+   {-# SCC "edges.sort" #-} VA.sort v
+   V.freeze v
    
 -- | the SAH cost function
 cost
@@ -187,6 +199,10 @@ cost b@(AABB pmin pmax) a0 t nl nr = {-# SCC "cost" #-} cT + cI * eb * pI where
    (dl, dr) = (t - (pmin .! a0), (pmax .! a0) - t)
    sal = 2 * ((d .! a1) * (d .! a2) + dl * ((d .! a1) + (d .! a2)))
    sar = 2 * ((d .! a1) * (d .! a2) + dr * ((d .! a1) + (d .! a2)))
+
+--------------------------------------------------------------------------------
+-- Traversal
+--------------------------------------------------------------------------------
 
 -- | traversal function for @Primitive.intersects@
 traverse' :: Ray -> Vector -> KdTreeNode -> (Flt, Flt) -> Bool
