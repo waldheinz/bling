@@ -99,11 +99,11 @@ pQString = do
                     <?> "quoted pair"
                     
 comment :: (Monad m) => (ParsecT String u m) ()
-comment = char '#' >> many (noneOf "\n") >> char '\n' >> return () <?> "comment"
+comment = char '#' >> skipMany (noneOf "\n") >> char '\n' >> return () <?> "comment"
 
 -- | skips over whitespace and comments
 ws :: (Monad m) => (ParsecT String u m) ()
-ws = many1 (choice [space >> return (), comment]) >> return ()
+ws = skipMany1 (choice [space >> return (), comment])
 
 -- | parse a floating point number
 flt' :: (Monad m) => (ParsecT String u m) Flt

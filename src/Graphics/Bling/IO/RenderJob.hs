@@ -36,7 +36,7 @@ parseJob fname = do
 
 jobParser :: JobParser (RenderJob, AnyRenderer)
 jobParser = do
-   _ <- many object
+   skipMany object
    optional ws >> eof
    (PState sx sy r f cam _ _ _ ls ps _ _) <- getState
    let scn = mkScene ls ps cam

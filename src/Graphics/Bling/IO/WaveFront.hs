@@ -47,7 +47,7 @@ parseWaveFront fname = {-# SCC "parseWaveFront" #-} do
 
 waveFrontParser :: WFParser s (V.Vector Point, V.Vector Int)
 waveFrontParser = {-# SCC "waveFrontParser" #-} do
-   many (pUV <|> vertex <|> face <|> ignore) >> return ()
+   skipMany $ pUV <|> vertex <|> face <|> ignore
    
    (WFState ps psc fs fsc) <- getState
    
@@ -65,10 +65,7 @@ pUV = {-# SCC "pUV" #-}do
    return ()
    
 ignore :: WFParser s ()
-ignore = {-# SCC "ignore" #-}do
-   _ <- many (noneOf "\n")
-   eol
-   return ()
+ignore = {-# SCC "ignore" #-} skipMany (noneOf "\n") >> eol
 
 face :: WFParser s ()
 face = {-# SCC "face" #-}do
@@ -107,7 +104,7 @@ vertex = {-# SCC "vertex" #-}do
    setState st { stPoints = ps', stPointCount = cnt + 1 }
 
 space :: WFParser s ()
-space = (many1 (char ' ') <?> "space") >> return ()
+space = skipMany1 (char ' ') <?> "space"
 
 eol :: WFParser s ()
 eol = char '\n' >> return ()
