@@ -74,8 +74,8 @@ face = {-# SCC "face" #-}do
    indices <- many1 $ try $ do
       space
       vidx <- integ'
-      _ <- option Nothing $ char '/' >> integ' >>= return . Just -- uv index
-      _ <- option Nothing $ char '/' >> integ' >>= return . Just -- normal index
+      _ <- option Nothing $ fmap Just $ char '/' >> integ' -- uv index
+      _ <- option Nothing $ fmap Just $ char '/' >> integ' -- normal index
       return vidx
 
    optional space >> eol
@@ -86,7 +86,7 @@ face = {-# SCC "face" #-}do
       fsc = stFaceCount st
       add (v, l) e = addElement v l e >>= \v' -> return $! (v', l + 1)
 
-   (fs', fsc') <- foldM add (fs, fsc) (triangulate $ [map pred indices])
+   (fs', fsc') <- foldM add (fs, fsc) (triangulate [map pred indices])
    setState st { stFaces = fs', stFaceCount = fsc' }
    
 vertex :: WFParser s ()
