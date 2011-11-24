@@ -5,6 +5,7 @@ module Graphics.Bling.IO.PrimitiveParser (
    
    ) where
 
+import Control.Monad
 import qualified Data.Vector.Unboxed as V
 
 import Graphics.Bling.Primitive
@@ -51,11 +52,7 @@ pPrimitive = pBlock $ do
          sid <- nextId
          return $ mkAnyPrim $ mkGeom (transform s) False (material s) (emit s) shp sid
          
-      "waveFront" -> do
-         fname <- pQString
-         m <- parseWaveFront fname
-         return $ mkAnyPrim m
-
+      "waveFront" -> fmap mkAnyPrim $ pQString >>= parseWaveFront
       _ -> fail $ "unknown fractal type " ++ t
 
    return $ p
@@ -64,10 +61,7 @@ pNamedQuat :: String -> JobParser Quaternion
 pNamedQuat n = string n >> ws >> pQuaternion
 
 pQuaternion :: JobParser Quaternion
-pQuaternion = do
-   r <- flt
-   i <- pVec
-   return $ Quaternion r i
+pQuaternion = liftM2 Quaternion flt pVec
 
 --
 -- parsing shapes
@@ -76,11 +70,7 @@ pQuaternion = do
 pShape :: JobParser Shape
 pShape = pBlock $ do
    pString >>= \t -> case t of
-      "box" -> do
-         pmin <- namedVector "pmin"
-         pmax <- namedVector "pmax"
-         return $ mkBox pmin pmax
-
+      "box" -> liftM2 mkBox (namedVector "pmin") (namedVector "pmax")
       "cylinder" -> do
          r <- namedFloat "radius"
          zmin <- namedFloat "zmin"
@@ -95,14 +85,8 @@ pShape = pBlock $ do
          phiMax <- ws >> namedFloat "phiMax"
          return $ mkDisk h r ri phiMax
 
-      "quad" -> do
-         sx <- flt
-         sz <- flt
-         return $ mkQuad sx sz
-         
-      "sphere" -> do
-         r <- namedFloat "radius"
-         return $ mkSphere r
+      "quad" -> liftM2 mkQuad flt flt
+      "sphere" -> liftM mkSphere $ namedFloat "radius"
 
       _ -> fail $ "unknown shape type " ++ t
       
@@ -119,17 +103,9 @@ pMesh :: JobParser TriangleMesh
 pMesh = do
    vc <- namedInt "vertexCount" <|> fail "vertexCount missing"
    fc <- namedInt "faceCount"  <|> fail "faceCount missing"
-   
-   vs <- count vc $ do
-      _ <- char 'v'
-      ws >> pVec
-
-   fs <- fmap triangulate $ count fc $ do
-      _ <- char 'f'
-      ws >> many1 (try integ)
-   
+   vs <- count vc $ char 'v' >> ws >> pVec
+   fs <- fmap triangulate $ count fc $ char 'f' >> ws >> many1 (try integ)
    t <- currentTransform
    m <- currentMaterial
-   
-   return $ mkTriangleMesh t m (V.fromList vs) (V.fromList fs) Nothing Nothing 
+   return $! mkTriangleMesh t m (V.fromList vs) (V.fromList fs) Nothing Nothing 
    
