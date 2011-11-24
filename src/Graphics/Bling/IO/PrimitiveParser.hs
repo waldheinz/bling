@@ -61,14 +61,12 @@ pPrimitive = pBlock $ do
    return $ p
 
 pNamedQuat :: String -> JobParser Quaternion
-pNamedQuat n = do
-   string n >> ws
-   pQuaternion
+pNamedQuat n = string n >> ws >> pQuaternion
 
 pQuaternion :: JobParser Quaternion
 pQuaternion = do
    r <- flt
-   i <- ws >> pVec
+   i <- pVec
    return $ Quaternion r i
 
 --

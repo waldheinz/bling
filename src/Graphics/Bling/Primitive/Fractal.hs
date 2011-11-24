@@ -51,7 +51,7 @@ instance Primitive FractalPrim where
    worldBounds _ = AABB (mkPoint' n n n) $ mkPoint' p p p where
       (n, p) = (-juliaRadius, juliaRadius)
       
-   intersects (FP (Julia q e mi) _) r = maybe False (\_ -> True) t where
+   intersects (FP (Julia q e mi) _) r = maybe False (const True) t where
       t = traverseJulia r q mi e
    
    intersects (Menger _ _ _ _) _ = error "Menger : unimplemented intersects"
