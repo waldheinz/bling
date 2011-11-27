@@ -22,7 +22,7 @@ import Graphics.Bling.AABB
 import Graphics.Bling.Math
 import Graphics.Bling.Primitive
 
-data KdTree = KdTree !AABB !KdTreeNode deriving (Show)
+data KdTree = KdTree {-# UNPACK #-} ! AABB ! KdTreeNode deriving (Show)
 
 data KdTreeNode
    = Interior KdTreeNode KdTreeNode {-# UNPACK #-} !Flt {-# UNPACK #-} !Dimension
@@ -219,7 +219,7 @@ traverse' r inv (Interior left right sp axis) mima@(tmin, tmax)
 
 -- | traversal function for @Primitive.intersect@
 traverse :: (Ray, Maybe Intersection) -> Vector -> KdTreeNode -> (Flt, Flt) -> (Ray, Maybe Intersection)
-traverse ri _ (Leaf ps) _ = nearest' ps ri
+traverse ri _ (Leaf ps) _ = {-# SCC "traverse.leaf" #-} nearest' ps ri
 traverse ri@(r, _) inv (Interior left right sp axis) mima@(tmin, tmax)
    | rayMax r < tmin = ri
    | tp > tmax || tp <= 0 = traverse ri inv fc mima

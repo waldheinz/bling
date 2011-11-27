@@ -92,7 +92,7 @@ traverseJulia
    -> Flt
    -> Maybe (Flt, Point)
    
-traverseJulia r' c mi e = prepare r >>= go where
+traverseJulia r' c mi e = {-# SCC "traverseJulia" #-} prepare r >>= go where
    r = normalizeRay r'
    go d
       | sqLen o > juliaRadius2 + e = Nothing
@@ -108,14 +108,14 @@ qpromote :: Point -> Quaternion
 qpromote (Vector x y z) = Quaternion x $ mkV (y, z, 0)
 
 normalJulia :: Point -> Quaternion -> Int -> Flt -> Normal
-normalJulia p c mi e = normalize v where
+normalJulia p c mi e = {-# SCC "normalJulia" #-} normalize v where
    v = mkV (gx, gy, gz)
    (gx, gy, gz) = (qlen gx2' - qlen gx1', qlen gy2' - qlen gy1', qlen gz2' - qlen gz1')
    qp = qpromote p
    (dx, gx1, gx2) = (qpromote $ mkV (e, 0, 0), qp `qsub` dx, qp `qadd` dx)
    (dy, gy1, gy2) = (qpromote $ mkV (0, e, 0), qp `qsub` dy, qp `qadd` dy)
    (dz, gz1, gz2) = (qpromote $ mkV (0, 0, e), qp `qsub` dz, qp `qadd` dz)
-   v' = iter' [gx1, gx2, gy1, gy2, gz1, gz2] c mi
+   v' = {-# SCC "normalJulia.iter'" #-} iter' [gx1, gx2, gy1, gy2, gz1, gz2] c mi
    (gx1':gx2':gy1':gy2':gz1':gz2':[]) = v'
    
 -- | iterates several @Quaternion@s together
