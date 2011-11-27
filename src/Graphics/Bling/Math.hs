@@ -7,7 +7,7 @@ module Graphics.Bling.Math (
    
    -- * Constants
    
-   twoPi, invPi, invTwoPi, infinity, epsilon,
+   twoPi, invPi, invTwoPi, infinity,
    
    -- * Basic Functions
    
@@ -24,7 +24,7 @@ module Graphics.Bling.Math (
    
    -- * Rays
    
-   Ray(..), normalizeRay, rayAt, segmentRay, onRay,
+   Ray(..), normalizeRay, rayAt, onRay,
    
    -- * Otrth. Basis
    LocalCoordinates(..), worldToLocal, localToWorld, coordinateSystem,
@@ -46,10 +46,6 @@ import Graphics.Bling.Types
 infinity :: Flt
 {-# INLINE infinity #-}
 infinity = 1 / 0
-
-epsilon :: Flt
-{-# INLINE epsilon #-}
-epsilon = 0.01
 
 invPi :: Flt
 {-# INLINE invPi #-}
@@ -369,10 +365,10 @@ data Ray = Ray {
    } deriving Show
 
 -- | Creates a ray that connects the two specified points.
-segmentRay :: Point -> Point -> Ray
-{-# INLINE segmentRay #-}
-segmentRay p1 p2 = Ray p1 p1p2 epsilon (1 - epsilon) where
-   p1p2 = p2 - p1
+-- segmentRay :: Point -> Point -> Ray
+-- {-# INLINE segmentRay #-}
+-- segmentRay p1 p2 = Ray p1 p1p2 epsilon (1 - epsilon) where
+--   p1p2 = p2 - p1
 
 rayAt :: Ray -> Flt -> Point
 {-# INLINE rayAt #-}

@@ -117,8 +117,8 @@ countSpec ep lp = runST $ do
 
 connect :: Scene -> V.Vector Flt -> ((Vertex, Int),  (Vertex, Int)) -> Spectrum
 connect scene nspec
-   ((Vert bsdfe pe _ wie _ te alphae, i),  -- eye vertex
-    (Vert bsdfl pl _ wil _ tl alphal, j))  -- camera vertex
+   ((Vert bsdfe pe _ wie inte te alphae, i),  -- eye vertex
+    (Vert bsdfl pl _ wil intl tl alphal, j))  -- camera vertex
        | te `bxdfIs` Specular = black
        | tl `bxdfIs` Specular = black
        | isBlack fe || isBlack fl = black
@@ -132,19 +132,21 @@ connect scene nspec
           fe = sScale (evalBsdf True bsdfe wie w) (1 + nspece)
           nspecl = fromIntegral $ bsdfSpecCompCount bsdfl
           fl = sScale (evalBsdf False bsdfl (-w) wil) (1 + nspecl)
-          r = segmentRay pl pe
+          r = Ray pl rd (intEpsilon intl) (len rd - intEpsilon inte)
+          rd = pe - pl
           ne = bsdfShadingNormal bsdfe
           nl = bsdfShadingNormal bsdfl
           
 estimateDirect :: Scene -> Vertex -> Int -> Sampled s Spectrum
-estimateDirect scene (Vert bsdf p wi _ _ _ alpha) depth = do
+estimateDirect scene (Vert bsdf p wi _ int _ alpha) depth = do
    lNumU <- rnd' $ 0 + 1 + smps1D * depth * 3
    lDirU <- rnd2D' $ 0 + 2 + smps2D * depth * 3
    lBsdfCompU <- rnd' $ 1 + 1 + smps1D * depth * 3
    lBsdfDirU <- rnd2D' $ 1 + 2 + smps2D * depth * 3
    let
       n = bsdfShadingNormal bsdf
-      lHere = sampleOneLight scene p n wi bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU
+      lHere = sampleOneLight scene p (intEpsilon int) n wi bsdf $
+         RLS lNumU lDirU lBsdfCompU lBsdfDirU
    return $! lHere * alpha
    
 pairs :: [a] -> [a] -> [(a, a)]
@@ -193,7 +195,7 @@ nextVertex adj sc wi (Just int) alpha depth md f1d f2d
       rr <- rnd' $ 1 + f1d depth -- russian roulette
       let fun = if adj then sampleAdjBsdf else sampleBsdf
       let (BsdfSample t spdf f wo) = fun bsdf wi ubc ubd
-      let int' = intersect sc $ Ray p wo epsilon infinity
+      let int' = intersect sc $ Ray p wo (intEpsilon int) infinity
       let wi' = -wo
       let vHere = Vert bsdf p wi wo int t alpha
       let pathScale = sScale f $ absDot wo (bsdfShadingNormal bsdf) / spdf

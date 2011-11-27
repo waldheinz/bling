@@ -88,20 +88,21 @@ nextV :: Scene -> Intersection -> Vector -> Spectrum
 nextV s int wo t d md = {-# SCC "nextV" #-} do
    let
       bsdf = intBsdf int
+      e = intEpsilon int
    
    -- trace rays for specular reflection and transmission
-   (re, lsr) <- cont (d+1) md s bsdf wo (mkBxdfType [Specular, Reflection]) t
-   (tr, lst) <- cont (d+1) md s bsdf wo (mkBxdfType [Specular, Transmission]) t
+   (re, lsr) <- cont e (d+1) md s bsdf wo (mkBxdfType [Specular, Reflection]) t
+   (tr, lst) <- cont e (d+1) md s bsdf wo (mkBxdfType [Specular, Transmission]) t
    here <- mkHitPoint bsdf wo t
    seq re $ seq tr $ seq here $ return $! (here ++ re ++ tr, lsr + lst)
 
-cont :: Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Spectrum -> Sampled s ([HitPoint], Spectrum)
-cont d md s bsdf wo tp t
+cont :: Flt -> Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Spectrum -> Sampled s ([HitPoint], Spectrum)
+cont eps d md s bsdf wo tp t
    | d == md = return $! ([], black)
    | otherwise =
       let
          (BsdfSample _ pdf f wi) = sampleAdjBsdf' tp bsdf wo 0.5 (0.5, 0.5)
-         ray = Ray p wi epsilon infinity
+         ray = Ray p wi eps infinity
          p = bsdfShadingPoint bsdf
          n = bsdfShadingNormal bsdf
          t' = sScale (f * t) (wi `absDot` n / pdf)
@@ -167,7 +168,7 @@ nextVertex scene sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} do
       (BsdfSample _ spdf f wo) = sampleBsdf bsdf wi ubc ubd
       pcont = if d > 4 then 0.8 else 1
       li' = sScale (f * li) (absDot wo n / (spdf * pcont))
-      ray = Ray p wo epsilon infinity
+      ray = Ray p wo (intEpsilon int) infinity
 
    unless (spdf == 0 || isBlack li') $
       rnd' (2 + d * 2) >>= \x -> unless (x > pcont) $

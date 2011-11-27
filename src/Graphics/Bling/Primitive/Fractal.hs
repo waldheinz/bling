@@ -22,7 +22,7 @@ import Graphics.Bling.Shape
 -- Julia Fractal
 --
 
-data Fractal = Julia Quaternion Flt Int
+data Fractal = Julia {-# UNPACK #-} !Quaternion {-# UNPACK #-} !Flt {-# UNPACK #-} !Int
    
 mkJuliaQuat :: Quaternion -> Flt -> Int -> Fractal
 mkJuliaQuat = Julia
@@ -52,7 +52,7 @@ instance Primitive FractalPrim where
    worldBounds _ = AABB (mkPoint' n n n) $ mkPoint' p p p where
       (n, p) = (-juliaRadius, juliaRadius)
       
-   intersects (FP (Julia q e mi) _) r = maybe False (\_ -> True) t where
+   intersects (FP (Julia q e mi) _) r = maybe False (const True) t where
       t = traverseJulia r q mi e
    
    intersects (Menger _ _ _ _) _ = error "Menger : unimplemented intersects"
@@ -60,7 +60,7 @@ instance Primitive FractalPrim where
    
    intersect p@(FP (Julia q e mi) m) r =
       traverseJulia r q mi e >>= \(d, o) ->
-         Just $ Intersection d (mkDg' o $ normalJulia o q mi e) (mkAnyPrim p) m
+         Just $ Intersection d (e * 2) (mkDg' o $ normalJulia o q mi e) (mkAnyPrim p) m
    
    intersect (Menger _ _ _ _) _ = error "Menger : unimplemented intersects"
 

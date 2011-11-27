@@ -76,13 +76,19 @@ mkSphere
    -> Shape
 mkSphere = Sphere
 
-intersect :: Shape -> Ray -> Maybe (Flt, DifferentialGeometry)
+-- | intersects a ray with a shape
+intersect
+   :: Shape -- ^ the shape to intersect
+   -> Ray -- ^ the ray to intersect the shape with
+   -> Maybe (Flt, Flt, DifferentialGeometry)
+      -- ^ maybe (ray parametric distance to hit, ray epsilon, local geometry at hit point)
 
 intersect (Box pmin pmax) ray@(Ray o d tmin tmax) =
       testSlabs allDimensions tmin tmax 0 >>= go where
    
-   go (t, axis) = Just (t, mkDg' p n) where
+   go (t, axis) = Just (t, e, mkDg' p n) where
       p = rayAt ray t
+      e = 5e-4 * t
       n = setComponent axis dir $ mkV (0, 0, 0)
       dir = if (p .! axis) > half then 1 else -1
       half = (pmin .! axis + pmax .! axis) / 2
@@ -125,7 +131,8 @@ intersect (Cylinder r zmin zmax phimax) ray@(Ray ro rd tmin tmax) =
             phi1 = atan2' (vy pHit1) (vx pHit1)
             
       -- parametric representation
-      params (pHit, _phi, t) = (t, mkDg' pHit n) where
+      params (pHit, _phi, t) = (t, e, mkDg' pHit n) where
+         e = 5e-4 * t
          n = normalize $ dpdu `cross` dpdv
          dpdu = mkV (-phimax * (vy pHit), phimax * (vx pHit), 0)
          dpdv = mkV (0, 0, zmax - zmin)
@@ -135,9 +142,10 @@ intersect (Disk h rad irad phimax) ray@(Ray ro rd tmin tmax)
    | t < tmin || t > tmax = Nothing -- distance in ray parameters ?
    | d2 > rad * rad || d2 < irad * irad = Nothing -- p inside disk radii ?
    | phi > phimax = Nothing
-   | otherwise = Just (t, mkDg' p n)
+   | otherwise = Just (t, e, mkDg' p n)
    where
       t = (h - vz ro) / vz rd
+      e = 5e-4 * t
       p = rayAt ray t
       (px, py) = (vx p, vy p)
       d2 = px * px + py * py
@@ -148,22 +156,24 @@ intersect (Quad sx sz) ray@(Ray ro rd tmin tmax)
    | abs (vz rd) < 1e-7 = Nothing -- ray parallel to quad
    | t < tmin || t > tmax = Nothing -- ray parametric distance
    | abs (vx p) > sx || abs (vy p) > sz = Nothing -- not inside extent
-   | otherwise = Just (t, mkDg' p (mkV (0, 0, -1)))
+   | otherwise = Just (t, e, mkDg' p (mkV (0, 0, -1)))
    where
       t = -(vz ro) / vz rd
+      e = 5e-4 * t
       p = rayAt ray t
 
 intersect (Sphere r) ray@(Ray ro rd tmin tmax)
    | isNothing times = Nothing
    | t1 > tmax = Nothing
    | t2 < tmin = Nothing
-   | otherwise = Just (t, dg)
+   | otherwise = Just (t, eps, dg)
    where
       -- find hit point
       a = sqLen rd
       b = 2 * (ro `dot` rd)
       c = sqLen ro - (r * r)
       t = if t1 > tmin then t1 else t2
+      eps = 5e-4 * t
       (t1, t2) = fromJust times
       times = solveQuadric a b c
       
@@ -171,7 +181,7 @@ intersect (Sphere r) ray@(Ray ro rd tmin tmax)
       thetaMin = pi
       thetaMax = 0
       phiMax = twoPi
-
+      
       -- find dpdu and dpdv
       dg = mkDg p u v dpdu dpdv dndu dndv
       p@(Vector px py pz) = rayAt ray t
@@ -188,7 +198,6 @@ intersect (Sphere r) ray@(Ray ro rd tmin tmax)
             (vpromote $ thetaMax - thetaMin)
 
       -- find dndu and dndv
-
       d2Pduu = vpromote (-phiMax * phiMax) * mkV (px, py, 0)
       d2Pduv = vpromote ((thetaMax - thetaMin) * pz * phiMax) *
                     mkV (-sinphi, cosphi, 0)
@@ -324,7 +333,7 @@ pdf :: Shape -- ^ the @Shape@ to compute the pdf for
 pdf s p wi = maybe 0 p' (s `intersect` r) where
    r = Ray p wi 1e-3 infinity
    f pd = if isInfinite pd then 0 else pd
-   p' (t, dg) = f $ sqLen (p - (rayAt r t)) / (absDot (dgN dg) (-wi) * area s)
+   p' (t, _, dg) = f $ sqLen (p - (rayAt r t)) / (absDot (dgN dg) (-wi) * area s)
 
 -- | the probability of choosing the specified point by sampling a @Shape@
 pdf'
@@ -345,9 +354,10 @@ sample sp@(Sphere r) p us
       cs = coordinateSystem dn
       dn = normalize (-p)
       cosThetaMax = sqrt $ max 0 (1 - (r * r) / sqLen p)
-      ps = maybe (dn * vpromote r) (\i -> rayAt ray (fst i)) int where
+      ps = maybe (dn * vpromote r) pt int where
          ray = Ray p d 0 infinity
          int = sp `intersect` ray
+         pt (t, _, _) = rayAt ray t
 
 sample s _ us = sample' s us -- ignore the point if nothing clever can be done
 

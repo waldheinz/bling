@@ -118,13 +118,14 @@ power (Infinite _ r _ _) b = sScale r $ pi * wr * wr where
 
 -- | samples one light source
 sample
-   :: Light -- ^ the light to sample
-   -> Point -- ^ the point in world space from where the light is viewed
-   -> Normal -- ^ the surface normal in world space from where the light is viewed
-   -> Rand2D -- ^ the random value for sampling the light
+   :: Light    -- ^ the light to sample
+   -> Point    -- ^ the point in world space from where the light is viewed
+   -> Flt      -- ^ epsilon for ray starting point
+   -> Normal   -- ^ the surface normal in world space from where the light is viewed
+   -> Rand2D   -- ^ the random value for sampling the light
    -> LightSample -- ^ the computed @LightSample@
 
-sample (Infinite r _ dist w2l) p _ us
+sample (Infinite r _ dist w2l) p eps _ us
    | mapPdf == 0 = LightSample black (mkV (0,1,0)) (error "empty light sample") 0 False
    | sint == 0 = LightSample black (mkV (0,1,0)) (error "empty light sample") 0 False
    | otherwise = LightSample ls wi ray pd False
@@ -133,24 +134,29 @@ sample (Infinite r _ dist w2l) p _ us
       ls = texMapEval r uv
       sphDir = cartToSph uv
       wi = transVector (inverse w2l) $ sphToDir $ sphDir
-      ray = Ray p wi epsilon infinity
+      ray = Ray p wi eps infinity
       sint = sphSinTheta sphDir
       pd = mapPdf / (2 * pi * pi * sint)
       
-sample (Directional r d) p n _ = lightSampleD r d p n
-sample (PointLight r pos) p _ _ = LightSample r' wi ray 1 True where
+sample (Directional r d) p e n _ = LightSample y d ray 1 True where
+   y = sScale r (absDot n d)
+   ray = Ray p d e infinity
+
+sample (PointLight r pos) p e _ _ = LightSample r' wi ray 1 True where
    r' = sScale r (1 / sqLen (pos - p))
    wi = normalize $ pos - p
-   ray = segmentRay p pos
+   ray = Ray p (pos - p) e infinity
    
-sample (AreaLight _ s r l2w w2l) p _ us = LightSample r' wi' ray pd False where
+sample (AreaLight _ s r l2w w2l) p e _ us = LightSample r' wi' ray pd False where
    r' = if ns `dot` wi < 0 then r else black
    p' = transPoint w2l p -- point to be lit in local space
    (ps, ns) = S.sample s p' us -- point in local space
    wi' = transVector l2w wi -- incident vector in world space
    wi = normalize (ps - p') -- incident vector in local space
    pd = S.pdf s p' wi -- pdf (computed in local space)
-   ray = transRay l2w (segmentRay ps p') -- vis. test ray (in world space)
+   ray = transRay l2w rayo -- vis. test ray (in world space)
+   rayo = Ray p' rod e (len rod - e)
+   rod = ps - p'
 
 emptySample' :: (Spectrum, Ray, Normal, Flt)
 emptySample' = (black, Ray (mkV (0, 0, 0)) (mkV (0, 1, 0)) 0 0, mkV (0, 1, 0), 0)
@@ -222,8 +228,3 @@ pdf (Infinite _ _ dist w2l) _ wiW
 pdf (Directional _ _) _ _ = 0 -- zero chance to find the direction by sampling
 pdf (AreaLight _ ss _ _ t) p wi = S.pdf ss (transPoint t p) (transVector t wi)
 pdf (PointLight _ _) _ _ = 0
-
-lightSampleD :: Spectrum -> Normal -> Point -> Normal -> LightSample
-lightSampleD r d pos n = LightSample y d ray 1.0 True where
-   y = sScale r (absDot n d)
-   ray = Ray pos d epsilon infinity

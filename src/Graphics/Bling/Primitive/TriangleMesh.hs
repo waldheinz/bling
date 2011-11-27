@@ -192,5 +192,6 @@ intersectTri tri r@(Ray ro rd tmin tmax)
          
       -- create intersection
       dg = mkDg (rayAt r t) tu tv dpdu dpdv (mkV (0, 0, 0)) (mkV (0,0, 0))
-      int = Intersection t dg (mkAnyPrim tri) (triMaterial tri)
+      e = 1e-3 * t
+      int = Intersection t e dg (mkAnyPrim tri) (triMaterial tri)
          

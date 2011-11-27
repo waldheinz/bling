@@ -71,8 +71,8 @@ oneRay scene splat = do
       then nextVertex scene (-wo) (intersect scene ray) (sScale li (absDot nl wo / pdf)) 0 splat
       else return ()
       
-connectCam :: Scene -> (ImageSample -> Rand s ()) -> Spectrum -> Bsdf -> Vector -> Rand s ()
-connectCam sc splat li bsdf wi
+connectCam :: Scene -> (ImageSample -> Rand s ()) -> Spectrum -> Bsdf -> Vector -> Flt -> Rand s ()
+connectCam sc splat li bsdf wi eps
    | isBlack f = return ()
    | isBlack csf = return ()
    | cPdf == 0 = return ()
@@ -85,7 +85,7 @@ connectCam sc splat li bsdf wi
       we = normalize $ dCam
       f = evalBsdf True bsdf wi we
       dCam2 = sqLen dCam
-      cray = segmentRay pCam p
+      cray = Ray p dCam eps (sqrt dCam2 - eps)
       n = normalize $ bsdfShadingNormal bsdf
       p = bsdfShadingPoint bsdf
       
@@ -113,10 +113,10 @@ nextVertex sc wi (Just int) li depth splat
          p = bsdfShadingPoint bsdf
          (BsdfSample _ spdf bf wo) = sampleBsdf bsdf wi ubc ubd
          li' = sScale (li * bf) (absDot n wo / (spdf * pcont))
-         int' = intersect sc $ Ray p wo epsilon infinity
+         int' = intersect sc $ Ray p wo (intEpsilon int) infinity
          wi' = -wo
       
-      connectCam sc splat li bsdf wi
+      connectCam sc splat li bsdf wi $ intEpsilon int
 
       if (isBlack bf) || spdf == 0
          then return ()

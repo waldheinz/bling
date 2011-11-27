@@ -87,7 +87,8 @@ nearest' ps x = V.foldl' near x ps
 --
 
 data Intersection = Intersection {
-   intDist        :: {-# UNPACK #-} ! Float,
+   intDist        :: {-# UNPACK #-} ! Flt,
+   intEpsilon     :: {-# UNPACK #-} ! Flt,
    intGeometry    :: {-# UNPACK #-} ! DifferentialGeometry,
    intPrimitive   :: ! AnyPrim,
    intMaterial    :: ! Material
@@ -104,7 +105,7 @@ intLe
    -> Vector       -- ^ the outgoing direction (must be normalized)
    -> Spectrum     -- ^ the resulting spectrum
 {-# INLINE intLe #-}
-intLe (Intersection _ dg prim _) wo =
+intLe (Intersection _ _ dg prim _) wo =
    maybe black (\l -> L.lEmit l p n wo) (light prim) where
       p = dgP dg
       n = dgN dg

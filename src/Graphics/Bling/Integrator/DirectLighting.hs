@@ -44,23 +44,24 @@ directLighting d md s r@(Ray _ rd _ _) =
             p = bsdfShadingPoint bsdf
             n = bsdfShadingNormal bsdf
             wo = -rd
-            l = sampleOneLight s p n wo bsdf $ RLS uln uld ubc ubd
+            e = intEpsilon int
+            l = sampleOneLight s p e n wo bsdf $ RLS uln uld ubc ubd
 
          -- trace rays for specular reflection and transmission
-         re <- cont (d+1) md s bsdf wo $ mkBxdfType [Specular, Reflection]
-         tr <- cont (d+1) md s bsdf wo $ mkBxdfType [Specular, Transmission]
+         re <- cont e (d+1) md s bsdf wo $ mkBxdfType [Specular, Reflection]
+         tr <- cont e (d+1) md s bsdf wo $ mkBxdfType [Specular, Transmission]
              
          return $! (1, l + re + tr + intLe int wo)
 
-cont :: Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Sampled s Spectrum
-cont d md s bsdf wo t
+cont :: Flt -> Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Sampled s Spectrum
+cont e d md s bsdf wo t
    | d == md = return $! black
    | otherwise = do
       let
-         ray = Ray p wi epsilon infinity
          (BsdfSample _ pdf f wi) = sampleAdjBsdf' t bsdf wo 0.5 (0.5, 0.5)
          p = bsdfShadingPoint bsdf
          n = bsdfShadingNormal bsdf
+         ray = Ray p wi e infinity
 
       if (pdf == 0)
          then return $! black

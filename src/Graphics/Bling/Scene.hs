@@ -69,9 +69,9 @@ sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n
          f = evalBsdf True bsdf wo wi
          weight = powerHeuristic (1, lpdf) (1, bsdfPdf bsdf wo wi)
 
-sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Spectrum
+sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Flt -> Spectrum
 {-# INLINE sampleBsdfMis #-}
-sampleBsdfMis (Scene _ sp _ _) l (BsdfSample _ bPdf f wi) n p
+sampleBsdfMis (Scene _ sp _ _) l (BsdfSample _ bPdf f wi) n p epsilon
    | bPdf == 0  || isBlack f = black
    | isJust lint = maybe black ff $ intLight (fromJust lint)
    | otherwise = sc (le l ray)
@@ -87,15 +87,16 @@ estimateDirect
    :: Scene
    -> Light
    -> Point
+   -> Flt
    -> Normal
    -> Vector
    -> Bsdf
    -> RandLightSample
    -> Spectrum
 {-# INLINE estimateDirect #-}
-estimateDirect s l p n wo bsdf smp = ls + bs where
-   ls = {-# SCC "estimateDirect.light" #-} sampleLightMis s (sample l p n $ ulDir smp) bsdf wo n
-   bs = {-# SCC "estimateDirect.bsdf"  #-} sampleBsdfMis s l (sampleBsdf bsdf wo uBC uBD) n p
+estimateDirect s l p eps n wo bsdf smp = ls + bs where
+   ls = {-# SCC "estimateDirect.light" #-} sampleLightMis s (sample l p eps n $ ulDir smp) bsdf wo n
+   bs = {-# SCC "estimateDirect.bsdf"  #-} sampleBsdfMis s l (sampleBsdf bsdf wo uBC uBD) n p eps
    uBC = uBsdfComp smp
    uBD = uBsdfDir smp
    
@@ -108,13 +109,13 @@ data RandLightSample = RLS
    }
    
 -- | samples one randomly chosen light source
-sampleOneLight :: Scene -> Point -> Normal -> Vector -> Bsdf -> RandLightSample -> Spectrum
-sampleOneLight scene@(Scene _ _ lights _) p n wo bsdf smp
+sampleOneLight :: Scene -> Point -> Flt -> Normal -> Vector -> Bsdf -> RandLightSample -> Spectrum
+sampleOneLight scene@(Scene _ _ lights _) p eps n wo bsdf smp
    | lc == 0 = black
    | lc == 1 = {-# SCC "sampleOneLight.single" #-} ed (V.head lights)
    | otherwise = {-# SCC "sampleOneLight.many" #-} sScale ld (fromIntegral lc) where     
             ld = ed $ V.unsafeIndex lights ln
-            ed l = estimateDirect scene l p n wo bsdf smp
+            ed l = estimateDirect scene l p eps n wo bsdf smp
             lc = V.length lights
             ln = min (floor $ (ulNum smp) * fromIntegral lc) (lc - 1)
 
