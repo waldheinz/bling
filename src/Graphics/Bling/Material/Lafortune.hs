@@ -6,7 +6,6 @@ module Graphics.Bling.Material.Lafortune (
    ) where
 
 import Graphics.Bling.Reflection
-import Graphics.Bling.Spectrum
 
 import Data.List (foldl')
 

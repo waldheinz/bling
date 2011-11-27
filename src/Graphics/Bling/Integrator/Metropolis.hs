@@ -26,7 +26,6 @@ import Graphics.Bling.Reflection
 import Graphics.Bling.Rendering
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
-import Graphics.Bling.Spectrum
 
 data Metropolis = MLT
    { _integrator        :: ! BidirPath

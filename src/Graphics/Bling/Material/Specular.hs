@@ -14,7 +14,6 @@ module Graphics.Bling.Material.Specular (
 
 import Graphics.Bling.Math
 import Graphics.Bling.Reflection
-import Graphics.Bling.Spectrum
 import Graphics.Bling.Texture
 
 -- | a glass material

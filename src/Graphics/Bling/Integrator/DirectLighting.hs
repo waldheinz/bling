@@ -11,7 +11,6 @@ import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
-import Graphics.Bling.Spectrum
 
 data DirectLighting = DL { _maxDepth  :: {-# UNPACK #-} ! Int }
 

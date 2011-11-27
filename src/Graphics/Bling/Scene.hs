@@ -15,7 +15,6 @@ import Graphics.Bling.Montecarlo
 import Graphics.Bling.Primitive
 import qualified Graphics.Bling.Random as R
 import Graphics.Bling.Reflection
-import Graphics.Bling.Spectrum
 import Graphics.Bling.Primitive.KdTree
 
 data Scene = Scene

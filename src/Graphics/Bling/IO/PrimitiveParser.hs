@@ -15,6 +15,7 @@ import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.WaveFront
 import Graphics.Bling.Primitive.Bezier
 import Graphics.Bling.Primitive.Fractal
+import Graphics.Bling.Primitive.Geometry
 
 --------------------------------------------------------------------------------
 -- Primitives

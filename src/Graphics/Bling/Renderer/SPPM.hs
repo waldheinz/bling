@@ -22,7 +22,6 @@ import Graphics.Bling.Reflection
 import Graphics.Bling.Rendering
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
-import Graphics.Bling.Spectrum
 
 -- | the Stochastic Progressive Photon Mapping Renderer
 data SPPM = SPPM Int Flt -- ^ #photons and initial radius

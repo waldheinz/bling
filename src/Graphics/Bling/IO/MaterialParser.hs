@@ -6,7 +6,6 @@ module Graphics.Bling.IO.MaterialParser (
 import Text.ParserCombinators.Parsec
 
 import Graphics.Bling.Reflection
-import Graphics.Bling.Spectrum
 import Graphics.Bling.SunSky
 import Graphics.Bling.Texture
 import Graphics.Bling.IO.ParserCore

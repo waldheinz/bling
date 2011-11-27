@@ -17,7 +17,6 @@ import Graphics.Bling.Random
 import Graphics.Bling.Reflection
 import Graphics.Bling.Rendering
 import Graphics.Bling.Scene
-import Graphics.Bling.Spectrum
 
 data LightTracer = LightT
    { _passes   :: Int -- ^ number of passes

@@ -8,7 +8,6 @@ module Graphics.Bling.Material.Substrate (
 
 import Graphics.Bling.Texture
 import Graphics.Bling.Reflection
-import Graphics.Bling.Spectrum
 
 mkSubstrate
    :: SpectrumTexture

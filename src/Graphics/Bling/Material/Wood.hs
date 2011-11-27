@@ -4,7 +4,6 @@ module Graphics.Bling.Material.Wood (
    ) where
 
 import Graphics.Bling.Reflection
-import Graphics.Bling.Spectrum
 import Graphics.Bling.Texture
 
 mkWood :: Material

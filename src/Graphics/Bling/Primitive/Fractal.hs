@@ -14,6 +14,7 @@ module Graphics.Bling.Primitive.Fractal (
 import Graphics.Bling.AABB
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Primitive
+import Graphics.Bling.Primitive.Geometry
 import Graphics.Bling.Reflection
 import Graphics.Bling.Shape
 
@@ -51,7 +52,7 @@ instance Primitive FractalPrim where
    worldBounds _ = AABB (mkPoint' n n n) $ mkPoint' p p p where
       (n, p) = (-juliaRadius, juliaRadius)
       
-   intersects (FP (Julia q e mi) _) r = maybe False (const True) t where
+   intersects (FP (Julia q e mi) _) r = maybe False (\_ -> True) t where
       t = traverseJulia r q mi e
    
    intersects (Menger _ _ _ _) _ = error "Menger : unimplemented intersects"

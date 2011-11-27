@@ -17,7 +17,6 @@ import Graphics.Bling.Random
 import Graphics.Bling.Reflection
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
-import Graphics.Bling.Spectrum
 
 data BidirPath = BDP
    { _maxDepth    :: {-# UNPACK #-} ! Int

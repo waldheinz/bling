@@ -37,7 +37,6 @@ import Graphics.Bling.Math
 import Graphics.Bling.Primitive
 import Graphics.Bling.Rendering
 import Graphics.Bling.Reflection
-import Graphics.Bling.Spectrum
 
 type JobParser a = ParsecT String PState IO a
 

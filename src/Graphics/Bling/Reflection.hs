@@ -2,6 +2,7 @@
 
 module Graphics.Bling.Reflection (
    module Graphics.Bling.DifferentialGeometry,
+   module Graphics.Bling.Spectrum,
    
    -- * Materials and Bump Mapping
 

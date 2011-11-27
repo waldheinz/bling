@@ -8,7 +8,7 @@ module Graphics.Bling.Primitive (
 
    -- * Primitives
 
-   Primitive(..), Geometry, mkGeom, nearest, nearest',
+   Primitive(..), nearest, nearest',
    AnyPrim(..), mkAnyPrim
    
    ) where
@@ -19,8 +19,6 @@ import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Light as L
 import Graphics.Bling.Math
 import Graphics.Bling.Reflection
-import qualified Graphics.Bling.Shape as S
-import Graphics.Bling.Spectrum
 
 class Primitive a where
    intersect :: a -> Ray -> Maybe Intersection
@@ -67,49 +65,7 @@ instance Primitive AnyPrim where
    
 mkAnyPrim :: (Primitive a) => a -> AnyPrim
 mkAnyPrim = MkAnyPrim
-
---
--- geometric primitives
---   
-
-data Geometry = MkGeometry {
-   geomId :: Int,
-   o2w :: Transform, -- ^ the object-to-world transformation
-   w2o :: Transform, -- ^ the world-to-object transformation
-   _reverseOrientation :: Bool, -- ^ reverse the normal orientation?
-   shape :: S.Shape,
-   material :: Material,
-   emission :: Maybe Spectrum
-   } 
-
-mkGeom
-   :: Transform
-   -> Bool
-   -> Material
-   -> Maybe Spectrum
-   -> S.Shape
-   -> Int
-   -> Geometry
-mkGeom t ro m e s gid = MkGeometry gid t (inverse t) ro s m e
-
-instance Primitive Geometry where
-   flatten g = [MkAnyPrim g]
-   
-   worldBounds g = S.worldBounds (shape g) (o2w g)
-   
-   intersects g rw = {-# SCC "intersects.Geometry" #-}
-      S.intersects (shape g) (transRay (w2o g) rw)
-   
-   light g = emission g >>= \e ->
-      Just $ mkAreaLight (shape g) e (o2w g) (geomId g)
-   
-   intersect g rw = {-# SCC "intersect.Geometry" #-}
-      (S.intersect (shape g) ro) >>= int where
-         int (t, dg) = Just $ Intersection t (transDg (o2w g) dg) p m
-         m = material g
-         p = mkAnyPrim g
-         ro = transRay (w2o g) rw -- ray in object space
-   
+ 
 near :: (Primitive a) => (Ray, Maybe Intersection) -> a -> (Ray, Maybe Intersection)
 {-# INLINE near #-}
 near o@(r, _) p = maybe o go $ intersect p r where

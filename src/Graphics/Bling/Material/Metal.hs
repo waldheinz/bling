@@ -10,7 +10,6 @@ module Graphics.Bling.Material.Metal (
 
 import Graphics.Bling.Texture
 import Graphics.Bling.Reflection
-import Graphics.Bling.Spectrum
 import Graphics.Bling.Material.Specular
 
 -- | Creates a Metal @Material@

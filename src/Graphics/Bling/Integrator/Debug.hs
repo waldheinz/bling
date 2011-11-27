@@ -11,7 +11,6 @@ import Graphics.Bling.Montecarlo
 import Graphics.Bling.Reflection
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
-import Graphics.Bling.Spectrum
 import Graphics.Bling.Primitive
 import Graphics.Bling.Primitive.KdTree
 
