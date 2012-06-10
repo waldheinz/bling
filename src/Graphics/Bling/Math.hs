@@ -170,9 +170,6 @@ sphericalPhi (Vector x y _)
 --------------------------------------------------------------------------------
 
 data Vector = Vector { vx, vy, vz :: {-# UNPACK #-} !Flt } deriving ( Eq )
-{-# INLINE vx #-}
-{-# INLINE vy #-}
-{-# INLINE vz #-}
 
 vzip :: (Flt -> Flt -> Flt) -> Vector -> Vector -> Vector
 {-# INLINE vzip #-}
