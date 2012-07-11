@@ -18,28 +18,28 @@ Flag Devel
 Library
    Hs-Source-Dirs:   src
    Build-Depends:
-      base              >= 3 && < 5,
+      base              == 4.5.*,
       bytestring        == 0.9.*,
       deepseq           == 1.3.*,
       filepath          == 1.3.*,
-      mtl               == 2.0.*,
-      mwc-random        == 0.11.*,
+      mtl               == 2.1.*,
+      mwc-random        == 0.12.*,
       parsec            == 3.1.*,
       parallel          == 3.2.*,
       pretty            == 1.1.*,
       primitive         == 0.4.*,
       random            == 1.0.*,
-      random-shuffle    == 0.0.2,
-      transformers      == 0.2.*,
-      Vec               == 0.9.*,
+      random-shuffle    == 0.0.*,
+      transformers      == 0.3.*,
+      Vec               == 1.0.*,
       vector            == 0.9.*,
       vector-algorithms == 0.5.*
       
    Ghc-Options:
-      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -threaded -optc-O3 -optc-march=native -optc-msse4
+      -Wall -O1 -fexcess-precision
 
    Ghc-Prof-Options:
-      -O2 -fexcess-precision -prof
+      -O1 -fexcess-precision -prof
 
    Exposed-Modules:
       Graphics.Bling.AABB,
@@ -98,14 +98,14 @@ Library
 Executable bling
    hs-source-dirs:   src/Graphics/Bling/Main
    Main-is:          Main.hs
-   Build-Depends:    bling, base, haskell98, pretty, random, mwc-random
+   Build-Depends:    bling, base, pretty, random, mwc-random
    ghc-options:      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -rtsopts -threaded
    ghc-prof-options: -O2 -fexcess-precision -prof -rtsopts
 
 Executable bling-gui
    if flag(Gui)
       Buildable:     True
-      Build-Depends: bling, base, haskell98, pretty, random, mwc-random, SDL
+      Build-Depends: bling, base, pretty, random, mwc-random, SDL
    else
       Buildable:     False
       

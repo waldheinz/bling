@@ -1,6 +1,6 @@
 
 --import Control.Monad
-import System (getArgs)
+import System.Environment (getArgs)
 import System.IO
 import Text.Printf
 import qualified Text.PrettyPrint as PP
