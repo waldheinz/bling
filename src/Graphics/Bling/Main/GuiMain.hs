@@ -2,7 +2,7 @@
 import Control.Monad
 import Foreign
 import Graphics.UI.SDL as SDL
-import System (getArgs)
+import System.Environment (getArgs)
 import System.IO
 import Text.Printf
 

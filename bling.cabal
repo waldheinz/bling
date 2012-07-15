@@ -135,8 +135,8 @@ Executable bling-benchmark
    hs-source-dirs:    src/Graphics/Bling/Benchmark
    Main-is:           Benchmark.hs
    Build-Depends:     bling, base >= 3 && < 5, haskell98, mwc-random, vector,
-      bitset, bytestring, parsec, pretty,
-      criterion >= 0.5 && < 0.6,
+      bytestring, parsec, pretty,
+      criterion  >= 0.5 && < 0.6,
       random >= 1.0 && < 1.1
    ghc-options:       -Wall -O2 -fexcess-precision -rtsopts
 
