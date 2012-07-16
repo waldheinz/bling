@@ -41,8 +41,9 @@ pRenderer = pBlock $ do
                 
              "sppm" -> do
                 n <- namedInt "photonCount"
+                md <- namedInt "maxDepth"
                 r <- namedFloat "radius"
-                return $ mkAnyRenderer $ mkSPPM n r
+                return $ mkAnyRenderer $ mkSPPM n md r
                 
              "sampler" -> do
                 sr <- pSamplerRenderer

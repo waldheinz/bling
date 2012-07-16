@@ -24,15 +24,16 @@ import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 
 -- | the Stochastic Progressive Photon Mapping Renderer
-data SPPM = SPPM Int Flt -- ^ #photons and initial radius
+data SPPM = SPPM {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Flt -- ^ #photons and initial radius
 
 instance Printable SPPM where
-   prettyPrint (SPPM _ _) = PP.vcat [
+   prettyPrint (SPPM _ _ _) = PP.vcat [
       PP.text "Stochastic Progressive Photon Map" ]
 
 -- | creates a SPPM renderer
 mkSPPM
    :: Int -- ^ the number of photons to emit per pass
+   -> Int -- ^ the maximum depth (path length for eye paths)
    -> Flt -- ^ the initial search radius for collecting photons
    -> SPPM
 mkSPPM = SPPM
@@ -65,8 +66,8 @@ mkHitPoint bsdf wo f
 escaped :: Ray -> Scene -> Spectrum
 escaped ray s = V.sum $ V.map (`le` ray) (sceneLights s)
 
-mkHitPoints :: Scene -> MImage s -> R.Rand s [HitPoint]
-mkHitPoints scene img = {-# SCC "mkHitPoints" #-}
+mkHitPoints :: Scene -> MImage s -> Int -> R.Rand s [HitPoint]
+mkHitPoints scene img maxD = {-# SCC "mkHitPoints" #-}
    liftM concat $ forM (splitWindow $ imageWindow img) $ \w ->
       liftM concat $ sample (mkRandomSampler 1) w 0 0 $ do
          ray <- fireRay $ sceneCam scene
@@ -75,7 +76,7 @@ mkHitPoints scene img = {-# SCC "mkHitPoints" #-}
             Just int -> let wo = (-(rayDir ray))
                             ls = intLe int wo
                         in do
-                           (hs, ls') <- nextV scene int wo white 0 7
+                           (hs, ls') <- nextV scene int wo white 0 maxD
                            return $! (hs, ls' + ls)
             Nothing  -> return $! ([], escaped ray scene)
                            
@@ -285,7 +286,7 @@ mkHash hits ps = {-# SCC "mkHash" #-} do
 --------------------------------------------------------------------------------
 
 instance Renderer SPPM where
-   render (SPPM n' r) job report = {-# SCC "render" #-} do
+   render (SPPM n' maxD r) job report = {-# SCC "render" #-} do
       
       let
          scene = jobScene job
@@ -301,7 +302,7 @@ instance Renderer SPPM where
       
       forM_ [1..] $ \passNum -> do
          seed <- R.ioSeed
-         hitPoints <- liftM V.fromList $ stToIO $ R.runWithSeed seed $ mkHitPoints scene img
+         hitPoints <- liftM V.fromList $ stToIO $ R.runWithSeed seed $ mkHitPoints scene img maxD
          hitMap <- stToIO $ mkHash hitPoints pxStats
          pseed <- R.ioSeed
          _ <- stToIO $ R.runWithSeed pseed $
