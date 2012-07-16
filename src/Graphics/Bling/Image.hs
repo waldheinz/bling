@@ -18,13 +18,14 @@ module Graphics.Bling.Image (
    
    ) where
 
+import Control.Applicative
 import Control.Monad
 import Control.Monad.Primitive
 import Control.Monad.ST
 import Debug.Trace
 import qualified Data.Vector.Generic as GV
 import qualified Data.Vector.Unboxed as V 
-import Data.Vector.Unboxed.Mutable as MV
+import qualified Data.Vector.Unboxed.Mutable as MV
 import qualified Data.ByteString.Lazy as BS
 import System.IO
 
@@ -36,12 +37,12 @@ import Graphics.Bling.Spectrum
 --   and the RGB value of the splatted samples
 type Pixel = (Float, (Float, Float, Float), (Float, Float, Float))
 
--- | an mutable image has a width, a height and some pixels 
-data MImage s = MImage {
-   imageWidth :: Int,
-   imageHeight :: Int,
-   imageFilter :: Filter,
-   _imagePixels :: MV.MVector (PrimState (ST s)) Pixel
+-- | a mutable image in the ST monad
+data MImage s = MImage
+   { imageWidth   :: {-# UNPACK #-} ! Int
+   , imageHeight  :: {-# UNPACK #-} ! Int
+   , imageFilter  :: ! Filter
+   , _imagePixels :: MV.MVector (PrimState (ST s)) Pixel
    }
 
 -- | creates a new image where all pixels are initialized to black
@@ -50,15 +51,13 @@ mkMImage
    -> Int -- ^ the image width
    -> Int -- ^ the image height
    -> ST s (MImage s)
-mkMImage flt w h = do
-   pixels <- MV.replicate (w * h) (0, (0, 0, 0), (0, 0, 0))
-   return $ MImage w h flt pixels
+mkMImage flt w h = MImage w h flt <$> MV.replicate (w * h) (0, (0, 0, 0), (0, 0, 0))
 
 -- | an immutable image
 data Image = Img
-   { imgW :: Int
-   , imgH :: Int
-   , _imgF :: Filter
+   { imgW :: {-# UNPACK #-} ! Int
+   , imgH :: {-# UNPACK #-} ! Int
+   , _imgF :: ! Filter
    , _imgP :: V.Vector Pixel
    }
 
@@ -68,18 +67,17 @@ mkImage
    -> Int -- ^ the image width
    -> Int -- ^ the image height
    -> Image
-mkImage flt w h = Img w h flt pixels where
-   pixels = V.replicate (w * h) (0, (0, 0, 0), (0, 0, 0))
-   
+mkImage flt w h = Img w h flt $ V.replicate (w * h) (0, (0, 0, 0), (0, 0, 0))
+
+-- | converts an image to a mutable image 
 thaw :: Image -> ST s (MImage s)
 thaw (Img w h f p) = {-# SCC "thaw" #-} do
    p' <- GV.thaw p
    return $ MImage w h f p'
  
+-- | converts a mutable image to an image
 freeze :: MImage s -> ST s Image
-freeze (MImage w h f p) = {-# SCC "freeze" #-} do
-   p' <- GV.freeze p
-   return $ Img w h f p'
+freeze (MImage w h f p) = {-# SCC "freeze" #-} Img w h f <$> GV.freeze p
 
 imageWindow :: MImage s -> SampleWindow
 imageWindow (MImage w h f _) = SampleWindow x0 x1 y0 y1 where
@@ -101,8 +99,8 @@ addPixel (MImage w h _ p) (x, y, (sw, s))
    | x < 0 || y < 0 = return ()
    | x >= w || y >= h = return ()
    | otherwise = do
-      px <- unsafeRead p o
-      unsafeWrite p o (add px dpx)
+      px <- MV.unsafeRead p o
+      MV.unsafeWrite p o (add px dpx)
    where
          dpx = (sw, r, g, b)
          (r, g, b) = toRGB s
@@ -122,8 +120,8 @@ splatSample (MImage w h _ p) (ImageSample sx sy (sw, ss))
    | isInfinite sw = trace ("not splatting infinite weight sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | otherwise = {-# SCC "splatSample" #-} do
-      (ow, oxyz, (ox, oy, oz)) <- unsafeRead p o
-      unsafeWrite p o (ow, oxyz, (ox + dx, oy + dy, oz + dz))
+      (ow, oxyz, (ox, oy, oz)) <- MV.unsafeRead p o
+      MV.unsafeWrite p o (ow, oxyz, (ox + dx, oy + dy, oz + dz))
       where
          o = (floor sx + floor sy * w)
          (dx, dy, dz) = (\(x, y, z) -> (x * sw, y * sw, z * sw)) $ toRGB ss
@@ -173,8 +171,7 @@ writePpm img@(Img w h _ _) splatW handle =
       
 -- | applies gamma correction to an RGB triple
 gamma :: Float -> (Float, Float, Float) -> (Float, Float, Float)
-gamma x (r, g, b) = (r ** x', g ** x', b ** x') where
-   x' = 1 / x
+gamma x (r, g, b) = let x' = 1 / x in (r ** x', g ** x', b ** x')
 
 -- | converts a Float in [0..1] to an Int in [0..255], clamping values outside [0..1]
 clamp :: Float -> Int

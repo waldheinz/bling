@@ -99,14 +99,17 @@ nextV s int wo t d md = {-# SCC "nextV" #-} do
 cont :: Flt -> Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Spectrum -> Sampled s ([HitPoint], Spectrum)
 cont eps d md s bsdf wo tp t
    | d == md = return $! ([], black)
-   | otherwise =
+   | otherwise = do
+      bsdfC <- rnd
+      bsdfD <- rnd2D
+      
       let
-         (BsdfSample _ pdf f wi) = sampleAdjBsdf' tp bsdf wo 0.5 (0.5, 0.5)
+         (BsdfSample _ pdf f wi) = sampleAdjBsdf' tp bsdf wo bsdfC bsdfD
          ray = Ray p wi eps infinity
          p = bsdfShadingPoint bsdf
          n = bsdfShadingNormal bsdf
          t' = sScale (f * t) (wi `absDot` n / pdf)
-      in if pdf == 0 || isBlack f
+      if pdf == 0 || isBlack f
          then return $! ([], black)
          else case s `intersect` ray of
             Just int -> do
@@ -131,7 +134,6 @@ tracePhoton scene sh img ps = {-# SCC "tracePhoton" #-} do
        
    when ((pdf > 0) && not (isBlack li)) $
       nextVertex scene sh wi (scene `intersect` ray) ls 0 img ps
-
 
 nextVertex :: Scene -> SpatialHash -> Vector ->
    Maybe Intersection -> Spectrum -> Int ->
