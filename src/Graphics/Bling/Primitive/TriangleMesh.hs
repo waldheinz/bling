@@ -107,8 +107,8 @@ instance Primitive Triangle where
    worldBounds tri = foldl' extendAABBP emptyAABB [p1, p2, p3] where
       (p1, p2, p3) = triPoints tri
 
-   intersect t r = {-# SCC "Triangle: intersect" #-} intersectTri t r
-   intersects t r = {-# SCC "Triangle: intersects" #-} intersectsTri t r
+   intersect t r = {-# SCC "intersect" #-} intersectTri t r
+   intersects t r = {-# SCC "intersects" #-} intersectsTri t r
    
    shadingGeometry tri@(Tri _ mesh) o2w dgg
       | isNothing $ mns mesh = dgg
@@ -123,7 +123,6 @@ instance Primitive Triangle where
          (ss, ts) = if sqLen ts' > 0
                        then (normalize ts' `cross` ns, normalize ts')
                        else coordinateSystem'' ns
-
 
 intersectsTri :: Triangle -> Ray -> Bool
 intersectsTri tri (Ray ro rd tmin tmax)
@@ -187,11 +186,11 @@ intersectTri tri r@(Ray ro rd tmin tmax)
 
       -- interpolate u and v
       b0 = 1 - b1 - b2
-      tu = b1 -- b0 * uv00 + b1 * uv10 + b2 * uv20
-      tv = b2 -- b0 * uv01 + b1 * uv11 + b2 * uv21
+      tu = b0 * uv00 + b1 * uv10 + b2 * uv20
+      tv = b0 * uv01 + b1 * uv11 + b2 * uv21
          
       -- create intersection
       dg = mkDg (rayAt r t) tu tv dpdu dpdv (mkV (0, 0, 0)) (mkV (0,0, 0))
-      e = 1e-3 * t
+      e = 1e-2 * t
       int = Intersection t e dg (mkAnyPrim tri) (triMaterial tri)
          
