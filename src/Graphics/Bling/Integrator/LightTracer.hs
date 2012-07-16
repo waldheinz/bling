@@ -44,7 +44,7 @@ instance Renderer LightTracer where
          | otherwise = do
             seed <- ioSeed
 
-            img' <- stToIO $ do
+            (img', _) <- stToIO $ do
                mimg <- thaw i
                runWithSeed seed $ replicateM_ ppp $ oneRay sc (liftR . (splatSample mimg) . sSmp)
                freeze mimg

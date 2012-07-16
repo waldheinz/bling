@@ -79,8 +79,8 @@ mkPrecompSample :: CameraSample -> (STVector s Flt) -> (STVector s R.Rand2D) -> 
 mkPrecompSample = PrecomSample
 
 data Sampler
-   = Random !Int
-   | Stratified !Int !Int
+   = Random {-#UNPACK #-} !Int
+   | Stratified {-# UNPACK #-} !Int {-# UNPACK #-} !Int
 
 mkRandomSampler :: Int -> Sampler
 mkRandomSampler = Random

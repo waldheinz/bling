@@ -41,6 +41,7 @@ type Pixel = (Float, (Float, Float, Float), (Float, Float, Float))
 data MImage s = MImage
    { imageWidth   :: {-# UNPACK #-} ! Int
    , imageHeight  :: {-# UNPACK #-} ! Int
+   , imageOffset  :: {-# UNPACK #-} ! (Int, Int)
    , imageFilter  :: ! Filter
    , _imagePixels :: MV.MVector (PrimState (ST s)) Pixel
    }
@@ -51,7 +52,7 @@ mkMImage
    -> Int -- ^ the image width
    -> Int -- ^ the image height
    -> ST s (MImage s)
-mkMImage flt w h = MImage w h flt <$> MV.replicate (w * h) (0, (0, 0, 0), (0, 0, 0))
+mkMImage flt w h = MImage w h (0, 0) flt <$> MV.replicate (w * h) (0, (0, 0, 0), (0, 0, 0))
 
 -- | an immutable image
 data Image = Img
@@ -73,18 +74,18 @@ mkImage flt w h = Img w h flt $ V.replicate (w * h) (0, (0, 0, 0), (0, 0, 0))
 thaw :: Image -> ST s (MImage s)
 thaw (Img w h f p) = {-# SCC "thaw" #-} do
    p' <- GV.thaw p
-   return $ MImage w h f p'
+   return $ MImage w h (0, 0) f p'
  
--- | converts a mutable image to an image
-freeze :: MImage s -> ST s Image
-freeze (MImage w h f p) = {-# SCC "freeze" #-} Img w h f <$> GV.freeze p
+-- | converts a mutable image to an image (and the offsets)
+freeze :: MImage s -> ST s (Image, (Int, Int))
+freeze (MImage w h o f p) = {-# SCC "freeze" #-} (\p' -> (Img w h f p', o)) <$> GV.freeze p
 
 imageWindow :: MImage s -> SampleWindow
-imageWindow (MImage w h f _) = SampleWindow x0 x1 y0 y1 where
-   x0 = floor (0.5 - filterWidth f)
-   x1 = floor (0.5 + (fromIntegral w) + filterWidth f)
-   y0 = floor (0.5 - filterHeight f)
-   y1 = floor (0.5 + (fromIntegral h) + filterHeight f)
+imageWindow (MImage w h (ox, oy) f _) = SampleWindow x0 x1 y0 y1 where
+   x0 = ox + floor (0.5 - filterWidth f)
+   x1 = ox + floor (0.5 + (fromIntegral w) + filterWidth f)
+   y0 = oy + floor (0.5 - filterHeight f)
+   y1 = oy + floor (0.5 + (fromIntegral h) + filterHeight f)
 
 imageWindow' :: Image -> SampleWindow
 imageWindow' (Img w h f _) = SampleWindow x0 x1 y0 y1 where
@@ -95,7 +96,7 @@ imageWindow' (Img w h f _) = SampleWindow x0 x1 y0 y1 where
 
 addPixel :: MImage s -> (Int, Int, WeightedSpectrum) -> ST s ()
 {-# INLINE addPixel #-}
-addPixel (MImage w h _ p) (x, y, (sw, s))
+addPixel (MImage w h (ox, oy) _ p) (x, y, (sw, s))
    | x < 0 || y < 0 = return ()
    | x >= w || y >= h = return ()
    | otherwise = do
@@ -106,10 +107,10 @@ addPixel (MImage w h _ p) (x, y, (sw, s))
          (r, g, b) = toRGB s
          add (w1, (r1, g1, b1), splat) (w2, r2, g2, b2) =
               (w1+w2, (r1+r2, g1+g2, b1+b2), splat)
-         o = (x + y*w)
+         o = ((x - ox) + (y - oy) * w)
          
 splatSample :: MImage s -> ImageSample -> ST s ()
-splatSample (MImage w h _ p) (ImageSample sx sy (sw, ss))
+splatSample (MImage w h (ox, oy) _ p) (ImageSample sx sy (sw, ss))
    | floor sx >= w || floor sy >= h || sx < 0 || sy < 0 = return ()
    | sNaN ss = trace ("not splatting NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
@@ -123,7 +124,7 @@ splatSample (MImage w h _ p) (ImageSample sx sy (sw, ss))
       (ow, oxyz, (ox, oy, oz)) <- MV.unsafeRead p o
       MV.unsafeWrite p o (ow, oxyz, (ox + dx, oy + dy, oz + dz))
       where
-         o = (floor sx + floor sy * w)
+         o = ((floor sx - ox) + (floor sy - oy) * w)
          (dx, dy, dz) = (\(x, y, z) -> (x * sw, y * sw, z * sw)) $ toRGB ss
 
 -- | adds a sample to the specified image

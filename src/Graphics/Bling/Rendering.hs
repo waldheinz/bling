@@ -116,7 +116,7 @@ instance Renderer SamplerRenderer where
                _ <- report $ RegionStarted w
                seed <- ioSeed
                
-               i' <- do
+               (i', _) <- do
                   img <- readIORef lastImg
 
                   stToIO $ do

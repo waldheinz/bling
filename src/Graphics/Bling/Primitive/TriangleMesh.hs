@@ -107,8 +107,8 @@ instance Primitive Triangle where
    worldBounds tri = foldl' extendAABBP emptyAABB [p1, p2, p3] where
       (p1, p2, p3) = triPoints tri
 
-   intersect t r = {-# SCC "intersect" #-} intersectTri t r
-   intersects t r = {-# SCC "intersects" #-} intersectsTri t r
+   intersect t r = {-# SCC "Triangle: intersect" #-} intersectTri t r
+   intersects t r = {-# SCC "Triangle: intersects" #-} intersectsTri t r
    
    shadingGeometry tri@(Tri _ mesh) o2w dgg
       | isNothing $ mns mesh = dgg

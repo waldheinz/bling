@@ -107,7 +107,7 @@ instance Renderer Metropolis where
                            writeRandRef lCurr lProp
                         else return ()
                   return b'
-               x <- freeze mimg
+               (x, _) <- freeze mimg
                return (x, b'')
 
             let bnext = lerp (1 / fromIntegral p) b bNew

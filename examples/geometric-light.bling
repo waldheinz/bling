@@ -10,7 +10,7 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 8 ySamples 8 }
+      sampler { stratified xSamples 2 ySamples 2 }
       integrator { path maxDepth 7 sampleDepth 4 }
    }
 }
@@ -18,7 +18,7 @@ renderer {
 # renderer { sampler sampled { sampler { random samples 8 } integrator { bidir maxDepth 7 sampleDepth 4 } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 
-transform {
+newTransform {
    lookAt {
       pos 0 10 -10
       look 0 0 0
@@ -33,7 +33,7 @@ camera {
    focalDistance 14.1421356
 }
 
-transform { identity }
+newTransform { }
 
 # ground plane
 
@@ -47,7 +47,7 @@ material {
    sigma { constant 0.0 }
 }
 
-shape {
+prim {
    mesh
    vertexCount 4
    faceCount 1
@@ -62,11 +62,7 @@ shape {
 emission { rgb 3 9 3 }
 material { blackbody }
 
-transform {
-   identity
- #  translate -20 4 0
- #  rotateZ -45.0
-}
+newTransform { }
 
 #shape {
 #   mesh
@@ -89,13 +85,10 @@ emission { rgb 10 4 2 }
 
 # cylinder light
 
-transform {
-   identity
- #  translate 0 -4 0
- #  rotateX -45
+newTransform {
    translate 0 2 0
 }
 
 # shape { cylinder radius 2 zmin -8 zmax 8 phiMax 360 }
 # shape { disk height 0 radius 6 innerRadius 5 phiMax 360 }
-shape { box pmin -2 -2 -2 pmax 2 2 2 }
+prim { shape { box pmin -2 -2 -2 pmax 2 2 2 } }

@@ -38,8 +38,8 @@ camera {
 }
 
 light { infinite { rotateX -90 }
-#   l { rgbeFile "envmaps/studio015.hdr" }
-   l { rgbeFile "/home/trem/Downloads/Alexs_Apartment/Alexs_Apt_2k.hdr" }
+   l { rgbeFile "envmaps/studio015.hdr" }
+#   l { rgbeFile "/home/trem/Downloads/Alexs_Apartment/Alexs_Apt_2k.hdr" }
 }
 
 # light { sunSky up 0 0 1 east 1 0 0 sunDir -1 0 0.3 turbidity 8 }
@@ -95,10 +95,10 @@ material {
    rough { constant 0.01 }
 }
 
-# material { measured name Clay }
+material { measured name Clay }
 # material { mirror kr { constant rgb 0.9 0.9 0.9 } }
 
-material { glass ior { constant 1.5 } kr { constant rgb 1 1 1 } kt { constant rgb 1 1 1 } }
+# material { glass ior { constant 1.5 } kr { constant rgb 1 1 1 } kt { constant rgb 1 1 1 } }
 
 newTransform {
    rotateX -90

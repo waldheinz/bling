@@ -5,6 +5,7 @@ module Graphics.Bling.Renderer.SPPM (
    
    ) where
 
+import Control.Applicative
 import Control.Monad
 import Control.Monad.ST
 import Data.Bits
@@ -298,7 +299,7 @@ instance Renderer SPPM where
          n = sn * sn
 
       img <- stToIO $ thaw $ mkJobImage job
-      pxStats <- stToIO $ mkPixelStats (imageWindow img) (r*r)
+      pxStats <- stToIO $ mkPixelStats (imageWindow img) (r * r)
       
       forM_ [1..] $ \passNum -> do
          seed <- R.ioSeed
@@ -306,9 +307,9 @@ instance Renderer SPPM where
          hitMap <- stToIO $ mkHash hitPoints pxStats
          pseed <- R.ioSeed
          _ <- stToIO $ R.runWithSeed pseed $
-            sample (mkStratifiedSampler sn sn) w n1d n2d $ tracePhoton scene hitMap img pxStats
+            sample (mkStratifiedSampler' sn) w n1d n2d $ tracePhoton scene hitMap img pxStats
          
-         img' <- stToIO $ freeze img
+         img' <- stToIO $ fst <$> freeze img
          _ <- report $ PassDone passNum img' (1 / fromIntegral (passNum * n))
          return ()
          
