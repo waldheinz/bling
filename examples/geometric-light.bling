@@ -18,8 +18,10 @@ renderer {
 
 # renderer { sampler sampled { sampler { random samples 8 } integrator { bidir maxDepth 7 sampleDepth 4 } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
-# renderer { sampler sampled { sampler { random samples 16 } integrator { debug reference } } }
-renderer { sppm photonCount 5000 maxDepth 10 radius 2 }
+# renderer { sampler sampled { sampler { random samples 128 } integrator { debug reference } } }
+# renderer { sppm photonCount 25000 maxDepth 10 radius 2 }
+# renderer { metropolis maxDepth 5 mpp 1 bootstrap 1000 plarge 0.25 directSamples 16 }
+# renderer { light passCount 50 passPhotons 20000 }
 
 newTransform {
    lookAt {
@@ -97,7 +99,7 @@ newTransform {
 
 # shape { cylinder radius 2 zmin -8 zmax 8 phiMax 360 }
 # shape { disk height 0 radius 6 innerRadius 5 phiMax 360 }
-# prim { shape { box pmin -2 -2 -2 pmax 2 2 2 } }
-prim { shape { sphere radius 2 } }
+# newTransform { translate 0 2 0 } prim { shape { box pmin -2 -2 -2 pmax 2 2 2 } }
+newTransform { translate 0 2 0 } prim { shape { sphere radius 2 } }
 # prim { shape { quad 2 2 } }
 

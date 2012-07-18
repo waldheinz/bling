@@ -320,7 +320,7 @@ area (Disk _ rmax rmin _) = pi * (rmax2 - rmin2) where
    rmin2 = rmin * rmin
    rmax2 = rmax * rmax
 area (Quad sx sy) = 4 * sx * sy
-area (Sphere r) = r * twoPi
+area (Sphere r) = r * r * 4 * pi
 
 insideSphere :: Flt -> Point -> Bool
 insideSphere r pt = sqLen pt - r * r < 1e-4
@@ -330,7 +330,16 @@ pdf :: Shape -- ^ the @Shape@ to compute the pdf for
     -> Vector -- ^ the wi vector
     -> Flt -- ^ the computed pdf value
     
-pdf s p wi = maybe 0 p' (s `intersect` r) where
+pdf s@(Sphere r) p wi
+   | insideSphere r p = generalPdf s p wi
+   | otherwise = uniformConePdf cosThetaMax where
+      sinThetaMax2 = r * r / (sqLen p)
+      cosThetaMax = sqrt $ max 0 (1 - sinThetaMax2)
+
+pdf s p wi = generalPdf s p wi
+
+generalPdf :: Shape -> Point -> Vector -> Flt
+generalPdf s p wi = maybe 0 p' (s `intersect` r) where
    r = Ray p wi 1e-3 infinity
    f pd = if isInfinite pd then 0 else pd
    p' (t, _, dg) = f $ sqLen (p - (rayAt r t)) / (absDot (dgN dg) (-wi) * area s)
