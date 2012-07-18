@@ -152,10 +152,10 @@ intersect (Disk h rad irad phimax) ray@(Ray ro rd tmin tmax)
       phi = atan2' py px
       n = mkV (0, 0, -1)
 
-intersect (Quad sx sz) ray@(Ray ro rd tmin tmax)
+intersect (Quad sx sy) ray@(Ray ro rd tmin tmax)
    | abs (vz rd) < 1e-7 = Nothing -- ray parallel to quad
    | t < tmin || t > tmax = Nothing -- ray parametric distance
-   | abs (vx p) > sx || abs (vy p) > sz = Nothing -- not inside extent
+   | abs (vx p) > sx || abs (vy p) > sy = Nothing -- not inside extent
    | otherwise = Just (t, e, mkDg' p (mkV (0, 0, -1)))
    where
       t = -(vz ro) / vz rd
@@ -319,7 +319,7 @@ area (Cylinder r z0 z1 _) = 2 * pi * r * h where
 area (Disk _ rmax rmin _) = pi * (rmax2 - rmin2) where
    rmin2 = rmin * rmin
    rmax2 = rmax * rmax
-area (Quad sx sz) = 4 * sx * sz
+area (Quad sx sy) = 4 * sx * sy
 area (Sphere r) = r * r * 4 * pi
 
 insideSphere :: Flt -> Point -> Bool

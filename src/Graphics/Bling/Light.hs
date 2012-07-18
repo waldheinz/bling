@@ -21,7 +21,7 @@ import Graphics.Bling.Transform
 data LightSample = LightSample {
    de                :: {-# UNPACK #-} !Spectrum,   -- ^ differential irradiance
    lightSampleWi     :: {-# UNPACK #-} !Vector,     -- ^ incident direction
-   testRay           :: {-# UNPACK #-} !Ray,        -- ^ for visibility test
+   testRay           :: !Ray,                       -- ^ for visibility test
    lightSamplePdf    :: {-# UNPACK #-} !Float,      -- ^ the PDF for this sample
    lightSampleDelta  :: !Bool        -- ^ does that light employ a delta-distributuion?
    }
@@ -155,7 +155,7 @@ sample (AreaLight _ s r l2w w2l) p e _ us = LightSample r' wi' ray pd False wher
    wi = normalize (ps - p') -- incident vector in local space
    pd = S.pdf s p' wi -- pdf (computed in local space)
    ray = transRay l2w rayo -- vis. test ray (in world space)
-   rayo = Ray p' rod e (len rod - e)
+   rayo = Ray p' (normalize rod) e (len rod - e)
    rod = ps - p'
 
 emptySample' :: (Spectrum, Ray, Normal, Flt)

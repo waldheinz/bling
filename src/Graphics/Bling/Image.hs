@@ -110,7 +110,7 @@ addPixel (MImage w h (ox, oy) _ p) (x, y, (sw, s))
          o = ((x - ox) + (y - oy) * w)
          
 splatSample :: MImage s -> ImageSample -> ST s ()
-splatSample (MImage w h (ox, oy) _ p) (ImageSample sx sy (sw, ss))
+splatSample (MImage w h (iox, ioy) _ p) (ImageSample sx sy (sw, ss))
    | floor sx >= w || floor sy >= h || sx < 0 || sy < 0 = return ()
    | sNaN ss = trace ("not splatting NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
@@ -120,11 +120,11 @@ splatSample (MImage w h (ox, oy) _ p) (ImageSample sx sy (sw, ss))
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | isInfinite sw = trace ("not splatting infinite weight sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
-   | otherwise = {-# SCC "splatSample" #-} do
+   | otherwise = do
       (ow, oxyz, (ox, oy, oz)) <- MV.unsafeRead p o
       MV.unsafeWrite p o (ow, oxyz, (ox + dx, oy + dy, oz + dz))
       where
-         o = ((floor sx - ox) + (floor sy - oy) * w)
+         o = ((floor sx - iox) + (floor sy - ioy) * w)
          (dx, dy, dz) = (\(x, y, z) -> (x * sw, y * sw, z * sw)) $ toRGB ss
 
 -- | adds a sample to the specified image
