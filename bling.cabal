@@ -36,10 +36,10 @@ Library
       vector-algorithms == 0.5.*
       
    Ghc-Options:
-      -Wall -O2 -fexcess-precision
+      -Wall -O1 -fexcess-precision
 
    Ghc-Prof-Options:
-      -O2 -fexcess-precision -prof
+      -O1 -fexcess-precision -prof
 
    Exposed-Modules:
       Graphics.Bling.AABB,
