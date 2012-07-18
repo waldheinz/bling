@@ -6,26 +6,27 @@
 filter mitchell 3.0 3.0 0.333333 0.333333
 
 imageSize 640 360
-# imageSize 320 180
+imageSize 320 180
 #imageSize 1920 1200
 
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 2 ySamples 2 }
-      integrator { path maxDepth 7 sampleDepth 4 }
+      sampler { stratified xSamples 3 ySamples 3 }
+      integrator { path maxDepth 15 sampleDepth 4 }
    }
 }
 
 # renderer { sampler sampled { sampler { random samples 1 } integrator { path maxDepth 15 sampleDepth 3 } } }
-# renderer { sampler sampled { sampler { random samples 64 } integrator { bidir maxDepth 7 sampleDepth 4 } } }
+# renderer { sampler sampled { sampler { random samples 4 } integrator { bidir maxDepth 7 sampleDepth 4 } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
+# renderer { sampler sampled { sampler { random samples 64 } integrator { debug reference } } }
 
 # renderer { sampler sampled { sampler { random samples 8 } integrator { directLighting } } }
 # renderer { sampler sampled { sampler { stratified xSamples 2 ySamples 2 } integrator { bidir maxDepth 7 sampleDepth 4 } } }
 
-renderer { sppm photonCount 10000000 maxDepth 15 radius 0.25 }
-# renderer { metropolis maxDepth 7 mpp 1 bootstrap 20000 plarge 0.25 directSamples 1 }
+renderer { sppm photonCount 2000 maxDepth 15 radius 0.5 }
+# renderer { metropolis maxDepth 15 mpp 1 bootstrap 20000 plarge 0.25 directSamples 1 }
 
 transform {
    lookAt {
@@ -78,7 +79,7 @@ prim { menger { box pmin -0.5 -0.5 -0.5 pmax 0.5 0.5 0.5 } level 2 }
 
 material { blackbody }
 
-emission { temp 2000 }
+emission { temp 3000 }
 newTransform { translate 0 0 0 }
-prim { shape { sphere radius 0.2 } }
+prim { shape { sphere radius 0.3 } }
 

@@ -7,7 +7,7 @@ filter box
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 2 ySamples 2 }
+      sampler { stratified xSamples 3 ySamples 3 }
       integrator { path maxDepth 10 sampleDepth 3 }
    }
 }
@@ -19,10 +19,10 @@ renderer {
 # renderer { sampler sampled { sampler { random samples 16 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
-# renderer { sampler sampled { sampler { random samples 16 } integrator { debug reference } } }
+# renderer { sampler sampled { sampler { random samples 32 } integrator { debug reference } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug kdtree } } }
 
-# renderer { sppm photonCount 15000 maxDepth 4 radius 10 }
+# renderer { sppm photonCount 5000 maxDepth 10 radius 30 }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 
 imageSize 480 480
@@ -275,6 +275,7 @@ emission {
    spd { 400.0 0.0, 500.0 8.0, 600.0 15.6, 700.0 18.4 }
 }
 
-newTransform { rotateX -90 translate 278 548.7 279.5  }
-# prim { shape { disk height 0 radius 60 innerRadius 20 phiMax 360 } }
-prim { shape { quad 65 52.2 } }
+
+# newTransform { rotateX -90 translate 278 448.7 279.5  } prim { shape { sphere radius 30 } }
+newTransform { rotateX -90 translate 278 548.7 279.5  } prim { shape { quad 65 52.2 } }
+

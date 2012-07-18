@@ -131,9 +131,9 @@ tracePhoton scene sh img ps = {-# SCC "tracePhoton" #-} do
    
    let
       (li, ray, nl, pdf) = sampleLightRay scene ul ulo uld
-      wi = -(normalize $ rayDir ray)
+      wi = -(rayDir ray)
       ls = sScale li (absDot nl wi / pdf)
-       
+      
    when ((pdf > 0) && not (isBlack li)) $
       nextVertex scene sh wi (scene `intersect` ray) ls 0 img ps
 
@@ -307,7 +307,7 @@ instance Renderer SPPM where
          hitMap <- stToIO $ mkHash hitPoints pxStats
          pseed <- R.ioSeed
          _ <- stToIO $ R.runWithSeed pseed $
-            sample (mkStratifiedSampler' sn) w n1d n2d $ tracePhoton scene hitMap img pxStats
+            sample (mkStratifiedSampler sn sn) w n1d n2d $ tracePhoton scene hitMap img pxStats
          
          img' <- stToIO $ fst <$> freeze img
          _ <- report $ PassDone passNum img' (1 / fromIntegral (passNum * n))

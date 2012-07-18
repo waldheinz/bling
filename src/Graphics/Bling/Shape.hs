@@ -320,7 +320,7 @@ area (Disk _ rmax rmin _) = pi * (rmax2 - rmin2) where
    rmin2 = rmin * rmin
    rmax2 = rmax * rmax
 area (Quad sx sy) = 4 * sx * sy
-area (Sphere r) = r * r * 4 * pi
+area (Sphere r) = r * twoPi
 
 insideSphere :: Flt -> Point -> Bool
 insideSphere r pt = sqLen pt - r * r < 1e-4
@@ -392,4 +392,5 @@ sample' (Quad sx sy) (u1, u2) = (p, mkV (0, 0, -1)) where
    p = mkPoint (lerp u1 (-sx) sx, lerp u2 (-sy) sy, 0)
    
 sample' (Sphere r) us = (p * vpromote r, p) where
-   p = uniformSampleSphere us 
+   p = uniformSampleSphere us
+   
