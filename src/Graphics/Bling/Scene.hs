@@ -17,8 +17,6 @@ import qualified Graphics.Bling.Random as R
 import Graphics.Bling.Reflection
 import Graphics.Bling.Primitive.KdTree
 
-import Debug.Trace
-
 data Scene = Scene
    { _scenePrimCount   :: ! Int     -- just for reference
    , scenePrim         :: ! KdTree

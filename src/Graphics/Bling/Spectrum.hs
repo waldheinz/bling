@@ -126,6 +126,8 @@ white :: Spectrum
 {-# INLINE white #-}
 white = Spectrum 1 1 1
 
+-- | Converts from RGB to spectrum. The supplied RGB value is supposed to have
+--   a gamma correction of 2.2 applied, which is reversed by this function.
 fromRGB :: (Float, Float, Float) -> Spectrum
 fromRGB (r, g, b) = Spectrum (r ** ga) (g ** ga) (b ** ga) where
    ga = 2.2
@@ -134,7 +136,7 @@ fromRGBIllum :: Float-> Float -> Float -> Spectrum
 fromRGBIllum = Spectrum
 
 fromXYZ :: (Float, Float, Float) -> Spectrum
-fromXYZ (x, y, z) = fromRGB (r, g, b) where
+fromXYZ (x, y, z) = fromRGBIllum r g b where
    r =   3.240479  * x - 1.537150 * y - 0.498535 * z
    g = (-0.969256) * x + 1.875991 * y + 0.041556 * z
    b =   0.055648  * x - 0.204043 * y + 1.057311 * z

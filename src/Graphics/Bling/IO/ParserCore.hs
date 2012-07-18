@@ -118,10 +118,7 @@ flt' = do
 
 -- | parse a floating point number and consume optional trailing whitespace
 flt :: (Monad m) => (ParsecT String u m) Flt
-flt = do
-   x <- flt'
-   optional ws
-   return $! x
+flt = flt' >>= \x -> optional ws >> return x
 
 -- | parse a vector
 pVec :: JobParser Vector

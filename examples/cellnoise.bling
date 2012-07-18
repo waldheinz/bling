@@ -9,7 +9,7 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 6 ySamples 6 }
+      sampler { stratified xSamples 2 ySamples 2 }
       integrator { path maxDepth 7 sampleDepth 4 }
    }
 }
@@ -48,7 +48,7 @@ material {
 prim { shape { quad 50 50 } }
 
 emission {
-   rgb 10 10 10
+   rgbIllum 10 10 10
 }
 
 newTransform { rotateX -90 translate 0 30 0  }

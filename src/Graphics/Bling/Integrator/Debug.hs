@@ -72,13 +72,12 @@ instance SurfaceIntegrator DebugIntegrator where
                         in do
                            wi <- uniformSampleSphere `liftM` rnd2D
                            let
-                              f = evalBsdf False bsdf wo wi
-                              e = intEpsilon int
+                              f = evalBsdf True bsdf wo wi
                               
                            if isBlack f
                               then return (1, le)
                               else do
-                                 (_, rest) <- go $ Ray p wi e infinity
+                                 (_, rest) <- go $ Ray p wi (intEpsilon int) infinity
                                  return $ (1, le + sScale (f * rest) (absDot wi n * 4 * pi))
          
 intToSpectrum :: Intersection -> WeightedSpectrum
