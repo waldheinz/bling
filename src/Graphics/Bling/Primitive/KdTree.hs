@@ -208,8 +208,8 @@ cost b@(AABB pmin pmax) a0 t nl nr = {-# SCC "cost" #-} cT + cI * eb * pI where
 traverse' :: Ray -> Vector -> KdTreeNode -> (Flt, Flt) -> Bool
 traverse' r _ (Leaf ps) _ca = V.any (`intersects` r) ps
 traverse' r inv (Interior left right sp axis) mima@(tmin, tmax)
-   | tp > tmax || tp <= 0 = traverse' r inv fc mima
-   | tp < tmin = traverse' r inv sc mima
+--   | tp > tmax || tp <= 0 = traverse' r inv fc mima
+--   | tp < tmin = traverse' r inv sc mima
    | otherwise = traverse' r inv fc (tmin, tp) || traverse' r inv sc (tp, tmax)
    where
          (ro, rd) = (rayOrigin r, rayDir r)

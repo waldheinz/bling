@@ -83,7 +83,7 @@ pShape = pBlock $ do
          h <- namedFloat "height"
          r <- namedFloat "radius"
          ri <- namedFloat "innerRadius"
-         phiMax <- ws >> namedFloat "phiMax"
+         phiMax <- namedFloat "phiMax"
          return $ mkDisk h r ri phiMax
 
       "quad" -> liftM2 mkQuad flt flt

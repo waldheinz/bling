@@ -10,7 +10,7 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 2 ySamples 2 }
+      sampler { stratified xSamples 1 ySamples 1 }
       integrator { path maxDepth 7 sampleDepth 4 }
    }
 }
@@ -58,6 +58,8 @@ prim {
    f 3 2 1 0
 }
 
+# prim { shape { quad 25 25 } }
+
 # light sources
 emission { rgb 3 9 3 }
 material { blackbody }
@@ -86,9 +88,12 @@ emission { rgb 10 4 2 }
 # cylinder light
 
 newTransform {
+   rotateX -90
    translate 0 2 0
 }
 
 # shape { cylinder radius 2 zmin -8 zmax 8 phiMax 360 }
 # shape { disk height 0 radius 6 innerRadius 5 phiMax 360 }
-prim { shape { box pmin -2 -2 -2 pmax 2 2 2 } }
+# prim { shape { box pmin -2 -2 -2 pmax 2 2 2 } }
+prim { shape { quad 2 2 } }
+
