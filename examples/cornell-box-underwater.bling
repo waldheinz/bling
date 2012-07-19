@@ -14,12 +14,14 @@ renderer {
 }
 
 # renderer { sampler sampled { sampler { random samples 64 } integrator { path maxDepth 7 sampleDepth 5 } } }
-renderer { sampler sampled { sampler { stratified xSamples 8 ySamples 8 } integrator { path maxDepth 7 sampleDepth 5 } } }
+# renderer { sampler sampled { sampler { stratified xSamples 8 ySamples 8 } integrator { path maxDepth 7 sampleDepth 5 } } }
 # renderer { lightTracer passCount 1 particles 300000 }
-# renderer { metropolis maxDepth 5 mpp 1 bootstrap 1000 plarge 0.25 directSamples 8 }
+renderer { metropolis maxDepth 8 mpp 1 bootstrap 1000 plarge 0.25 directSamples 1 }
 # renderer { sampler sampled { sampler { stratified xSamples 32 ySamples 32 } integrator { light maxDepth 7 sampleDepth 5 } } }
 # renderer { light passCount 10 passPhotons 100000 }
-renderer { sppm photonCount 10000 radius 20 }
+
+# renderer { sppm photonCount 20000 maxDepth 5 radius 10 }
+# renderer { sampler sampled { sampler { random samples 1024 } integrator { debug reference } } }
 
 imageSize 480 480
 # imageSize 240 240
@@ -112,9 +114,9 @@ prim { shape { sphere radius 130 } }
 material {
    bumpMap
    bump {
-      scale 3 texture {
+      scale 10 texture {
          fbm octaves 3 omega 0.2 map {
-            identity { scale 0.05 0.05 0.05 }
+            identity { scale 0.01 0.01 0.01 }
          }
       }
    }
@@ -226,9 +228,9 @@ material {
 emission {
 #    spd { 400 0, 500 160, 600 312, 700 386 }
 #   rgb 4 4 4
-   temp 4000
+   temp 3000
 }
 
 newTransform { rotateX -90 translate 278 600 279.5  }
 
-prim { shape { quad 10 10 } }
+prim { shape { quad 30 30 } }

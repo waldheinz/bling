@@ -274,7 +274,7 @@ mkHash hits ps = {-# SCC "mkHash" #-} do
          zs = [floor z0 .. floor z1]
          
       unless (r2p == 0) $ forM_ [(x, y, z) | x <- xs, y <- ys, z <- zs] $ \i ->
-         let idx = hash i `rem` cnt
+         let idx = max 0 $ min (cnt - 1) $ hash i `rem` cnt
          in MV.read v' idx >>= \o -> MV.write v' idx (hp : o)
 
    -- convert to an (non-mutable) array of arrays
