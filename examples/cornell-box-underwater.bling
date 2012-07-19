@@ -8,19 +8,19 @@ filter triangle 2 2
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 8 ySamples 8 }
-      integrator { bidir maxDepth 7 sampleDepth 5 }
+      sampler { stratified xSamples 2 ySamples 2 }
+      integrator { bidir maxDepth 7 sampleDepth 3 }
    }
 }
 
-# renderer { sampler sampled { sampler { random samples 64 } integrator { path maxDepth 7 sampleDepth 5 } } }
+renderer { sampler sampled { sampler { random samples 64 } integrator { path maxDepth 7 sampleDepth 5 } } }
 # renderer { sampler sampled { sampler { stratified xSamples 8 ySamples 8 } integrator { path maxDepth 7 sampleDepth 5 } } }
 # renderer { lightTracer passCount 1 particles 300000 }
-renderer { metropolis maxDepth 8 mpp 1 bootstrap 1000 plarge 0.25 directSamples 1 }
+# renderer { metropolis maxDepth 8 mpp 1 bootstrap 1000 plarge 0.25 directSamples 1 }
 # renderer { sampler sampled { sampler { stratified xSamples 32 ySamples 32 } integrator { light maxDepth 7 sampleDepth 5 } } }
 # renderer { light passCount 10 passPhotons 100000 }
 
-# renderer { sppm photonCount 20000 maxDepth 5 radius 10 }
+renderer { sppm photonCount 10000 maxDepth 5 radius 10 }
 # renderer { sampler sampled { sampler { random samples 1024 } integrator { debug reference } } }
 
 imageSize 480 480
@@ -228,9 +228,9 @@ material {
 emission {
 #    spd { 400 0, 500 160, 600 312, 700 386 }
 #   rgb 4 4 4
-   temp 3000
+   temp 2500
 }
 
 newTransform { rotateX -90 translate 278 600 279.5  }
 
-prim { shape { quad 30 30 } }
+prim { shape { quad 60 60 } }
