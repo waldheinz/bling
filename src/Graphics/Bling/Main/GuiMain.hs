@@ -1,4 +1,6 @@
 
+module Graphics.Bling.Main.GuiMain where
+
 import Control.Monad
 import Foreign
 import Graphics.UI.SDL as SDL
@@ -83,6 +85,9 @@ putPixel s ((x, y), (r,g,b))
       pixels <- castPtr `liftM` surfaceGetPixels s
       (Pixel p) <- mapRGB (surfaceGetPixelFormat s) (fromIntegral r) (fromIntegral g) (fromIntegral b)
       pokeElemOff pixels ((y * surfaceGetWidth s) + x) p
+   
+--renderWithPreview :: RenderJob -> IO ()
+renderWithPreview j r = initEnv j >>= (\e -> render r j $ prog e) >> waitQuit
    
 main :: IO ()
 main = SDL.withInit [InitEverything] $ do
