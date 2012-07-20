@@ -11,13 +11,10 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 8 ySamples 8 }
+      sampler { stratified xSamples 2 ySamples 2 }
       integrator { path maxDepth 7 sampleDepth 4 }
    }
 }
-
-# sampler { stratified xSamples 3 ySamples 3 }
-# sampler { random samples 1 }
 
 transform {
    lookAt {
@@ -34,13 +31,9 @@ camera {
    focalDistance 7
 }
 
-transform { translate 3 4 -5 }
-
 # camera { environment }
 
-transform { identity rotateX -90 }
-
-light { infinite
+light { infinite { rotateX -90 }
    l {
       sunSky
       east 0 0 1
@@ -53,7 +46,7 @@ light { infinite
 # ground plane
 #
 
-transform { identity }
+newTransform { rotateX 90 }
 
 material {
    plastic
@@ -67,14 +60,14 @@ material {
    rough { constant 0.001 }
 }
 
-shape { mesh vertexCount 4 faceCount 1 v  50.0 0.0 -50.0 v -50.0 0.0 -50.0 v -50.0 0.0  50.0 v  50.0 0.0  50.0 f 3 2 1 0 }
+prim { shape { quad 50 50 } }
+# mesh vertexCount 4 faceCount 1 v  50.0 0.0 -50.0 v -50.0 0.0 -50.0 v -50.0 0.0  50.0 v  50.0 0.0  50.0 f 3 2 1 0 }
 
 #
 # sphere 1
 #
 
-transform {
-   identity
+newTransform {
    translate -2.5 1 0
 }
 
@@ -84,7 +77,7 @@ material { plastic
    rough { constant 0.000195312 }
 }
 
-shape { sphere radius 1.0 }
+prim { shape { sphere radius 1.0 } }
 
 transform { translate 2.5 0 0 }
 
@@ -94,7 +87,7 @@ material { glass
    kt { constant rgb 0.9 0.9 0.9 }
 }
 
-shape { sphere radius 1.0 }
+prim { shape { sphere radius 1.0 } }
 
 transform { translate 2.5 0 0 }
 
@@ -125,4 +118,5 @@ material {
    rough { constant 0.01 }
 }
 
-shape { sphere radius 1.0 }
+prim { shape { sphere radius 1.0 } }
+

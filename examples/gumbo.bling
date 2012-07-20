@@ -22,6 +22,8 @@ renderer {
 # renderer { sampler sampled { sampler { random samples 4 } integrator { directLighting } } }
 # renderer { sampler sampled { sampler { random samples 1 } integrator { bidir maxDepth 10 sampleDepth 5 } } }
 
+renderer { sppm photonCount 10000 maxDepth 10 radius 0.5 }
+
 transform {
    lookAt {
       pos -20 15 -15
