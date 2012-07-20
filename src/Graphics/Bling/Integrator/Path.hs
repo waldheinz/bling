@@ -88,7 +88,7 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) md t l
                   (BsdfSample smpType spdf f wi) = sampleAdjBsdf bsdf wo uc ud
                   ray' = Ray p wi eps infinity
                   spec' = smpType `bxdfIs` Specular
-                  t' = sScale (f * t) (absDot wi (normalize n) / (spdf * pc))
+                  t' = sScale (f * t) (absDot wi n / (spdf * pc))
                   depth' = depth + 1
                if spdf == 0 || isBlack f
                   then return $! l'

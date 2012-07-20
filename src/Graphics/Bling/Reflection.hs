@@ -396,7 +396,7 @@ sampleBsdf'' adj flags bsdf@(Bsdf bs cs _ ng) woW uComp uDir
       
       -- correct throughput in presence of shading normals
       ns = bsdfShadingNormal bsdf
-      ff = if adj then 1 else abs (ns `dot` woW / ng `dot` woW)
+      ff = if adj then 1 else abs (ng `dot` wiW / ng `dot` woW)
 
 evalBsdf :: Bool -> Bsdf -> Vector -> Vector -> Spectrum
 evalBsdf adj bsdf@(Bsdf bxdfs cs _ ng) woW wiW

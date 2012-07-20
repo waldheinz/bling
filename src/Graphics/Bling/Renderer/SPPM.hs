@@ -157,7 +157,7 @@ nextVertex scene sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} do
          ratio = (nn + alpha) / (nn + 1)
          r2 = lsR2 stats
          r2' = r2 * ratio
-         f = evalBsdf False (hpBsdf hit) (hpW hit) wi
+         f = evalBsdf True (hpBsdf hit) (hpW hit) wi
          nn' = nn + alpha
          (px, py) = hpPixel hit
 

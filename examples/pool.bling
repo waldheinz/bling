@@ -7,8 +7,8 @@ filter box
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 1 ySamples 1 }
-      integrator { path maxDepth 6 sampleDepth 3 }
+      sampler { stratified xSamples 3 ySamples 3 }
+      integrator { path maxDepth 10 sampleDepth 3 }
    }
 }
 
@@ -22,7 +22,7 @@ renderer {
 # renderer { sampler sampled { sampler { random samples 32 } integrator { debug reference } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug kdtree } } }
 
-renderer { sppm photonCount 50000 maxDepth 10 radius 0.5 }
+# renderer { sppm photonCount 50000 maxDepth 10 radius 0.5 }
 # renderer { sampler sampled { sampler { random samples 1 } integrator { debug normals } } }
 
 imageSize 640 360

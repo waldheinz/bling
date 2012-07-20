@@ -62,14 +62,14 @@ sampleSpecTrans adj (SpecularTransmission t ei' et') wo@(Vector wox woy _) _
       sini2 = sinTheta2 wo
       eta = ei / et
       sint2 = eta * eta * sini2
-      cost' = sqrt $ max 0 (1 - sint2)
-      cost = if entering then (-cost') else cost'
+      cost = let x =  sqrt $ max 0 (1 - sint2)
+                in if entering then (-x) else x
       wi = mkV (eta * (-wox), eta * (-woy), cost)
-      fr = frDielectric ei' et' $ if adj then cost else cosTheta wo
-      f'' = ((white - fr) * t)
+      fr = frDielectric ei et $ cosTheta wo
+      f' = ((white - fr) * t)
       f = if adj
-             then sScale f'' (1 / (eta * eta * absCosTheta wi))
-             else sScale f'' (abs $ (absCosTheta wo / (cost * cost)))
+             then sScale f' (1 / absCosTheta wi)
+             else sScale f' (((ei*ei) / (et*et)) / absCosTheta wi)
 
 data SpecularReflection = SpecularReflection {
    _specReflR        :: {-# UNPACK #-} ! Spectrum,
@@ -92,3 +92,4 @@ instance Bxdf SpecularReflection where
       f = sScale (r * fr (cosTheta wo)) (1 / absCosTheta wi)
 
    bxdfSample' = bxdfSample
+   

@@ -147,16 +147,15 @@ sample (PointLight r pos) p e _ _ = LightSample r' wi ray 1 True where
    wi = normalize $ pos - p
    ray = Ray p (pos - p) e infinity
    
-sample (AreaLight _ s r l2w w2l) p e _ us = LightSample r' wi' ray pd False where
+sample (AreaLight _ s r l2w w2l) pW e _ us = LightSample r' wiW rayW pd False where
    r' = if ns `dot` wi < 0 then r else black
-   p' = transPoint w2l p -- point to be lit in local space
-   (ps, ns) = S.sample s p' us -- point in local space
-   wi' = transVector l2w wi -- incident vector in world space
-   wi = normalize (ps - p') -- incident vector in local space
-   pd = S.pdf s p' wi -- pdf (computed in local space)
-   ray = transRay l2w rayo -- vis. test ray (in world space)
-   rayo = Ray p' (normalize rod) e (len rod - e)
-   rod = ps - p'
+   p = transPoint w2l pW -- point to be lit in local space
+   (ps, ns) = S.sample s p us -- point in local space
+   wiW = transVector l2w wi -- incident vector in world space
+   wi = normalize $ ps - p -- incident vector in local space
+   pd = S.pdf s p wi -- pdf (computed in local space)
+   rayW = transRay l2w ray -- vis. test ray (in world space)
+   ray = Ray p wi e (len (ps - p) - e) -- vis. test ray (in local space)
 
 emptySample' :: (Spectrum, Ray, Normal, Flt)
 emptySample' = (black, Ray (mkV (0, 0, 0)) (mkV (0, 1, 0)) 0 0, mkV (0, 1, 0), 0)
