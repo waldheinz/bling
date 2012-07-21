@@ -5,10 +5,10 @@ import Control.Monad.State
 
 import Graphics.Bling.Camera
 import Graphics.Bling.Filter
+import Graphics.Bling.Gui
 import qualified Graphics.Bling.Integrator as I
 import Graphics.Bling.Integrator.Path
 import Graphics.Bling.Light
-import Graphics.Bling.Main.GuiMain
 import Graphics.Bling.Primitive
 import qualified Graphics.Bling.Rendering as R
 import Graphics.Bling.Sampling
