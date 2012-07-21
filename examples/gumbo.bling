@@ -6,13 +6,13 @@
 filter mitchell 3 3 0.333333 0.333333
 #filter box
 
-imageSize 640 480
+imageSize 768 432
 
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 1 ySamples 1 }
-      integrator { path maxDepth 25 sampleDepth 3 }
+      sampler { stratified xSamples 4 ySamples 4 }
+      integrator { path maxDepth 5 sampleDepth 3 }
    }
 }
 
@@ -22,7 +22,7 @@ renderer {
 # renderer { sampler sampled { sampler { random samples 4 } integrator { directLighting } } }
 # renderer { sampler sampled { sampler { random samples 1 } integrator { bidir maxDepth 10 sampleDepth 5 } } }
 
-renderer { sppm photonCount 10000 maxDepth 10 radius 0.5 }
+# renderer { sppm photonCount 10000 maxDepth 10 radius 0.5 }
 
 transform {
    lookAt {
@@ -109,7 +109,7 @@ newTransform {
 
 prim {
    bezier
-   subdivs 7
+   subdivs 9
    p { 10.0000,  2.00000,  0.00000, 10.0000,  2.00000,  0.00000,
        14.0000,  2.00000,  0.00000, 14.0000,  2.00000,  0.00000,
        10.0000,  2.00000,  0.00000, 10.2277,  2.22776, -0.91104,

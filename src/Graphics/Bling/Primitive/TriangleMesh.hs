@@ -186,8 +186,8 @@ intersectTri tri r@(Ray ro rd tmin tmax)
 
       -- interpolate u and v
       b0 = 1 - b1 - b2
-      tu = b0 * uv00 + b1 * uv10 + b2 * uv20
-      tv = b0 * uv01 + b1 * uv11 + b2 * uv21
+      tu = b1 -- b0 * uv00 + b1 * uv10 + b2 * uv20
+      tv = b2 -- b0 * uv01 + b1 * uv11 + b2 * uv21
          
       -- create intersection
       dg = mkDg (rayAt r t) tu tv dpdu dpdv (mkV (0, 0, 0)) (mkV (0,0, 0))
