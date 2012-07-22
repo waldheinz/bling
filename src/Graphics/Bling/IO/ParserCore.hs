@@ -139,7 +139,7 @@ pSpectrum = pString >>= \t -> case t of
       b <- flt
       return (fromRGB (r, g, b))
 
-   "rgbIllum" -> liftM3 fromRGBIllum flt flt flt
+   "rgbIllum" -> liftM3 fromRGB' flt flt flt
    
    "spd" -> pSpectrumSpd
    "temp" -> do

@@ -102,7 +102,7 @@ readFlatPixel bs = (BS.drop 4 bs, [rgbeToSpectrum r g b e]) where
 rgbeToSpectrum :: Word8 -> Word8 -> Word8 -> Word8 -> Spectrum
 rgbeToSpectrum r g b e
   -- | e == 0 = black
-   | otherwise = fromRGBIllum r' g' b'
+   | otherwise = fromRGB' r' g' b'
    where
       r' = fromIntegral r * f;
       g' = fromIntegral g * f;
