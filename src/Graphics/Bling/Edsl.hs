@@ -1,5 +1,7 @@
 
-module Graphics.Bling.Edsl where
+module Graphics.Bling.Edsl (
+   render, emit, CanAdd(..), shape
+   ) where
 
 import Control.Applicative
 import Control.Monad.State
@@ -43,14 +45,26 @@ initialState = MyState [] [] (640, 360) mkBoxFilter
 
 type DslState a = (State MyState a)
 
+class CanAdd a where
+   add :: a -> DslState ()
+
+-- | Geometry without id
+newtype Geometry' = G' { unG' :: (Int -> Geometry) }
+
 nextId :: DslState Int
 nextId = get >>= \s -> let i' = geomId s + 1 in do
    put s { geomId = i' }
    return i'
 
---geometry :: Shape -> DslState Geometry
---geometry s = let f = (\t m e i -> mkGeom t False m e s i)
---              in ((gets transform) <$> (gets material) <$> (gets emission) <$> nextId) <*> f
+shape :: Shape -> DslState Geometry'
+shape s = let f = (\t m e -> mkGeom t False m e s)
+              in G' <$>(f <$> (gets transform) <*> (gets material) <*> (gets emission))
+
+instance CanAdd Geometry' where
+   add g = unG' g <$> nextId >>= \g' -> modify (\s -> s { prims = (mkAnyPrim g') : (prims s) })
+
+emit :: Spectrum -> DslState ()
+emit s = let s' = if isBlack s then Nothing else Just s in modify (\s -> s { emission = s' })
 
 render :: State MyState () -> IO ()
 render f = do
