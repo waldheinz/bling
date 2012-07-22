@@ -15,7 +15,7 @@ module Graphics.Bling.Math (
    
    -- * Vectors
    
-   Vector(..), mkV, vpromote, dot, cross, normalize, absDot,
+   Vector(..), mkV, mkV', vpromote, dot, cross, normalize, absDot,
    len, sqLen,
    Normal, mkNormal, Point, mkPoint, mkPoint',
    Dimension, allDimensions, setComponent, (.!), dominant, dimX, dimY, dimZ,
@@ -298,6 +298,9 @@ dominant (Vector x y z)
 mkV :: (Flt, Flt, Flt) -> Vector
 {-# INLINE mkV #-}
 mkV (x, y, z) = Vector x y z
+
+mkV' :: Flt -> Flt -> Flt -> Vector
+mkV' = Vector
 
 component :: Vector -> Dimension -> Flt
 {-# INLINE component #-}

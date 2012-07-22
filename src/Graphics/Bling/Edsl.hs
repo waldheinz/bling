@@ -1,6 +1,6 @@
 
 module Graphics.Bling.Edsl (
-   render, emit, CanAdd(..), shape
+   render, emit, CanAdd(..), shape, setTransform
    ) where
 
 import Control.Applicative
@@ -39,7 +39,7 @@ data MyState = MyState
 
 initialState :: MyState
 initialState = MyState [] [] (640, 360) mkBoxFilter
-   (mkPerspectiveCamera identity 0 1 90 640 360)
+   (mkPerspectiveCamera (lookAt (mkPoint' 0 5 (-10)) (mkPoint' 0 0 0) (mkV' 0 1 0)) 0 1 90 640 360)
    (R.mkAnyRenderer $ R.mkSamplerRenderer (mkRandomSampler 4) (I.mkAnySurface $ mkPathIntegrator 5 3))
    identity (mkMatte (constant $ fromRGB' 0.9 0.9 0.9) (constant 0)) Nothing 0
 
@@ -64,7 +64,10 @@ instance CanAdd Geometry' where
    add g = unG' g <$> nextId >>= \g' -> modify (\s -> s { prims = (mkAnyPrim g') : (prims s) })
 
 emit :: Spectrum -> DslState ()
-emit s = let s' = if isBlack s then Nothing else Just s in modify (\s -> s { emission = s' })
+emit s = let s' = if isBlack s then Nothing else Just s in modify (\st -> st { emission = s' })
+
+setTransform :: Transform -> DslState ()
+setTransform t = modify $ \s -> s { transform = t }
 
 render :: State MyState () -> IO ()
 render f = do

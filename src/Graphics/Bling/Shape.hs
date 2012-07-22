@@ -67,7 +67,7 @@ mkDisk h r0 r1 mp = Disk h ro ri mp' where
    mp' = radians $ clamp mp 0 360
 
 -- | creates a quad with the specified origin and size in the (x,y) plane
-mkQuad :: Flt -> Flt-> Shape
+mkQuad :: Flt -> Flt -> Shape
 mkQuad = Quad
 
 -- | creates a sphere around the origin
