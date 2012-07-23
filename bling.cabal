@@ -19,22 +19,22 @@ Library
    Hs-Source-Dirs:   src
    Build-Depends:
       base              >= 4.3,
-      bytestring        == 0.9.*,
-      deepseq           == 1.3.*,
+      bytestring        >= 0.9,
+      deepseq           >= 1.1,
       filepath          >= 1.2,
-      mtl               == 2.1.*,
-      mwc-random        == 0.12.*,
-      parsec            == 3.1.*,
-      parallel          == 3.2.*,
-      pretty            == 1.1.*,
-      primitive         == 0.4.*,
-      random            == 1.0.*,
-      random-shuffle    == 0.0.*,
+      mtl               >= 2.0,
+      mwc-random        >= 0.10,
+      parsec            >= 3.1,
+      parallel          >= 3.1,
+      pretty            >= 1.0,
+      primitive         >= 0.4,
+      random            >= 1.0,
+      random-shuffle    >= 0.0,
       SDL               >= 0.6,
-      transformers      == 0.3.*,
-      Vec               == 1.0.*,
-      vector            == 0.9.*,
-      vector-algorithms == 0.5.*
+      transformers      >= 0.2,
+      Vec               >= 1.0,
+      vector            >= 0.9,
+      vector-algorithms >= 0.5
       
    Ghc-Options:
       -Wall -O1 -fexcess-precision
@@ -117,29 +117,4 @@ Executable bling-gui
    
    ghc-options:      -Wall -fexcess-precision -fspec-constr-count=64 -rtsopts -threaded
    ghc-prof-options: -O2 -fexcess-precision -prof -auto-all -rtsopts
-
-Executable bling-test
-   if flag(Devel)
-      Buildable:     True
-   else
-      Buildable:     False
-    
-  Hs-Source-Dirs:    src/Graphics/Bling/Main
-  Main-Is:           Tests.hs
-  Build-Depends:     bling, haskell98, QuickCheck, base, mwc-random, vector
-  Ghc-Options:       -Wall -O -fexcess-precision
-
-Executable bling-benchmark
-   if flag(Devel)
-      Buildable:     True
-   else
-      Buildable:     False
-    
-   hs-source-dirs:    src/Graphics/Bling/Benchmark
-   Main-is:           Benchmark.hs
-   Build-Depends:     bling, base >= 3 && < 5, haskell98, mwc-random, vector,
-      bytestring, parsec, pretty,
-      criterion  >= 0.5 && < 0.6,
-      random >= 1.0 && < 1.1
-   ghc-options:       -Wall -O2 -fexcess-precision -rtsopts
 

@@ -1,6 +1,6 @@
 
 module Graphics.Bling.Edsl (
-   render, emit, CanAdd(..), shape, setTransform
+   render, emit, CanAdd(..), shape, setTransform, setCamera, setMaterial
    ) where
 
 import Control.Applicative
@@ -68,6 +68,12 @@ emit s = let s' = if isBlack s then Nothing else Just s in modify (\st -> st { e
 
 setTransform :: Transform -> DslState ()
 setTransform t = modify $ \s -> s { transform = t }
+
+setCamera :: Camera -> DslState ()
+setCamera c = modify $ \s -> s { camera = c }
+
+setMaterial :: Material -> DslState ()
+setMaterial m = modify $ \s -> s { material = m }
 
 render :: State MyState () -> IO ()
 render f = do
