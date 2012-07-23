@@ -11,10 +11,11 @@ import Graphics.Bling.Transform
 spiral = render $ do
    
   -- setTransform $ lookAt (mkPoint' 0 0 (-10)) (mkPoint' 0 0 0) (mkV' 0 1 0)
-   setCamera $ mkPerspectiveCamera (lookAt (mkPoint' 0 13 (-9)) (mkPoint' 0 7 0) (mkV' 0 1 0)) 0 1 70 360 640  
+   setCamera $ mkPerspectiveCamera (lookAt (mkPoint' 0 13 (-9)) (mkPoint' 0 7 0) (mkV' 0 1 0)) 0 1 70 360 640
+   setImageSize (360, 640)
    emit $ sBlackBody 3000
    setTransform $ translate $ mkV' 15 15 (-10)
-   shape (mkSphere 1) >>= add
+ --  shape (mkSphere 2) >>= add
    emit $ sBlackBody 2500
    setTransform $ translate $ mkV' (-15) 10 (-10)
    shape (mkSphere 3) >>= add
@@ -23,24 +24,28 @@ spiral = render $ do
    setTransform $ rotateX 90
    shape (mkQuad 500 500) >>= add
    
+ --  setTransform $ translate $ mkV (0, 10, 0)
+   
+ --  shape (mkCylinder 2 (-6) 6 360) >>= add
+   
    let
    --   a (*$) b = concatTrans a b
-      bases = take 35 $ map fst $ iterate (\(t, s) -> let s' = 0.993 * s in
+      bases = take 30 $ map fst $ iterate (\(t, s) -> let s' = 0.992 * s in
          (concatTrans (concatTrans (concatTrans (rotateY 95) (scale $ vpromote s')) (translate $ mkV' 0 1 0)) t, s')) (identity, 1)
       
       bar t = do
          setTransform t
          shape (mkCylinder 0.5 (-5) 5 360) >>= add
          setTransform $ concatTrans (translate $ mkV' 0 0 5) t
-         shape (mkSphere 0.6) >>= add
+         shape (mkSphere 0.5) >>= add
          setTransform $ concatTrans (translate $ mkV' 0 0 (-5)) t
-         shape (mkSphere 0.6) >>= add
+         shape (mkSphere 0.5) >>= add
          
       bars t = do
          bar $ concatTrans (translate $ mkV'   3.5  0 0) t
          bar $ concatTrans (translate $ mkV' (-3.5) 0 0) t
          
-   setMaterial $ measuredMaterial BrushedMetal      
+ --  setMaterial $ measuredMaterial BrushedMetal      
    mapM_ bars bases
    
 main = spiral

@@ -1,6 +1,6 @@
 
 module Graphics.Bling.Edsl (
-   render, emit, CanAdd(..), shape, setTransform, setCamera, setMaterial
+   render, emit, CanAdd(..), shape, setTransform, setCamera, setMaterial, setImageSize
    ) where
 
 import Control.Applicative
@@ -71,6 +71,9 @@ setTransform t = modify $ \s -> s { transform = t }
 
 setCamera :: Camera -> DslState ()
 setCamera c = modify $ \s -> s { camera = c }
+
+setImageSize :: (Int, Int) -> DslState ()
+setImageSize sz = modify $ \s -> s { imgSize = sz }
 
 setMaterial :: Material -> DslState ()
 setMaterial m = modify $ \s -> s { material = m }

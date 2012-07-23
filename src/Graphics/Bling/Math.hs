@@ -133,7 +133,7 @@ solveQuadric a b c
             | b < 0 = -0.5 * (b - rootDiscrim)
             | otherwise = -0.5 * (b + rootDiscrim)
          rootDiscrim = sqrt discrim
-         discrim = b * b - 4.0 * a * c
+         discrim = b * b - 4 * a * c
 
 sphericalDirection :: Flt -> Flt -> Flt -> Vector
 {-# INLINE sphericalDirection #-}

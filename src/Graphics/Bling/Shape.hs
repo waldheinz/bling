@@ -116,15 +116,14 @@ intersect (Cylinder r zmin zmax phimax) ray@(Ray ro rd tmin tmax) =
       intersectCylinder (t0, t1)
          | t0 > tmax = Nothing
          | t1 < tmin = Nothing
-         | t > tmax = Nothing
-         | vz pHit0 > zmin && vz pHit0 < zmax && phi0 <= phimax =
+    --     | t > tmax = Nothing
+         | t0 > tmin && vz pHit0 > zmin && vz pHit0 < zmax && phi0 <= phimax =
             Just (pHit0, phi0, t0)
-         | t == t1 = Nothing
-         | vz pHit1 > zmin && vz pHit1 < zmax && phi1 <= phimax =
+         | t1 <= tmax && vz pHit1 > zmin && vz pHit1 < zmax && phi1 <= phimax =
             Just (pHit1, phi1, t1)
          | otherwise = Nothing
          where
-            t = if t0 > tmin then t0 else t1
+      --      t = if t0 > tmin then t0 else t1
             pHit0 = rayAt ray t0
             pHit1 = rayAt ray t1
             phi0 = atan2' (vy pHit0) (vx pHit0)
@@ -232,13 +231,10 @@ intersects (Cylinder r zmin zmax phimax) ray@(Ray ro rd tmin tmax) =
       intersectsCylinder (t0, t1)
          | t0 > tmax = False
          | t1 < tmin = False
-         | t > tmax = False
-         | vz pHit0 > zmin && vz pHit0 < zmax && phi0 <= phimax = True
-         | t == t1 = False
-         | vz pHit1 > zmin && vz pHit1 < zmax && phi1 <= phimax = True
+         | t0 > tmin && vz pHit0 > zmin && vz pHit0 < zmax && phi0 <= phimax = True
+         | t1 < tmax && vz pHit1 > zmin && vz pHit1 < zmax && phi1 <= phimax && t1 <= tmax = True
          | otherwise = False
          where
-            t = if t0 > tmin then t0 else t1
             pHit0 = rayAt ray t0
             pHit1 = rayAt ray t1
             phi0 = atan2' (vy pHit0) (vx pHit0)
