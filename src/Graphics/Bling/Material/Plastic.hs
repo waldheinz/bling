@@ -9,9 +9,9 @@ import Graphics.Bling.Texture
 import Graphics.Bling.Reflection
 
 mkPlastic
-   :: SpectrumTexture
-   -> SpectrumTexture
-   -> ScalarTexture
+   :: SpectrumTexture -- ^ diffuse spectrum
+   -> SpectrumTexture -- ^ specular spectrum
+   -> ScalarTexture -- ^ roughness
    -> Material
    
 mkPlastic kd ks kr dgg dgs = mkBsdf' [diff, spec] dgg dgs where

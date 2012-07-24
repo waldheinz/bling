@@ -25,7 +25,7 @@ import Graphics.Bling.Primitive
 data KdTree = KdTree {-# UNPACK #-} ! AABB ! KdTreeNode deriving (Show)
 
 data KdTreeNode
-   = Interior KdTreeNode KdTreeNode {-# UNPACK #-} !Flt {-# UNPACK #-} !Dimension
+   = Interior !KdTreeNode !KdTreeNode {-# UNPACK #-} !Flt {-# UNPACK #-} !Dimension
    | Leaf {-# UNPACK #-} !(V.Vector AnyPrim)
    
 instance Show KdTreeNode where

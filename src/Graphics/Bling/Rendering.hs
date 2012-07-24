@@ -14,9 +14,13 @@ module Graphics.Bling.Rendering (
    
    ) where
 
+import GHC.Conc (numCapabilities)
+import Control.Applicative
 import Control.Monad
 import Control.Monad.ST
+import Control.Parallel.Strategies
 import Data.IORef
+import qualified System.Random.MWC as MWC
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Image
@@ -104,7 +108,10 @@ instance Printable SamplerRenderer where
    prettyPrint (SR _ _) = PP.text "sampler renderer"
 
 instance Renderer SamplerRenderer where
+   render = prender
    
+    
+   {-
    render (SR smp si) job report = render' startImg 1 >> return () where
          scene = jobScene job
          startImg = mkJobImage job
@@ -137,7 +144,43 @@ instance Renderer SamplerRenderer where
                if cnt
                   then render' i (p + 1)
                   else return i
-            
+
+        -}
+prender :: SamplerRenderer -> RenderJob -> ProgressReporter -> IO ()
+prender (SR sampler integ) job report = do
+   
+   let
+      scene = jobScene job
+      image = mkJobImage job
+      flt = imgFilter image
+      wnds = splitWindow $ imageWindow' image
+      
+      pm f = withStrategy (parBuffer numCapabilities rdeepseq) . map f
+      
+      eval :: (MWC.Seed, SampleWindow) -> (Image, SampleWindow)
+      eval (s, w) = runST $ do
+         i <- mkImageTile flt w 
+         runWithSeed s $ tile scene sampler integ i w
+         i' <- fst <$> freeze i
+         return (i', w)
+   
+   currentImage <- newIORef image
+
+   forM_ [1..] $ \pass -> do
+      seeds <- repeat <$> ioSeed
+      
+      forM_ (pm eval $ zip seeds wnds) $ \t -> do
+         _ <- report $ RegionStarted $ snd t
+         cimg <- readIORef currentImage
+         (cimg', _) <- stToIO $ thaw cimg >>= \mimg -> addTile mimg t >> freeze mimg
+         writeIORef currentImage cimg'
+         report (SamplesAdded (snd t) cimg')
+         
+      i <- readIORef currentImage
+      report (PassDone pass i 1)
+      
+   return ()
+   
 tile :: I.SurfaceIntegrator a =>
    Scene -> Sampler -> a -> MImage s -> SampleWindow -> Rand s ()
 tile scene smp si img w = do
@@ -146,3 +189,4 @@ tile scene smp si img w = do
    return ()
    where
       cam = sceneCam scene
+      

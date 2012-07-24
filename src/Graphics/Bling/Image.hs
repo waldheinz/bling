@@ -2,11 +2,11 @@
 module Graphics.Bling.Image (
    module Graphics.Bling.Filter,
    
-   Image, ImageSample(..), mkImage, rgbPixels, imageWindow', imgW, imgH,
+   Image, ImageSample(..), mkImage, rgbPixels, imageWindow', imgW, imgH, imgFilter,
    
    MImage,
    
-   mkMImage, addSample, splatSample, addContrib,
+   mkMImage, mkImageTile, addSample, splatSample, addContrib, addTile,
    
    imageWidth, imageHeight, imageWindow, writePpm, 
    
@@ -19,6 +19,7 @@ module Graphics.Bling.Image (
    ) where
 
 import Control.Applicative
+import Control.DeepSeq
 import Control.Monad
 import Control.Monad.Primitive
 import Control.Monad.ST
@@ -41,7 +42,7 @@ type Pixel = (Float, (Float, Float, Float), (Float, Float, Float))
 data MImage s = MImage
    { imageWidth   :: {-# UNPACK #-} ! Int
    , imageHeight  :: {-# UNPACK #-} ! Int
-   , imageOffset  :: {-# UNPACK #-} ! (Int, Int)
+   , _imageOffset  :: {-# UNPACK #-} ! (Int, Int)
    , imageFilter  :: ! Filter
    , _imagePixels :: MV.MVector (PrimState (ST s)) Pixel
    }
@@ -54,13 +55,23 @@ mkMImage
    -> ST s (MImage s)
 mkMImage flt w h = MImage w h (0, 0) flt <$> MV.replicate (w * h) (0, (0, 0, 0), (0, 0, 0))
 
+mkImageTile :: Filter -> SampleWindow -> ST s (MImage s)
+mkImageTile f wnd = MImage w h (ox, oy) f <$> MV.replicate (w * h) (0, (0, 0, 0), (0, 0, 0)) where
+   w = xEnd wnd - ox + 1
+   h = yEnd wnd - oy + 1
+   ox = xStart wnd
+   oy = yStart wnd
+
 -- | an immutable image
 data Image = Img
    { imgW :: {-# UNPACK #-} ! Int
    , imgH :: {-# UNPACK #-} ! Int
-   , _imgF :: ! Filter
+   , imgFilter :: ! Filter
    , _imgP :: V.Vector Pixel
    }
+
+instance NFData Image where
+   rnf (Img w h f p) = w `seq` h `seq` f `seq` p `seq` ()
 
 -- | creates a new image where all pixels are initialized to black
 mkImage
@@ -75,7 +86,7 @@ thaw :: Image -> ST s (MImage s)
 thaw (Img w h f p) = {-# SCC "thaw" #-} do
    p' <- GV.thaw p
    return $ MImage w h (0, 0) f p'
- 
+
 -- | converts a mutable image to an image (and the offsets)
 freeze :: MImage s -> ST s (Image, (Int, Int))
 freeze (MImage w h o f p) = {-# SCC "freeze" #-} (\p' -> (Img w h f p', o)) <$> GV.freeze p
@@ -94,11 +105,27 @@ imageWindow' (Img w h f _) = SampleWindow x0 x1 y0 y1 where
    y0 = floor (0.5 - filterHeight f)
    y1 = floor (0.5 + (fromIntegral h) + filterHeight f)
 
+addTile :: MImage s -> (Image, SampleWindow) -> ST s ()
+addTile (MImage w _ (ox, oy) _ px) (Img w' _ _ px', wnd) = do
+   forM_ (coverWindow wnd) $ \(x, y) -> do
+      let
+         od = w  * (y - oy) + (x - ox)
+         os = w' * (y - yStart wnd) + (x - xStart wnd)
+         
+      unless (od >= MV.length px) $
+         MV.read px od >>= \old -> MV.write px od $ pxAdd old (px' V.! os)
+      
+pxAdd :: Pixel -> Pixel -> Pixel
+pxAdd 
+   (w1, (r1, g1, b1), (r1', g1', b1'))
+   (w2, (r2, g2, b2), (r2', g2', b2')) =
+      (w1 + w2, (r1 + r2, g1 + g2, b1 + b2), (r1' + r2', g1' + g2', b1' + b2'))
+      
 addPixel :: MImage s -> (Int, Int, WeightedSpectrum) -> ST s ()
 {-# INLINE addPixel #-}
 addPixel (MImage w h (ox, oy) _ p) (x, y, (sw, s))
    | x < 0 || y < 0 = return ()
-   | x >= w || y >= h = return ()
+   | x >= (w + ox) || y >= (h + oy) = return ()
    | otherwise = do
       px <- MV.unsafeRead p o
       MV.unsafeWrite p o (add px dpx)
@@ -107,7 +134,7 @@ addPixel (MImage w h (ox, oy) _ p) (x, y, (sw, s))
          (r, g, b) = toRGB s
          add (w1, (r1, g1, b1), splat) (w2, r2, g2, b2) =
               (w1+w2, (r1+r2, g1+g2, b1+b2), splat)
-         o = ((x - ox) + (y - oy) * w)
+         o = (x - ox) + (y - oy) * w
          
 splatSample :: MImage s -> ImageSample -> ST s ()
 splatSample (MImage w h (iox, ioy) _ p) (ImageSample sx sy (sw, ss))

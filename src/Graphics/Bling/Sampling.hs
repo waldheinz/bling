@@ -23,6 +23,7 @@ module Graphics.Bling.Sampling (
    
    ) where
 
+import Control.DeepSeq
 import Control.Monad.Primitive
 import Control.Monad.Reader
 import Control.Monad.ST
@@ -43,6 +44,9 @@ data SampleWindow = SampleWindow {
    yEnd     :: {-# UNPACK #-} ! Int    -- ^ last line to cover
    } deriving (Show)
 
+instance NFData SampleWindow where
+   -- all fields are strict, so the default implementation should be sufficient
+
 data CameraSample = CameraSample {
    imageX :: {-# UNPACK #-} ! Float,
    imageY :: {-# UNPACK #-} ! Float,
@@ -50,7 +54,7 @@ data CameraSample = CameraSample {
    } deriving (Show)
 
 coverWindow :: SampleWindow -> [(Int, Int)]
-coverWindow w = [(x, y) | x <- [xStart w .. xEnd w], y <- [yStart w .. yEnd w]]
+coverWindow w = [(x, y) | y <- [yStart w .. yEnd w], x <- [xStart w .. xEnd w]]
 
 splitWindow :: SampleWindow -> [SampleWindow]
 splitWindow (SampleWindow x0 x1 y0 y1) = ws where
