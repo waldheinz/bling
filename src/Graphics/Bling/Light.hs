@@ -126,8 +126,8 @@ sample
    -> LightSample -- ^ the computed @LightSample@
 
 sample (Infinite r _ dist w2l) p eps _ us
-   | mapPdf == 0 = LightSample black (mkV (0,1,0)) (error "empty light sample") 0 False
-   | sint == 0 = LightSample black (mkV (0,1,0)) (error "empty light sample") 0 False
+   | mapPdf == 0 = LightSample black (mkV (0,1,0)) (Ray (mkV' 0 0 0) (mkV' 0 1 0) 0 1) 0 False
+   | sint == 0 = LightSample black (mkV (0,1,0)) (Ray (mkV' 0 0 0) (mkV' 0 1 0) 0 1) 0 False
    | otherwise = LightSample ls wi ray pd False
    where
       (uv, mapPdf) = sampleContinuous2D dist us
