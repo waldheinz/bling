@@ -22,7 +22,6 @@ import Control.Applicative
 import Control.DeepSeq
 import Control.Monad
 import Control.Monad.Primitive
-import Control.Monad.ST
 import Debug.Trace
 import qualified Data.Vector.Generic as GV
 import qualified Data.Vector.Unboxed as V 
@@ -39,23 +38,23 @@ import Graphics.Bling.Spectrum
 type Pixel = (Float, (Float, Float, Float), (Float, Float, Float))
 
 -- | a mutable image in the ST monad
-data MImage s = MImage
+data PrimMonad m => MImage m = MImage
    { imageWidth   :: {-# UNPACK #-} ! Int
    , imageHeight  :: {-# UNPACK #-} ! Int
    , _imageOffset  :: {-# UNPACK #-} ! (Int, Int)
    , imageFilter  :: ! Filter
-   , _imagePixels :: MV.MVector (PrimState (ST s)) Pixel
+   , _imagePixels :: MV.MVector (PrimState m) Pixel
    }
 
 -- | creates a new image where all pixels are initialized to black
-mkMImage
-   :: Filter -- ^ the pixel filter function to use when adding samples
+mkMImage :: (PrimMonad m, Functor m)
+   => Filter -- ^ the pixel filter function to use when adding samples
    -> Int -- ^ the image width
    -> Int -- ^ the image height
-   -> ST s (MImage s)
+   -> m (MImage m)
 mkMImage flt w h = MImage w h (0, 0) flt <$> MV.replicate (w * h) (0, (0, 0, 0), (0, 0, 0))
 
-mkImageTile :: Filter -> SampleWindow -> ST s (MImage s)
+mkImageTile :: (PrimMonad m, Functor m) => Filter -> SampleWindow -> m (MImage m)
 mkImageTile f wnd = MImage w h (ox, oy) f <$> MV.replicate (w * h) (0, (0, 0, 0), (0, 0, 0)) where
    w = xEnd wnd - ox + 1
    h = yEnd wnd - oy + 1
@@ -82,16 +81,14 @@ mkImage
 mkImage flt w h = Img w h flt $ V.replicate (w * h) (0, (0, 0, 0), (0, 0, 0))
 
 -- | converts an image to a mutable image 
-thaw :: Image -> ST s (MImage s)
-thaw (Img w h f p) = {-# SCC "thaw" #-} do
-   p' <- GV.thaw p
-   return $ MImage w h (0, 0) f p'
+thaw :: (PrimMonad m, Functor m) => Image -> m (MImage m)
+thaw (Img w h f p) = {-# SCC "thaw" #-} MImage w h (0, 0) f <$> GV.thaw p
 
 -- | converts a mutable image to an image (and the offsets)
-freeze :: MImage s -> ST s (Image, (Int, Int))
+freeze :: (PrimMonad m, Functor m) => MImage m -> m (Image, (Int, Int))
 freeze (MImage w h o f p) = {-# SCC "freeze" #-} (\p' -> (Img w h f p', o)) <$> GV.freeze p
 
-imageWindow :: MImage s -> SampleWindow
+imageWindow :: PrimMonad m => MImage m -> SampleWindow
 imageWindow (MImage w h (ox, oy) f _) = SampleWindow x0 x1 y0 y1 where
    x0 = ox + floor (0.5 - filterWidth f)
    x1 = ox + floor (0.5 + (fromIntegral w) + filterWidth f)
@@ -105,7 +102,7 @@ imageWindow' (Img w h f _) = SampleWindow x0 x1 y0 y1 where
    y0 = floor (0.5 - filterHeight f)
    y1 = floor (0.5 + (fromIntegral h) + filterHeight f)
 
-addTile :: MImage s -> (Image, SampleWindow) -> ST s ()
+addTile :: PrimMonad m => MImage m -> (Image, SampleWindow) -> m ()
 addTile (MImage w _ (ox, oy) _ px) (Img w' _ _ px', wnd) = do
    forM_ (coverWindow wnd) $ \(x, y) -> do
       let
@@ -121,7 +118,7 @@ pxAdd
    (w2, (r2, g2, b2), (r2', g2', b2')) =
       (w1 + w2, (r1 + r2, g1 + g2, b1 + b2), (r1' + r2', g1' + g2', b1' + b2'))
       
-addPixel :: MImage s -> (Int, Int, WeightedSpectrum) -> ST s ()
+addPixel :: PrimMonad m => MImage m -> (Int, Int, WeightedSpectrum) -> m ()
 {-# INLINE addPixel #-}
 addPixel (MImage w h (ox, oy) _ p) (x, y, (sw, s))
    | x < 0 || y < 0 = return ()
@@ -136,7 +133,7 @@ addPixel (MImage w h (ox, oy) _ p) (x, y, (sw, s))
               (w1+w2, (r1+r2, g1+g2, b1+b2), splat)
          o = (x - ox) + (y - oy) * w
          
-splatSample :: MImage s -> ImageSample -> ST s ()
+splatSample :: PrimMonad m => MImage m -> ImageSample -> m ()
 splatSample (MImage w h (iox, ioy) _ p) (ImageSample sx sy (sw, ss))
    | floor sx >= w || floor sy >= h || sx < 0 || sy < 0 = return ()
    | sNaN ss = trace ("not splatting NaN sample at ("
@@ -155,7 +152,7 @@ splatSample (MImage w h (iox, ioy) _ p) (ImageSample sx sy (sw, ss))
          (dx, dy, dz) = (\(x, y, z) -> (x * sw, y * sw, z * sw)) $ toRGB ss
 
 -- | adds a sample to the specified image
-addSample :: MImage s -> ImageSample -> ST s ()
+addSample :: PrimMonad m => MImage m -> ImageSample -> m ()
 addSample img smp@(ImageSample sx sy (sw, ss))
    | sw == 0 = return ()
    | sNaN ss = trace ("skipping NaN sample at ("
@@ -166,7 +163,7 @@ addSample img smp@(ImageSample sx sy (sw, ss))
    where
          pixels = filterSample (imageFilter img) smp
 
-addContrib :: MImage s -> Contribution -> ST s ()
+addContrib :: PrimMonad m => MImage m -> Contribution -> m ()
 addContrib img (splat, is)
    | splat = splatSample img is
    | otherwise = addSample img is

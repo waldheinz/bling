@@ -67,7 +67,7 @@ mkHitPoint bsdf wo f
 escaped :: Ray -> Scene -> Spectrum
 escaped ray s = V.sum $ V.map (`le` ray) (sceneLights s)
 
-mkHitPoints :: Scene -> MImage s -> Int -> R.Rand s [HitPoint]
+mkHitPoints :: Scene -> MImage (ST s) -> Int -> R.Rand s [HitPoint]
 mkHitPoints scene img maxD = {-# SCC "mkHitPoints" #-}
    liftM concat $ forM (splitWindow $ imageWindow img) $ \w ->
       liftM concat $ sample (mkRandomSampler 1) w 0 0 $ do
@@ -123,7 +123,7 @@ cont eps d md s bsdf wo tp t
 -- Tracing Photons from the Light Sources and adding Image Contribution
 --------------------------------------------------------------------------------
 
-tracePhoton :: Scene -> SpatialHash -> MImage s -> PixelStats s -> Sampled s ()
+tracePhoton :: Scene -> SpatialHash -> MImage (ST s) -> PixelStats s -> Sampled s ()
 tracePhoton scene sh img ps = {-# SCC "tracePhoton" #-} do
    ul <- rnd' 0
    ulo <- rnd2D' 0
@@ -139,7 +139,7 @@ tracePhoton scene sh img ps = {-# SCC "tracePhoton" #-} do
 
 nextVertex :: Scene -> SpatialHash -> Vector ->
    Maybe Intersection -> Spectrum -> Int ->
-   MImage s -> PixelStats s -> Sampled s ()
+   MImage (ST s) -> PixelStats s -> Sampled s ()
 
 nextVertex _ _ _ Nothing _ _ _ _ = return ()
 nextVertex scene sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} do

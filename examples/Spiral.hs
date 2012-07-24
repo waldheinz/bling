@@ -62,8 +62,8 @@ plexi = mkPlastic (const $ fromRGB' 0.01 0.01 0.01) (const $ fromRGB' 0.8 0.8 0.
 
 spiral = render $ do
    let
-      w = 360
-      h = 640
+      w = 576
+      h = 1024
    
    env <- parseRGBE <$> readFileBS "/home/trem/Arbeitsplatz/Meins/bling-scenes/envmaps/grace-new.hdr"
 
