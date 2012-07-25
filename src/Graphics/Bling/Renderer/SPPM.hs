@@ -82,7 +82,7 @@ mkHitPoints scene img maxD = {-# SCC "mkHitPoints" #-}
             Nothing  -> return $! ([], escaped ray scene)
                            
          (px, py) <- cameraSample >>= \cs -> return (imageX cs, imageY cs)
-         liftSampled $ addContrib img (False, (px, py, (1, ls)))
+         liftSampled $ addContrib img (False, (px, py, WS 1 ls))
          return $! hps
    
 nextV :: Scene -> Intersection -> Vector -> Spectrum
@@ -161,7 +161,7 @@ nextVertex scene sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} do
          nn' = nn + alpha
          (px, py) = hpPixel hit
 
-      addContrib img (True, (px, py, (1 / (r2 * pi), hpF hit * f * li)))
+      addContrib img (True, (px, py, WS (1 / (r2 * pi)) (hpF hit * f * li)))
       sUpdate ps hit (r2', nn')
 
    -- follow the path

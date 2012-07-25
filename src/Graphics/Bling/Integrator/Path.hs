@@ -47,7 +47,7 @@ instance SurfaceIntegrator PathIntegrator where
    
    contrib (PathIntegrator md _) s addSample r = {-# SCC "contrib" #-} do
       li <- nextVertex s 0 True r (s `intersect` r) md white black
-      c <- mkContrib (1, li) False
+      c <- mkContrib (WS 1 li) False
       liftSampled $ addSample c
       
 nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Int -> Spectrum -> Spectrum -> Sampled m Spectrum

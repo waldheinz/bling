@@ -1,4 +1,6 @@
 
+{-# LANGUAGE BangPatterns #-}
+
 module Graphics.Bling.Image (
  --  module Graphics.Bling.Filter,
    
@@ -115,7 +117,7 @@ imageWindow' (Img w h f _) = SampleWindow x0 x1 y0 y1 where
    (fw, fh) = filterSize f
    
 addTile :: PrimMonad m => MImage m -> (Image, (Int, Int)) -> m ()
-addTile (MImage w h (ox, oy) _ px) (Img tw th _ px', (dx, dy)) = do
+addTile (MImage w h (ox, oy) _ px) (Img tw th _ px', (dx, dy)) = {-# SCC addTile #-} do
    forM_ [(x, y) | y <- [0 .. (th-1)], x <- [0 .. (tw-1)]] $ \(x, y) -> do
       let
          od = w * (y - oy + dy) + (x - ox + dx)
@@ -132,17 +134,20 @@ pxAdd
       
 addPixel :: PrimMonad m => MImage m -> (Int, Int, WeightedSpectrum) -> m ()
 {-# INLINE addPixel #-}
-addPixel (MImage w h (ox, oy) _ p) (x, y, (sw, s))
+addPixel !(MImage !w !h (!ox, !oy) _ !p) (!x, !y, WS sw s)
    | (x - ox) < 0 || (y - oy) < 0 = return ()
    | x >= (w + ox) || y >= (h + oy) = return ()
-   | otherwise = {-# SCC addPixel #-} MV.unsafeRead p o >>= \px -> MV.unsafeWrite p o (add px)
+   | otherwise = do
+      px <- {-# SCC "apRead" #-} MV.unsafeRead p o
+      {-# SCC "apWrite" #-}MV.unsafeWrite p o ({-# SCC "apadd" #-} add px)
    where
-         add (w1, (r1, g1, b1), splat) =
-            let (r2, g2, b2) = toRGB s in (w1 + sw, (r1 + r2, g1 + g2, b1 + b2), splat)
+         add (w1, (r1, g1, b1), splat) = 
+            let (!r2, !g2, !b2) = toRGB s in (w1 + sw, (r1 + r2, g1 + g2, b1 + b2), splat)
          o = (x - ox) + (y - oy) * w
          
 splatSample :: PrimMonad m => MImage m -> ImageSample -> m ()
-splatSample (MImage w h (iox, ioy) _ p) (sx, sy, (sw, ss))
+{-# INLINE splatSample #-}
+splatSample (MImage w h (iox, ioy) _ p) (sx, sy, WS sw ss)
    | floor sx >= w || floor sy >= h || sx < 0 || sy < 0 = return ()
    | sNaN ss = trace ("not splatting NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
@@ -161,7 +166,8 @@ splatSample (MImage w h (iox, ioy) _ p) (sx, sy, (sw, ss))
 
 -- | adds a sample to the specified image
 addSample :: PrimMonad m => MImage m -> ImageSample -> m ()
-addSample img smp@(sx, sy, (sw, ss))
+{-# INLINE addSample #-}
+addSample img smp@(sx, sy, WS sw ss)
    | sw == 0 = return ()
    | sNaN ss = trace ("skipping NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
@@ -170,9 +176,10 @@ addSample img smp@(sx, sy, (sw, ss))
    | otherwise = {-# SCC "addSample" #-} filterSample (imageFilter img) smp img
 
 addContrib :: PrimMonad m => MImage m -> Contribution -> m ()
-addContrib img (splat, is)
-   | splat = splatSample img is
-   | otherwise = addSample img is
+{-# INLINE addContrib #-}
+addContrib !img (!splat, !is)
+   | splat = {-# SCC "addContrib.splat" #-} splatSample img is
+   | otherwise = {-# SCC "addContrib.sample" #-} addSample img is
 
 -- | extracts the pixel at the specified offset from an Image
 getPixel
@@ -260,7 +267,9 @@ toRgbe (r, g, b)
 
 data Filter
    = Box 
-   | Sinc {-# UNPACK #-} !Float {-# UNPACK #-} !Float {-# UNPACK #-} !Float -- xw, xy, tau
+   | Sinc {-# UNPACK #-} !Float {-# UNPACK #-} !Float
+          {-# UNPACK #-} !Float {-# UNPACK #-} !Float
+          {-# UNPACK #-} !Float -- xw, xy, invx, invy, tau
    | Mitchell {-# UNPACK #-} !Float {-# UNPACK #-} !Float {-# UNPACK #-} !Float {-# UNPACK #-} !Float
    | Triangle {-# UNPACK #-} !Float {-# UNPACK #-} !Float
    deriving (Show)
@@ -271,7 +280,7 @@ mkBoxFilter = Box
 
 -- | creates a Sinc filter
 mkSincFilter :: Float -> Float -> Float -> Filter
-mkSincFilter = Sinc
+mkSincFilter wx wy tau = Sinc wx wy (1 / wx) (1 / wy) tau
 
 -- | creates a triangle filter
 mkTriangleFilter
@@ -293,24 +302,22 @@ mkMitchellFilter = Mitchell
 
 filterSize :: Filter -> (Float, Float)
 filterSize (Box)              = (0.5, 0.5)
-filterSize (Sinc w h _)       = (w, h)
+filterSize (Sinc w h _ _ _)   = (w, h)
 filterSize (Mitchell w h _ _) = (w, h)
 filterSize (Triangle w h)     = (w, h)
 
 filterSample :: (PrimMonad m) => Filter -> ImageSample -> MImage m -> m ()
 filterSample Box (x, y, ws) img = addPixel img (floor x, floor y, ws)
-filterSample f (ix, iy, (sw, s)) img = {-# SCC filterSample #-} do
+filterSample f (!ix, !iy, WS sw s) img = {-# SCC "filterSample" #-} do
    let
       (dx, dy) = (ix - 0.5, iy - 0.5)
-      x0 = ceiling (dx - fw)
-      x1 = floor (dx + fw)
-      y0 = ceiling (dy - fh)
-      y1 = floor (dy + fh)
+      (x0, x1) = (ceiling (dx - fw), floor (dx + fw))
+      (y0, y1) = (ceiling (dy - fh), floor (dy + fh))
       w x y = evalFilter f (fromIntegral x - ix) (fromIntegral y - iy)
       (fw, fh) = filterSize f
 
-   forM_ [(x, y) | y <- [y0..y1], x <- [x0..x1]] $ \(x, y) -> do
-      let wt = w x y in addPixel img (x, y, (sw * wt, sScale s wt))
+   forM_ [(x, y) | y <- [y0..y1], x <- [x0..x1]] $ \(x, y) ->
+      let wt = w x y in addPixel img (x, y, WS (sw * wt) $ sScale s wt)
 
 evalFilter :: Filter -> Float -> Float -> Float
 {-# INLINE evalFilter #-}
@@ -325,14 +332,14 @@ evalFilter (Mitchell w h b c) px py = m1d (px * iw) * m1d (py * ih) where
                    ((-18) + 12*b + 6*c) * x*x +
                     (6 - 2*b)) * (1/6)
                     
-evalFilter (Sinc _ _ tau) px py = sinc1D px * sinc1D py where
+evalFilter (Sinc _ _ ix iy tau) px py = sinc1D (px * ix) * sinc1D (py * iy) where
    sinc1D x
-      | x > 1 = 0
-      | x == 0 = 1
+      | abs x > 1 = 0
+      | abs x < 1e-5 = 1
       | otherwise = sinc * lanczos where
-         x' = x * pi
-         sinc = sin (x' * tau) / (x' * tau)
-         lanczos = sin x' / x'
+         x' = abs x * pi
+         lanczos = sin (x' * tau) / (x' * tau)
+         sinc = sin x' / x'
          
 evalFilter (Triangle w h) x y = f (x, y) where
    f (px, py) = max 0 (w - abs px) * max 0 (h - abs py)

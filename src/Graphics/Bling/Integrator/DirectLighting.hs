@@ -33,7 +33,7 @@ instance SurfaceIntegrator DirectLighting where
 
 directLighting :: Int -> Int -> Scene -> Ray -> Sampled m WeightedSpectrum
 directLighting d md s r@(Ray _ rd _ _) =
-   maybe (return $! (0, black)) ls (s `intersect` r) where
+   maybe (return $! (WS 0 black)) ls (s `intersect` r) where
       ls int = do
          uln <- rnd' $ 0 + (2 * d)
          uld <- rnd2D' $ 0 + (2 * d)
@@ -51,7 +51,7 @@ directLighting d md s r@(Ray _ rd _ _) =
          re <- cont e (d+1) md s bsdf wo $ mkBxdfType [Specular, Reflection]
          tr <- cont e (d+1) md s bsdf wo $ mkBxdfType [Specular, Transmission]
              
-         return $! (1, l + re + tr + intLe int wo)
+         return $! WS 1 $ l + re + tr + intLe int wo
 
 cont :: Flt -> Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Sampled s Spectrum
 cont e d md s bsdf wo t
@@ -66,5 +66,6 @@ cont e d md s bsdf wo t
       if (pdf == 0)
          then return $! black
          else do
-            l <- directLighting d md s ray
-            return $! sScale (f * snd l) (wi `absDot` n / pdf)
+            (WS _ l) <- directLighting d md s ray
+            return $! sScale (f * l) (wi `absDot` n / pdf)
+            

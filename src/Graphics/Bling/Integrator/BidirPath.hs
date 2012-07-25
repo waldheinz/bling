@@ -94,7 +94,7 @@ instance SurfaceIntegrator BidirPath where
           li = zip lp [0..]
           l = sum $ parMap rdeepseq (connect scene nspecBouces) $ pairs ei li
           
-      mkContrib (1, l + ld + le) False >>= addContrib
+      mkContrib (WS 1 (l + ld + le)) False >>= addContrib
       where
          addContrib = liftSampled . addContrib'
 

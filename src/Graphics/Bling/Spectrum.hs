@@ -1,9 +1,10 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Graphics.Bling.Spectrum (
 
-   Spectrum, WeightedSpectrum, ImageSample, Contribution,
+   Spectrum, WeightedSpectrum(..), ImageSample, Contribution,
    white, black, 
    
    -- * Working with SPDs
@@ -104,7 +105,7 @@ instance GV.Vector V.Vector Spectrum where
 -- ImageSample and the like
 --------------------------------------------------------------------------------
 
-type WeightedSpectrum = (Float, Spectrum) -- the sample weight and the sampled spectrum
+data WeightedSpectrum = WS {-# UNPACK #-} !Float !Spectrum -- the sample weight and the sampled spectrum
 type ImageSample = (Float, Float, WeightedSpectrum) -- the pixel coordinates and the weighted spectrum
 
 -- data ImageSample = ImageSample {
