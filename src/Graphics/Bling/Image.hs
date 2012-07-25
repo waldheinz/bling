@@ -2,7 +2,7 @@
 module Graphics.Bling.Image (
  --  module Graphics.Bling.Filter,
    
-   Image, ImageSample(..), mkImage, rgbPixels, imageWindow', imgW, imgH, imgFilter,
+   Image, ImageSample, mkImage, rgbPixels, imageWindow', imgW, imgH, imgFilter,
    
    MImage, imageFilter,
    
@@ -32,7 +32,6 @@ import qualified Data.Vector.Unboxed.Mutable as MV
 import qualified Data.ByteString.Lazy as BS
 import System.IO
 
--- import Graphics.Bling.Filter
 import Graphics.Bling.Sampling
 import Graphics.Bling.Spectrum
 
@@ -136,16 +135,14 @@ addPixel :: PrimMonad m => MImage m -> (Int, Int, WeightedSpectrum) -> m ()
 addPixel (MImage w h (ox, oy) _ p) (x, y, (sw, s))
    | (x - ox) < 0 || (y - oy) < 0 = return ()
    | x >= (w + ox) || y >= (h + oy) = return ()
-   | otherwise = {-# SCC addPixel #-} MV.unsafeRead p o >>= \px -> MV.unsafeWrite p o (add px dpx)
+   | otherwise = {-# SCC addPixel #-} MV.unsafeRead p o >>= \px -> MV.unsafeWrite p o (add px)
    where
-         dpx = (sw, r, g, b)
-         (r, g, b) = toRGB s
-         add (w1, (r1, g1, b1), splat) (w2, r2, g2, b2) =
-              (w1+w2, (r1+r2, g1+g2, b1+b2), splat)
+         add (w1, (r1, g1, b1), splat) =
+            let (r2, g2, b2) = toRGB s in (w1 + sw, (r1 + r2, g1 + g2, b1 + b2), splat)
          o = (x - ox) + (y - oy) * w
          
 splatSample :: PrimMonad m => MImage m -> ImageSample -> m ()
-splatSample (MImage w h (iox, ioy) _ p) (ImageSample sx sy (sw, ss))
+splatSample (MImage w h (iox, ioy) _ p) (sx, sy, (sw, ss))
    | floor sx >= w || floor sy >= h || sx < 0 || sy < 0 = return ()
    | sNaN ss = trace ("not splatting NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
@@ -164,7 +161,7 @@ splatSample (MImage w h (iox, ioy) _ p) (ImageSample sx sy (sw, ss))
 
 -- | adds a sample to the specified image
 addSample :: PrimMonad m => MImage m -> ImageSample -> m ()
-addSample img smp@(ImageSample sx sy (sw, ss))
+addSample img smp@(sx, sy, (sw, ss))
    | sw == 0 = return ()
    | sNaN ss = trace ("skipping NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
@@ -301,8 +298,8 @@ filterSize (Mitchell w h _ _) = (w, h)
 filterSize (Triangle w h)     = (w, h)
 
 filterSample :: (PrimMonad m) => Filter -> ImageSample -> MImage m -> m ()
-filterSample Box (ImageSample x y ws) img = addPixel img (floor x, floor y, ws)
-filterSample f (ImageSample ix iy (sw, s)) img = {-# SCC filterSample #-} do
+filterSample Box (x, y, ws) img = addPixel img (floor x, floor y, ws)
+filterSample f (ix, iy, (sw, s)) img = {-# SCC filterSample #-} do
    let
       (dx, dy) = (ix - 0.5, iy - 0.5)
       x0 = ceiling (dx - fw)

@@ -18,7 +18,6 @@ import Graphics.Bling.Montecarlo
 import Graphics.Bling.Sampling
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Transform
-import Graphics.Bling.Types
 
 -- | a @Camera@
 data Camera

@@ -66,7 +66,7 @@ instance Renderer Metropolis where
       scene = jobScene job
       
       sSmp :: Flt -> ImageSample -> ImageSample
-      sSmp f (ImageSample x y (w, s)) = ImageSample x y (w * f * wt, s)
+      sSmp f (x, y, (w, s)) = (x, y, (w * f * wt, s))
       nPixels = imageSizeX job * imageSizeY job
       wt = 1 / mpp
       imgSize = (fromIntegral $ imageSizeX job, fromIntegral $ imageSizeY job)
@@ -237,7 +237,7 @@ jitter v vmin vmax
          | otherwise = x
 
 evalI :: [ImageSample] -> Flt
-evalI smps = sum $ map (\(ImageSample _ _ (_, ss)) -> sY ss) smps
+evalI smps = sum $ map (\(_, _, (_, ss)) -> sY ss) smps
 
 evalSample :: (SurfaceIntegrator i) => Scene -> i -> Sample s -> Rand s [ImageSample]
 evalSample scn si smp = {-# SCC "evalSample" #-} do

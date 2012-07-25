@@ -21,9 +21,10 @@ mkContrib
    :: WeightedSpectrum
    -> Bool -- ^ true -> splat, otherwise -> addSample
    -> Sampled m Contribution
+{-# INLINE mkContrib #-}
 mkContrib ws splat = do
    cs <- cameraSample
-   return $ (splat, ImageSample (imageX cs) (imageY cs) ws)
+   return $ (splat, (imageX cs, imageY cs, ws))
    
 type Consumer m = Contribution -> ST m ()
 

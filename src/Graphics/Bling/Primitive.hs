@@ -17,7 +17,6 @@ import qualified Data.Vector.Generic as V
    
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Light as L
-import Graphics.Bling.Math
 import Graphics.Bling.Reflection
 
 class Primitive a where

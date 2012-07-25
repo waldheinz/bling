@@ -57,7 +57,7 @@ instance Renderer LightTracer where
       -- | scales an image sample according to total light power in scene
       --   and total number of samples
       sSmp :: ImageSample -> ImageSample
-      sSmp (ImageSample x y (w, s)) = ImageSample x y (w * f, s)
+      sSmp (x, y, (w, s)) = (x, y, (w * f, s))
       f = 1 / (fromIntegral $ ppp)
 
 oneRay :: Scene -> (ImageSample -> Rand m ()) -> Rand m ()
@@ -78,7 +78,7 @@ connectCam sc splat li bsdf wi eps
    | cPdf == 0 = return ()
    | sc `intersects` cray = return ()
    | otherwise = do
-      splat $ ImageSample px py (absDot n we / (cPdf * dCam2), f * li * csf)
+      splat $ (px, py, (absDot n we / (cPdf * dCam2), f * li * csf))
    where
       (CameraSampleResult csf pCam px py cPdf) = sampleCam (sceneCam sc) p
       dCam = pCam - p
