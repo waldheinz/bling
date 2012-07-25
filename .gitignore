@@ -4,3 +4,8 @@ pass-*.hdr
 dist/
 bling.prof
 **~
+**.aux
+**.hp
+**.prof
+**.ps
+

@@ -1,13 +1,13 @@
 
-#filter sinc 4.0 4.0 3.0
-#filter triangle 3.0 3.0
-filter mitchell 3.0 3.0 0.333333 0.333333
+filter sinc 4 4 3
+filter triangle 3 3
+# filter mitchell 3 3 0.333333 0.333333
 # filter box
 
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 3 ySamples 3 }
+      sampler { stratified xSamples 4 ySamples 4 }
       integrator { path maxDepth 10 sampleDepth 3 }
    }
 }

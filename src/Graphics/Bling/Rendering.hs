@@ -112,36 +112,35 @@ instance Renderer SamplerRenderer where
 prender :: SamplerRenderer -> RenderJob -> ProgressReporter -> IO ()
 prender (SR sampler integ) job report = do
    
+   image <- thaw $ mkJobImage job
+   
    let
       scene = jobScene job
-      image = mkJobImage job
-      flt = imgFilter image
-      wnds = splitWindow $ imageWindow' image
+      flt = imageFilter image
+      wnds = splitWindow $ sampleExtent image
       pm f = withStrategy (parBuffer (4 * numCapabilities) rdeepseq) . map f
       
-      eval :: (MWC.Seed, SampleWindow) -> (Image, SampleWindow)
+      eval :: (MWC.Seed, SampleWindow) -> ((Image, (Int, Int)), SampleWindow)
       eval (s, w) = runST $ do
          i <- mkImageTile flt w 
          runWithSeed s $ tile scene sampler integ i w
-         i' <- fst <$> freeze i
+         i' <- freeze i
          return (i', w)
    
-   currentImage <- thaw image
-
    forM_ [1..] $ \pass -> do
       seeds <- repeat <$> ioSeed
       
-      forM_ (pm eval $ zip seeds wnds) $ \t -> do
-         _ <- report $ RegionStarted $ snd t
-         addTile currentImage t
-         (img', _) <- freeze currentImage
-         report (SamplesAdded (snd t) img')
+      forM_ (pm eval $ zip seeds wnds) $ \(t, w) -> do
+         _ <- report $ RegionStarted w
+         addTile image t
+         (img', _) <- freeze image
+         report (SamplesAdded w img')
          
-      (img', _) <- freeze currentImage
+      (img', _) <- freeze image
       report (PassDone pass img' 1)
    
-tile :: I.SurfaceIntegrator a =>
-   Scene -> Sampler -> a -> MImage (ST s) -> SampleWindow -> Rand s ()
+tile :: I.SurfaceIntegrator i =>
+   Scene -> Sampler -> i -> MImage (ST s) -> SampleWindow -> Rand s ()
 tile scene smp si img w = do
    let comp = fireRay cam >>= I.contrib si scene (addContrib img)
    _ <- sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp

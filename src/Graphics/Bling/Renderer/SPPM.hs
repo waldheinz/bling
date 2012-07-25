@@ -69,7 +69,7 @@ escaped ray s = V.sum $ V.map (`le` ray) (sceneLights s)
 
 mkHitPoints :: Scene -> MImage (ST s) -> Int -> R.Rand s [HitPoint]
 mkHitPoints scene img maxD = {-# SCC "mkHitPoints" #-}
-   liftM concat $ forM (splitWindow $ imageWindow img) $ \w ->
+   liftM concat $ forM (splitWindow $ sampleExtent img) $ \w ->
       liftM concat $ sample (mkRandomSampler 1) w 0 0 $ do
          ray <- fireRay $ sceneCam scene
          
@@ -299,7 +299,7 @@ instance Renderer SPPM where
          n = sn * sn
 
       img <- stToIO $ thaw $ mkJobImage job
-      pxStats <- stToIO $ mkPixelStats (imageWindow img) (r * r)
+      pxStats <- stToIO $ mkPixelStats (sampleExtent img) (r * r)
       
       forM_ [1..] $ \passNum -> do
          seed <- R.ioSeed

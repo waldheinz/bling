@@ -8,13 +8,14 @@ module Graphics.Bling.Filter (
    
    -- * Evaluating Pixel Filters
    
-   filterSample, filterWidth, filterHeight
+   filterSample, filterWidth, filterHeight, filterSize
    
    ) where
-   
-import Graphics.Bling.Spectrum
 
-import Data.Vector.Unboxed
+import Control.Monad.Primitive
+import qualified Data.Vector.Unboxed as UV
+
+import Graphics.Bling.Spectrum
 
 -- | the size of tabulated pixel filters
 tableSize :: Int
@@ -30,7 +31,7 @@ data Filter
       }
    | Mitchell {-# UNPACK #-} !Float {-# UNPACK #-} !Float {-# UNPACK #-} !Float {-# UNPACK #-} !Float
    | Triangle Float Float
-   | Table {-# UNPACK #-} !Float {-# UNPACK #-} !Float !(Vector Float) String
+   | Table {-# UNPACK #-} !Float {-# UNPACK #-} !Float !(UV.Vector Float) String
 
 instance Show Filter where
    show Box = "Box"
@@ -77,7 +78,7 @@ mkTableFilter f = Table w h vs n where
    w = filterWidth f
    h = filterHeight f
    n = show f
-   vs = fromList (Prelude.map (uncurry (evalFilter f)) ps)
+   vs = UV.fromList (map (uncurry (evalFilter f)) ps)
    ps = tablePositions w h
    
 -- | finds the positions where the filter function has to be evaluated
@@ -89,6 +90,9 @@ tablePositions w h = Prelude.map f is where
    is' = [0..tableSize-1]
    w1 = w / fromIntegral tableSize
    h1 = h / fromIntegral tableSize
+
+filterSize :: Filter -> (Float, Float)
+filterSize f = (filterWidth f, filterHeight f)
 
 -- | computes the width in pixels of a given @Filter@
 filterWidth :: Filter -> Float
@@ -107,11 +111,11 @@ filterHeight (Table _ h _ _) = h
 filterHeight (Triangle _ h) = h
 
 -- | applies the given pixel @Filter@ to the @ImageSample@
-filterSample :: Filter -> ImageSample -> [(Int, Int, WeightedSpectrum)]
+filterSample :: (PrimMonad m) => Filter -> ImageSample -> ((Int, Int, WeightedSpectrum) -> m ()) -> m ()
 {-# INLINE filterSample #-}
-filterSample Box (ImageSample x y ws) = [(floor x, floor y, ws)]
-filterSample (Table w h t _) s = tableFilter w h t s
-filterSample f (ImageSample ix iy (sw, s)) = go where
+filterSample Box (ImageSample x y ws) fun = fun (floor x, floor y, ws)
+filterSample (Table w h t _) s _ = error "table not implemented " -- tableFilter w h t s
+filterSample f (ImageSample ix iy (sw, s)) fun = mapM_ fun go where
    go = [(x, y, (sw * w x y, sScale s (w x y))) | y <- [y0..y1], x <- [x0..x1]]
    (dx, dy) = (ix - 0.5, iy - 0.5)
    x0 = ceiling (dx - fw)
@@ -123,6 +127,7 @@ filterSample f (ImageSample ix iy (sw, s)) = go where
    fh = filterHeight f
 
 evalFilter :: Filter -> Float -> Float -> Float
+{-# INLINE evalFilter #-}
 evalFilter (Mitchell w h b c) px py = m1d (px * iw) * m1d (py * ih) where
    (iw, ih) = (1 / w, 1 / h)
    m1d x' = y where
@@ -151,7 +156,7 @@ evalFilter f _ _ =
 
 tableFilter
    :: Float -> Float
-   -> Vector Float 
+   -> UV.Vector Float 
    -> ImageSample
    -> [(Int, Int, WeightedSpectrum)]
 {-# INLINE tableFilter #-}
@@ -163,11 +168,11 @@ tableFilter fw fh tbl (ImageSample ix iy (wt, s)) = go where
    y1 = floor (dy + fh)
    fx = (1 / fw) * fromIntegral tableSize
    fy = (1 / fh) * fromIntegral tableSize
-   ifx = fromList [min (tableSize-1) (floor (abs ((x - dx) * fx)))
-      | x <- Prelude.map fromIntegral [x0 .. x1]] :: Vector Int
-   ify = fromList [min (tableSize-1) (floor (abs ((y - dy) * fy)))
-      | y <- Prelude.map fromIntegral [y0 .. y1]] :: Vector Int
-   o x y = (unsafeIndex ify (y-y0) * tableSize) + unsafeIndex ifx (x - x0)
-   w x y = wt * unsafeIndex tbl (o x y)
+   ifx = UV.fromList [min (tableSize-1) (floor (abs ((x - dx) * fx)))
+      | x <- map fromIntegral [x0 .. x1]] :: UV.Vector Int
+   ify = UV.fromList [min (tableSize-1) (floor (abs ((y - dy) * fy)))
+      | y <- map fromIntegral [y0 .. y1]] :: UV.Vector Int
+   o x y = (UV.unsafeIndex ify (y-y0) * tableSize) + UV.unsafeIndex ifx (x - x0)
+   w x y = wt * UV.unsafeIndex tbl (o x y)
    go = [(x, y, (wt * w x y, sScale s (w x y))) | y <- [y0..y1], x <- [x0..x1]]
    

@@ -4,11 +4,11 @@ module Graphics.Bling.Image (
    
    Image, ImageSample(..), mkImage, rgbPixels, imageWindow', imgW, imgH, imgFilter,
    
-   MImage,
+   MImage, imageFilter,
    
    mkMImage, mkImageTile, addSample, splatSample, addContrib, addTile,
    
-   imageWidth, imageHeight, imageWindow, writePpm, 
+   imageWidth, imageHeight, sampleExtent, writePpm, 
    
    thaw, freeze,
 
@@ -37,11 +37,14 @@ import Graphics.Bling.Spectrum
 --   and the RGB value of the splatted samples
 type Pixel = (Float, (Float, Float, Float), (Float, Float, Float))
 
--- | a mutable image in the ST monad
-data PrimMonad m => MImage m = MImage
+emptyPixel :: Pixel
+emptyPixel = (0, (0, 0, 0), (0, 0, 0))
+
+-- | a mutable image
+data MImage m = MImage
    { imageWidth   :: {-# UNPACK #-} ! Int
    , imageHeight  :: {-# UNPACK #-} ! Int
-   , _imageOffset  :: {-# UNPACK #-} ! (Int, Int)
+   , _imageOffset :: {-# UNPACK #-} ! (Int, Int)
    , imageFilter  :: ! Filter
    , _imagePixels :: MV.MVector (PrimState m) Pixel
    }
@@ -52,25 +55,30 @@ mkMImage :: (PrimMonad m, Functor m)
    -> Int -- ^ the image width
    -> Int -- ^ the image height
    -> m (MImage m)
-mkMImage flt w h = MImage w h (0, 0) flt <$> MV.replicate (w * h) (0, (0, 0, 0), (0, 0, 0))
+mkMImage flt w h = MImage w h (0, 0) flt <$> (MV.replicate (w * h) emptyPixel)
 
 mkImageTile :: (PrimMonad m, Functor m) => Filter -> SampleWindow -> m (MImage m)
-mkImageTile f wnd = MImage w h (ox, oy) f <$> MV.replicate (w * h) (0, (0, 0, 0), (0, 0, 0)) where
-   w = xEnd wnd - ox + 1
-   h = yEnd wnd - oy + 1
-   ox = xStart wnd
-   oy = yStart wnd
-
+mkImageTile f wnd = MImage w h (px, py) f <$> pixels where
+   w = xEnd wnd - px + floor (0.5 + fw)
+   h = yEnd wnd - py + floor (0.5 + fh)
+   px = max 0 $ xStart wnd -- + floor (0.5 - fw)
+   py = max 0 $ yStart wnd -- + floor (0.5 - fh)
+   pixels = MV.replicate (w * h) emptyPixel
+   (fw, fh) = filterSize f
+   
 -- | an immutable image
 data Image = Img
-   { imgW :: {-# UNPACK #-} ! Int
-   , imgH :: {-# UNPACK #-} ! Int
+   { imgW      :: {-# UNPACK #-} ! Int
+   , imgH      :: {-# UNPACK #-} ! Int
    , imgFilter :: ! Filter
-   , _imgP :: V.Vector Pixel
+   , _imgP     :: V.Vector Pixel
    }
 
 instance NFData Image where
    rnf (Img w h f p) = w `seq` h `seq` f `seq` p `seq` ()
+
+instance Show Image where
+   show (Img w h f _) = "Image {width=" ++ (show w) ++ ", height=" ++ (show h) ++ ", filter=" ++ (show f) ++ "}"
 
 -- | creates a new image where all pixels are initialized to black
 mkImage
@@ -78,7 +86,7 @@ mkImage
    -> Int -- ^ the image width
    -> Int -- ^ the image height
    -> Image
-mkImage flt w h = Img w h flt $ V.replicate (w * h) (0, (0, 0, 0), (0, 0, 0))
+mkImage flt w h = Img w h flt $ V.replicate (w * h) emptyPixel
 
 -- | converts an image to a mutable image 
 thaw :: (PrimMonad m, Functor m) => Image -> m (MImage m)
@@ -88,8 +96,8 @@ thaw (Img w h f p) = {-# SCC "thaw" #-} MImage w h (0, 0) f <$> GV.thaw p
 freeze :: (PrimMonad m, Functor m) => MImage m -> m (Image, (Int, Int))
 freeze (MImage w h o f p) = {-# SCC "freeze" #-} (\p' -> (Img w h f p', o)) <$> GV.freeze p
 
-imageWindow :: PrimMonad m => MImage m -> SampleWindow
-imageWindow (MImage w h (ox, oy) f _) = SampleWindow x0 x1 y0 y1 where
+sampleExtent :: PrimMonad m => MImage m -> SampleWindow
+sampleExtent (MImage w h (ox, oy) f _) = SampleWindow x0 x1 y0 y1 where
    x0 = ox + floor (0.5 - filterWidth f)
    x1 = ox + floor (0.5 + (fromIntegral w) + filterWidth f)
    y0 = oy + floor (0.5 - filterHeight f)
@@ -102,15 +110,15 @@ imageWindow' (Img w h f _) = SampleWindow x0 x1 y0 y1 where
    y0 = floor (0.5 - filterHeight f)
    y1 = floor (0.5 + (fromIntegral h) + filterHeight f)
 
-addTile :: PrimMonad m => MImage m -> (Image, SampleWindow) -> m ()
-addTile (MImage w _ (ox, oy) _ px) (Img w' _ _ px', wnd) = do
-   forM_ (coverWindow wnd) $ \(x, y) -> do
+addTile :: PrimMonad m => MImage m -> (Image, (Int, Int)) -> m ()
+addTile (MImage w h (ox, oy) _ px) (Img tw th _ px', (dx, dy)) = do
+   forM_ [(x, y) | y <- [0 .. (th-1)], x <- [0 .. (tw-1)]] $ \(x, y) -> do
       let
-         od = w  * (y - oy) + (x - ox)
-         os = w' * (y - yStart wnd) + (x - xStart wnd)
+         od = w * (y - oy + dy) + (x - ox + dx)
+         os = tw * y + x
          
-      unless (od >= MV.length px) $
-         MV.read px od >>= \old -> MV.write px od $ pxAdd old (px' V.! os)
+      unless ((y - oy + dy) >= w || (x - ox + dx) >= h) $
+         MV.unsafeRead px od >>= \old -> MV.unsafeWrite px od $ pxAdd old (px' `V.unsafeIndex` os)
       
 pxAdd :: Pixel -> Pixel -> Pixel
 pxAdd 
@@ -121,11 +129,9 @@ pxAdd
 addPixel :: PrimMonad m => MImage m -> (Int, Int, WeightedSpectrum) -> m ()
 {-# INLINE addPixel #-}
 addPixel (MImage w h (ox, oy) _ p) (x, y, (sw, s))
-   | x < 0 || y < 0 = return ()
+   | (x - ox) < 0 || (y - oy) < 0 = return ()
    | x >= (w + ox) || y >= (h + oy) = return ()
-   | otherwise = do
-      px <- MV.unsafeRead p o
-      MV.unsafeWrite p o (add px dpx)
+   | otherwise = MV.unsafeRead p o >>= \px -> MV.unsafeWrite p o (add px dpx)
    where
          dpx = (sw, r, g, b)
          (r, g, b) = toRGB s
@@ -144,7 +150,7 @@ splatSample (MImage w h (iox, ioy) _ p) (ImageSample sx sy (sw, ss))
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | isInfinite sw = trace ("not splatting infinite weight sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
-   | otherwise = do
+   | otherwise = {-# SCC "splatSample" #-} do
       (ow, oxyz, (ox, oy, oz)) <- MV.unsafeRead p o
       MV.unsafeWrite p o (ow, oxyz, (ox + dx, oy + dy, oz + dz))
       where
@@ -153,15 +159,14 @@ splatSample (MImage w h (iox, ioy) _ p) (ImageSample sx sy (sw, ss))
 
 -- | adds a sample to the specified image
 addSample :: PrimMonad m => MImage m -> ImageSample -> m ()
+{-# INLINE addSample #-}
 addSample img smp@(ImageSample sx sy (sw, ss))
    | sw == 0 = return ()
    | sNaN ss = trace ("skipping NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | sInfinite ss = trace ("skipping infinite sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
-   | otherwise = {-# SCC "addSample" #-} forM_ pixels (addPixel img)
-   where
-         pixels = filterSample (imageFilter img) smp
+   | otherwise = {-# SCC "addSample" #-} filterSample (imageFilter img) smp (addPixel img)
 
 addContrib :: PrimMonad m => MImage m -> Contribution -> m ()
 addContrib img (splat, is)
@@ -178,7 +183,7 @@ getPixel (Img _ _ _ p) sw o
    | w == 0 = (sw * sr, sw * sg, sw * sb)
    | otherwise = (sw * sr + r / w, sw * sg + g / w, sw * sb + b / w)
    where
-      (w, (r, g, b), (sr, sg, sb)) = V.unsafeIndex p o
+      (w, (r, g, b), (sr, sg, sb)) = p V.! o
       
 -- | writes an image in ppm format
 writePpm
