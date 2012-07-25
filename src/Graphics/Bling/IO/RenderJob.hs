@@ -5,6 +5,7 @@ module Graphics.Bling.IO.RenderJob (
 
 import System.FilePath
 import Text.Parsec.Error
+import Control.Applicative ((<*>), (<$>))
 
 import Graphics.Bling.Image
 import Graphics.Bling.Rendering
@@ -78,6 +79,7 @@ pFilter = do
    t <- pString
    f <- case t of
       "box" -> return mkBoxFilter
+      "gauss" -> mkGaussFilter <$> flt <*> flt <*> flt
       
       "sinc" -> do
          xw <- flt

@@ -16,9 +16,9 @@ module Graphics.Bling.Image (
    
    -- * Pixel Filters
    Filter, mkBoxFilter, mkTriangleFilter, mkMitchellFilter, mkSincFilter,
+   mkGaussFilter,
    
    -- * Reading and Writing RGBE
-
    writeRgbe
    
    ) where
@@ -266,7 +266,9 @@ toRgbe (r, g, b)
 --------------------------------------------------------------------------------
 
 data Filter
-   = Box 
+   = Box
+   | Gauss {-# UNPACK #-} !Float {-# UNPACK #-} !Float {-# UNPACK #-} !Float
+           {-# UNPACK #-} !Float {-# UNPACK #-} !Float -- w, h, expX, expY, alpha
    | Sinc {-# UNPACK #-} !Float {-# UNPACK #-} !Float
           {-# UNPACK #-} !Float {-# UNPACK #-} !Float
           {-# UNPACK #-} !Float -- xw, xy, invx, invy, tau
@@ -278,15 +280,23 @@ data Filter
 mkBoxFilter :: Filter
 mkBoxFilter = Box 
 
--- | creates a Sinc filter
-mkSincFilter :: Float -> Float -> Float -> Filter
+mkGaussFilter :: Float -> Float -> Float -> Filter
+mkGaussFilter xw yw alpha = Gauss xw yw (exp $ -alpha * xw * xw) (exp $ -alpha * yw * yw) alpha
+
+-- | creates a Lanczos - Sinc filter
+mkSincFilter
+   :: Float -- ^ the filter extent's width
+   -> Float -- ^ the filter extent's height
+   -> Float -- ^ the tau parameter for the filter, controls how many
+            --   cycles the sinc passes through before camped to zero
+   -> Filter
 mkSincFilter wx wy tau = Sinc wx wy (1 / wx) (1 / wy) tau
 
 -- | creates a triangle filter
 mkTriangleFilter
    :: Float -- ^ the width of the filter extent
    -> Float -- ^ the height of the filter extent
-   -> Filter -- ^ the filter function
+   -> Filter
 
 mkTriangleFilter = Triangle
 
@@ -296,12 +306,13 @@ mkMitchellFilter
    -> Float -- ^ the height of the filter extent
    -> Float -- ^ the Mitchell "B" parameter
    -> Float -- ^ the Mitchell "C" parameter
-   -> Filter -- ^ the created filter
+   -> Filter
    
 mkMitchellFilter = Mitchell   
 
 filterSize :: Filter -> (Float, Float)
 filterSize (Box)              = (0.5, 0.5)
+filterSize (Gauss w h _ _ _)  = (w, h)
 filterSize (Sinc w h _ _ _)   = (w, h)
 filterSize (Mitchell w h _ _) = (w, h)
 filterSize (Triangle w h)     = (w, h)
@@ -321,6 +332,10 @@ filterSample f (!ix, !iy, WS sw s) img = {-# SCC "filterSample" #-} do
 
 evalFilter :: Filter -> Float -> Float -> Float
 {-# INLINE evalFilter #-}
+
+evalFilter (Gauss _ _ ex ey a) x y = gaussian x ex * gaussian y ey where
+   gaussian d expv = max 0 $ exp (-a * d * d) - expv
+   
 evalFilter (Mitchell w h b c) px py = m1d (px * iw) * m1d (py * ih) where
    (iw, ih) = (1 / w, 1 / h)
    m1d x' = y where
