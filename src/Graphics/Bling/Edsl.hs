@@ -9,8 +9,8 @@ import Control.Monad.State
 import qualified Data.ByteString.Lazy as BS
 
 import Graphics.Bling.Camera
-import Graphics.Bling.Filter
 import Graphics.Bling.Gui
+import Graphics.Bling.Image
 import qualified Graphics.Bling.Integrator as I
 import Graphics.Bling.Integrator.Path
 import Graphics.Bling.Light

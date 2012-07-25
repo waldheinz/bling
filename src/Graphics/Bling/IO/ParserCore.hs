@@ -31,7 +31,7 @@ import Text.Parsec.String()
 import Text.Parsec.ByteString.Lazy()
 
 import Graphics.Bling.Camera
-import Graphics.Bling.Filter
+import Graphics.Bling.Image
 import Graphics.Bling.Light
 import Graphics.Bling.Math
 import Graphics.Bling.Primitive

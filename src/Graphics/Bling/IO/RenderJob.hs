@@ -6,7 +6,7 @@ module Graphics.Bling.IO.RenderJob (
 import System.FilePath
 import Text.Parsec.Error
 
-import Graphics.Bling.Filter
+import Graphics.Bling.Image
 import Graphics.Bling.Rendering
 import Graphics.Bling.Scene
 import Graphics.Bling.Transform
