@@ -123,7 +123,7 @@ addTile (MImage w h (ox, oy) _ px) (Img tw th _ px', (dx, dy)) = {-# SCC addTile
          od = w * (y - oy + dy) + (x - ox + dx)
          os = tw * y + x
          
-      unless ((y - oy + dy) >= w || (x - ox + dx) >= h) $
+      unless ((y - oy + dy) >= h || (x - ox + dx) >= w) $
          MV.unsafeRead px od >>= \old -> MV.unsafeWrite px od $ pxAdd old (px' `V.unsafeIndex` os)
       
 pxAdd :: Pixel -> Pixel -> Pixel
