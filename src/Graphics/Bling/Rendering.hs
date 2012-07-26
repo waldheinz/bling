@@ -143,7 +143,7 @@ tile :: I.SurfaceIntegrator i =>
    Scene -> Sampler -> i -> MImage (ST s) -> SampleWindow -> Rand s ()
 tile scene smp si img w = do
    let comp = fireRay cam >>= I.contrib si scene (addContrib img)
-   _ <- sample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp
+   _ <- runSample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp
    return ()
    where
       cam = sceneCam scene

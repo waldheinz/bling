@@ -11,5 +11,5 @@ main = SDL.withInit [InitEverything] $ do
    parseJob fname >>= \ result ->
       case result of
            (Left e) -> putStrLn $ show e
-           (Right (job, renderer)) -> renderWithPreview job renderer
+           (Right (job, renderer)) -> renderWithPreview renderer job
 

@@ -1,5 +1,21 @@
 
 module Graphics.Bling.Edsl (
+   module Graphics.Bling.Camera,
+   module Graphics.Bling.Gui,
+   module Graphics.Bling.IO.RGBE,
+   module Graphics.Bling.Integrator,
+   module Graphics.Bling.Integrator.Path,
+   module Graphics.Bling.Light,
+   module Graphics.Bling.Material.Lafortune,
+   module Graphics.Bling.Material.Metal,
+   module Graphics.Bling.Material.Plastic,
+   module Graphics.Bling.Rendering,
+   module Graphics.Bling.Reflection,
+   module Graphics.Bling.Sampling,
+   module Graphics.Bling.Shape,
+   module Graphics.Bling.Spectrum,
+   module Graphics.Bling.Texture,
+   
    buildJob, emit, CanAdd(..), shape, setTransform, setCamera, setMaterial,
    setImageSize, readFileBS
    ) where
@@ -11,17 +27,22 @@ import qualified Data.ByteString.Lazy as BS
 import Graphics.Bling.Camera
 import Graphics.Bling.Gui
 import Graphics.Bling.Image
-import qualified Graphics.Bling.Integrator as I
+import Graphics.Bling.Integrator
 import Graphics.Bling.Integrator.Path
 import Graphics.Bling.Light
+import Graphics.Bling.IO.RGBE
+import Graphics.Bling.Material.Lafortune
 import Graphics.Bling.Material.Matte
+import Graphics.Bling.Material.Metal
+import Graphics.Bling.Material.Plastic
 import Graphics.Bling.Primitive
 import Graphics.Bling.Primitive.Geometry
 import Graphics.Bling.Reflection
-import qualified Graphics.Bling.Rendering as R
+import Graphics.Bling.Rendering
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Shape
+import Graphics.Bling.Spectrum
 import Graphics.Bling.Texture
 
 data MyState = MyState
@@ -86,8 +107,8 @@ readFileBS n = liftIO $ do
    putStrLn $ "Reading " ++ n
    BS.readFile n
 
-buildJob :: DslState a -> IO R.RenderJob
+buildJob :: DslState a -> IO RenderJob
 buildJob f = do
    (MyState ps ls (sx, sy) filt cam _ _ _ _) <- execStateT f initialState
-   return $ R.mkJob (mkScene ls ps cam) filt sx sy
+   return $ mkJob (mkScene ls ps cam) filt sx sy
 

@@ -1,17 +1,7 @@
 
 import Control.Applicative
 
-import Graphics.Bling.Camera
 import Graphics.Bling.Edsl
-import Graphics.Bling.IO.RGBE
-import Graphics.Bling.Light
-import Graphics.Bling.Material.Lafortune
-import Graphics.Bling.Material.Metal
-import Graphics.Bling.Material.Plastic
-import Graphics.Bling.Reflection
-import Graphics.Bling.Shape
-import Graphics.Bling.Spectrum
-import Graphics.Bling.Texture
 
 gold :: Material
 gold = mkMetal eta k $ const 0.002 where
@@ -60,7 +50,7 @@ gold = mkMetal eta k $ const 0.002 where
 plexi :: Material
 plexi = mkPlastic (const $ fromRGB' 0.01 0.01 0.01) (const $ fromRGB' 0.8 0.8 0.8) (const $ 0.0002)
 
-spiral = render $ do
+spiral = buildJob $ do
    let
       w = 576
       h = 1024
@@ -99,8 +89,12 @@ spiral = render $ do
    setMaterial gold -- $ measuredMaterial BrushedMetal
    mapM_ bars bases
    
---    (R.mkAnyRenderer $ R.mkSamplerRenderer (mkStratifiedSampler 8 8) (I.mkAnySurface $ mkPathIntegrator 5 3))
-   
 main :: IO ()
-main = spiral
-
+main = do
+   let
+      sampler = mkStratifiedSampler 8 8
+      renderer = mkSamplerRenderer sampler $ mkAnySurface $ mkPathIntegrator 5 3
+   
+   job <- spiral
+   renderWithPreview renderer job
+   

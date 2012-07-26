@@ -13,7 +13,7 @@ import Graphics.Bling.AABB
 import Graphics.Bling.Math
 import Graphics.Bling.Montecarlo
 import Graphics.Bling.Random
-import qualified Graphics.Bling.Shape as S
+import Graphics.Bling.Shape
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Texture
 import Graphics.Bling.Transform
@@ -36,7 +36,7 @@ data Light
    | PointLight !Spectrum !Point
    | AreaLight {
       _alId          :: !Int,
-      _alShape       :: !S.Shape,
+      _alShape       :: !Shape,
       _areaRadiance  :: !Spectrum,
       _l2w           :: !Transform, -- ^ light-to-world
       _w2l           :: !Transform  -- ^ world-to-light
@@ -60,7 +60,7 @@ mkPointLight r p = PointLight r p
 
 -- | creates an area @Light@ sources for a gives shape and spectrum
 mkAreaLight
-   :: S.Shape -- ^ the @Shape@ to create the area light for
+   :: Shape -- ^ the @Shape@ to create the area light for
    -> Spectrum -- ^ the emission @Spectrum@
    -> Transform -- ^ the @Transform@ which places the @Light@ in the world
    -> Int -- ^ the light id
@@ -109,7 +109,7 @@ power
    -> AABB -- ^ the bounds of the area illuminated by this light
    -> Spectrum -- ^ the light's power in [Watt]
 
-power (AreaLight _ s r _ _) _ = sScale r ((S.area s) * pi)
+power (AreaLight _ s r _ _) _ = sScale r ((area s) * pi)
 power (Directional r _) b = sScale r $ pi * radius * radius where
    radius = snd $ boundingSphere b
 power (PointLight r _) _ = sScale r $ 4 * pi
@@ -150,10 +150,10 @@ sample (PointLight r pos) p e _ _ = LightSample r' wi ray 1 True where
 sample (AreaLight _ s r l2w w2l) pW e _ us = LightSample r' wiW rayW pd False where
    r' = if ns `dot` wi < 0 then r else black
    p = transPoint w2l pW -- point to be lit in local space
-   (ps, ns) = S.sample s p us -- point in local space
+   (ps, ns) = sampleShape s p us -- point in local space
    wiW = transVector l2w wi -- incident vector in world space
    wi = normalize $ ps - p -- incident vector in local space
-   pd = S.pdf s p wi -- pdf (computed in local space)
+   pd = shapePdf s p wi -- pdf (computed in local space)
    rayW = transRay l2w ray -- vis. test ray (in world space)
    ray = Ray p wi e (len (ps - p) - e) -- vis. test ray (in local space)
 
@@ -170,9 +170,9 @@ sample'
       -- ^ (radiance, outgoing ray, normal at light source, PDF)
 
 sample' (AreaLight _ s r t _) _ uo ud = (r, ray, ns, pd) where
-   (org', ns') = S.sample' s uo
+   (org', ns') = sampleShape' s uo
    (org, ns) = (transPoint t org', transNormal t ns')
-   pd = invTwoPi * S.pdf' s org
+   pd = invTwoPi * shapePdf' s org
    wi = let d = uniformSampleSphere ud in if ns `dot` d < 0 then -d else d
    ray = Ray org wi 1e-2 infinity
  --  rayW = transRay t ray
@@ -224,5 +224,5 @@ pdf (Infinite _ _ dist w2l) _ wiW
       sph = dirToSph $ transVector w2l wiW
 
 pdf (Directional _ _) _ _ = 0 -- zero chance to find the direction by sampling
-pdf (AreaLight _ ss _ _ t) p wi = S.pdf ss (transPoint t p) (transVector t wi)
+pdf (AreaLight _ ss _ _ t) p wi = shapePdf ss (transPoint t p) (transVector t wi)
 pdf (PointLight _ _) _ _ = 0

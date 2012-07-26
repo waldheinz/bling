@@ -68,8 +68,8 @@ putPixel s ((x, y), (r,g,b))
       (Pixel p) <- mapRGB (surfaceGetPixelFormat s) (fromIntegral r) (fromIntegral g) (fromIntegral b)
       pokeElemOff pixels ((y * surfaceGetWidth s) + x) p
 
-renderWithPreview :: RenderJob -> AnyRenderer -> IO ()
-renderWithPreview j r = do
+renderWithPreview :: (Renderer r) => r -> RenderJob -> IO ()
+renderWithPreview r j = do
    wnd <- mkPreviewWindow (imageSizeX j, imageSizeY j)
    render r j $ previewProgress wnd
    waitQuit

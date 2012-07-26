@@ -15,7 +15,7 @@ module Graphics.Bling.Sampling (
    
    -- * Running Sampled Computations
    
-   runSampled, randToSampled, sample, liftSampled,
+   runSampled, randToSampled, runSample, liftSampled,
    
    -- * Accessing Camera Samples
 
@@ -96,8 +96,8 @@ mkStratifiedSampler' :: Int -> Sampler
 mkStratifiedSampler' spp = mkStratifiedSampler spp' spp' where
    spp' = max 1 $ ceiling $ sqrt $ (fromIntegral spp :: Float)
 
-sample :: Sampler -> SampleWindow -> Int -> Int -> Sampled s a -> R.Rand s [a]
-sample (Random spp) wnd _ _ c = {-# SCC "sample.Random" #-} do
+runSample :: Sampler -> SampleWindow -> Int -> Int -> Sampled s a -> R.Rand s [a]
+runSample (Random spp) wnd _ _ c = {-# SCC "sample.Random" #-} do
    liftM concat $ forM (coverWindow wnd) $ \ (ix, iy) -> do
       let (fx, fy) = (fromIntegral ix, fromIntegral iy)
       CM.replicateM spp $ do
@@ -107,7 +107,7 @@ sample (Random spp) wnd _ _ c = {-# SCC "sample.Random" #-} do
          let s = RandomSample (CameraSample (fx + ox) (fy + oy) luv)
          randToSampled c s
 
-sample (Stratified nu nv) wnd n1d n2d c = {-# SCC "sample.Stratified" #-} do
+runSample (Stratified nu nv) wnd n1d n2d c = {-# SCC "sample.Stratified" #-} do
    v1d <- R.liftR $ V.new (nu * nv * n1d)
    v2d <- R.liftR $ V.new (nu * nv * n2d)
    

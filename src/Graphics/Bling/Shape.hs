@@ -8,7 +8,7 @@ module Graphics.Bling.Shape (
 
    -- * Working with shapes
    
-   area, sample, sample', pdf, pdf',
+   area, sampleShape, sampleShape', shapePdf, shapePdf',
    objectBounds, worldBounds, intersect, intersects
    ) where
 
@@ -321,18 +321,18 @@ area (Sphere r) = r * r * 4 * pi
 insideSphere :: Float -> Point -> Bool
 insideSphere r pt = sqLen pt - r * r < 1e-4
 
-pdf :: Shape -- ^ the @Shape@ to compute the pdf for
+shapePdf :: Shape -- ^ the @Shape@ to compute the pdf for
     -> Point -- ^ the point which is to be illuminated
     -> Vector -- ^ the wi vector
     -> Float -- ^ the computed pdf value
     
-pdf s@(Sphere r) p wi
+shapePdf s@(Sphere r) p wi
    | insideSphere r p = generalPdf s p wi
    | otherwise = uniformConePdf cosThetaMax where
       sinThetaMax2 = r * r / (sqLen p)
       cosThetaMax = sqrt $ max 0 (1 - sinThetaMax2)
 
-pdf s p wi = generalPdf s p wi
+shapePdf s p wi = generalPdf s p wi
 
 generalPdf :: Shape -> Point -> Vector -> Float
 generalPdf s p wi = maybe 0 p' (s `intersect` r) where
@@ -341,19 +341,19 @@ generalPdf s p wi = maybe 0 p' (s `intersect` r) where
    p' (t, _, dg) = f $ sqLen (p - (rayAt r t)) / (absDot (dgN dg) (-wi) * area s)
 
 -- | the probability of choosing the specified point by sampling a @Shape@
-pdf'
+shapePdf'
    :: Shape -- ^ the @Shape@ to get the pdf for
    -> Point -- ^ the @Point@ on that @Shape@
    -> Float -- ^ the probability for choosing this @Point@
 
-pdf' s _ = 1 / area s
+shapePdf' s _ = 1 / area s
 
 -- | returns a random point (along with its normal) on the object, 
 --   which is preferably visible from the specified point
-sample :: Shape -> Point -> Rand2D -> (Point, Normal)
+sampleShape :: Shape -> Point -> Rand2D -> (Point, Normal)
 
-sample sp@(Sphere r) p us
-   | insideSphere r p = sample' sp us -- sample full sphere if inside
+sampleShape sp@(Sphere r) p us
+   | insideSphere r p = sampleShape' sp us -- sample full sphere if inside
    | otherwise = (ps, normalize ps) where -- sample only the visible part
       d = uniformSampleCone cs cosThetaMax us
       cs = coordinateSystem dn
@@ -364,15 +364,15 @@ sample sp@(Sphere r) p us
          int = sp `intersect` ray
          pt (t, _, _) = rayAt ray t
 
-sample s _ us = sample' s us -- ignore the point if nothing clever can be done
+sampleShape s _ us = sampleShape' s us -- ignore the point if nothing clever can be done
 
 -- | returns a random Point and the Normal from a @Shape@
-sample'
+sampleShape'
    :: Shape
    -> Rand2D
    -> (Point, Normal)
 
-sample' (Box pmin pmax) (u1, u2) = (p, n) where
+sampleShape' (Box pmin pmax) (u1, u2) = (p, n) where
    (axis, u1') = remapRand 3 u1
    (nf, u2') = remapRand 2 u2
    n = setComponent axis ((fromIntegral nf * 2 - 1)) $ mkV (0, 0, 0)
@@ -382,20 +382,20 @@ sample' (Box pmin pmax) (u1, u2) = (p, n) where
        setComponent oa1 (lerp u2' (pmin .! oa1) (pmax .! oa1)) $
        if nf == 0 then pmin else pmax
    
-sample' (Cylinder r z0 z1 _) (u1, u2) = (p, n) where
+sampleShape' (Cylinder r z0 z1 _) (u1, u2) = (p, n) where
    p = mkPoint' (r * cos phi) (r * sin phi) z
    z = lerp u1 z0 z1
    phi = lerp u2 0 twoPi
    n = normalize $ mkV (vx p, vy p, 0)
 
-sample' (Disk h rmax rmin phiMax) (u1, u2) = (p, mkV (0, 0, -1)) where
+sampleShape' (Disk h rmax rmin phiMax) (u1, u2) = (p, mkV (0, 0, -1)) where
    p = mkPoint' (r * cos phi) (r * sin phi) h
    r = lerp u1 rmin rmax
    phi = lerp u2 0 phiMax
 
-sample' (Quad sx sy) (u1, u2) = (p, mkV (0, 0, -1)) where
+sampleShape' (Quad sx sy) (u1, u2) = (p, mkV (0, 0, -1)) where
    p = mkPoint (lerp u1 (-sx) sx, lerp u2 (-sy) sy, 0)
    
-sample' (Sphere r) us = (p * vpromote r, p) where
+sampleShape' (Sphere r) us = (p * vpromote r, p) where
    p = uniformSampleSphere us
    

@@ -70,7 +70,7 @@ escaped ray s = V.sum $ V.map (`le` ray) (sceneLights s)
 mkHitPoints :: Scene -> MImage (ST s) -> Int -> R.Rand s [HitPoint]
 mkHitPoints scene img maxD = {-# SCC "mkHitPoints" #-}
    liftM concat $ forM (splitWindow $ sampleExtent img) $ \w ->
-      liftM concat $ sample (mkRandomSampler 1) w 0 0 $ do
+      liftM concat $ runSample (mkRandomSampler 1) w 0 0 $ do
          ray <- fireRay $ sceneCam scene
          
          (hps, ls) <- case scene `intersect` ray of
@@ -306,7 +306,7 @@ instance Renderer SPPM where
          hitMap <- stToIO $ mkHash hitPoints pxStats
          pseed <- R.ioSeed
          _ <- stToIO $ R.runWithSeed pseed $
-            sample (mkStratifiedSampler sn sn) w n1d n2d $ tracePhoton scene hitMap img pxStats
+            runSample (mkStratifiedSampler sn sn) w n1d n2d $ tracePhoton scene hitMap img pxStats
          
          img' <- stToIO $ fst <$> freeze img
          _ <- report $ PassDone passNum img' (1 / fromIntegral (passNum * n))

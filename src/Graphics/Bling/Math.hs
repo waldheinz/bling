@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeFamilies #-}
 
 module Graphics.Bling.Math (
-   module  Graphics.Bling.Types,
+   module Graphics.Bling.Types,
    
    -- * Constants
    
