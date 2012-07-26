@@ -93,8 +93,8 @@ main :: IO ()
 main = do
    let
       sampler = mkStratifiedSampler 8 8
-      renderer = mkSamplerRenderer sampler $ mkAnySurface $ mkPathIntegrator 5 3
+      integrator = mkPathIntegrator 5 3
+      renderer = mkSamplerRenderer sampler integrator
    
-   job <- spiral
-   renderWithPreview renderer job
+   spiral >>= renderWithPreview renderer
    

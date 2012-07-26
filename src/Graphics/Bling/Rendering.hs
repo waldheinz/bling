@@ -23,7 +23,7 @@ import qualified System.Random.MWC as MWC
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Image
-import qualified Graphics.Bling.Integrator as I
+import Graphics.Bling.Integrator
 import Graphics.Bling.Camera
 import Graphics.Bling.Random
 import Graphics.Bling.Sampling
@@ -94,22 +94,22 @@ instance Renderer AnyRenderer where render (AR a) = render a
 -- the sampler renderer
 --
 
-data SamplerRenderer =
-   SR Sampler I.AnySurfaceIntegrator
+data SamplerRenderer i =
+   SR Sampler i
 
-mkSamplerRenderer
-   :: Sampler
-   -> I.AnySurfaceIntegrator
-   -> SamplerRenderer
+mkSamplerRenderer :: (SurfaceIntegrator i)
+   => Sampler
+   -> i
+   -> SamplerRenderer i
 mkSamplerRenderer = SR
 
-instance Printable SamplerRenderer where
+instance Printable (SamplerRenderer i) where
    prettyPrint (SR _ _) = PP.text "sampler renderer"
 
-instance Renderer SamplerRenderer where
+instance (SurfaceIntegrator i) => Renderer (SamplerRenderer i) where
    render = prender
-   
-prender :: SamplerRenderer -> RenderJob -> ProgressReporter -> IO ()
+
+prender :: (SurfaceIntegrator i) => SamplerRenderer i -> RenderJob -> ProgressReporter -> IO ()
 prender (SR sampler integ) job report = do
    
    image <- thaw $ mkJobImage job
@@ -139,11 +139,11 @@ prender (SR sampler integ) job report = do
       (img', _) <- freeze image
       report (PassDone pass img' 1)
    
-tile :: I.SurfaceIntegrator i =>
+tile :: SurfaceIntegrator i =>
    Scene -> Sampler -> i -> MImage (ST s) -> SampleWindow -> Rand s ()
 tile scene smp si img w = do
-   let comp = fireRay cam >>= I.contrib si scene (addContrib img)
-   _ <- runSample smp w (I.sampleCount1D si) (I.sampleCount2D si) comp
+   let comp = fireRay cam >>= contrib si scene (addContrib img)
+   _ <- runSample smp w (sampleCount1D si) (sampleCount2D si) comp
    return ()
    where
       cam = sceneCam scene

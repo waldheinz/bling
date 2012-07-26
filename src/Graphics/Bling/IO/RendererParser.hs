@@ -7,6 +7,7 @@ import Text.ParserCombinators.Parsec
 
 import Graphics.Bling.Rendering
 import Graphics.Bling.Sampling
+import Graphics.Bling.Integrator
 import Graphics.Bling.Integrator.LightTracer
 import Graphics.Bling.Integrator.Metropolis
 import Graphics.Bling.IO.ParserCore
@@ -54,7 +55,7 @@ pRenderer = pBlock $ do
    s <- getState
    setState s { renderer = r }
    
-pSamplerRenderer :: JobParser SamplerRenderer
+pSamplerRenderer :: JobParser (SamplerRenderer AnySurfaceIntegrator)
 pSamplerRenderer = (flip namedBlock) "sampled" $ do
    s <- pSampler
    i <- pSurfaceIntegrator
