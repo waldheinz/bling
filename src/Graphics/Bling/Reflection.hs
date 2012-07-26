@@ -55,7 +55,7 @@ type Material = DifferentialGeometry -> DifferentialGeometry -> Bsdf
 -- Fresnel incidence effects
 --------------------------------------------------------------------------------
 
-type Fresnel = Flt -> Spectrum
+type Fresnel = Float -> Spectrum
 
 -- | a no-op Fresnel implementation, which always returns white
 --   @Spectrum@
@@ -63,7 +63,7 @@ frNoOp :: Fresnel
 frNoOp = const white
 
 -- | Fresnel incidence effects for dielectrics
-frDielectric :: Flt -> Flt -> Fresnel
+frDielectric :: Float -> Float -> Fresnel
 frDielectric etai etat cosi
    | sint >= 1 = white -- total internal reflection
    | otherwise = frDiel' (abs cosi') cost (sConst ei) (sConst et)
@@ -74,7 +74,7 @@ frDielectric etai etat cosi
       sint = (ei / et) * sqrt (max 0 (1 - cosi' * cosi'))
       cost = sqrt $ max 0 (1 - sint * sint)
       
-frDiel' :: Flt -> Flt -> Spectrum -> Spectrum -> Spectrum
+frDiel' :: Float -> Float -> Spectrum -> Spectrum -> Spectrum
 frDiel' cosi cost etai etat = sScale (rPar * rPar + rPer * rPer) 0.5 where
    rPar = (sScale etat cosi - sScale etai cost) /
           (sScale etat cosi + sScale etai cost)
@@ -138,23 +138,23 @@ instance Bxdf FresnelBlend where
 -- Helper Functions
 --------------------------------------------------------------------------------
 
-cosTheta :: Vector -> Flt
+cosTheta :: Vector -> Float
 {-# INLINE cosTheta #-}
 cosTheta = vz
 
-absCosTheta :: Vector -> Flt
+absCosTheta :: Vector -> Float
 {-# INLINE absCosTheta #-}
 absCosTheta = abs . cosTheta
 
-sinTheta2 :: Vector -> Flt
+sinTheta2 :: Vector -> Float
 {-# INLINE sinTheta2 #-}
 sinTheta2 v = max 0 (1 - cosTheta v * cosTheta v)
 
-sinTheta :: Vector -> Flt
+sinTheta :: Vector -> Float
 {-# INLINE sinTheta #-}
 sinTheta = sqrt . sinTheta2
 
-cosPhi :: Vector -> Flt
+cosPhi :: Vector -> Float
 {-# INLINE cosPhi #-}
 cosPhi v
    | sint == 0 = 1
@@ -162,7 +162,7 @@ cosPhi v
    where
          sint = sinTheta v
 
-sinPhi :: Vector -> Flt
+sinPhi :: Vector -> Float
 {-# INLINE sinPhi #-}
 sinPhi v
    | sint == 0 = 0
@@ -248,10 +248,10 @@ bxdfAll = combineBxdfType bxdfAllReflection bxdfAllTransmission
 
 class Bxdf a where
    bxdfEval    :: a -> Normal -> Normal -> Spectrum
-   bxdfSample  :: a -> Normal -> Rand2D -> (Spectrum, Normal, Flt)
+   bxdfSample  :: a -> Normal -> Rand2D -> (Spectrum, Normal, Float)
    -- | samples the adjoint @Bxdf@
-   bxdfSample' :: a -> Normal -> Rand2D -> (Spectrum, Normal, Flt)
-   bxdfPdf     :: a -> Normal -> Normal -> Flt
+   bxdfSample' :: a -> Normal -> Rand2D -> (Spectrum, Normal, Float)
+   bxdfPdf     :: a -> Normal -> Normal -> Float
    bxdfType    :: a -> BxdfType
    
    -- | has this @BxDF@ the provided flags set?
@@ -346,24 +346,24 @@ bsdfPdf (Bsdf bs cs _ _) woW wiW
 
 data BsdfSample = BsdfSample {
    bsdfSampleType       :: {-# UNPACK #-} ! BxdfType,
-   bsdfSamplePdf        :: {-# UNPACK #-} ! Flt,
+   bsdfSamplePdf        :: {-# UNPACK #-} ! Float,
    bsdfSampleTransport  :: {-# UNPACK #-} ! Spectrum,
    bsdfSampleWi         :: {-# UNPACK #-} ! Vector
    } deriving (Show)
 
-sampleBsdf :: Bsdf -> Vector -> Flt -> Rand2D -> BsdfSample
+sampleBsdf :: Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
 sampleBsdf = {-# SCC "sampleBsdf" #-} sampleBsdf' bxdfAll
 
-sampleBsdf' :: BxdfType -> Bsdf -> Vector -> Flt -> Rand2D -> BsdfSample
+sampleBsdf' :: BxdfType -> Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
 sampleBsdf' = {-# SCC "sampleBsdf'" #-} sampleBsdf'' False
 
-sampleAdjBsdf :: Bsdf -> Vector -> Flt -> Rand2D -> BsdfSample
+sampleAdjBsdf :: Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
 sampleAdjBsdf = {-# SCC "sampleAdjBsdf" #-} sampleAdjBsdf' bxdfAll
 
-sampleAdjBsdf' :: BxdfType -> Bsdf -> Vector -> Flt -> Rand2D -> BsdfSample
+sampleAdjBsdf' :: BxdfType -> Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
 sampleAdjBsdf' = {-# SCC "sampleAdjBsdf'" #-} sampleBsdf'' True
 
-sampleBsdf'' :: Bool -> BxdfType -> Bsdf -> Vector -> Flt -> Rand2D -> BsdfSample
+sampleBsdf'' :: Bool -> BxdfType -> Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
 {-# INLINE sampleBsdf'' #-}
 sampleBsdf'' adj flags bsdf@(Bsdf bs cs _ ng) woW uComp uDir
    | cntm == 0 || pdf' == 0 || sideTest == 0 = emptyBsdfSample
@@ -432,13 +432,13 @@ instance Bxdf Lambertian where
 
 data OrenNayar = MkOrenNayar
    {-# UNPACK #-} ! Spectrum -- ^ reflectance
-   {-# UNPACK #-} ! Flt -- ^ the A parameter
-   {-# UNPACK #-} ! Flt -- ^ the B parameter
+   {-# UNPACK #-} ! Float -- ^ the A parameter
+   {-# UNPACK #-} ! Float -- ^ the B parameter
 
 -- Creates an Oren Nayar BxDF
 mkOrenNayar
    :: Spectrum -- ^ the reflectance
-   -> Flt      -- ^ sigma, should be in [0..1] and is clamped otherwise
+   -> Float      -- ^ sigma, should be in [0..1] and is clamped otherwise
    -> OrenNayar
 
 mkOrenNayar r sig = MkOrenNayar r a b where
@@ -514,20 +514,20 @@ mfG wo wi wh = min 1 $ min
          woDotWh = wo `absDot` wh
 
 data Distribution
-   = Blinn        {-# UNPACK #-} !Flt -- ^ e
-   | Anisotropic  {-# UNPACK #-} !Flt {-# UNPACK #-} !Flt -- ^ ex and ey
+   = Blinn        {-# UNPACK #-} !Float -- ^ e
+   | Anisotropic  {-# UNPACK #-} !Float {-# UNPACK #-} !Float -- ^ ex and ey
 
 -- | fixes the exponent for microfacet distribution to a usable range
-fixExponent :: Flt -> Flt
+fixExponent :: Float -> Float
 fixExponent e = if e > 10000 || isNaN e then 10000 else e
 
 -- | create a Blinn microfacet distribution
 mkBlinn
-   :: Flt -- ^ the exponent in [0..10000]
+   :: Float -- ^ the exponent in [0..10000]
    -> Distribution
 mkBlinn e = Blinn $ fixExponent e
 
-mkAnisotropic :: Flt -> Flt -> Distribution
+mkAnisotropic :: Float -> Float -> Distribution
 mkAnisotropic ex ey = Anisotropic (fixExponent ex) (fixExponent ey)
 
 mfDistPdf :: Distribution -> Vector -> Vector -> Float
@@ -618,7 +618,7 @@ bump d dgg dgs = {-# SCC "bump" #-} dgBump where
    nn = faceForward nn' $ dgN dgg -- match geometric normal
    
    -- shift in u
-   du = 0.01 :: Flt
+   du = 0.01 :: Float
    vdu = vpromote du
    dgeu = dgs {
       dgP = dgP dgs + vdu * (dgDPDU dgs),
@@ -627,7 +627,7 @@ bump d dgg dgs = {-# SCC "bump" #-} dgBump where
       }
       
    -- shift in v
-   dv = 0.01 :: Flt
+   dv = 0.01 :: Float
    vdv = vpromote dv
    dgev = dgs {
       dgP = dgP dgs + vdv * (dgDPDV dgs),

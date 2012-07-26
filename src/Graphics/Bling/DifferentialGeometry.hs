@@ -20,8 +20,8 @@ import Graphics.Bling.Transform
 data DifferentialGeometry = DG {
    dgP :: {-# UNPACK #-} ! Point,
    dgN :: {-# UNPACK #-} ! Normal,
-   dgU :: {-# UNPACK #-} ! Flt,
-   dgV :: {-# UNPACK #-} ! Flt,
+   dgU :: {-# UNPACK #-} ! Float,
+   dgV :: {-# UNPACK #-} ! Float,
    dgDPDU :: {-# UNPACK #-} ! Vector,
    dgDPDV :: {-# UNPACK #-} ! Vector,
    dgDNDU :: {-# UNPACK #-} ! Vector,
@@ -30,8 +30,8 @@ data DifferentialGeometry = DG {
 
 mkDg
    :: Point -- ^ intersection point
-   -> Flt -- ^ u parameter
-   -> Flt -- ^ v parameter
+   -> Float -- ^ u parameter
+   -> Float -- ^ v parameter
    -> Vector -- ^ dpdu
    -> Vector -- ^ dpdv
    -> Vector -- ^ dndu

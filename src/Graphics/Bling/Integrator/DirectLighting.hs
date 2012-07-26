@@ -53,7 +53,7 @@ directLighting d md s r@(Ray _ rd _ _) =
              
          return $! WS 1 $ l + re + tr + intLe int wo
 
-cont :: Flt -> Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Sampled s Spectrum
+cont :: Float -> Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Sampled s Spectrum
 cont e d md s bsdf wo t
    | d == md = return $! black
    | otherwise = do

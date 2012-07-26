@@ -15,16 +15,16 @@ import Graphics.Bling.Math
 import Graphics.Bling.Reflection
 import Graphics.Bling.Primitive.TriangleMesh
 
-newtype Patch = Patch { _unPatch :: V.Vector Flt }
+newtype Patch = Patch { _unPatch :: V.Vector Float }
 
-mkPatch :: [Flt] -> Either String Patch
+mkPatch :: [Float] -> Either String Patch
 mkPatch xs
    | length xs == 48 = Right $ Patch $ V.fromList xs
    | otherwise = Left "must give 48 values per patch"
 
-type Bernstein = Int -> Flt
+type Bernstein = Int -> Float
 
-bernstein :: Flt -> Bernstein
+bernstein :: Float -> Bernstein
 bernstein u x
    | x == 0 = 1 * i * i * i
    | x == 1 = 3 * u * i * i
@@ -34,9 +34,9 @@ bernstein u x
    where
       i = 1 - u
 
-type BernsteinDeriv = Int -> Flt
+type BernsteinDeriv = Int -> Float
 
-bernsteinDeriv :: Flt -> BernsteinDeriv
+bernsteinDeriv :: Float -> BernsteinDeriv
 bernsteinDeriv u x
    | x == 0 = 3 * negate (i * i)
    | x == 1 = 3 * (i * i - 2 * u * i)
@@ -62,7 +62,7 @@ evalPatch (Patch ctrl) bu bdu bv bdv = (p, dpdu, dpdv) where
    ev bj bi = mkV (s 0, s 1, s 2) where
       s o = sum [c (i * 12 + j * 3 + o) * bj j * bi i | i <- [0..3], j <- [0..3]]
 
-onePatch :: Int -> Patch -> ([Int], [(Point, Vector, Vector)], [(Flt, Flt)])
+onePatch :: Int -> Patch -> ([Int], [(Point, Vector, Vector)], [(Float, Float)])
 onePatch subdivs p = {-# SCC "onePatch" #-} (is, ps, uvs) where
    step = 1 / fromIntegral subdivs
    vstride = subdivs + 1

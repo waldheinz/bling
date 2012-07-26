@@ -22,13 +22,13 @@ import Graphics.Bling.Transform
 -- | a @Camera@
 data Camera
       = ProjectiveCamera {
-         _cam2world :: Transform,
-         _raster2cam :: Transform,
-         _world2raster :: Transform,
-         _pixelArea :: Flt, -- the area of a pixel
-         _lensRadius :: Flt,
-         _focalDistance :: Flt }
-      | Environment Transform Flt Flt -- cam2world xres yres
+         _cam2world     :: !Transform,
+         _raster2cam    :: !Transform,
+         _world2raster  :: !Transform,
+         _pixelArea     :: {-# UNPACK #-} !Float, -- the area of a pixel
+         _lensRadius    :: {-# UNPACK #-} !Float,
+         _focalDistance :: {-# UNPACK #-} !Float }
+      | Environment !Transform {-# UNPACK #-} !Float {-# UNPACK #-} !Float -- cam2world xres yres
       deriving (Show)
       
 instance Printable Camera where
@@ -81,8 +81,8 @@ fireRay (Environment c2w sx sy) = do
 data CameraSampleResult = CameraSampleResult
    { csF             :: Spectrum -- ^ transport
    , csP             :: Point -- ^ point on lens
-   , csImgX          :: Flt -- ^ pixel pos x
-   , csImgY          :: Flt -- ^ pixel pos y
+   , csImgX          :: Float -- ^ pixel pos x
+   , csImgY          :: Float -- ^ pixel pos y
    , csPdf           :: Float
    }
 
@@ -108,11 +108,11 @@ sampleCam c _ = error $ "can not sample " ++ show c
 mkProjective
    :: Transform -- ^ camera to world
    -> Transform -- ^ the projection
-   -> Flt -- ^ lens radius
-   -> Flt -- ^ focal distance
-   -> Flt -- ^ frame size in x
-   -> Flt -- ^ frame size in y
-   -> Flt -- ^ focal length
+   -> Float -- ^ lens radius
+   -> Float -- ^ focal distance
+   -> Float -- ^ frame size in x
+   -> Float -- ^ frame size in y
+   -> Float -- ^ focal length
    -> Camera
    
 mkProjective c2w p lr fd sx sy fl = ProjectiveCamera c2w r2c w2r ap lr fd where
@@ -135,11 +135,11 @@ mkProjective c2w p lr fd sx sy fl = ProjectiveCamera c2w r2c w2r ap lr fd where
 -- | creates a perspective camera using the specified parameters
 mkPerspectiveCamera
    :: Transform -- ^ the camera to world transform
-   -> Flt -- ^ lens radius
-   -> Flt -- ^ focal distance
-   -> Flt -- ^ field of view in degrees
-   -> Flt -- ^ frame size in x
-   -> Flt -- ^ frame size in y
+   -> Float -- ^ lens radius
+   -> Float -- ^ focal distance
+   -> Float -- ^ field of view in degrees
+   -> Float -- ^ frame size in x
+   -> Float -- ^ frame size in y
    -> Camera
 mkPerspectiveCamera c2w lr fd fov sx sy = mkProjective c2w p lr fd sx sy fl
    where
@@ -149,8 +149,8 @@ mkPerspectiveCamera c2w lr fd fov sx sy = mkProjective c2w p lr fd sx sy fl
 -- | creates an environmental camera using the specified parameters
 mkEnvironmentCamera
    :: Transform -- ^ the camera to world transform
-   -> Flt -- ^ film x resolution
-   -> Flt -- ^ film y resolution
+   -> Float -- ^ film x resolution
+   -> Float -- ^ film y resolution
    -> Camera
 mkEnvironmentCamera = Environment
 

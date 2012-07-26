@@ -71,7 +71,7 @@ oneRay scene splat = do
       then nextVertex scene (-wo) (intersect scene ray) (sScale li (absDot nl wo / pdf)) 0 splat
       else return ()
       
-connectCam :: Scene -> (ImageSample -> Rand s ()) -> Spectrum -> Bsdf -> Vector -> Flt -> Rand s ()
+connectCam :: Scene -> (ImageSample -> Rand s ()) -> Spectrum -> Bsdf -> Vector -> Float -> Rand s ()
 connectCam sc splat li bsdf wi eps
    | isBlack f = return ()
    | isBlack csf = return ()

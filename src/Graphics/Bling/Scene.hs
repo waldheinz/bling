@@ -69,7 +69,7 @@ sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n
          f = evalBsdf True bsdf wo wi
          weight = powerHeuristic (1, lpdf) (1, bsdfPdf bsdf wo wi)
 
-sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Flt -> Spectrum
+sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Float -> Spectrum
 {-# INLINE sampleBsdfMis #-}
 sampleBsdfMis (Scene _ sp _ _) l (BsdfSample _ bPdf f wi) n p epsilon
    | bPdf == 0  || isBlack f = black
@@ -87,7 +87,7 @@ estimateDirect
    :: Scene
    -> Light
    -> Point
-   -> Flt
+   -> Float
    -> Normal
    -> Vector
    -> Bsdf
@@ -102,14 +102,14 @@ estimateDirect s l p eps n wo bsdf smp = ls + bs where
    
 -- | the random values needed to sample a light source in the scene
 data RandLightSample = RLS
-   { ulNum ::  {-# UNPACK #-} ! Flt
+   { ulNum ::  {-# UNPACK #-} ! Float
    , ulDir :: {-# UNPACK #-} ! R.Rand2D
-   , uBsdfComp :: {-# UNPACK #-} ! Flt
+   , uBsdfComp :: {-# UNPACK #-} ! Float
    , uBsdfDir :: {-# UNPACK #-} ! R.Rand2D
    }
    
 -- | samples one randomly chosen light source
-sampleOneLight :: Scene -> Point -> Flt -> Normal -> Vector -> Bsdf -> RandLightSample -> Spectrum
+sampleOneLight :: Scene -> Point -> Float -> Normal -> Vector -> Bsdf -> RandLightSample -> Spectrum
 sampleOneLight scene@(Scene _ _ lights _) p eps n wo bsdf smp
    | lc == 0 = black
    | lc == 1 = {-# SCC "sampleOneLight.single" #-} ed (V.head lights)
@@ -122,10 +122,10 @@ sampleOneLight scene@(Scene _ _ lights _) p eps n wo bsdf smp
 -- | samples an outgoing light ray from a randomly chosen light source
 sampleLightRay
    :: Scene
-   -> Flt
+   -> Float
    -> R.Rand2D
    -> R.Rand2D
-   -> (Spectrum, Ray, Normal, Flt)
+   -> (Spectrum, Ray, Normal, Float)
 
 sampleLightRay sc@(Scene _ _ ls _) uL uO uD
    | V.null ls = (black, undefined, undefined, 0)

@@ -42,8 +42,8 @@ instance DS.NFData Spectrum where
 bands :: Int
 bands = 3
 
-newtype instance V.MVector s Spectrum = MV_Spectrum (V.MVector s Flt)
-newtype instance V.Vector Spectrum = V_Spectrum (V.Vector Flt)
+newtype instance V.MVector s Spectrum = MV_Spectrum (V.MVector s Float)
+newtype instance V.Vector Spectrum = V_Spectrum (V.Vector Float)
 
 instance Unbox Spectrum
 
@@ -149,16 +149,16 @@ fromXYZ (x, y, z) = fromRGB' r g b where
 
 data Spd
    = IrregularSpd
-      { _spdLambdas :: !(V.Vector Flt)
-      ,  _spdValues :: !(V.Vector Flt) }
-   | RegularSpd !Flt !Flt !(V.Vector Flt) -- min, max lambda and amplitudes
-   | Chromaticity !Flt !Flt -- CIE M1 and M2 parameters
-   | SpdFunc (Flt -> Flt) -- ^ defined by a function
+      { _spdLambdas :: !(V.Vector Float)
+      ,  _spdValues :: !(V.Vector Float) }
+   | RegularSpd !Float !Float !(V.Vector Float) -- min, max lambda and amplitudes
+   | Chromaticity !Float !Float -- CIE M1 and M2 parameters
+   | SpdFunc (Float -> Float) -- ^ defined by a function
    
 -- | creates a SPD from a list of (lambda, value) pairs, which must
 --   not be empty
 mkSpd
-   :: [(Flt, Flt)] -- ^ the SPD as (lambda, amplitude) pairs
+   :: [(Float, Float)] -- ^ the SPD as (lambda, amplitude) pairs
    -> Spd
 mkSpd [] = error "empty SPD"
 mkSpd xs = IrregularSpd ls vs where
@@ -169,39 +169,39 @@ mkSpd xs = IrregularSpd ls vs where
 
 -- | creates a SPD from a list of regulary sampled amplitudes
 mkSpd'
-   :: [Flt] -- ^ the amplitudes of the SPD, must not be empty
-   -> Flt -- ^ the wavelength of the first amplitude sample
-   -> Flt -- ^ the wavelength of the last amplitude sample
+   :: [Float] -- ^ the amplitudes of the SPD, must not be empty
+   -> Float -- ^ the wavelength of the first amplitude sample
+   -> Float -- ^ the wavelength of the last amplitude sample
    -> Spd -- ^ the resulting SPD
 mkSpd' vs s e = RegularSpd s e (fromList vs)
 
 mkSpdFunc
-   :: (Flt -> Flt) -- ^ the SPD function from lambda in nanometers to amplitude
+   :: (Float -> Float) -- ^ the SPD function from lambda in nanometers to amplitude
    -> Spd
 mkSpdFunc = SpdFunc
 
 fromCIExy
-   :: Flt
-   -> Flt
+   :: Float
+   -> Float
    -> Spd
 fromCIExy x y = Chromaticity m1 m2 where
    (m1, m2) = chromaParams x y
    
-chromaParams :: Flt -> Flt -> (Flt, Flt)
+chromaParams :: Float -> Float -> (Float, Float)
 chromaParams x y = (m1, m2) where
    m1 = (-1.3515 - 1.7703 * x + 5.9114 * y) / (0.0241 + 0.2562 * x - 0.7341 * y)
    m2 = (0.03 - 31.4424 * x + 30.0717 * y) / (0.0241 + 0.2562 * x - 0.7341 * y)
 
-s0XYZ :: (Flt, Flt, Flt)
+s0XYZ :: (Float, Float, Float)
 s0XYZ = spdToXYZ cieS0
 
-s1XYZ :: (Flt, Flt, Flt)
+s1XYZ :: (Float, Float, Float)
 s1XYZ = spdToXYZ cieS1
 
-s2XYZ :: (Flt, Flt, Flt)
+s2XYZ :: (Float, Float, Float)
 s2XYZ = spdToXYZ cieS2
 
-chromaticityToXYZ :: Flt -> Flt -> (Flt, Flt, Flt)
+chromaticityToXYZ :: Float -> Float -> (Float, Float, Float)
 chromaticityToXYZ x y = (x', y', z') where
    (s0x, s0y, s0z) = s0XYZ
    (s1x, s1y, s1z) = s1XYZ
@@ -214,8 +214,8 @@ chromaticityToXYZ x y = (x', y', z') where
 -- | evaluates a SPD at a given wavelength
 evalSpd
    :: Spd -- ^ the SPD to evaluate
-   -> Flt -- ^ the lambda where the SPD should be evaluated
-   -> Flt -- ^ the SPD value at the specified lambda
+   -> Float -- ^ the lambda where the SPD should be evaluated
+   -> Float -- ^ the SPD value at the specified lambda
 evalSpd (IrregularSpd ls vs) l
    | l <= V.head ls = V.head vs
    | l >= V.last ls = V.last vs
@@ -248,7 +248,7 @@ evalSpd (Chromaticity m1 m2) l = s0 + m1 * s1 + m2 * s2 where
 evalSpd (SpdFunc f) l = f l
 
 -- | converts a @Spd@ to CIE XYZ values
-spdToXYZ :: Spd -> (Flt, Flt, Flt)
+spdToXYZ :: Spd -> (Float, Float, Float)
 spdToXYZ spd = (x / yint, y / yint, z / yint) where
    ls = [cieStart .. cieEnd]
    vs = P.map (\l -> evalSpd spd (fromIntegral l)) ls
@@ -295,12 +295,12 @@ isBlack :: Spectrum -> Bool
 {-# INLINE isBlack #-}
 isBlack (Spectrum r g b) = r == 0 && g == 0 && b == 0
 
-sScale :: Spectrum -> Flt -> Spectrum
+sScale :: Spectrum -> Float -> Spectrum
 {-# INLINE sScale #-}
 sScale (Spectrum a b c) f = Spectrum (a*f) (b*f) (c*f)
 
 -- | clamps the @Spectrum@ coefficients the specified range
-sClamp :: Flt -> Flt -> Spectrum -> Spectrum
+sClamp :: Float -> Float -> Spectrum -> Spectrum
 {-# INLINE sClamp #-}
 sClamp smin smax (Spectrum r g b) = Spectrum (c r) (c g) (c b) where
    c x = max smin $ min smax x
@@ -383,12 +383,12 @@ cieStart = 360
 cieEnd :: Int
 cieEnd = 830
       
-cieX :: Int -> Flt
+cieX :: Int -> Float
 cieX lambda
    | (lambda < cieStart) || (lambda > cieEnd) = 0
    | otherwise = cieXValues ! (lambda - cieStart)
     
-cieXValues :: V.Vector Flt
+cieXValues :: V.Vector Float
 {-# NOINLINE cieXValues #-}
 cieXValues = fromList [
    0.0001299000, 0.0001458470, 0.0001638021, 0.0001840037,
@@ -510,12 +510,12 @@ cieXValues = fromList [
    0.000001905497,  0.000001776509,  0.000001656215,  0.000001544022,
    0.000001439440, 0.000001341977, 0.000001251141]
 
-cieY :: Int -> Flt
+cieY :: Int -> Float
 cieY lambda
    | (lambda < cieStart) || (lambda > cieEnd) = 0
    | otherwise = cieYValues ! (lambda - cieStart)
    
-cieYValues :: V.Vector Flt
+cieYValues :: V.Vector Float
 {-# NOINLINE cieYValues #-}
 cieYValues = fromList [
    0.000003917000,  0.000004393581,  0.000004929604,  0.000005532136,
@@ -637,12 +637,12 @@ cieYValues = fromList [
    0.0000006881098,  0.0000006415300,  0.0000005980895,  0.0000005575746,
    0.0000005198080, 0.0000004846123, 0.0000004518100 ]
    
-cieZ :: Int -> Flt
+cieZ :: Int -> Float
 cieZ lambda
    | (lambda < cieStart) || (lambda > cieEnd) = 0
    | otherwise = cieZValues ! (lambda - cieStart)
    
-cieZValues :: V.Vector Flt
+cieZValues :: V.Vector Float
 {-# NOINLINE cieZValues #-}
 cieZValues = fromList [
    0.0006061000,  0.0006808792,  0.0007651456,  0.0008600124,

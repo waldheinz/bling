@@ -70,7 +70,7 @@ data Progress
    | PassDone
       { progPassNum :: Int
       , finalImg :: Image
-      , splatWeight :: Flt
+      , splatWeight :: Float
       }
 
 type ProgressReporter = Progress -> IO Bool

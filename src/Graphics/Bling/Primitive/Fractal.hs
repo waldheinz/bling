@@ -22,9 +22,9 @@ import Graphics.Bling.Shape
 -- Julia Fractal
 --
 
-data Fractal = Julia {-# UNPACK #-} !Quaternion {-# UNPACK #-} !Flt {-# UNPACK #-} !Int
+data Fractal = Julia {-# UNPACK #-} !Quaternion {-# UNPACK #-} !Float {-# UNPACK #-} !Int
    
-mkJuliaQuat :: Quaternion -> Flt -> Int -> Fractal
+mkJuliaQuat :: Quaternion -> Float -> Int -> Fractal
 mkJuliaQuat = Julia
 
 data FractalPrim
@@ -64,7 +64,7 @@ instance Primitive FractalPrim where
    
    intersect (Menger _ _ _ _) _ = error "Menger : unimplemented intersects"
 
-prepare :: Ray -> Maybe Flt
+prepare :: Ray -> Maybe Float
 prepare (Ray ro rd rmin rmax)
    | c <= 0 = Just rmin -- start inside sphere
    | otherwise = solveQuadric a b c >>= cb
@@ -78,19 +78,19 @@ prepare (Ray ro rd rmin rmax)
          b = 2 * (rd `dot` ro)
 
 -- | the radius of the sphere where the Julia Quaternion lives
-juliaRadius :: Flt
+juliaRadius :: Float
 juliaRadius = sqrt juliaRadius2
 
 -- | often we need @juliaRadius@ squared
-juliaRadius2 :: Flt
+juliaRadius2 :: Float
 juliaRadius2 = 3
 
 traverseJulia
    :: Ray
    -> Quaternion
    -> Int
-   -> Flt
-   -> Maybe (Flt, Point)
+   -> Float
+   -> Maybe (Float, Point)
    
 traverseJulia r' c mi e = {-# SCC "traverseJulia" #-} prepare r >>= go where
    r = normalizeRay r'
@@ -107,7 +107,7 @@ traverseJulia r' c mi e = {-# SCC "traverseJulia" #-} prepare r >>= go where
 qpromote :: Point -> Quaternion
 qpromote (Vector x y z) = Quaternion x $ mkV (y, z, 0)
 
-normalJulia :: Point -> Quaternion -> Int -> Flt -> Normal
+normalJulia :: Point -> Quaternion -> Int -> Float -> Normal
 normalJulia p c mi e = {-# SCC "normalJulia" #-} normalize v where
    v = mkV (gx, gy, gz)
    (gx, gy, gz) = (qlen gx2' - qlen gx1', qlen gy2' - qlen gy1', qlen gz2' - qlen gz1')
@@ -131,7 +131,7 @@ iter' qs c n = iter' qs' c (n-1) where
 
 -- | if the magnitude of the quaternion exceeds this value it is considered
 -- to diverge
-escapeThreashold :: Flt
+escapeThreashold :: Float
 escapeThreashold = 4
 
 iter
@@ -150,17 +150,17 @@ iter qi c mi = go qi qzero mi where
          
 -- | a Quaternion
 data Quaternion = Quaternion
-   { real :: {-# UNPACK #-} ! Flt
+   { real :: {-# UNPACK #-} ! Float
    , imag :: {-# UNPACK #-} ! Vector
    } deriving (Show, Eq)
 
 qzero :: Quaternion
 qzero = Quaternion 1 $ vpromote 0
 
-qlen :: Quaternion -> Flt
+qlen :: Quaternion -> Float
 qlen (Quaternion r (Vector i j k)) = sqrt $ r*r + i*i + j*j + k*k
 
-qscale :: Quaternion -> Flt -> Quaternion
+qscale :: Quaternion -> Float -> Quaternion
 qscale (Quaternion r i) s = Quaternion (r*s) $ vpromote s * i
 
 qadd :: Quaternion -> Quaternion -> Quaternion

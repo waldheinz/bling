@@ -14,11 +14,11 @@ import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 
 data TriangleMesh = Mesh
-   { mvidx  :: V.Vector Int
-   , mps    :: V.Vector Point
-   , mns    :: Maybe (V.Vector Normal)
-   , muvs   :: Maybe (V.Vector Flt)
-   , mmat   :: Material
+   { mvidx  :: ! (V.Vector Int)
+   , mps    :: ! (V.Vector Point)
+   , mns    :: ! (Maybe (V.Vector Normal))
+   , muvs   :: ! (Maybe (V.Vector Float))
+   , mmat   :: ! Material
    }
 
 mkTriangleMesh
@@ -27,7 +27,7 @@ mkTriangleMesh
    -> V.Vector Point                -- ^ vertex positions
    -> V.Vector Int                  -- ^ vertex indices for triangles
    -> Maybe (V.Vector Normal)       -- ^ shading normals
-   -> Maybe (V.Vector Flt)          -- ^ uv coordinates for parametrization
+   -> Maybe (V.Vector Float)          -- ^ uv coordinates for parametrization
    -> TriangleMesh
 mkTriangleMesh o2w mat p i n uv
    | V.length i `rem` 3 /= 0 = error "mkTriangleMesh: number of indices must be multiple of 3"
@@ -92,7 +92,7 @@ triMaterial :: Triangle -> Material
 {-# INLINE triMaterial #-}
 triMaterial (Tri _ m) = mmat m
 
-triUVs :: Triangle -> (Flt, Flt, Flt, Flt, Flt, Flt)
+triUVs :: Triangle -> (Float, Float, Float, Float, Float, Float)
 {-# INLINE triUVs #-}
 triUVs tri@(Tri _ m) = maybe (0, 0, 1, 0, 1, 1) go (muvs m) where
    (o1, o2, o3) = triOffsets tri

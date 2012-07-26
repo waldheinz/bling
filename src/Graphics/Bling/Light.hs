@@ -120,7 +120,7 @@ power (Infinite _ r _ _) b = sScale r $ pi * wr * wr where
 sample
    :: Light    -- ^ the light to sample
    -> Point    -- ^ the point in world space from where the light is viewed
-   -> Flt      -- ^ epsilon for ray starting point
+   -> Float      -- ^ epsilon for ray starting point
    -> Normal   -- ^ the surface normal in world space from where the light is viewed
    -> Rand2D   -- ^ the random value for sampling the light
    -> LightSample -- ^ the computed @LightSample@
@@ -157,7 +157,7 @@ sample (AreaLight _ s r l2w w2l) pW e _ us = LightSample r' wiW rayW pd False wh
    rayW = transRay l2w ray -- vis. test ray (in world space)
    ray = Ray p wi e (len (ps - p) - e) -- vis. test ray (in local space)
 
-emptySample' :: (Spectrum, Ray, Normal, Flt)
+emptySample' :: (Spectrum, Ray, Normal, Float)
 emptySample' = (black, Ray (mkV (0, 0, 0)) (mkV (0, 1, 0)) 0 0, mkV (0, 1, 0), 0)
 
 -- | samples an outgoing @Ray@ from a light source
@@ -166,7 +166,7 @@ sample'
    -> AABB -- ^ the bounds of the region to be lit
    -> Rand2D -- ^ for sampling the position on the light
    -> Rand2D -- ^ for sampling the outgoing direction
-   -> (Spectrum, Ray, Normal, Flt)
+   -> (Spectrum, Ray, Normal, Float)
       -- ^ (radiance, outgoing ray, normal at light source, PDF)
 
 sample' (AreaLight _ s r t _) _ uo ud = (r, ray, ns, pd) where

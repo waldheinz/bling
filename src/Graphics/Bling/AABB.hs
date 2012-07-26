@@ -57,25 +57,25 @@ diagonal (AABB pmin pmax) = pmax - pmin
 -- | finds the bounding sphere of an @AABB@
 boundingSphere
    :: AABB -- ^ the box to get the bounding sphere for
-   -> (Point, Flt) -- ^ (center, radius) of the bounding shpere
+   -> (Point, Float) -- ^ (center, radius) of the bounding shpere
 boundingSphere b@(AABB _ pmax) = (c, len $ pmax - c) where
    c = centroid b
 
-surfaceArea :: AABB -> Flt
+surfaceArea :: AABB -> Float
 {-# INLINE surfaceArea #-}
 surfaceArea (AABB pmin pmax) = 2 * (dx * dy + dx * dz + dy * dz) where
    (Vector dx dy dz) = pmax - pmin
 
-splitAABB :: Flt -> Dimension -> AABB -> (AABB, AABB)
+splitAABB :: Float -> Dimension -> AABB -> (AABB, AABB)
 {-# INLINE splitAABB #-}
 splitAABB t axis (AABB pmin pmax) = ((AABB pmin pmax'), (AABB pmin' pmax)) where
    pmin' = setComponent axis t pmin
    pmax' = setComponent axis t pmax   
 
-intersectAABB :: AABB -> Ray -> Maybe (Flt, Flt)
+intersectAABB :: AABB -> Ray -> Maybe (Float, Float)
 {-# INLINE intersectAABB #-}
 intersectAABB (AABB bMin bMax) (Ray o d tmin tmax) = testSlabs allDimensions tmin tmax where
-   testSlabs :: [Dimension] -> Flt -> Flt -> Maybe (Flt, Flt)
+   testSlabs :: [Dimension] -> Float -> Float -> Maybe (Float, Float)
    testSlabs [] n f
       | n > f = Nothing
       | otherwise = Just (n, f)

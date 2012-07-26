@@ -1,6 +1,6 @@
 
 module Graphics.Bling.Types (
-   Printable(..), Flt, PixelPos, PixelSize,
+   Printable(..), Float, PixelPos, PixelSize,
    
    -- * Coordinate Systems and Conversions
    SphericalCoords(..), CartesianCoords(..),
@@ -14,9 +14,6 @@ class Printable a where
    
    prettyPrint :: a -> Doc
    
-
-type Flt = Float
-
 -- | a pixel position, given in it's (x, y) coordinates
 type PixelPos = (Int, Int)
 
@@ -24,10 +21,10 @@ type PixelPos = (Int, Int)
 type PixelSize = (Int, Int)
 
 -- | spherical coordinates which are given in (phi [0..2pi), theta [0..pi))
-newtype SphericalCoords = Spherical { unSpherical :: (Flt, Flt) }
+newtype SphericalCoords = Spherical { unSpherical :: (Float, Float) }
 
 -- | cartesian coordinates which are given in (u [0..1), v [0..1))
-newtype CartesianCoords = Cartesian { unCartesian :: (Flt, Flt) }
+newtype CartesianCoords = Cartesian { unCartesian :: (Float, Float) }
 
 cartToSph :: CartesianCoords -> SphericalCoords
 {-# INLINE cartToSph #-}

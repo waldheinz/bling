@@ -22,16 +22,16 @@ data Shape
    = Box {-# UNPACK #-} !Point {-# UNPACK #-} !Point
       -- minimum and maximum extent
    | Cylinder
-      {-# UNPACK #-} ! Flt {-# UNPACK #-} ! Flt {-# UNPACK #-} ! Flt {-# UNPACK #-} ! Flt
+      {-# UNPACK #-} ! Float {-# UNPACK #-} ! Float {-# UNPACK #-} ! Float {-# UNPACK #-} ! Float
       -- radius zmin zmax phimax
    | Disk
-      {-# UNPACK #-} ! Flt {-# UNPACK #-} ! Flt {-# UNPACK #-} ! Flt {-# UNPACK #-} ! Flt
+      {-# UNPACK #-} ! Float {-# UNPACK #-} ! Float {-# UNPACK #-} ! Float {-# UNPACK #-} ! Float
       -- height, radius, inner radius, phimax
    | Quad
-      {-# UNPACK #-} ! Flt {-# UNPACK #-} ! Flt
+      {-# UNPACK #-} ! Float {-# UNPACK #-} ! Float
       -- size in the (x,y) plane
    | Sphere
-      {-# UNPACK #-} !Flt
+      {-# UNPACK #-} !Float
       -- radius
       
    deriving (Eq, Show)
@@ -44,10 +44,10 @@ mkBox (Vector x0 y0 z0) (Vector x1 y1 z1) = Box pmin pmax where
 
 -- | creates a cylinder along the z-axis
 mkCylinder
-   :: Flt -- ^ the radius
-   -> Flt -- ^ the minimum z value
-   -> Flt -- ^ the maximum z value
-   -> Flt -- ^ the maximum phi angle [in degrees]
+   :: Float -- ^ the radius
+   -> Float -- ^ the minimum z value
+   -> Float -- ^ the maximum z value
+   -> Float -- ^ the maximum phi angle [in degrees]
    -> Shape
 mkCylinder r z0 z1 phimax = Cylinder r zmin zmax pm where
    zmin = min z0 z1
@@ -56,10 +56,10 @@ mkCylinder r z0 z1 phimax = Cylinder r zmin zmax pm where
 
 -- | a disk parallel to the xy - plane
 mkDisk
-   :: Flt -- ^ offset from xy - plane (aka height)
-   -> Flt -- ^ outer radius
-   -> Flt -- ^ inner radius
-   -> Flt -- ^ maximum phi angle in [degrees]
+   :: Float -- ^ offset from xy - plane (aka height)
+   -> Float -- ^ outer radius
+   -> Float -- ^ inner radius
+   -> Float -- ^ maximum phi angle in [degrees]
    -> Shape
 mkDisk h r0 r1 mp = Disk h ro ri mp' where
    ro = max r0 r1
@@ -67,12 +67,12 @@ mkDisk h r0 r1 mp = Disk h ro ri mp' where
    mp' = radians $ clamp mp 0 360
 
 -- | creates a quad with the specified origin and size in the (x,y) plane
-mkQuad :: Flt -> Flt -> Shape
+mkQuad :: Float -> Float -> Shape
 mkQuad = Quad
 
 -- | creates a sphere around the origin
 mkSphere
-   :: Flt -- ^ the sphere radius
+   :: Float -- ^ the sphere radius
    -> Shape
 mkSphere = Sphere
 
@@ -80,7 +80,7 @@ mkSphere = Sphere
 intersect
    :: Shape -- ^ the shape to intersect
    -> Ray -- ^ the ray to intersect the shape with
-   -> Maybe (Flt, Flt, DifferentialGeometry)
+   -> Maybe (Float, Float, DifferentialGeometry)
       -- ^ maybe (ray parametric distance to hit, ray epsilon, local geometry at hit point)
 
 intersect (Box pmin pmax) ray@(Ray o d tmin tmax) =
@@ -93,7 +93,7 @@ intersect (Box pmin pmax) ray@(Ray o d tmin tmax) =
       dir = if (p .! axis) > half then 1 else -1
       half = (pmin .! axis + pmax .! axis) / 2
 
-   testSlabs :: [Dimension] -> Flt -> Flt -> Dimension -> Maybe (Flt, Dimension)
+   testSlabs :: [Dimension] -> Float -> Float -> Dimension -> Maybe (Float, Dimension)
    testSlabs [] n f dd
       | n > f = Nothing
       | otherwise = Just (n, dd)
@@ -304,7 +304,7 @@ objectBounds (Sphere r) = mkAABB (mkPoint' (-r) (-r) (-r)) (mkPoint' r r r)
 -- | computes the surface area of a @Shape@
 area
    :: Shape -- ^ the @Shape@ to get the surface area for
-   -> Flt -- ^ the surface area of that @Shape@
+   -> Float -- ^ the surface area of that @Shape@
 area (Box pmin pmax) = 2 * (h*w + h*l + w*l) where
    (h, w, l) = (pmax .! dimX - pmin .! dimX,
                 pmax .! dimY - pmin .! dimY,
@@ -318,13 +318,13 @@ area (Disk _ rmax rmin _) = pi * (rmax2 - rmin2) where
 area (Quad sx sy) = 4 * sx * sy
 area (Sphere r) = r * r * 4 * pi
 
-insideSphere :: Flt -> Point -> Bool
+insideSphere :: Float -> Point -> Bool
 insideSphere r pt = sqLen pt - r * r < 1e-4
 
 pdf :: Shape -- ^ the @Shape@ to compute the pdf for
     -> Point -- ^ the point which is to be illuminated
     -> Vector -- ^ the wi vector
-    -> Flt -- ^ the computed pdf value
+    -> Float -- ^ the computed pdf value
     
 pdf s@(Sphere r) p wi
    | insideSphere r p = generalPdf s p wi
@@ -334,7 +334,7 @@ pdf s@(Sphere r) p wi
 
 pdf s p wi = generalPdf s p wi
 
-generalPdf :: Shape -> Point -> Vector -> Flt
+generalPdf :: Shape -> Point -> Vector -> Float
 generalPdf s p wi = maybe 0 p' (s `intersect` r) where
    r = Ray p wi 1e-3 infinity
    f pd = if isInfinite pd then 0 else pd
@@ -344,7 +344,7 @@ generalPdf s p wi = maybe 0 p' (s `intersect` r) where
 pdf'
    :: Shape -- ^ the @Shape@ to get the pdf for
    -> Point -- ^ the @Point@ on that @Shape@
-   -> Flt -- ^ the probability for choosing this @Point@
+   -> Float -- ^ the probability for choosing this @Point@
 
 pdf' s _ = 1 / area s
 

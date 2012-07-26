@@ -112,7 +112,7 @@ eol :: WFParser s ()
 eol = char '\n' >> return ()
 
 -- | parse a floating point number
-float :: (Monad m) => (ParsecT BS.ByteString u m) Flt
+float :: (Monad m) => (ParsecT BS.ByteString u m) Float
 float = {-# SCC "float" #-} do
    sign <- option 1 $ do
       s <- oneOf "+-"

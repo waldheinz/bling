@@ -5,7 +5,6 @@ module Graphics.Bling.IO.TransformParser (
 
 import Data.List (foldl')
 
-import Graphics.Bling.Math
 import Graphics.Bling.Transform
 import Graphics.Bling.IO.ParserCore
 
@@ -54,7 +53,7 @@ tTrans = string "translate" >> ws >> pVec >>= return . translate
 tMatrix :: JobParser Transform
 tMatrix = (flip namedBlock) "matrix" $ mtr 'm' >>= return . fromMatrix'
 
-mtr :: Char -> JobParser [[Flt]]
+mtr :: Char -> JobParser [[Float]]
 mtr p = count 4 row where
    row = do
       _ <- char p

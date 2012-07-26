@@ -22,20 +22,20 @@ import Data.Vec.Base (matFromLists, matToLists, Mat44)
 import qualified Data.Vec.LinAlg as LA (invert)
 
 data Matrix = MkMatrix {
-   m00 :: {-# UNPACK #-} !Flt, m01 :: {-# UNPACK #-} !Flt, m02 :: {-# UNPACK #-} !Flt, m03 :: {-# UNPACK #-} !Flt,
-   m10 :: {-# UNPACK #-} !Flt, m11 :: {-# UNPACK #-} !Flt, m12 :: {-# UNPACK #-} !Flt, m13 :: {-# UNPACK #-} !Flt,
-   m20 :: {-# UNPACK #-} !Flt, m21 :: {-# UNPACK #-} !Flt, m22 :: {-# UNPACK #-} !Flt, m23 :: {-# UNPACK #-} !Flt,
-   m30 :: {-# UNPACK #-} !Flt, m31 :: {-# UNPACK #-} !Flt, m32 :: {-# UNPACK #-} !Flt, m33 :: {-# UNPACK #-} !Flt
+   m00 :: {-# UNPACK #-} !Float, m01 :: {-# UNPACK #-} !Float, m02 :: {-# UNPACK #-} !Float, m03 :: {-# UNPACK #-} !Float,
+   m10 :: {-# UNPACK #-} !Float, m11 :: {-# UNPACK #-} !Float, m12 :: {-# UNPACK #-} !Float, m13 :: {-# UNPACK #-} !Float,
+   m20 :: {-# UNPACK #-} !Float, m21 :: {-# UNPACK #-} !Float, m22 :: {-# UNPACK #-} !Float, m23 :: {-# UNPACK #-} !Float,
+   m30 :: {-# UNPACK #-} !Float, m31 :: {-# UNPACK #-} !Float, m32 :: {-# UNPACK #-} !Float, m33 :: {-# UNPACK #-} !Float
    } deriving (Eq)
 
-toList :: Matrix -> [[Flt]]
+toList :: Matrix -> [[Float]]
 toList m = [
    [m00 m, m01 m, m02 m, m03 m],
    [m10 m, m11 m, m12 m, m13 m],
    [m20 m, m21 m, m22 m, m23 m],
    [m30 m, m31 m, m32 m, m33 m]]
 
-fromList :: [[Flt]] -> Matrix
+fromList :: [[Float]] -> Matrix
 fromList (
    (l00:l01:l02:l03:[]):
    (l10:l11:l12:l13:[]):
@@ -61,7 +61,7 @@ transMatrix = fromList.transpose.toList
 -- | Inverts a @Matrix@; inverting a singular matrix causes an error.
 invert :: Matrix -> Matrix
 invert m = maybe (error "singular matrix") (fromList.matToLists) i where
-   i = LA.invert ((matFromLists $ toList m) :: Mat44 Flt)
+   i = LA.invert ((matFromLists $ toList m) :: Mat44 Float)
 
 idMatrix :: Matrix
 idMatrix = MkMatrix
@@ -83,10 +83,10 @@ instance Show Transform where
    show (MkTransform m _) = show m
 
 -- | Creates a @Transform@ from the two matrices
-fromMatrix :: ([[Flt]], [[Flt]]) -> Transform
+fromMatrix :: ([[Float]], [[Float]]) -> Transform
 fromMatrix (m, i) = MkTransform (fromList m) (fromList i)
 
-fromMatrix' :: [[Flt]] -> Transform
+fromMatrix' :: [[Float]] -> Transform
 fromMatrix' m = MkTransform (fromList m) (invert (fromList m))
 
 -- | The identity transformation
@@ -122,7 +122,7 @@ scale (Vector sx sy sz) = MkTransform m i where
       0 0 (1/sz) 0
       0 0 0 1
 
-rotateX :: Flt -> Transform
+rotateX :: Float -> Transform
 rotateX deg = MkTransform m (transMatrix m) where
    m = MkMatrix
       1    0       0 0
@@ -132,7 +132,7 @@ rotateX deg = MkTransform m (transMatrix m) where
    sint = sin (radians deg)
    cost = cos (radians deg)
       
-rotateY :: Flt -> Transform
+rotateY :: Float -> Transform
 rotateY deg = MkTransform m (transMatrix m) where
    m = MkMatrix
         cost  0 sint 0
@@ -142,7 +142,7 @@ rotateY deg = MkTransform m (transMatrix m) where
    cost = cos (radians deg)
    sint = sin (radians deg)
       
-rotateZ :: Flt -> Transform
+rotateZ :: Float -> Transform
 rotateZ deg = MkTransform m (transMatrix m) where
    m = MkMatrix
       cost (-sint) 0 0
@@ -154,9 +154,9 @@ rotateZ deg = MkTransform m (transMatrix m) where
 
 -- | creates a perspective transform
 perspective
-   :: Flt -- ^ the field of view in degrees
-   -> Flt -- ^ the near clipping plane
-   -> Flt -- ^ the far clippping plane
+   :: Float -- ^ the field of view in degrees
+   -> Float -- ^ the near clipping plane
+   -> Float -- ^ the far clippping plane
    -> Transform
 perspective fov n f = concatTrans (scale s) (MkTransform m (invert m)) where
    s = Vector iTanAng iTanAng 1
@@ -244,7 +244,7 @@ transBox t (AABB (Vector mx my mz) (Vector nx ny nz)) = b' where
 -- Utility Functions
 --------------------------------------------------------------------------------
 
-solveLinearSystem2x2 :: (Flt, Flt, Flt, Flt) -> (Flt, Flt) -> Maybe (Flt, Flt)
+solveLinearSystem2x2 :: (Float, Float, Float, Float) -> (Float, Float) -> Maybe (Float, Float)
 solveLinearSystem2x2 (a00, a01, a10, a11) (b0, b1)
    | abs det < 1e-10 = Nothing
    | isNaN x0 || isNaN x1 = Nothing

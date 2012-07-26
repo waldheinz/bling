@@ -103,7 +103,7 @@ instance SurfaceIntegrator BidirPath where
 --------------------------------------------------------------------------------
 
 -- compute number of specular vertices for each path length
-countSpec :: Path -> Path -> V.Vector Flt
+countSpec :: Path -> Path -> V.Vector Float
 countSpec ep lp = runST $ do
    x <- MV.replicate (length ep + length lp + 2) 0
    forM_ [0..length ep - 1] $ \i -> do
@@ -115,7 +115,7 @@ countSpec ep lp = runST $ do
             else return ()
    V.freeze x
 
-connect :: Scene -> V.Vector Flt -> ((Vertex, Int),  (Vertex, Int)) -> Spectrum
+connect :: Scene -> V.Vector Float -> ((Vertex, Int),  (Vertex, Int)) -> Spectrum
 connect scene nspec
    ((Vert bsdfe pe _ wie inte te alphae, i),  -- eye vertex
     (Vert bsdfl pl _ wil intl tl alphal, j))  -- camera vertex
@@ -165,7 +165,7 @@ eyePath s r md = nextVertex False s wi int white 0 md (\d -> 2 + 1 + smps1D * d 
    int = s `intersect` r
 
 -- | generates the light path
-lightPath :: Scene -> Int -> Flt -> Rand2D -> Rand2D -> Sampled m Path
+lightPath :: Scene -> Int -> Float -> Rand2D -> Rand2D -> Sampled m Path
 lightPath s md ul ulo uld =
    let
       (li, ray, nl, pdf) = sampleLightRay s ul ulo uld

@@ -42,10 +42,10 @@ import Graphics.Bling.Spectrum
 type Texture a = DifferentialGeometry -> a
 
 type SpectrumTexture = Texture Spectrum
-type ScalarTexture = Texture Flt
+type ScalarTexture = Texture Float
 
-type TextureMapping3d = DifferentialGeometry -> (Flt, Flt, Flt)
-type TextureMapping2d = DifferentialGeometry -> (Flt, Flt)
+type TextureMapping3d = DifferentialGeometry -> (Float, Float, Float)
+type TextureMapping2d = DifferentialGeometry -> (Float, Float)
 
 data TextureMap a = TexMap
    { texMapEval   :: CartesianCoords -> a
@@ -93,14 +93,14 @@ constant r _ = r
 -- | Extracts the (u, v) parametization from the @DifferentialGeometry@ and
 --   applies a scale / offset to them.
 uvMapping
-   :: (Flt, Flt)     -- ^ scale factor for (u, v)
-   -> (Flt, Flt)     -- ^ offsets for (u, v)
+   :: (Float, Float)     -- ^ scale factor for (u, v)
+   -> (Float, Float)     -- ^ offsets for (u, v)
    -> TextureMapping2d
 uvMapping (su, sv) (ou, ov) dg = (su * dgU dg + ou, sv * dgV dg + ov)
 
 planarMapping
    :: (Vector, Vector)  -- ^ vectors defining the plane
-   -> (Flt, Flt)        -- ^ offsets for (u, v)
+   -> (Float, Float)        -- ^ offsets for (u, v)
    -> TextureMapping2d
 planarMapping (vu, vv) (ou, ov) dg = (u + ou, v + ov) where
    p = dgP dg
@@ -117,7 +117,7 @@ scaleTexture s t dg = s * t dg
 addTexture :: (Num a) => Texture a -> Texture a -> Texture a
 addTexture t1 t2 dg = t1 dg + t2 dg
 
-graphPaper :: Flt -> SpectrumTexture -> SpectrumTexture -> SpectrumTexture
+graphPaper :: Float -> SpectrumTexture -> SpectrumTexture -> SpectrumTexture
 graphPaper lw p l dg
    | x' < lo || z' < lo || x' > hi || z' > hi = l dg
    | otherwise = p dg
@@ -147,12 +147,12 @@ checkerBoard (Vector sx sy sz) t1 t2 dg
 --------------------------------------------------------------------------------
 
 data Gradient = Gradient
-   { gradCols  :: ! (V.Vector (Flt, Spectrum))
-   , gradMax   :: {-# UNPACK #-} ! Flt
-   , gradMin   :: {-# UNPACK #-} ! Flt
+   { gradCols  :: ! (V.Vector (Float, Spectrum))
+   , gradMax   :: {-# UNPACK #-} ! Float
+   , gradMin   :: {-# UNPACK #-} ! Float
    } deriving (Show)
 
-mkGradient :: [(Flt, Spectrum)] -> Gradient
+mkGradient :: [(Float, Spectrum)] -> Gradient
 mkGradient ss
    | null ss = error "empty list given to mkGradient"
    | otherwise = Gradient cols (V.maximum ps) (V.minimum ps)
@@ -178,7 +178,7 @@ gradient g t dg
 --------------------------------------------------------------------------------
 
 -- | a distance function takes two points and returns their distance
-type DistFunc = Point -> Point -> Flt
+type DistFunc = Point -> Point -> Float
 
 euclidianDist :: DistFunc
 euclidianDist a b = len (a - b)
@@ -243,10 +243,10 @@ quasiCrystal
    -> TextureMapping2d  -- ^ the texture mapping to use
    -> ScalarTexture
 quasiCrystal o t dg = {-# SCC "quasiCrystal" #-} combine (map wave (angles o)) (t dg) where
-   angles :: Int -> [Flt]
+   angles :: Int -> [Float]
    angles n = take n $ enumFromThen 0 (pi / fromIntegral n)
    
-   combine :: [(Flt, Flt) -> Flt] -> (Flt, Flt) -> Flt
+   combine :: [(Float, Float) -> Float] -> (Float, Float) -> Float
    combine xs = wrap . sum . sequence xs where
       wrap n = case aux n of
          (k, v) | odd (k::Int) -> 1 - v
@@ -256,7 +256,7 @@ quasiCrystal o t dg = {-# SCC "quasiCrystal" #-} combine (map wave (angles o)) (
          kv@(k, v) | v < 0     -> (k - 1, 1 + v)
                    | otherwise -> kv
    
-   wave :: Flt -> (Flt, Flt) -> Flt
+   wave :: Float -> (Float, Float) -> Float
    wave th = f where
       (cth, sth) = (cos th, sin th)
       f (x, y) = (cos (cth * x + sth * y) + 1) / 2
@@ -264,7 +264,7 @@ quasiCrystal o t dg = {-# SCC "quasiCrystal" #-} combine (map wave (angles o)) (
 -- | A Fractal Brownian Motion (FBM) texture.
 fbmTexture
    :: Int               -- ^ number of octaves (higher -> more detail)
-   -> Flt               -- ^ lambda (roughness)
+   -> Float               -- ^ lambda (roughness)
    -> TextureMapping3d  -- ^ the texture mapping to use
    -> ScalarTexture
 fbmTexture octaves omega t dg = sum $ take octaves go where
@@ -279,7 +279,7 @@ noiseTexture
    -> ScalarTexture     -- ^ the resulting texture
 noiseTexture texMap dg = perlin3d $ texMap dg
 
-perlin3d :: (Flt, Flt, Flt) -> Flt
+perlin3d :: (Float, Float, Float) -> Float
 perlin3d (x, y, z) = lerp wz y0 y1 where
    -- cell coordinates and offsets
    (ix', iy', iz') = (floor x, floor y, floor z) :: (Int, Int, Int)
@@ -307,12 +307,12 @@ perlin3d (x, y, z) = lerp wz y0 y1 where
    wy = noiseWeight dy
    wz = noiseWeight dz
    
-noiseWeight :: Flt -> Flt
+noiseWeight :: Float -> Float
 noiseWeight t = 6 * t4 * t - 15 * t4 + 10 * t3 where
    t3 = t * t * t
    t4 = t3 * t
    
-grad :: Int -> Int -> Int -> Flt -> Flt -> Flt -> Flt
+grad :: Int -> Int -> Int -> Float -> Float -> Float -> Float
 grad x y z dx dy dz = u + v where
    u = if (h .&. 1) /= 0 then (-u') else u'
    v = if h .&. 2 /= 0 then (-v') else v'

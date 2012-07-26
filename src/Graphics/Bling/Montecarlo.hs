@@ -29,12 +29,12 @@ import Graphics.Bling.Random
 --------------------------------------------------------------------------------
 
 data Dist1D = MkDist1D {
-   distFunc :: V.Vector Flt,
-   _cdf     :: V.Vector Flt,
-   funcInt  :: Flt
+   distFunc :: V.Vector Float,
+   _cdf     :: V.Vector Float,
+   funcInt  :: Float
    } deriving (Show)
 
-mkDist1D :: [Flt] -> Dist1D
+mkDist1D :: [Float] -> Dist1D
 mkDist1D ls = MkDist1D func cdf fi where
    func = V.fromList ls
    n = V.length func
@@ -47,13 +47,13 @@ mkDist1D ls = MkDist1D func cdf fi where
 count :: Dist1D -> Int
 count (MkDist1D f _ _) = V.length f
 
-upperBound :: V.Vector Flt -> Flt -> Int
+upperBound :: V.Vector Float -> Float -> Int
 upperBound v u = min (V.length v - 2) $ max 0 $ maybe (V.length v - 1) (\i -> i - 1) $ V.findIndex (>= u) v
 
 sampleDiscrete1D
    :: Dist1D      -- ^ the distribution to sample
-   -> Flt         -- ^ the variate for sampling, must be in [0..1)
-   -> (Int, Flt)  -- ^ (sampled offset, pdf)
+   -> Float         -- ^ the variate for sampling, must be in [0..1)
+   -> (Int, Float)  -- ^ (sampled offset, pdf)
 sampleDiscrete1D d@(MkDist1D f c fi) u
    | u < 0 = error "sampleDiscrete1D : u < 0"
    | u >= 1 = error "sampleDiscrete1D : u >= 1"
@@ -61,7 +61,7 @@ sampleDiscrete1D d@(MkDist1D f c fi) u
       offset = upperBound c u
       pdf = V.unsafeIndex f offset / (fi * fromIntegral (count d))
 
-sampleContinuous1D :: Dist1D -> Flt -> (Flt, Flt, Int)
+sampleContinuous1D :: Dist1D -> Float -> (Float, Float, Int)
 sampleContinuous1D (MkDist1D func cdf fi) u = (x, pdf, offset) where
    offset = upperBound cdf u
    pdf = if fi == 0 then 0 else (func V.! offset) / fi
@@ -76,7 +76,7 @@ data Dist2D = MkDist2D
 -- | creates a 2D distribution
 mkDist2D
    :: PixelSize         -- ^ area to cover
-   -> (PixelPos -> Flt) -- ^ evaluation function
+   -> (PixelPos -> Float) -- ^ evaluation function
    -> Dist2D
 mkDist2D (nu, nv) fun = MkDist2D conditional marginal where
    conditional = BV.generate nv $ \v ->
@@ -84,12 +84,12 @@ mkDist2D (nu, nv) fun = MkDist2D conditional marginal where
    marginal = mkDist1D' $ GV.map funcInt conditional
    mkDist1D' x = mkDist1D $ GV.toList x
 
-sampleContinuous2D :: Dist2D -> Rand2D -> (CartesianCoords, Flt)
+sampleContinuous2D :: Dist2D -> Rand2D -> (CartesianCoords, Float)
 sampleContinuous2D (MkDist2D cond marg) (u0, u1) = (Cartesian (u, v), pdf0 * pdf1) where
    (v, pdf1, imarg) = sampleContinuous1D marg u1
    (u, pdf0, _) = sampleContinuous1D (cond BV.! imarg) u0
 
-pdfDist2D :: Dist2D -> CartesianCoords -> Flt
+pdfDist2D :: Dist2D -> CartesianCoords -> Float
 pdfDist2D (MkDist2D cond marg) (Cartesian (u, v))
    | funcInt marg * funcInt (cond BV.! iv) == 0 = 0
    | otherwise = (distFunc (cond BV.! iv) V.! iu * distFunc marg V.! iv) /
@@ -105,7 +105,7 @@ pdfDist2D (MkDist2D cond marg) (Cartesian (u, v))
 --------------------------------------------------------------------------------
 
 -- | a combination strategy for multiple importance sampling
-type MisHeuristic = (Int, Flt) -> (Int, Flt) -> Flt
+type MisHeuristic = (Int, Float) -> (Int, Float) -> Float
 
 powerHeuristic :: MisHeuristic
 powerHeuristic (nf, fPdf) (ng, gPdf) = (f * f) / (f * f + g * g) where
@@ -121,11 +121,11 @@ balanceHeuristic (nf, fPdf) (ng, gPdf) = (fnf * fPdf) / (fnf * fPdf + fng * gPdf
 -- misc sampling functions
 --
 
-uniformConePdf :: Flt -> Flt
+uniformConePdf :: Float -> Float
 {-# INLINE uniformConePdf #-}
 uniformConePdf cosThetaMax = 1 / (twoPi * (1 - cosThetaMax))
 
-uniformSampleCone :: LocalCoordinates -> Flt -> Rand2D -> Vector
+uniformSampleCone :: LocalCoordinates -> Float -> Rand2D -> Vector
 {-# INLINE uniformSampleCone #-}
 uniformSampleCone (LocalCoordinates x y z) cosThetaMax (u1, u2) = let
    cosTheta = lerp u1 cosThetaMax 1.0
@@ -143,13 +143,13 @@ cosineSampleHemisphere :: Rand2D -> Vector
 cosineSampleHemisphere u = Vector x y (sqrt (max 0 (1 - x*x - y*y))) where
    (x, y) = concentricSampleDisk u
    
-concentricSampleDisk :: Rand2D -> (Flt, Flt)
+concentricSampleDisk :: Rand2D -> (Float, Float)
 {-# INLINE concentricSampleDisk #-}
 concentricSampleDisk (u1, u2) = concentricSampleDisk' (sx, sy) where
    sx = u1 * 2 - 1
    sy = u2 * 2 - 1
 
-concentricSampleDisk' :: (Flt, Flt) -> (Flt, Flt)
+concentricSampleDisk' :: (Float, Float) -> (Float, Float)
 concentricSampleDisk' (0, 0) = (0, 0) -- handle degeneracy at origin
 concentricSampleDisk' (sx, sy) = (r * cos theta, r * sin theta) where
    theta = theta' * pi / 4.0
@@ -171,7 +171,7 @@ uniformSampleSphere (u1, u2) = Vector (s * cos omega) (s * sin omega) u where
    s = sqrt (1 - (u * u))
    omega = u2 * 2 * pi
 
-uniformSpherePdf :: Flt
+uniformSpherePdf :: Float
 {-# INLINE uniformSpherePdf #-}
 uniformSpherePdf = 1 / (2 * pi)
 
@@ -185,7 +185,7 @@ uniformSampleHemisphere d u
 
 uniformSampleTriangle
    :: Rand2D
-   -> (Flt, Flt) -- ^ first and second barycentric
+   -> (Float, Float) -- ^ first and second barycentric
 {-# INLINE uniformSampleTriangle #-}
 uniformSampleTriangle (u1, u2) = (1 - su1, u2 * su1) where
    su1 = sqrt u1

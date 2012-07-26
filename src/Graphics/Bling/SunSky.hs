@@ -12,7 +12,7 @@ import Graphics.Bling.Texture
 mkSunSkyLight
    :: Vector -- ^ the east vector
    -> Vector -- ^ the sun direction in world coordinates
-   -> Flt -- ^ the sky's turbidity
+   -> Float -- ^ the sky's turbidity
    -> SpectrumMap
 mkSunSkyLight east sdw turb = mkTextureMap (640, 480) eval where
    eval cc = {-# SCC "eval" #-}
@@ -23,26 +23,26 @@ mkSunSkyLight east sdw turb = mkTextureMap (640, 480) eval where
    ssd = initSky basis (normalize sdw) turb
    sunR = sunSpectrum' ssd turb
 
-type Perez = (Flt, Flt, Flt, Flt, Flt)
+type Perez = (Float, Float, Float, Float, Float)
 
 data SkyData = SD
    { sunDir :: !Vector
-   , sunTheta :: Flt
+   , sunTheta :: Float
    , perezx :: !Perez
    , perezy :: !Perez
    , perezY :: !Perez
-   , zenithx :: !Flt
-   , zenithy :: !Flt
-   , zenithY :: !Flt
+   , zenithx :: !Float
+   , zenithy :: !Float
+   , zenithY :: !Float
    }
 
-sunThetaMax2 :: Flt
+sunThetaMax2 :: Float
 sunThetaMax2 = sqrt $ max 0 (1 - sint2) where
    sint2 = radius / meanDistance
    radius = 6.955e5 -- km
    meanDistance = 1.496e8 -- 149,60 million km
    
-initSky :: LocalCoordinates -> Vector -> Flt -> SkyData
+initSky :: LocalCoordinates -> Vector -> Float -> SkyData
 initSky basis sdw t = {-# SCC "init" #-} SD sd st px py pY zx zy zY where
    sd = normalize $ worldToLocal basis sdw
    st = acos $ clamp (sd .! dimZ) (-1) 1
@@ -78,7 +78,7 @@ skySpectrum ssd dir@(Vector _ _ dz')
       y = perez (perezy ssd) (sunTheta ssd) theta gamma (zenithy ssd)
       y' = perez (perezY ssd) (sunTheta ssd) theta gamma (zenithY ssd) * 1e-4
 
-perez :: Perez -> Flt -> Flt -> Flt -> Flt -> Flt
+perez :: Perez -> Float -> Float -> Float -> Float -> Float
 perez (p0, p1, p2, p3, p4) sunT t g lvz = lvz * num / den where
    num = (1 + p0 * exp (p1 / cos t)) * (1 + p2 * exp (p3 * g)) + p4 * csg * csg
    den = (1 + p0 * exp p1) * (1 + p2 * exp (p3 * sunT)) + p4 * cst * cst
@@ -93,7 +93,7 @@ sunSpectrum sunD r dir
       d = (sunD * mkV (1, 1, -1))`dot` dir
       stm = sunThetaMax2
       
-sunSpectrum' :: SkyData -> Flt -> Spectrum
+sunSpectrum' :: SkyData -> Float -> Spectrum
 sunSpectrum' ssd turb
    | (sunDir ssd) .! dimZ < 0 = black -- below horizon
    | otherwise = fromSpd $ mkSpdFunc sf

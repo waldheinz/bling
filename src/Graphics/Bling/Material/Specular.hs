@@ -38,8 +38,8 @@ mirrorMaterial rt dgg dgs = mkBsdf' [bxdf] dgg dgs where
 
 data SpecularTransmission = SpecularTransmission {
    _specTransT    :: {-# UNPACK #-} ! Spectrum,
-   _specTransEi   :: {-# UNPACK #-} ! Flt,
-   _specTransEt   :: {-# UNPACK #-} ! Flt
+   _specTransEi   :: {-# UNPACK #-} ! Float,
+   _specTransEt   :: {-# UNPACK #-} ! Float
    }
 
 instance Bxdf SpecularTransmission where
@@ -49,7 +49,7 @@ instance Bxdf SpecularTransmission where
    bxdfSample st wo = sampleSpecTrans False st wo
    bxdfSample' st wo = sampleSpecTrans True st wo
 
-sampleSpecTrans :: Bool -> SpecularTransmission -> Vector -> (Flt, Flt) -> (Spectrum, Vector, Flt)
+sampleSpecTrans :: Bool -> SpecularTransmission -> Vector -> (Float, Float) -> (Spectrum, Vector, Float)
 sampleSpecTrans adj (SpecularTransmission t ei' et') wo@(Vector wox woy _) _
    | sint2 >= 1 = (black, wo, 0) -- total internal reflection
    | otherwise = (f, wi, 1)

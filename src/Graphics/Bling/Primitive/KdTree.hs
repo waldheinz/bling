@@ -25,7 +25,7 @@ import Graphics.Bling.Primitive
 data KdTree = KdTree {-# UNPACK #-} ! AABB ! KdTreeNode deriving (Show)
 
 data KdTreeNode
-   = Interior !KdTreeNode !KdTreeNode {-# UNPACK #-} !Flt {-# UNPACK #-} !Dimension
+   = Interior !KdTreeNode !KdTreeNode {-# UNPACK #-} !Float {-# UNPACK #-} !Dimension
    | Leaf {-# UNPACK #-} !(V.Vector AnyPrim)
    
 instance Show KdTreeNode where
@@ -76,14 +76,14 @@ leafCount t = leafCount' t where
 --------------------------------------------------------------------------------
 
 -- | cost for traversal
-cT :: Flt
+cT :: Float
 cT = 1
 
 -- | cost for primitive intersection
-cI :: Flt
+cI :: Float
 cI = 2
 
-data Edge = Edge {-# UNPACK #-} !BP {-# UNPACK #-} !Flt !Bool
+data Edge = Edge {-# UNPACK #-} !BP {-# UNPACK #-} !Float !Bool
 
 instance Eq Edge where (Edge _ t1 s1) == (Edge _ t2 s2) = t1 == t2 && s1 == s2
 
@@ -107,7 +107,7 @@ mkKdTree ps = {-# SCC "mkKdTree" #-} KdTree bounds root where
    root = buildTree bounds bps md
    bps = V.map (\p -> BP p (worldBounds p)) (V.fromList ps)
    bounds = V.foldl' extendAABB emptyAABB $ V.map bpBounds bps
-   md = round (8 + 3 * log (fromIntegral $ V.length bps :: Flt))
+   md = round (8 + 3 * log (fromIntegral $ V.length bps :: Float))
    
 buildTree :: AABB -> V.Vector BP -> Int -> KdTreeNode
 buildTree bounds bps depth
@@ -148,9 +148,9 @@ partition es i = {-# SCC "partition" #-} (lp, rp) where
    (le, re) = (V.take i es, V.drop (i+1) es) 
 
 -- | a split is (offset into es, t, # prims left, # prims right)
-type Split = (Int, Flt, Int, Int)
+type Split = (Int, Float, Int, Int)
 
-bestSplit :: AABB -> Dimension -> [Split] -> (Flt, Split)
+bestSplit :: AABB -> Dimension -> [Split] -> (Float, Split)
 bestSplit bounds axis fs = {-# SCC "bestSplit" #-} go fs (infinity, undefined) where
    go [] s = s
    go (s@(_, t, nl, nr):xs) x@(c, _)
@@ -185,10 +185,10 @@ edges bps axis = {-# SCC "edges" #-} runST $ do
 cost
    :: AABB -- ^ the bounds of the region to be split
    -> Dimension -- ^ the dimension to split along
-   -> Flt -- ^ the split position
+   -> Float -- ^ the split position
    -> Int -- ^ the number of prims to the left of the split
    -> Int -- ^ the number of prims to the right of the split
-   -> Flt -- ^ the resulting split cost according to the SAH
+   -> Float -- ^ the resulting split cost according to the SAH
 cost b@(AABB pmin pmax) a0 t nl nr = {-# SCC "cost" #-} cT + cI * eb * pI where
    pI = pl * fromIntegral nl + pr * fromIntegral nr
    eb = if nl == 0 || nr == 0 then 0.8 else 1
@@ -205,7 +205,7 @@ cost b@(AABB pmin pmax) a0 t nl nr = {-# SCC "cost" #-} cT + cI * eb * pI where
 --------------------------------------------------------------------------------
 
 -- | traversal function for @Primitive.intersects@
-traverse' :: Ray -> Vector -> KdTreeNode -> (Flt, Flt) -> Bool
+traverse' :: Ray -> Vector -> KdTreeNode -> (Float, Float) -> Bool
 traverse' r _ (Leaf ps) _ca = V.any (`intersects` r) ps
 traverse' r inv (Interior left right sp axis) mima@(tmin, tmax)
    | tp > tmax || tp <= 0 = traverse' r inv fc mima
@@ -218,7 +218,7 @@ traverse' r inv (Interior left right sp axis) mima@(tmin, tmax)
          lf = (ro .! axis < sp) || (ro .! axis == sp && rd .! axis <= 0)
 
 -- | traversal function for @Primitive.intersect@
-traverse :: (Ray, Maybe Intersection) -> Vector -> KdTreeNode -> (Flt, Flt) -> (Ray, Maybe Intersection)
+traverse :: (Ray, Maybe Intersection) -> Vector -> KdTreeNode -> (Float, Float) -> (Ray, Maybe Intersection)
 traverse ri _ (Leaf ps) _ = {-# SCC "traverse.leaf" #-} nearest' ps ri
 traverse ri@(r, _) inv (Interior left right sp axis) mima@(tmin, tmax)
    | rayMax r < tmin = ri
@@ -266,7 +266,7 @@ dbgTraverse (KdTree b t) r@(Ray _ d _ _) = maybe stats t' (intersectAABB b r) wh
    stats = TraversalStats 0 0
 
 -- | traversal function for @Primitive.intersect@
-dbgTraverse' :: (Ray, Maybe Intersection, TraversalStats) -> Vector -> KdTreeNode -> (Flt, Flt) -> (Ray, Maybe Intersection, TraversalStats)
+dbgTraverse' :: (Ray, Maybe Intersection, TraversalStats) -> Vector -> KdTreeNode -> (Float, Float) -> (Ray, Maybe Intersection, TraversalStats)
 dbgTraverse' (r, mi, ts) _ (Leaf ps) _ = let (r', mi') = nearest' ps (r, mi)
                                          in (r', mi', deeper $ ts { intersections = (intersections ts + V.length ps) })
 dbgTraverse' ri@(r, mi, ts) inv (Interior left right sp axis) mima@(tmin, tmax)

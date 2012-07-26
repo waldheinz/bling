@@ -106,7 +106,7 @@ ws :: (Monad m) => (ParsecT String u m) ()
 ws = skipMany1 (choice [space >> return (), comment])
 
 -- | parse a floating point number
-flt' :: (Monad m) => (ParsecT String u m) Flt
+flt' :: (Monad m) => (ParsecT String u m) Float
 flt' = do
    sign <- option 1 $ do
       s <- oneOf "+-"
@@ -117,7 +117,7 @@ flt' = do
    return $ sign * read (i ++ "." ++ d)
 
 -- | parse a floating point number and consume optional trailing whitespace
-flt :: (Monad m) => (ParsecT String u m) Flt
+flt :: (Monad m) => (ParsecT String u m) Float
 flt = flt' >>= \x -> optional ws >> return x
 
 -- | parse a vector
@@ -163,7 +163,7 @@ pBlock = between (char '{' >> optional ws) (optional ws >> char '}' >> optional 
 namedBlock :: JobParser a -> String -> JobParser a
 namedBlock p n = optional ws >> string n >> optional ws >> pBlock p
    
-namedFloat :: String -> JobParser Flt
+namedFloat :: String -> JobParser Float
 namedFloat n = do
    _ <- string n <|> fail ("expected " ++ n)
    ws

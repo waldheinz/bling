@@ -25,7 +25,7 @@ import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 
 -- | the Stochastic Progressive Photon Mapping Renderer
-data SPPM = SPPM {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Flt -- ^ #photons and initial radius
+data SPPM = SPPM {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Float -- ^ #photons and initial radius
 
 instance Printable SPPM where
    prettyPrint (SPPM _ _ _) = PP.vcat [
@@ -35,20 +35,20 @@ instance Printable SPPM where
 mkSPPM
    :: Int -- ^ the number of photons to emit per pass
    -> Int -- ^ the maximum depth (path length for eye paths)
-   -> Flt -- ^ the initial search radius for collecting photons
+   -> Float -- ^ the initial search radius for collecting photons
    -> SPPM
 mkSPPM = SPPM
 
 data HitPoint = Hit
    { hpBsdf    :: {-# UNPACK #-} ! Bsdf
-   , hpPixel   :: {-# UNPACK #-} ! (Flt, Flt)
+   , hpPixel   :: {-# UNPACK #-} ! (Float, Float)
    , hpW       :: {-# UNPACK #-} ! Vector
    , hpF       :: {-# UNPACK #-} ! Spectrum
    }
 
 -- | the algorithm's alpha parameter, determining the ratio of new photons
 --   to keep in each pass
-alpha :: Flt
+alpha :: Float
 alpha = 0.7
 
 --------------------------------------------------------------------------------
@@ -98,7 +98,7 @@ nextV s int wo t d md = {-# SCC "nextV" #-} do
    here <- mkHitPoint bsdf wo t
    seq re $ seq tr $ seq here $ return $! (here ++ re ++ tr, lsr + lst)
 
-cont :: Flt -> Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Spectrum -> Sampled s ([HitPoint], Spectrum)
+cont :: Float -> Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Spectrum -> Sampled s ([HitPoint], Spectrum)
 cont eps d md s bsdf wo tp t
    | d == md = return $! ([], black)
    | otherwise = do
@@ -182,19 +182,19 @@ nextVertex scene sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} do
 --------------------------------------------------------------------------------
 
 -- | the per-pixel accumulation statistics
-type Stats = (Flt, Flt) -- (radius², #photons)
+type Stats = (Float, Float) -- (radius², #photons)
 
 -- | extracts the number of collected photons from the @Stats@
-lsN :: Stats -> Flt
+lsN :: Stats -> Float
 lsN = snd
 
 -- | extracts the current search radius from the @Stats@
-lsR2 :: Stats -> Flt
+lsR2 :: Stats -> Float
 lsR2 = fst
 
 data PixelStats s = PS (UMV.MVector s Stats) SampleWindow
 
-mkPixelStats :: SampleWindow -> Flt -> ST s (PixelStats s)
+mkPixelStats :: SampleWindow -> Float -> ST s (PixelStats s)
 mkPixelStats wnd r2 = do
    v <- UMV.replicate ((w + 1) * (h + 1)) (r2, 0)
    return $! PS v wnd
@@ -223,7 +223,7 @@ sUpdate ps@(PS v _) hit = UMV.unsafeWrite v (sIdx ps hit)
 data SpatialHash = SH
    { shBounds  :: {-# UNPACK #-} ! AABB
    , shEntries :: ! (V.Vector (V.Vector HitPoint))
-   , shScale   :: {-# UNPACK #-} ! Flt -- ^ 1 / bucket size
+   , shScale   :: {-# UNPACK #-} ! Float -- ^ 1 / bucket size
    }
 
 hash :: (Int, Int, Int) -> Int

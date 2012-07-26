@@ -32,8 +32,6 @@ import Control.Monad as CM
 import qualified Data.Vector.Unboxed.Mutable as V
 import System.Random
 import qualified System.Random.Shuffle as S
-
-import Graphics.Bling.Math
 import qualified Graphics.Bling.Random as R
 
 -- | An (image) region which should be covered with samples
@@ -65,7 +63,7 @@ shiftToPixel
    :: Int -- ^ pixel x ordinate
    -> Int -- ^ pixel y ordinate
    -> [R.Rand2D]
-   -> [(Flt, Flt)]
+   -> [(Float, Float)]
 shiftToPixel px py = Prelude.map (s (fromIntegral px) (fromIntegral py)) where
    s fx fy (u, v) = (u + fx, v + fy)
 
@@ -77,9 +75,9 @@ type STVector s a = V.MVector (PrimState (ST s)) a
 
 data Sample s
    = RandomSample {-# UNPACK #-} ! CameraSample
-   | PrecomSample {-# UNPACK #-} ! CameraSample !(STVector s Flt) !(STVector s R.Rand2D)
+   | PrecomSample {-# UNPACK #-} ! CameraSample !(STVector s Float) !(STVector s R.Rand2D)
 
-mkPrecompSample :: CameraSample -> (STVector s Flt) -> (STVector s R.Rand2D) -> (Sample s)
+mkPrecompSample :: CameraSample -> (STVector s Float) -> (STVector s R.Rand2D) -> (Sample s)
 mkPrecompSample = PrecomSample
 
 data Sampler
@@ -160,7 +158,7 @@ almostOne = 0.9999999403953552 -- 0x1.fffffep-1
 
 stratified1D
    :: Int
-   -> R.Rand m [Flt]
+   -> R.Rand m [Float]
 stratified1D n = do
    js <- R.rndList n
    return $ Prelude.zipWith j us js where

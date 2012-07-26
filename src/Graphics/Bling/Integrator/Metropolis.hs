@@ -30,17 +30,17 @@ import Graphics.Bling.Scene
 data Metropolis = MLT
    { _integrator        :: ! BidirPath
    , _maxDepth          :: ! Int
-   , _mpp               :: ! Flt -- ^ mutations per pixel
+   , _mpp               :: ! Float -- ^ mutations per pixel
    , _nbootstrap        :: ! Int
-   , _plarge            :: ! Flt
+   , _plarge            :: ! Float
    , _directSamples     :: ! Int -- ^ spp for direct
    }
 
 mkMLT
    :: Int -- ^ maximum depth
-   -> Flt -- ^ mutations per pixel
+   -> Float -- ^ mutations per pixel
    -> Int -- ^ number of bootstrap samples
-   -> Flt -- ^ plarge
+   -> Float -- ^ plarge
    -> Int -- ^ samples per pixel for direct lighting integrator
    -> Metropolis
 mkMLT md mpp nboot pl dspp = MLT integ md mpp nboot pl dspp where
@@ -65,7 +65,7 @@ instance Renderer Metropolis where
       where
       scene = jobScene job
       
-      sSmp :: Flt -> ImageSample -> ImageSample
+      sSmp :: Float -> ImageSample -> ImageSample
       sSmp f (x, y, WS w s) = (x, y, WS (w * f * wt) s)
       nPixels = imageSizeX job * imageSizeY job
       wt = 1 / mpp
@@ -141,9 +141,9 @@ bootstrap :: (SurfaceIntegrator i)
    => Scene
    -> Int -- ^ number of bootstrap samples
    -> i -- ^ integrator to use
-   -> (Flt, Flt) -- ^ image size
+   -> (Float, Float) -- ^ image size
    -> (Int, Int) -- ^ (n1d, n2d) sampling needs (redundant to integ)
-   -> Rand s (Flt, Sample s) -- ^ (b)
+   -> Rand s (Float, Sample s) -- ^ (b)
 bootstrap scene n integ imgSize nd = {-# SCC "bootstrap" #-} do
    smps <- liftR $ MV.new n
    is <- newRandRef []
@@ -166,7 +166,7 @@ bootstrap scene n integ imgSize nd = {-# SCC "bootstrap" #-} do
   -- smp <- initialSample imgSize nd
    return (sumI / fromIntegral n, smp)
 
-initialSample :: (Flt, Flt) -> (Int, Int) -> Rand s (Sample s)
+initialSample :: (Float, Float) -> (Int, Int) -> Rand s (Sample s)
 initialSample (sx, sy) (n1d, n2d) = do
    v1d <- liftR $ V.new n1d
    v2d <- liftR $ V.new n2d
@@ -186,7 +186,7 @@ initialSample (sx, sy) (n1d, n2d) = do
    
    return $ mkPrecompSample cs v1d v2d
 
-mutate :: (Flt, Flt) -> (Int, Int) -> Flt -> Sample s -> Rand s (Sample s)
+mutate :: (Float, Float) -> (Int, Int) -> Float -> Sample s -> Rand s (Sample s)
 mutate imgSize nd@(n1d, n2d) plarge (PrecomSample cs v1d v2d) = do
    R.rnd >>= \x -> if x < plarge
       then {-# SCC "mutate.largeStep" #-} initialSample imgSize nd
@@ -208,7 +208,7 @@ mutate imgSize nd@(n1d, n2d) plarge (PrecomSample cs v1d v2d) = do
          return $ PrecomSample cs' v1d' v2d'
 mutate _ _ _ _ = error "mutate not precomputed sample"
 
-mutateCamaraSample :: (Flt, Flt) -> CameraSample -> Rand s CameraSample
+mutateCamaraSample :: (Float, Float) -> CameraSample -> Rand s CameraSample
 mutateCamaraSample (sx, sy) (CameraSample x y (lu, lv)) = do
    x' <- jitter x 0 sx
    y' <- jitter y 0 sy
@@ -216,7 +216,7 @@ mutateCamaraSample (sx, sy) (CameraSample x y (lu, lv)) = do
    lv' <- jitter lv 0 1
    return $ CameraSample x' y' (lu', lv')
 
-jitter :: Flt -> Flt -> Flt -> Rand s Flt
+jitter :: Float -> Float -> Float -> Rand s Float
 {-# INLINE jitter #-}
 jitter v vmin vmax
    | vmin == vmax = return vmin
@@ -236,7 +236,7 @@ jitter v vmin vmax
          | x < vmin = vmax - (vmin - x)
          | otherwise = x
 
-evalI :: [ImageSample] -> Flt
+evalI :: [ImageSample] -> Float
 evalI smps = sum $ map (\(_, _, WS _ ss) -> sY ss) smps
 
 evalSample :: (SurfaceIntegrator i) => Scene -> i -> Sample s -> Rand s [ImageSample]

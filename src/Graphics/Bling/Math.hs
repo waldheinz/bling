@@ -43,31 +43,31 @@ import Graphics.Bling.Types
 -- Utility functions
 --
 
-infinity :: Flt
+infinity :: Float
 {-# INLINE infinity #-}
 infinity = 1 / 0
 
-invPi :: Flt
+invPi :: Float
 {-# INLINE invPi #-}
 invPi = 1 / pi
 
-invTwoPi :: Flt
+invTwoPi :: Float
 {-# INLINE invTwoPi #-}
 invTwoPi = 1 / (2 * pi)
 
-twoPi :: Flt
+twoPi :: Float
 {-# INLINE twoPi #-}
 twoPi = 2.0 * pi
 
 -- | converts an angle from degrees to radians
 radians
-   :: Flt -- ^ the angle in degrees
-   -> Flt -- ^ the angle in radions
+   :: Float -- ^ the angle in degrees
+   -> Float -- ^ the angle in radions
 {-# INLINE radians #-}
 radians x = (x / 180 * pi)
 
 -- | like @atan2@, but returns positive values in [0..2pi]
-atan2' :: Flt -> Flt -> Flt
+atan2' :: Float -> Float -> Float
 {-# INLINE atan2' #-}
 atan2' y x
    | a < 0 = a + twoPi
@@ -77,10 +77,10 @@ atan2' y x
 
 -- | clamps a value so it is withing a specified range
 clamp
-   :: Flt -- ^ the value to clamp
-   -> Flt -- ^ the lower bound
-   -> Flt -- ^ the upper bound
-   -> Flt
+   :: Float -- ^ the value to clamp
+   -> Float -- ^ the lower bound
+   -> Float -- ^ the upper bound
+   -> Float
 {-# INLINE clamp #-}
 clamp v lo hi
    | v < lo = lo
@@ -106,15 +106,15 @@ dimZ = 2
 allDimensions :: [Dimension]
 allDimensions = [dimX, dimY, dimZ]
 
-lerp :: Flt -> Flt -> Flt -> Flt
+lerp :: Float -> Float -> Float -> Float
 {-# INLINE lerp #-}
 lerp t v1 v2 = (1 - t) * v1 + t * v2
 
 -- remaps a random variable in [0, 1) to a number of strata
 remapRand
    :: Int -- ^ the number of strata to remap to
-   -> Flt -- ^ the variate to remap
-   -> (Int, Flt) -- ^ (selected stratum, remapped variate)
+   -> Float -- ^ the variate to remap
+   -> (Int, Float) -- ^ (selected stratum, remapped variate)
 {-# INLINE remapRand #-}
 remapRand segs u = (seg, u') where
    seg = min (segs-1) (floor $ u * segs')
@@ -122,7 +122,7 @@ remapRand segs u = (seg, u') where
    u' = (u - fromIntegral seg / segs') * segs'
 
 -- | Calculate the roots of the equation a * x^2 + b * x + c = 0
-solveQuadric :: Flt -> Flt -> Flt -> Maybe (Flt, Flt)
+solveQuadric :: Float -> Float -> Float -> Maybe (Float, Float)
 {-# INLINE solveQuadric #-}
 solveQuadric a b c
    | discrim < 0 = Nothing
@@ -135,7 +135,7 @@ solveQuadric a b c
          rootDiscrim = sqrt discrim
          discrim = b * b - 4 * a * c
 
-sphericalDirection :: Flt -> Flt -> Flt -> Vector
+sphericalDirection :: Float -> Float -> Float -> Vector
 {-# INLINE sphericalDirection #-}
 sphericalDirection sint cost phi = Vector (sint * cos phi) (sint * sin phi) cost
 
@@ -149,7 +149,7 @@ dirToSph :: Vector -> SphericalCoords
 dirToSph v = Spherical (sphericalPhi v, sphericalTheta v)
 
 -- | returns the sine of the theta component of @SphericalCoords@
-sphSinTheta :: SphericalCoords -> Flt
+sphSinTheta :: SphericalCoords -> Float
 {-# INLINE sphSinTheta #-}
 sphSinTheta (Spherical (_, t)) = sin t
 
@@ -169,18 +169,18 @@ sphericalPhi (Vector x y _)
 -- Vectors
 --------------------------------------------------------------------------------
 
-data Vector = Vector { vx, vy, vz :: {-# UNPACK #-} !Flt } deriving ( Eq )
+data Vector = Vector { vx, vy, vz :: {-# UNPACK #-} !Float } deriving ( Eq )
 
-vzip :: (Flt -> Flt -> Flt) -> Vector -> Vector -> Vector
+vzip :: (Float -> Float -> Float) -> Vector -> Vector -> Vector
 {-# INLINE vzip #-}
 vzip f (Vector x1 y1 z1) (Vector x2 y2 z2) =
    Vector (f x1 x2) (f y1 y2) (f z1 z2)
 
-vmap :: (Flt -> Flt) -> Vector -> Vector
+vmap :: (Float -> Float) -> Vector -> Vector
 {-# INLINE vmap #-}
 vmap f (Vector x y z) = Vector (f x) (f y) (f z)
 
-vpromote :: Flt -> Vector
+vpromote :: Float -> Vector
 {-# INLINE vpromote #-}
 vpromote x = Vector x x x
 
@@ -201,14 +201,14 @@ instance Fractional Vector where
   recip = vmap recip
   fromRational = vpromote . fromRational
 
-(*#) :: Flt -> Vector -> Vector
+(*#) :: Float -> Vector -> Vector
 {-# INLINE (*#) #-}
 (*#) f v = vpromote f * v
 
 -- make Vector an instance of Unbox
 
-newtype instance V.MVector s Vector = MV_Vector (V.MVector s Flt)
-newtype instance V.Vector Vector = V_Vector (V.Vector Flt)
+newtype instance V.MVector s Vector = MV_Vector (V.MVector s Float)
+newtype instance V.Vector Vector = V_Vector (V.Vector Float)
 
 instance V.Unbox Vector
 
@@ -270,17 +270,17 @@ instance GV.Vector V.Vector Vector where
    
 type Point = Vector
 
-mkPoint :: (Flt, Flt, Flt) -> Point
+mkPoint :: (Float, Float, Float) -> Point
 {-# INLINE mkPoint #-}
 mkPoint (x, y, z) = Vector x y z
 
-mkPoint' :: Flt -> Flt -> Flt -> Point
+mkPoint' :: Float -> Float -> Float -> Point
 {-# INLINE mkPoint' #-}
 mkPoint' = Vector
 
 type Normal = Vector
 
-mkNormal :: Flt -> Flt -> Flt -> Normal
+mkNormal :: Float -> Float -> Float -> Normal
 {-# INLINE mkNormal #-}
 mkNormal = Vector
 
@@ -295,36 +295,36 @@ dominant (Vector x y z)
       ay = abs y
       az = abs z
 
-mkV :: (Flt, Flt, Flt) -> Vector
+mkV :: (Float, Float, Float) -> Vector
 {-# INLINE mkV #-}
 mkV (x, y, z) = Vector x y z
 
-mkV' :: Flt -> Flt -> Flt -> Vector
+mkV' :: Float -> Float -> Float -> Vector
 mkV' = Vector
 
-component :: Vector -> Dimension -> Flt
+component :: Vector -> Dimension -> Float
 {-# INLINE component #-}
 component !(Vector x y z) !d
    | d == dimX = x
    | d == dimY = y
    | otherwise = z
 
-(.!) :: Vector -> Dimension -> Flt
+(.!) :: Vector -> Dimension -> Float
 {-# INLINE (.!) #-}
 (.!) = component
 
-setComponent :: Dimension -> Flt -> Vector -> Vector
+setComponent :: Dimension -> Float -> Vector -> Vector
 {-# INLINE setComponent #-}
 setComponent dim t (Vector x y z)
    | dim == dimX  = mkPoint' t y z
    | dim == dimY  = mkPoint' x t z
    | otherwise    = mkPoint' x y t
 
-sqLen :: Vector -> Flt
+sqLen :: Vector -> Float
 {-# INLINE sqLen #-}
 sqLen (Vector x y z) = x*x + y*y + z*z
 
-len :: Vector -> Flt
+len :: Vector -> Float
 {-# INLINE len #-}
 len v = sqrt (sqLen v)
 
@@ -333,11 +333,11 @@ cross :: Vector -> Vector -> Vector
 cross (Vector ux uy uz) (Vector x2 y2 z2) =
    Vector (uy*z2 - uz*y2) (-(ux*z2 - uz*x2)) (ux*y2 - uy*x2)
 
-dot :: Vector -> Vector -> Flt
+dot :: Vector -> Vector -> Float
 {-# INLINE dot #-}
 dot (Vector x y z) (Vector a b c) =  x*a + y*b + z*c;
 
-absDot :: Vector -> Vector -> Flt
+absDot :: Vector -> Vector -> Float
 {-# INLINE absDot #-}
 absDot v1 v2 = abs (dot v1 v2)
 
@@ -360,8 +360,8 @@ faceForward v v2
 data Ray = Ray {
    rayOrigin :: {-# UNPACK #-} ! Point,
    rayDir :: {-# UNPACK #-} ! Normal,
-   rayMin :: {-# UNPACK #-} ! Flt,
-   rayMax :: {-# UNPACK #-} ! Flt
+   rayMin :: {-# UNPACK #-} ! Float,
+   rayMax :: {-# UNPACK #-} ! Float
    } deriving Show
 
 -- | Creates a ray that connects the two specified points.
@@ -370,12 +370,12 @@ data Ray = Ray {
 -- segmentRay p1 p2 = Ray p1 p1p2 epsilon (1 - epsilon) where
 --   p1p2 = p2 - p1
 
-rayAt :: Ray -> Flt -> Point
+rayAt :: Ray -> Float -> Point
 {-# INLINE rayAt #-}
 rayAt (Ray o d _ _) t = o + (d * vpromote t)
 
 -- | decides if a @t@ value is in the ray's bounds
-onRay :: Ray -> Flt -> Bool
+onRay :: Ray -> Float -> Bool
 {-# INLINE onRay #-}
 onRay (Ray _ _ tmin tmax) t = t >= tmin && t <= tmax
 
