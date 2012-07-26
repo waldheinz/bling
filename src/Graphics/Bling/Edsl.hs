@@ -3,20 +3,24 @@ module Graphics.Bling.Edsl (
    module Graphics.Bling.Camera,
    module Graphics.Bling.Gui,
    module Graphics.Bling.IO.RGBE,
+   module Graphics.Bling.Image,
    module Graphics.Bling.Integrator.Path,
    module Graphics.Bling.Light,
    module Graphics.Bling.Material.Lafortune,
+   module Graphics.Bling.Material.Matte,
    module Graphics.Bling.Material.Metal,
    module Graphics.Bling.Material.Plastic,
+   module Graphics.Bling.Primitive.Fractal,
    module Graphics.Bling.Rendering,
    module Graphics.Bling.Reflection,
    module Graphics.Bling.Sampling,
    module Graphics.Bling.Shape,
    module Graphics.Bling.Spectrum,
+   module Graphics.Bling.SunSky,
    module Graphics.Bling.Texture,
    
    buildJob, emit, CanAdd(..), shape, setTransform, setCamera, setMaterial,
-   setImageSize, readFileBS
+   setImageSize, readFileBS, setFilter
    ) where
 
 import Control.Applicative
@@ -34,6 +38,7 @@ import Graphics.Bling.Material.Matte
 import Graphics.Bling.Material.Metal
 import Graphics.Bling.Material.Plastic
 import Graphics.Bling.Primitive
+import Graphics.Bling.Primitive.Fractal
 import Graphics.Bling.Primitive.Geometry
 import Graphics.Bling.Reflection
 import Graphics.Bling.Rendering
@@ -41,18 +46,19 @@ import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Shape
 import Graphics.Bling.Spectrum
+import Graphics.Bling.SunSky
 import Graphics.Bling.Texture
 
 data MyState = MyState
-   { prims        :: [AnyPrim]
-   , lights       :: [Light]
-   , imgSize      :: (Int, Int)
-   , _pixelFilter  :: Filter
-   , camera       :: Camera
-   , transform    :: Transform
-   , material     :: Material
-   , emission     :: Maybe Spectrum
-   , geomId       :: Int
+   { prims     :: [AnyPrim]
+   , lights    :: [Light]
+   , imgSize   :: (Int, Int)
+   , pfilter   :: Filter
+   , camera    :: Camera
+   , transform :: Transform
+   , material  :: Material
+   , emission  :: Maybe Spectrum
+   , geomId    :: Int
    }
 
 initialState :: MyState
@@ -84,6 +90,9 @@ instance CanAdd Geometry' where
 instance CanAdd Light where
    add l = modify $ \s -> s { lights = l : (lights s) }
 
+instance CanAdd AnyPrim where
+   add p = modify $ \s -> s { prims = p : prims s }
+
 emit :: Spectrum -> DslState ()
 emit s = let s' = if isBlack s then Nothing else Just s in modify (\st -> st { emission = s' })
 
@@ -98,6 +107,9 @@ setImageSize sz = modify $ \s -> s { imgSize = sz }
 
 setMaterial :: Material -> DslState ()
 setMaterial m = modify $ \s -> s { material = m }
+
+setFilter :: Filter -> DslState ()
+setFilter f = modify $ \s -> s { pfilter = f }
 
 -- | reads a file into a lazy ByteString
 readFileBS :: FilePath -> DslState BS.ByteString

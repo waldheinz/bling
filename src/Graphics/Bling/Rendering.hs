@@ -15,7 +15,6 @@ module Graphics.Bling.Rendering (
    ) where
 
 import GHC.Conc (numCapabilities)
-import Control.Applicative
 import Control.Monad
 import Control.Monad.ST
 import Control.Parallel.Strategies
@@ -126,18 +125,21 @@ prender (SR sampler integ) job report = do
          runWithSeed s $ tile scene sampler integ i w
          i' <- freeze i
          return (i', w)
-   
-   forM_ [1..] $ \pass -> do
-      seeds <- repeat <$> ioSeed
       
-      forM_ (pm eval $ zip seeds wnds) $ \(t, w) -> do
-         _ <- report $ RegionStarted w
-         addTile image t
-         (img', _) <- freeze image
-         report (SamplesAdded w img')
+      onePass pass = do
+         seeds <- sequence $ (replicate $ length wnds) ioSeed
+      
+         forM_ (pm eval $ zip seeds wnds) $ \(t, w) -> do
+            _ <- report $ RegionStarted w
+            addTile image t
+            (img', _) <- freeze image
+            report (SamplesAdded w img')
          
-      (img', _) <- freeze image
-      report (PassDone pass img' 1)
+         (img', _) <- freeze image
+         report (PassDone pass img' 1) >>= \cont -> do
+            if cont then onePass (pass + 1) else return ()
+   
+   onePass 1
    
 tile :: SurfaceIntegrator i =>
    Scene -> Sampler -> i -> MImage (ST s) -> SampleWindow -> Rand s ()
