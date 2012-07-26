@@ -12,4 +12,4 @@ main = SDL.withInit [InitEverything] $ do
       case result of
            (Left e) -> putStrLn $ show e
            (Right (job, renderer)) -> renderWithPreview job renderer
-   
+

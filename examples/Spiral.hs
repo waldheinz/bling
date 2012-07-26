@@ -99,6 +99,8 @@ spiral = render $ do
    setMaterial gold -- $ measuredMaterial BrushedMetal
    mapM_ bars bases
    
+--    (R.mkAnyRenderer $ R.mkSamplerRenderer (mkStratifiedSampler 8 8) (I.mkAnySurface $ mkPathIntegrator 5 3))
+   
 main :: IO ()
 main = spiral
 

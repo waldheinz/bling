@@ -1,6 +1,6 @@
 
 module Graphics.Bling.Edsl (
-   render, emit, CanAdd(..), shape, setTransform, setCamera, setMaterial,
+   buildJob, emit, CanAdd(..), shape, setTransform, setCamera, setMaterial,
    setImageSize, readFileBS
    ) where
 
@@ -30,7 +30,6 @@ data MyState = MyState
    , imgSize      :: (Int, Int)
    , _pixelFilter  :: Filter
    , camera       :: Camera
-   , _renderer     :: R.AnyRenderer
    , transform    :: Transform
    , material     :: Material
    , emission     :: Maybe Spectrum
@@ -40,7 +39,7 @@ data MyState = MyState
 initialState :: MyState
 initialState = MyState [] [] (640, 360) mkBoxFilter
    (mkPerspectiveCamera (lookAt (mkPoint' 0 5 (-10)) (mkPoint' 0 0 0) (mkV' 0 1 0)) 0 1 90 640 360)
-   (R.mkAnyRenderer $ R.mkSamplerRenderer (mkStratifiedSampler 8 8) (I.mkAnySurface $ mkPathIntegrator 5 3))
+
    identity (mkMatte (constant $ fromRGB' 0.9 0.9 0.9) (constant 0)) Nothing 0
 
 type DslState a = (StateT MyState IO a)
@@ -87,14 +86,8 @@ readFileBS n = liftIO $ do
    putStrLn $ "Reading " ++ n
    BS.readFile n
 
-render :: DslState a -> IO ()
-render f = do
-   (MyState ps ls (sx, sy) filt cam r _ _ _ _) <- execStateT f initialState
-   
-   let
-      scene = mkScene ls ps cam
-      job = R.mkJob scene filt sx sy
-      
-   renderWithPreview job r
-   return ()
+buildJob :: DslState a -> IO R.RenderJob
+buildJob f = do
+   (MyState ps ls (sx, sy) filt cam _ _ _ _) <- execStateT f initialState
+   return $ R.mkJob (mkScene ls ps cam) filt sx sy
 
