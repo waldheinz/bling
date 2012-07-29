@@ -9,7 +9,7 @@ filter gauss 2 2 2
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 4 ySamples 4 }
+      sampler { stratified xSamples 16 ySamples 16 }
       integrator { path maxDepth 10 sampleDepth 3 }
    }
 }
@@ -27,7 +27,7 @@ renderer {
 # renderer { sppm photonCount 5000 maxDepth 10 radius 30 }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 
-imageSize 480 480
+imageSize 640 640
 # imageSize 240 240
 
 #

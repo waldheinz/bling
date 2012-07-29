@@ -17,10 +17,68 @@ module Graphics.Bling.Transform (
 import Graphics.Bling.AABB
 import Graphics.Bling.Math
 
+import Control.Applicative
+import Control.Monad (forM, forM_, unless)
+import Control.Monad.ST
+import Data.Function (on)
 import Data.Monoid
-import Data.List (transpose, foldl')
+import Data.List (transpose, foldl', maximumBy)
 import Data.Vec.Base (matFromLists, matToLists, Mat44)
+import Data.STRef
+import qualified Data.Vector.Unboxed as UV
+import qualified Data.Vector.Unboxed.Mutable as MUV
 import qualified Data.Vec.LinAlg as LA (invert)
+
+newtype Matrix4 = Matrix4 { unM :: UV.Vector Float }
+
+-- | index into a matrix
+(!!) :: Matrix4 -> Int -> Int -> Float
+(!!) m row col = (unM m) UV.! ((row * 4) + col)
+
+inverse' :: Matrix4 -> Matrix4
+inverse' m = runST $ do
+   minv <- UV.thaw $ unM m
+   ipiv <- newSTRef [0..3]
+   indx <- UV.generateM 4 $ const $ do
+      (irow, icol) <- readSTRef ipiv >>= pivot minv
+      modifySTRef ipiv (filter (== icol))
+      
+      -- swap rows irow and icol for pivot
+      unless (irow == icol) $ forM_ [0..3] $ \k ->
+         MUV.swap minv (idx irow k) (idx icol k)
+         
+      -- set m[icol][icol] to one by scaling
+      pivinv <- (/) 1 <$> MUV.read minv (idx icol icol)
+      MUV.write minv (idx icol icol) 1
+      forM_ [0..3] $ \j -> let i = idx icol j
+         in MUV.read minv i >>= \v -> MUV.write minv i (v * pivinv)
+      
+      -- subtract this row from others to zero out their columns
+      forM_ [0..3] $ \j -> do
+         unless (j == icol) $ do
+            save <- MUV.read minv $ idx j icol
+            MUV.write minv (idx j icol) 0
+            
+            forM_ [0..3] $ \k -> do
+               x <- MUV.read minv $ idx icol k
+               old <- MUV.read minv (idx j k)
+               MUV.write minv (idx j k ) $ old - x * save
+      
+      return (irow, icol)
+      
+   -- swap columns to reflect permutation
+   UV.forM_ indx $ \(ir, ic) -> unless (ir == ic) $ do
+      forM_ [0..3] $ \k -> MUV.swap minv (idx k ir) (idx k ic)
+      
+   Matrix4 <$> UV.freeze minv
+   where
+      idx :: Int -> Int -> Int
+      idx r c = r * 4 + c
+      
+      pivot :: MUV.MVector s Float -> [Int] -> ST s (Int, Int)
+      pivot minv is = fst . maximumBy (compare `on` snd) <$>
+         forM [(j,k) | j <- is, k <- is] pvt where
+            pvt jk@(j, k) = (,) jk <$> MUV.read minv (idx j k)
 
 data Matrix = MkMatrix {
    m00 :: {-# UNPACK #-} !Float, m01 :: {-# UNPACK #-} !Float, m02 :: {-# UNPACK #-} !Float, m03 :: {-# UNPACK #-} !Float,
