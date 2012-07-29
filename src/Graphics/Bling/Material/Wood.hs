@@ -6,6 +6,8 @@ module Graphics.Bling.Material.Wood (
 import Graphics.Bling.Reflection
 import Graphics.Bling.Texture
 
+import Data.Monoid
+
 mkWood :: Material
 mkWood dgg dgs = mkBsdf' [diff, spec] dgg dgBump where
    spec = MkAnyBxdf $ Microfacet (mkBlinn (1 / 0.01)) (frDielectric 1 1.5) white
@@ -20,10 +22,10 @@ mkWood dgg dgs = mkBsdf' [diff, spec] dgg dgBump where
    
    dgBump = bump (scaleTexture (-0.005) d) dgg dgs
    
-   mapping = concatTrans o s
+   mapping = o <> s
    clouds2 = gradient g2 d dgs
    g2 = mkGradient [(-1, clouds1), (0.10, clouds1), (0.30, c2), (1, c2)]
-   m = identityMapping3d $ concatTrans (scale $ mkV (0.5, 0.5, 0.5)) s
+   m = identityMapping3d $ (scale $ mkV (0.5, 0.5, 0.5)) <> s
    clouds1 = gradient g1 (fbmTexture 6 0.8 m) dgg
    g1 = mkGradient [(-1, c0), (-0.15, c0), (0.3, c1)]
    
@@ -43,11 +45,11 @@ woodTexture :: SpectrumTexture
 woodTexture dg = clouds2 where
    s = scale $ mkV (1, 1, 1)
    o = scale $ mkV (20, 1, 1)
-   mapping = concatTrans o s
+   mapping = o <> s
    clouds2 = gradient g2 (fbmTexture 6 0.46 (identityMapping3d mapping)) dg
    g2 = mkGradient [(-1, clouds1), (0.15, clouds1), (0.20, c2), (1, c2)]
 
-   clouds1 = gradient g1 (fbmTexture 6 0.8 $ identityMapping3d $ concatTrans (scale $ mkV (0.5, 0.5, 0.5)) s) dg
+   clouds1 = gradient g1 (fbmTexture 6 0.8 $ identityMapping3d $ (scale $ mkV (0.5, 0.5, 0.5)) <> s) dg
    g1 = mkGradient [(-1, c0), (-0.15, c0), (0.3, c1)]
 
    c0 = fromRGB (0.376, 0.263, 0.169)

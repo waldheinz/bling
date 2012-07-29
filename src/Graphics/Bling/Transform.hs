@@ -3,9 +3,9 @@ module Graphics.Bling.Transform (
       module Graphics.Bling.Math,
       module Graphics.Bling.AABB,
       
-      Transform, identity, translate, scale, inverse, fromMatrix, rotateX,
+      Transform, translate, scale, inverse, fromMatrix, rotateX,
       rotateY, rotateZ, lookAt, perspective,
-      transPoint, transVector, transBox, transRay, transNormal, concatTrans,
+      transPoint, transVector, transBox, transRay, transNormal,
       fromMatrix',
 
       -- * Utility Functions
@@ -17,6 +17,7 @@ module Graphics.Bling.Transform (
 import Graphics.Bling.AABB
 import Graphics.Bling.Math
 
+import Data.Monoid
 import Data.List (transpose, foldl')
 import Data.Vec.Base (matFromLists, matToLists, Mat44)
 import qualified Data.Vec.LinAlg as LA (invert)
@@ -81,6 +82,10 @@ data Transform = MkTransform {
 
 instance Show Transform where
    show (MkTransform m _) = show m
+
+instance Monoid Transform where
+   mempty = identity
+   mappend = concatTrans
 
 -- | Creates a @Transform@ from the two matrices
 fromMatrix :: ([[Float]], [[Float]]) -> Transform

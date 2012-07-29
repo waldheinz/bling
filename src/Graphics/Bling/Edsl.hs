@@ -1,5 +1,6 @@
 
 module Graphics.Bling.Edsl (
+   module Data.Monoid,
    module Graphics.Bling.Camera,
    module Graphics.Bling.Gui,
    module Graphics.Bling.IO.RGBE,
@@ -26,6 +27,7 @@ module Graphics.Bling.Edsl (
 import Control.Applicative
 import Control.Monad.State
 import qualified Data.ByteString.Lazy as BS
+import Data.Monoid
 
 import Graphics.Bling.Camera
 import Graphics.Bling.Gui
@@ -65,7 +67,7 @@ initialState :: MyState
 initialState = MyState [] [] (640, 360) mkBoxFilter
    (mkPerspectiveCamera (lookAt (mkPoint' 0 5 (-10)) (mkPoint' 0 0 0) (mkV' 0 1 0)) 0 1 90 640 360)
 
-   identity (mkMatte (constant $ fromRGB' 0.9 0.9 0.9) (constant 0)) Nothing 0
+   mempty (mkMatte (const $ fromRGB' 0.9 0.9 0.9) (const 0)) Nothing 0
 
 type DslState a = (StateT MyState IO a)
 

@@ -11,6 +11,8 @@ module Graphics.Bling.Primitive.Fractal (
    
 ) where
 
+import Data.Monoid
+
 import Graphics.Bling.AABB
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Primitive
@@ -192,11 +194,11 @@ qsq (Quaternion r i) = Quaternion r' i' where
 --------------------------------------------------------------------------------
 
 buildMenger :: Shape -> Material -> Int -> Transform -> [AnyPrim]
-buildMenger s m level trans = go level identity where
+buildMenger s m level trans = go level mempty where
    putAt t = mkAnyPrim $ mkGeom t False m Nothing s (-1)
-   go 0 t = [putAt (concatTrans (scale $ mkV (2.2, 2.2, 2.2)) t `concatTrans` trans) ]
+   go 0 t = [putAt ((scale $ mkV (2.2, 2.2, 2.2)) <> t <> trans) ]
    go l t = concatMap (go (l-1)) ts where
-      ts = map (\v -> foldl concatTrans t [sc, translate v]) vs
+      ts = map (\v -> foldl (<>) t [sc, translate v]) vs
       sc = scale $ mkV (1/3, 1/3, 1/3)
       vs = map (mkV) coords
       coords = filter vm [(x, y, z) | x <- [-1..1], y <- [-1..1], z <- [-1..1]]

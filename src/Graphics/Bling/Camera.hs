@@ -11,7 +11,8 @@ module Graphics.Bling.Camera (
    ) where
 
 import Control.Monad (liftM)
-import Text.PrettyPrint
+import Data.Monoid
+import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Math
 import Graphics.Bling.Montecarlo
@@ -32,13 +33,13 @@ data Camera
       deriving (Show)
       
 instance Printable Camera where
-   prettyPrint (ProjectiveCamera _ _ _ ap lr fd) = vcat [
-      text "Projective",
-      text "Lens Radius" <+> float lr,
-      text "Focal Distance" <+>  float fd,
-      text "area of single pixel" <+> float ap ]
+   prettyPrint (ProjectiveCamera _ _ _ ap lr fd) = PP.vcat [
+      PP.text "Projective",
+      PP.text "Lens Radius" PP.<+> PP.float lr,
+      PP.text "Focal Distance" PP.<+>  PP.float fd,
+      PP.text "area of single pixel" PP.<+> PP.float ap ]
 
-   prettyPrint (Environment _ _ _) = text "Environment"
+   prettyPrint (Environment _ _ _) = PP.text "Environment"
 
 --
 -- sending eye rays into the scene
@@ -116,7 +117,7 @@ mkProjective
    -> Camera
    
 mkProjective c2w p lr fd sx sy fl = ProjectiveCamera c2w r2c w2r ap lr fd where
-   s2r = t `concatTrans` st2 `concatTrans` st1
+   s2r = t <> st2 <> st1
    aspect = sx / sy
    (s0, s1, s2, s3) = if aspect > 1
                          then (-aspect, aspect, -1, 1)
@@ -125,9 +126,9 @@ mkProjective c2w p lr fd sx sy fl = ProjectiveCamera c2w r2c w2r ap lr fd where
    st2 = scale (Vector (1 / (s1 - s0)) (1 / (s2 - s3)) 1)
    t = translate (Vector (-s0) (-s3) 0)
    r2s = inverse s2r
-   r2c = r2s `concatTrans` inverse p
-   w2r = concatTrans w2s s2r -- world to raster
-   w2s = concatTrans (inverse c2w) p  -- world to screen
+   r2c = r2s <> inverse p
+   w2r = w2s <> s2r -- world to raster
+   w2s = (inverse c2w) <> p  -- world to screen
    ap = (pw * ph) -- pixel area
    pw = fl * (s1 - s0) / 2 / sx
    ph = fl * (s3 - s2) / 2 / sy

@@ -13,8 +13,9 @@ module Graphics.Bling.Primitive (
    
    ) where
 
+import Data.Monoid
 import qualified Data.Vector.Generic as V
-   
+
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Light as L
 import Graphics.Bling.Reflection
@@ -96,7 +97,7 @@ data Intersection = Intersection {
 intBsdf :: Intersection -> Bsdf
 intBsdf int = {-# SCC "intBsdf" #-} intMaterial int dgg dgs where
    dgg = intGeometry int
-   dgs = shadingGeometry (intPrimitive int) identity dgg
+   dgs = shadingGeometry (intPrimitive int) mempty dgg
 
 -- | the light emitted at an @Intersection@
 intLe

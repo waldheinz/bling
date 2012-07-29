@@ -3,7 +3,7 @@ module Graphics.Bling.IO.TransformParser (
    pTransform, pGlobalTrans
    ) where
 
-import Data.List (foldl')
+import Data.Monoid
 
 import Graphics.Bling.Transform
 import Graphics.Bling.IO.ParserCore
@@ -16,12 +16,12 @@ pGlobalTrans :: JobParser ()
 pGlobalTrans = do
    t <- pTransform
    s <- getState
-   setState s { transform = concatTrans t (transform s) }
+   setState s { transform = t <> (transform s) }
    
 pTransform :: JobParser Transform
 pTransform = pBlock $ do
    ts <- many anyTransform
-   return $! foldl' concatTrans identity ts
+   return $! mconcat ts
 
 anyTransform :: JobParser Transform
 anyTransform = choice [

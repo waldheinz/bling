@@ -6,11 +6,11 @@ module Graphics.Bling.IO.RenderJob (
 import System.FilePath
 import Text.Parsec.Error
 import Control.Applicative ((<*>), (<$>))
+import Data.Monoid
 
 import Graphics.Bling.Image
 import Graphics.Bling.Rendering
 import Graphics.Bling.Scene
-import Graphics.Bling.Transform
 import Graphics.Bling.IO.CameraParser
 import Graphics.Bling.IO.LightParser
 import Graphics.Bling.IO.MaterialParser
@@ -22,7 +22,7 @@ import Graphics.Bling.IO.TransformParser
 startState :: FilePath -> PState
 startState base = PState 640 480 defaultRenderer mkBoxFilter
    (defaultCamera 640 480)
-   identity
+   mempty
    defaultMaterial
    Nothing
    []
@@ -56,7 +56,7 @@ object = do
         "renderer" -> pRenderer
         "transform" -> pGlobalTrans
         "newTransform" -> do
-           getState >>= \s -> setState s { transform = identity }
+           getState >>= \s -> setState s { transform = mempty }
            pGlobalTrans
         "camera" -> pCamera
         "light" -> pLight
