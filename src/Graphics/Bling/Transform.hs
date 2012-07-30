@@ -22,32 +22,38 @@ import Control.Monad (forM, forM_, unless)
 import Control.Monad.ST
 import Data.Function (on)
 import Data.Monoid
-import Data.List (transpose, foldl', maximumBy)
-import Data.Vec.Base (matFromLists, matToLists, Mat44)
+import Data.List (foldl', maximumBy)
 import Data.STRef
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as MUV
-import qualified Data.Vec.LinAlg as LA (invert)
 
-newtype Matrix4 = Matrix4 { unM :: UV.Vector Float }
+newtype Matrix = Matrix { unM :: UV.Vector Float }
+
+matrix ::
+   Float -> Float -> Float -> Float ->
+   Float -> Float -> Float -> Float ->
+   Float -> Float -> Float -> Float ->
+   Float -> Float -> Float -> Float -> Matrix
+matrix a b c d e f g h i j k l m n o p = Matrix $ UV.fromList
+   [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p]
 
 -- | index into a matrix
-(!!) :: Matrix4 -> Int -> Int -> Float
-(!!) m row col = (unM m) UV.! ((row * 4) + col)
+mi :: Matrix -> Int -> Int -> Float
+mi m r c = (unM m) UV.! ((r * 4) + c)
 
-inverse' :: Matrix4 -> Matrix4
-inverse' m = runST $ do
+invert :: Matrix -> Matrix
+invert m = runST $ do
    minv <- UV.thaw $ unM m
    ipiv <- newSTRef [0..3]
    indx <- UV.generateM 4 $ const $ do
       (irow, icol) <- readSTRef ipiv >>= pivot minv
-      modifySTRef ipiv (filter (== icol))
+      modifySTRef ipiv (filter (/= icol))
       
       -- swap rows irow and icol for pivot
       unless (irow == icol) $ forM_ [0..3] $ \k ->
          MUV.swap minv (idx irow k) (idx icol k)
          
-      -- set m[icol][icol] to one by scaling
+      -- set m[icol][icol] to one by scaling row icol
       pivinv <- (/) 1 <$> MUV.read minv (idx icol icol)
       MUV.write minv (idx icol icol) 1
       forM_ [0..3] $ \j -> let i = idx icol j
@@ -67,79 +73,61 @@ inverse' m = runST $ do
       return (irow, icol)
       
    -- swap columns to reflect permutation
-   UV.forM_ indx $ \(ir, ic) -> unless (ir == ic) $ do
+   UV.forM_ (UV.reverse indx) $ \(ir, ic) -> unless (ir == ic) $ do
       forM_ [0..3] $ \k -> MUV.swap minv (idx k ir) (idx k ic)
       
-   Matrix4 <$> UV.freeze minv
+   Matrix <$> UV.freeze minv
    where
       idx :: Int -> Int -> Int
-      idx r c = r * 4 + c
+      idx r c = c * 4 + r
       
       pivot :: MUV.MVector s Float -> [Int] -> ST s (Int, Int)
       pivot minv is = fst . maximumBy (compare `on` snd) <$>
          forM [(j,k) | j <- is, k <- is] pvt where
-            pvt jk@(j, k) = (,) jk <$> MUV.read minv (idx j k)
+            pvt jk@(j, k) = MUV.read minv (idx j k) >>= \v -> return (jk, abs v)
 
-data Matrix = MkMatrix {
-   m00 :: {-# UNPACK #-} !Float, m01 :: {-# UNPACK #-} !Float, m02 :: {-# UNPACK #-} !Float, m03 :: {-# UNPACK #-} !Float,
-   m10 :: {-# UNPACK #-} !Float, m11 :: {-# UNPACK #-} !Float, m12 :: {-# UNPACK #-} !Float, m13 :: {-# UNPACK #-} !Float,
-   m20 :: {-# UNPACK #-} !Float, m21 :: {-# UNPACK #-} !Float, m22 :: {-# UNPACK #-} !Float, m23 :: {-# UNPACK #-} !Float,
-   m30 :: {-# UNPACK #-} !Float, m31 :: {-# UNPACK #-} !Float, m32 :: {-# UNPACK #-} !Float, m33 :: {-# UNPACK #-} !Float
-   } deriving (Eq)
-
-toList :: Matrix -> [[Float]]
-toList m = [
-   [m00 m, m01 m, m02 m, m03 m],
-   [m10 m, m11 m, m12 m, m13 m],
-   [m20 m, m21 m, m22 m, m23 m],
-   [m30 m, m31 m, m32 m, m33 m]]
-
-fromList :: [[Float]] -> Matrix
-fromList (
+fromLists :: [[Float]] -> Matrix
+fromLists (
    (l00:l01:l02:l03:[]):
    (l10:l11:l12:l13:[]):
    (l20:l21:l22:l23:[]):
-   (l30:l31:l32:l33:[]):[]) = MkMatrix
+   (l30:l31:l32:l33:[]):[]) = matrix
    l00 l01 l02 l03
    l10 l11 l12 l13
    l20 l21 l22 l23
    l30 l31 l32 l33
-fromList _ = error "malformed matrix"
+fromLists _ = error "malformed matrix"
 
 -- | @Matrix@ multiply
 mul :: Matrix -> Matrix -> Matrix
-mul m1 m2 = fromList l where
-   l = [[sum $ zipWith (*) row col | col <- transpose a] | row <- b]
-   a = toList m1
-   b = toList m2
+mul m1 m2 = Matrix $ UV.generate 16 go where
+   go n = sum $ [ mi m1 i k * mi m2 k j | k <- [0..3]] where
+      (i, j) = divMod n 4
 
 -- | transposes a @Matrix@
 transMatrix :: Matrix -> Matrix
-transMatrix = fromList.transpose.toList
-
--- | Inverts a @Matrix@; inverting a singular matrix causes an error.
-invert :: Matrix -> Matrix
-invert m = maybe (error "singular matrix") (fromList.matToLists) i where
-   i = LA.invert ((matFromLists $ toList m) :: Mat44 Float)
-
+transMatrix m = Matrix $ UV.generate 16 go where
+   go n = let (i, j) = divMod n 4 in mi m j i
+   
 idMatrix :: Matrix
-idMatrix = MkMatrix
+idMatrix = matrix
    1 0 0 0
    0 1 0 0
    0 0 1 0
    0 0 0 1
-   
+      
 instance Show Matrix where
-   show = show . toList
+   show mt = let (a:b:c:d:e:f:g:h:i:j:k:l:m:n:o:p:[]) = UV.toList (unM mt) in
+      show [[a,b,c,d],[e,f,g,h],[i,j,k,l],[m,n,o,p]]
 
 -- | An affine transformation
 data Transform = MkTransform {
    _matrix     :: ! Matrix,
    _inverted   :: ! Matrix
-   } deriving (Eq)
+   }
 
 instance Show Transform where
-   show (MkTransform m _) = show m
+   show (MkTransform m i) = show m ++ "\n" ++ show i
 
 instance Monoid Transform where
    mempty = identity
@@ -147,10 +135,10 @@ instance Monoid Transform where
 
 -- | Creates a @Transform@ from the two matrices
 fromMatrix :: ([[Float]], [[Float]]) -> Transform
-fromMatrix (m, i) = MkTransform (fromList m) (fromList i)
+fromMatrix (m, i) = MkTransform (fromLists m) (fromLists i)
 
 fromMatrix' :: [[Float]] -> Transform
-fromMatrix' m = MkTransform (fromList m) (invert (fromList m))
+fromMatrix' m = MkTransform (fromLists m) (invert (fromLists m))
 
 -- | The identity transformation
 identity :: Transform
@@ -159,13 +147,13 @@ identity = MkTransform idMatrix idMatrix
 -- | Translates by the specified distance
 translate :: Vector -> Transform
 translate (Vector dx dy dz) = MkTransform m i where
-   m = MkMatrix
+   m = matrix
       1 0 0 dx
       0 1 0 dy
       0 0 1 dz
       0 0 0 1
       
-   i = MkMatrix
+   i = matrix
       1 0 0 (-dx)
       0 1 0 (-dy)
       0 0 1 (-dz)
@@ -174,12 +162,12 @@ translate (Vector dx dy dz) = MkTransform m i where
 -- | Scales by the specified amount
 scale :: Vector -> Transform
 scale (Vector sx sy sz) = MkTransform m i where
-   m = MkMatrix
+   m = matrix
       sx 0  0  0
       0 sy  0  0
       0  0 sz  0
       0  0  0  1
-   i = MkMatrix
+   i = matrix
       (1/sx) 0 0 0
       0 (1/sy) 0 0
       0 0 (1/sz) 0
@@ -187,7 +175,7 @@ scale (Vector sx sy sz) = MkTransform m i where
 
 rotateX :: Float -> Transform
 rotateX deg = MkTransform m (transMatrix m) where
-   m = MkMatrix
+   m = matrix
       1    0       0 0
       0 cost (-sint) 0
       0 sint    cost 0
@@ -197,7 +185,7 @@ rotateX deg = MkTransform m (transMatrix m) where
       
 rotateY :: Float -> Transform
 rotateY deg = MkTransform m (transMatrix m) where
-   m = MkMatrix
+   m = matrix
         cost  0 sint 0
          0    1    0 0
       (-sint) 0 cost 0
@@ -207,7 +195,7 @@ rotateY deg = MkTransform m (transMatrix m) where
       
 rotateZ :: Float -> Transform
 rotateZ deg = MkTransform m (transMatrix m) where
-   m = MkMatrix
+   m = matrix
       cost (-sint) 0 0
       sint   cost  0 0
       0      0     1 0
@@ -221,10 +209,10 @@ perspective
    -> Float -- ^ the near clipping plane
    -> Float -- ^ the far clippping plane
    -> Transform
-perspective fov n f = concatTrans (scale s) (MkTransform m (invert m)) where
+perspective fov n f = scale s <> (MkTransform m (invert m)) where
    s = Vector iTanAng iTanAng 1
    iTanAng = 1 / tan (radians fov / 2)
-   m = MkMatrix
+   m = matrix
       1 0 0 0
       0 1 0 0
       0 0 (f / (f - n)) (-f*n / (f - n))
@@ -237,14 +225,14 @@ lookAt
    -> Vector -- ^ the up vector
    -> Transform
 lookAt p@(Vector px py pz) l up = MkTransform m (invert m) where
-   m = fromList [
+   m = fromLists [
       [lx, ux, dx, px],
       [ly, uy, dy, py],
       [lz, uz, dz, pz],
       [ 0,  0,  0,  1]]
    dir@(Vector dx dy dz) = normalize (l - p)
-   left@(Vector lx ly lz) = normalize $ cross (normalize up) dir
-   (Vector ux uy uz) = cross dir left
+   left@(Vector lx ly lz) = normalize $ (normalize up) `cross` dir
+   (Vector ux uy uz) = dir `cross` left
    
 -- | Creates the inverse of a given @Transform@.
 inverse :: Transform -> Transform
@@ -262,26 +250,26 @@ transPoint (MkTransform m _) (Vector x y z)
    | wp == 1 = mkPoint' xp yp zp
    | otherwise = mkPoint (xp/wp, yp/wp, zp/wp)
    where
-      xp = m00 m * x + m01 m * y + m02 m * z + m03 m
-      yp = m10 m * x + m11 m * y + m12 m * z + m13 m
-      zp = m20 m * x + m21 m * y + m22 m * z + m23 m
-      wp = m30 m * x + m31 m * y + m32 m * z + m33 m
+      xp = mi m 0 0 * x + mi m 0 1 * y + mi m 0 2 * z + mi m 0 3
+      yp = mi m 1 0 * x + mi m 1 1 * y + mi m 1 2 * z + mi m 1 3
+      zp = mi m 2 0 * x + mi m 2 1 * y + mi m 2 2 * z + mi m 2 3
+      wp = mi m 3 0 * x + mi m 3 1 * y + mi m 3 2 * z + mi m 3 3
 
 -- | Applies a @Transform@ to a @Vector@
 transVector :: Transform -> Vector -> Vector
 {-# INLINE transVector #-}
 transVector (MkTransform m _) (Vector x y z) = Vector xp yp zp where
-   xp = m00 m * x + m01 m * y + m02 m * z
-   yp = m10 m * x + m11 m * y + m12 m * z
-   zp = m20 m * x + m21 m * y + m22 m * z
+   xp = mi m 0 0 * x + mi m 0 1 * y + mi m 0 2 * z
+   yp = mi m 1 0 * x + mi m 1 1 * y + mi m 1 2 * z
+   zp = mi m 2 0 * x + mi m 2 1 * y + mi m 2 2 * z
 
 -- | Applies a @Transform@ to a @Normal@
 transNormal :: Transform -> Normal -> Normal
 {-# INLINE transNormal #-}
 transNormal (MkTransform _ m) (Vector x y z) = mkNormal xp yp zp where
-   xp = m00 m * x + m10 m * y + m20 m * z
-   yp = m01 m * x + m11 m * y + m21 m * z
-   zp = m02 m * x + m12 m * y + m22 m * z
+   xp = mi m 0 0 * x + mi m 1 0 * y + mi m 2 0 * z
+   yp = mi m 0 1 * x + mi m 1 1 * y + mi m 2 1 * z
+   zp = mi m 0 2 * x + mi m 1 2 * y + mi m 2 2 * z
 
 -- | Applies a @Transform@ to a @Ray@
 transRay :: Transform -> Ray -> Ray

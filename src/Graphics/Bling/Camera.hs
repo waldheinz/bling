@@ -33,8 +33,8 @@ data Camera
       deriving (Show)
       
 instance Printable Camera where
-   prettyPrint (ProjectiveCamera _ _ _ ap lr fd) = PP.vcat [
-      PP.text "Projective",
+   prettyPrint (ProjectiveCamera _ _ w2r ap lr fd) = PP.vcat [
+      PP.text "Projective" PP.<+> PP.text (show w2r),
       PP.text "Lens Radius" PP.<+> PP.float lr,
       PP.text "Focal Distance" PP.<+>  PP.float fd,
       PP.text "area of single pixel" PP.<+> PP.float ap ]
