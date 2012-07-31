@@ -108,6 +108,7 @@ intersect (Box pmin pmax) ray@(Ray o d tmin tmax) =
     
 intersect (Cylinder r zmin zmax phimax) ray@(Ray ro rd tmin tmax) =
    solveQuadric a b c >>= intersectCylinder >>= \hp -> Just (params hp) where
+   
       a = (vx rd) * (vx rd) + (vy rd) * (vy rd)
       b = 2 * ((vx rd) * (vx ro) + (vy rd) * (vy ro))
       c = (vx ro) * (vx ro) + (vy ro) * (vy ro) - r * r
@@ -116,14 +117,12 @@ intersect (Cylinder r zmin zmax phimax) ray@(Ray ro rd tmin tmax) =
       intersectCylinder (t0, t1)
          | t0 > tmax = Nothing
          | t1 < tmin = Nothing
-    --     | t > tmax = Nothing
          | t0 > tmin && vz pHit0 > zmin && vz pHit0 < zmax && phi0 <= phimax =
             Just (pHit0, phi0, t0)
          | t1 <= tmax && vz pHit1 > zmin && vz pHit1 < zmax && phi1 <= phimax =
             Just (pHit1, phi1, t1)
          | otherwise = Nothing
          where
-      --      t = if t0 > tmin then t0 else t1
             pHit0 = rayAt ray t0
             pHit1 = rayAt ray t1
             phi0 = atan2' (vy pHit0) (vx pHit0)
@@ -289,9 +288,8 @@ objectBounds
 objectBounds (Box p1 p2) = mkAABB p1 p2
 
 objectBounds (Cylinder r z0 z1 _) = mkAABB p1 p2 where
-   p1 = mkPoint' nr nr z0
-   p2 = mkPoint' r r z1
-   nr = -r
+   p1 = mkPoint' (-r) (-r) z0
+   p2 = mkPoint'   r    r  z1
 
 objectBounds (Disk h r _ _) = mkAABB p1 p2 where
    p1 = mkPoint' (-r) (-r) h

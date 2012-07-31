@@ -121,11 +121,15 @@ remapRand segs u = (seg, u') where
    segs' = fromIntegral segs
    u' = (u - fromIntegral seg / segs') * segs'
 
--- | Calculate the roots of the equation a * x^2 + b * x + c = 0
-solveQuadric :: Float -> Float -> Float -> Maybe (Float, Float)
+-- | find the roots of a * x^2 + b * x + c = 0
+solveQuadric
+   :: Float -- ^ parameter a
+   -> Float -- ^ parameter b
+   -> Float -- ^ parameter c
+   -> Maybe (Float, Float)
 {-# INLINE solveQuadric #-}
 solveQuadric a b c
-   | discrim < 0 = Nothing
+   | discrim <= 0 = Nothing
    | otherwise = Just (min t0 t1, max t0 t1)
    where
          (t0, t1) = (q / a, c / q)
