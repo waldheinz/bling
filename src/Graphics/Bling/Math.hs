@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
 
@@ -308,7 +307,7 @@ mkV' = Vector
 
 component :: Vector -> Dimension -> Float
 {-# INLINE component #-}
-component !(Vector x y z) !d
+component (Vector x y z) d
    | d == dimX = x
    | d == dimY = y
    | otherwise = z

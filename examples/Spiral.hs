@@ -48,7 +48,7 @@ gold = mkMetal eta k $ const 0.002 where
       (855.063293, 5.631250), (885.601257, 5.880000) ]
    
 plexi :: Material
-plexi = mkPlastic (const $ fromRGB' 0.01 0.01 0.01) (const $ fromRGB' 0.8 0.8 0.8) (const $ 0.0002)
+plexi = mkPlastic (const $ fromRGB' 0.005 0.005 0.005) (const $ fromRGB' 0.9 0.9 0.9) (const $ 0.0001)
 
 spiral = buildJob $ do
    let
@@ -61,39 +61,41 @@ spiral = buildJob $ do
       (Left e) -> error e
       (Right i) -> add $ mkInfiniteAreaLight (rgbeToTextureMap i) $ rotateX (-90)
    
+   setFilter $ mkGaussFilter 2 2 2
    setTransform $ lookAt (mkPoint' 0 0 (-10)) (mkPoint' 0 0 0) (mkV' 0 1 0)
    setCamera $ mkPerspectiveCamera (lookAt (mkPoint' 0 17 (-16)) (mkPoint' 0 5.8 0) (mkV' 0 1 0)) 0 1 40
          (fromIntegral w) (fromIntegral h)
    setImageSize (w, h)
    
-   setMaterial plexi -- measuredMaterial Clay
+   setMaterial plexi
    setTransform $ rotateX 90
    shape (mkQuad 500 500) >>= add
    
    let
       bases = take 30 $ map fst $ iterate (\(t, s) -> let s' = s - 0.006 in
-         (concatTrans (concatTrans (concatTrans (rotateY 95) (scale $ vpromote s')) (translate $ mkV' 0 1 0)) t, s')) (translate $ mkV (0, 0.5, 0), 1)
+         (rotateY 95 <> (scale $ vpromote s') <> (translate $ mkV' 0 1 0) <> t, s'))
+         (translate $ mkV (0, 0.5, 0), 1)
       
       bar t = do
          setTransform t
          shape (mkCylinder 0.5 (-5) 5 360) >>= add
-         setTransform $ concatTrans (translate $ mkV' 0 0 5) t
+         setTransform $ (translate $ mkV' 0 0 5) <> t
          shape (mkSphere 0.5) >>= add
-         setTransform $ concatTrans (translate $ mkV' 0 0 (-5)) t
+         setTransform $ (translate $ mkV' 0 0 (-5)) <> t
          shape (mkSphere 0.5) >>= add
          
       bars t = do
-         bar $ concatTrans (translate $ mkV'   3.5  0 0) t
-         bar $ concatTrans (translate $ mkV' (-3.5) 0 0) t
+         bar $ (translate $ mkV'   3.5  0 0) <> t
+         bar $ (translate $ mkV' (-3.5) 0 0) <> t
          
-   setMaterial gold -- $ measuredMaterial BrushedMetal
+   setMaterial gold
    mapM_ bars bases
    
 main :: IO ()
 main = do
    let
-      sampler = mkStratifiedSampler 8 8
-      integrator = mkPathIntegrator 5 3
+      sampler = mkStratifiedSampler 16 16
+      integrator = mkPathIntegrator 9 3
       renderer = mkSamplerRenderer sampler integrator
    
    spiral >>= renderWithPreview renderer

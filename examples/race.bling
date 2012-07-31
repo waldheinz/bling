@@ -6,7 +6,7 @@
 
 filter mitchell 3 3 0.333333 0.333333
 filter box
-filter gauss 2 2 2
+# filter gauss 2 2 2
 
 # imageSize 960 640
 # imageSize 480 320
@@ -17,7 +17,7 @@ imageSize 1280 720
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 8 ySamples 8 }
+      sampler { stratified xSamples 6 ySamples 6 }
       integrator { path maxDepth 5 sampleDepth 3 }
    }
 }

@@ -21,7 +21,7 @@ module Graphics.Bling.Edsl (
    module Graphics.Bling.Texture,
    
    buildJob, emit, CanAdd(..), shape, setTransform, setCamera, setMaterial,
-   setImageSize, readFileBS, setFilter
+   setImageSize, readFileBS, setFilter, io
    ) where
 
 import Control.Applicative
@@ -112,6 +112,9 @@ setMaterial m = modify $ \s -> s { material = m }
 
 setFilter :: Filter -> DslState ()
 setFilter f = modify $ \s -> s { pfilter = f }
+
+io :: IO a -> DslState a
+io = liftIO
 
 -- | reads a file into a lazy ByteString
 readFileBS :: FilePath -> DslState BS.ByteString
