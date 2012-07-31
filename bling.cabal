@@ -32,15 +32,14 @@ Library
       random-shuffle    >= 0.0,
       SDL               >= 0.6,
       transformers      >= 0.2,
-      Vec               >= 1.0,
       vector            >= 0.9,
       vector-algorithms >= 0.5
       
    Ghc-Options:
-      -Wall -O1 -fexcess-precision
+      -Wall -O2 -fexcess-precision
 
    Ghc-Prof-Options:
-      -O1 -fexcess-precision -prof
+      -O2 -fexcess-precision -prof
 
    Exposed-Modules:
       Graphics.Bling.AABB,

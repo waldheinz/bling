@@ -101,7 +101,7 @@ fromLists _ = error "malformed matrix"
 -- | @Matrix@ multiply
 mul :: Matrix -> Matrix -> Matrix
 mul m1 m2 = Matrix $ UV.generate 16 go where
-   go n = sum $ [ mi m1 i k * mi m2 k j | k <- [0..3]] where
+   go n = sum $ [mi m1 k j *  mi m2 i k | k <- [0..3]] where
       (i, j) = divMod n 4
 
 -- | transposes a @Matrix@

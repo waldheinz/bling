@@ -9,7 +9,7 @@ filter gauss 2 2 2
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 2 ySamples 2 }
+      sampler { stratified xSamples 16 ySamples 16 }
       integrator { path maxDepth 10 sampleDepth 3 }
    }
 }
@@ -278,6 +278,6 @@ emission {
 }
 
 
-newTransform { translate 278 448.7 279.5 } prim { shape { sphere radius 1 } }
-# newTransform { translate 278 548.7 279.5 rotateX -90   } prim { shape { quad 65 52.2 } }
+# newTransform { translate 278 448.7 279.5 } prim { shape { sphere radius 30 } }
+newTransform { rotateX -90 translate 278 548.7 279.5 } prim { shape { quad 65 52.2 } }
 
