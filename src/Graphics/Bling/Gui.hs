@@ -8,6 +8,7 @@ import Foreign
 import Graphics.UI.SDL as SDL
 
 import Graphics.Bling.Image
+import Graphics.Bling.IO.Progress
 import Graphics.Bling.Rendering
 import Graphics.Bling.Sampling
 
@@ -71,6 +72,6 @@ putPixel s ((x, y), (r,g,b))
 renderWithPreview :: (Renderer r) => r -> RenderJob -> IO ()
 renderWithPreview r j = do
    wnd <- mkPreviewWindow (imageSizeX j, imageSizeY j)
-   render r j $ previewProgress wnd
+   render r j $ previewProgress wnd <&> progressWriter "pass"
    waitQuit
 

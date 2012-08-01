@@ -1,4 +1,4 @@
-#! /usr/bin/env runhaskell
+#!/usr/bin/env runhaskell
 
 import Distribution.Simple
 

@@ -55,13 +55,13 @@ spiral = buildJob $ do
       w = 576
       h = 1024
    
-   env <- parseRGBE <$> readFileBS "/home/trem/Arbeitsplatz/Meins/bling-scenes/envmaps/grace-new.hdr"
+   env <- parseRGBE <$> readFileBS "/home/trem/Arbeitsplatz/Meins/bling-scenes/envmaps/ennis.hdr"
 
    case env of
       (Left e) -> error e
       (Right i) -> add $ mkInfiniteAreaLight (rgbeToTextureMap i) $ rotateX (-90)
    
-   setFilter $ mkGaussFilter 2 2 2
+   setFilter $ mkMitchellFilter 3 3 0.333333 0.333333
    setTransform $ lookAt (mkPoint' 0 0 (-10)) (mkPoint' 0 0 0) (mkV' 0 1 0)
    setCamera $ mkPerspectiveCamera (lookAt (mkPoint' 0 17 (-16)) (mkPoint' 0 5.8 0) (mkV' 0 1 0)) 0 1 40
          (fromIntegral w) (fromIntegral h)
@@ -94,7 +94,7 @@ spiral = buildJob $ do
 main :: IO ()
 main = do
    let
-      sampler = mkStratifiedSampler 16 16
+      sampler = mkStratifiedSampler 6 6
       integrator = mkPathIntegrator 9 3
       renderer = mkSamplerRenderer sampler integrator
    

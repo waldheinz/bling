@@ -76,6 +76,7 @@ Library
       Graphics.Bling.IO.MaterialParser,
       Graphics.Bling.IO.ParserCore,
       Graphics.Bling.IO.PrimitiveParser,
+      Graphics.Bling.IO.Progress,
       Graphics.Bling.IO.RenderJob,
       Graphics.Bling.IO.RendererParser,
       Graphics.Bling.IO.RGBE,
