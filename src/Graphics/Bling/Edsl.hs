@@ -5,6 +5,7 @@ module Graphics.Bling.Edsl (
    module Graphics.Bling.Gui,
    module Graphics.Bling.IO.RGBE,
    module Graphics.Bling.Image,
+   module Graphics.Bling.Integrator.BidirPath,
    module Graphics.Bling.Integrator.Path,
    module Graphics.Bling.Light,
    module Graphics.Bling.Material.Lafortune,
@@ -32,6 +33,7 @@ import Data.Monoid
 import Graphics.Bling.Camera
 import Graphics.Bling.Gui
 import Graphics.Bling.Image
+import Graphics.Bling.Integrator.BidirPath
 import Graphics.Bling.Integrator.Path
 import Graphics.Bling.Light
 import Graphics.Bling.IO.RGBE
