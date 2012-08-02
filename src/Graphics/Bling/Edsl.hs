@@ -56,7 +56,7 @@ import Graphics.Bling.Texture
 data MyState = MyState
    { prims     :: [AnyPrim]
    , lights    :: [Light]
-   , imgSize   :: (Int, Int)
+   , imgSize   :: PixelSize
    , pfilter   :: Filter
    , camera    :: Camera
    , transform :: Transform
@@ -126,6 +126,6 @@ readFileBS n = liftIO $ do
 
 buildJob :: DslState a -> IO RenderJob
 buildJob f = do
-   (MyState ps ls (sx, sy) filt cam _ _ _ _) <- execStateT f initialState
-   return $ mkJob (mkScene ls ps cam) filt sx sy
+   (MyState ps ls sz filt cam _ _ _ _) <- execStateT f initialState
+   return $ mkJob (mkScene ls ps cam) filt sz
 

@@ -67,9 +67,10 @@ instance Renderer Metropolis where
       
       sSmp :: Float -> ImageSample -> ImageSample
       sSmp f (x, y, WS w s) = (x, y, WS (w * f * wt) s)
-      nPixels = imageSizeX job * imageSizeY job
+      (szx, szy) = jobImageSize job
+      nPixels = szx * szy
       wt = 1 / mpp
-      imgSize = (fromIntegral $ imageSizeX job, fromIntegral $ imageSizeY job)
+      imgSize = (fromIntegral szx, fromIntegral szy)
       nd = (sampleCount1D integ, sampleCount2D integ)
       pass i p b = {-# SCC "mlt.onePass" #-} do
             seed <- ioSeed

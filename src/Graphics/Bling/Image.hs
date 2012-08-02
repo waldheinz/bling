@@ -35,6 +35,7 @@ import qualified Data.ByteString.Lazy as BS
 import System.IO
 
 import Graphics.Bling.Sampling
+import Graphics.Bling.Types
 import Graphics.Bling.Spectrum
 
 -- | an image pixel, which consists of the sample weight, the sample RGB value
@@ -86,11 +87,10 @@ instance Show Image where
 
 -- | creates a new image where all pixels are initialized to black
 mkImage
-   :: Filter -- ^ the pixel filter function to use when adding samples
-   -> Int -- ^ the image width
-   -> Int -- ^ the image height
+   :: Filter      -- ^ the pixel filter function to use when adding samples
+   -> PixelSize   -- ^ the image width
    -> Image
-mkImage flt w h = Img w h flt $ V.replicate (w * h) emptyPixel
+mkImage flt (w, h) = Img w h flt $ V.replicate (w * h) emptyPixel
 
 -- | converts an image to a mutable image 
 thaw :: (PrimMonad m, Functor m) => Image -> m (MImage m)

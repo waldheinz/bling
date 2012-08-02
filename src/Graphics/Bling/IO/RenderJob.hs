@@ -41,7 +41,7 @@ jobParser = do
    optional ws >> eof
    (PState sx sy r f cam _ _ _ ls ps _ _) <- getState
    let scn = mkScene ls ps cam
-   return (mkJob scn f sx sy, r)
+   return (mkJob scn f (sx, sy), r)
 
 object :: JobParser ()
 object = do

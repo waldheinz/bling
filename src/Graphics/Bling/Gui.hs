@@ -71,7 +71,7 @@ putPixel s ((x, y), (r,g,b))
 
 renderWithPreview :: (Renderer r) => r -> RenderJob -> IO ()
 renderWithPreview r j = do
-   wnd <- mkPreviewWindow (imageSizeX j, imageSizeY j)
+   wnd <- mkPreviewWindow $ jobImageSize j
    render r j $ previewProgress wnd <&> progressWriter "pass"
    waitQuit
 

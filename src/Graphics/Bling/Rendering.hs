@@ -4,7 +4,7 @@ module Graphics.Bling.Rendering (
 
    -- * Rendering
 
-   RenderJob, mkJob, mkJobImage, jobScene, imageSizeX, imageSizeY,
+   RenderJob, mkJob, mkJobImage, jobScene, jobImageSize,
    Progress(..), ProgressReporter,
   
    -- * Renderers
@@ -33,22 +33,21 @@ import Graphics.Bling.Types
 -- Render Jobs
 --------------------------------------------------------------------------------
 
-data RenderJob = MkJob {
-   jobScene :: Scene,
-   jobPixelFilter :: Filter,
-   imageSizeX :: Int,
-   imageSizeY :: Int
+data RenderJob = MkJob
+   { jobScene        :: !Scene
+   , jobPixelFilter  :: !Filter
+   , jobImageSize    :: !PixelSize
    }
 
-mkJob :: Scene -> Filter -> Int -> Int -> RenderJob
+mkJob :: Scene -> Filter -> PixelSize -> RenderJob
 mkJob = MkJob
 
 mkJobImage :: RenderJob -> Image
-mkJobImage j = mkImage (jobPixelFilter j) (imageSizeX j) (imageSizeY j)
+mkJobImage j = mkImage (jobPixelFilter j) (jobImageSize j)
 
 instance Printable RenderJob where
-   prettyPrint (MkJob sc f sx sy) = PP.vcat [
-      PP.text "image size" PP.<+> PP.text ((show sx) ++ "x" ++ (show sy)),
+   prettyPrint (MkJob sc f sz) = PP.vcat [
+      PP.text "image size" PP.<+> PP.text (show sz),
       PP.text "pixel filter" PP.<+> PP.text (show f),
       PP.text "scene" PP.$$ PP.nest 3 (prettyPrint sc)
       ]
