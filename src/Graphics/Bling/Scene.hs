@@ -96,7 +96,7 @@ estimateDirect
 {-# INLINE estimateDirect #-}
 estimateDirect s l p eps n wo bsdf smp = ls + bs where
    ls = {-# SCC "estimateDirect.light" #-} sampleLightMis s (sample l p eps n $ ulDir smp) bsdf wo n
-   bs = {-# SCC "estimateDirect.bsdf"  #-} sampleBsdfMis s l (sampleBsdf bsdf wo uBC uBD) n p eps
+   bs = {-# SCC "estimateDirect.bsdf"  #-} sampleBsdfMis s l (sampleAdjBsdf bsdf wo uBC uBD) n p eps
    uBC = uBsdfComp smp
    uBD = uBsdfDir smp
    

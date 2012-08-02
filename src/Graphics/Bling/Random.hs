@@ -16,7 +16,8 @@ module Graphics.Bling.Random (
    newRandRef, readRandRef, writeRandRef, modifyRandRef
    ) where
 
-import Control.Monad (forM_, replicateM)
+import Control.Applicative
+import Control.Monad (forM_, replicateM, ap)
 import Control.Monad.Primitive
 import Control.Monad.ST
 import Data.STRef
@@ -31,11 +32,23 @@ newtype Rand s a = Rand {
    runRand :: MWC.Gen (PrimState (ST s)) -> ST s a
    }
    
--- | For allowing the Monadic syntax when using @Rand@
+instance Functor (Rand s) where
+   fmap f (Rand x) = Rand (\g -> x g >>= \a -> return (f a))
+   {-# INLINE fmap #-}
+   
+instance Applicative (Rand s) where
+   pure k = Rand (\ _ -> return k)
+   {-# INLINE pure #-}
+   
+   (<*>) = ap -- Rand (\g -> x g >>= \a -> ((runRand f) g) $ a)
+   {-# INLINE (<*>) #-}
+   
+-- | For allowing monadic syntax when using @Rand@
 instance Monad (Rand s) where
-   return k = Rand (\ _ -> return k)
-   Rand c1 >>= fc2 = Rand (\ g -> c1 g >>= \a -> runRand (fc2 a) g)
+   return k             = pure k
    {-# INLINE return #-}
+
+   (>>=) (Rand c1) fc2  = Rand (\ g -> c1 g >>= \a -> runRand (fc2 a) g)
    {-# INLINE (>>=)  #-}
 
 -- | Run monad using seed
@@ -77,7 +90,7 @@ shuffle v
 -- | Provides a random @Float@ in @[0..1)@
 rnd :: Rand s Float
 {-# INLINE rnd #-}
-rnd = do
+rnd = {-# SCC rnd #-} do
    u <- Rand MWC.uniform
    return $ u - 2**(-33)
 
@@ -113,10 +126,7 @@ rndList2D n = do
 
 rnd2D :: Rand s Rand2D
 {-# INLINE rnd2D #-}
-rnd2D = do
-   u1 <- rnd
-   u2 <- rnd
-   return $! (u1, u2)
+rnd2D = {-# SCC rnd2D #-} (,) <$> rnd <*> rnd
 
 --------------------------------------------------------------------------------
 -- STRefs in Rand

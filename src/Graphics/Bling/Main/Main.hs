@@ -21,7 +21,7 @@ prog (PassDone p img spw) = do
    h2 <- openFile (fname ++ ".hdr") WriteMode
    writeRgbe img spw h2
    hClose h2
-   return True
+   return False
    
    where
          fname = "pass-" ++ printf "%05d" p

@@ -1,5 +1,6 @@
 
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE UnboxedTuples #-}
 
 module Graphics.Bling.Image (
  --  module Graphics.Bling.Filter,
@@ -134,7 +135,7 @@ pxAdd
       
 addPixel :: PrimMonad m => MImage m -> (Int, Int, WeightedSpectrum) -> m ()
 {-# INLINE addPixel #-}
-addPixel !(MImage !w !h (!ox, !oy) _ !p) (!x, !y, WS sw s)
+addPixel !(MImage !w !h (!ox, !oy) _ !p) (!x, !y, WS !sw !s)
    | (x - ox) < 0 || (y - oy) < 0 = return ()
    | x >= (w + ox) || y >= (h + oy) = return ()
    | otherwise = do
@@ -142,7 +143,7 @@ addPixel !(MImage !w !h (!ox, !oy) _ !p) (!x, !y, WS sw s)
       {-# SCC "apWrite" #-}MV.unsafeWrite p o ({-# SCC "apadd" #-} add px)
    where
          add (w1, (r1, g1, b1), splat) = 
-            let (!r2, !g2, !b2) = toRGB s in (w1 + sw, (r1 + r2, g1 + g2, b1 + b2), splat)
+            let (r2, g2, b2) = toRGB s in (w1 + sw, (r1 + r2, g1 + g2, b1 + b2), splat)
          o = (x - ox) + (y - oy) * w
          
 splatSample :: PrimMonad m => MImage m -> ImageSample -> m ()
@@ -319,11 +320,11 @@ filterSize (Triangle w h)     = (w, h)
 
 filterSample :: (PrimMonad m) => Filter -> ImageSample -> MImage m -> m ()
 filterSample Box (x, y, ws) img = addPixel img (floor x, floor y, ws)
-filterSample f (!ix, !iy, WS sw s) img = {-# SCC "filterSample" #-} do
+filterSample f (ix, iy, WS sw s) img = {-# SCC "filterSample" #-} do
    let
-      (dx, dy) = (ix - 0.5, iy - 0.5)
-      (x0, x1) = (ceiling (dx - fw), floor (dx + fw))
-      (y0, y1) = (ceiling (dy - fh), floor (dy + fh))
+      (# dx, dy #) = (# ix - 0.5, iy - 0.5 #)
+      (# x0, x1 #) = (# ceiling (dx - fw), floor (dx + fw) #)
+      (# y0, y1 #) = (# ceiling (dy - fh), floor (dy + fh) #)
       w x y = evalFilter f (fromIntegral x - ix) (fromIntegral y - iy)
       (fw, fh) = filterSize f
 
