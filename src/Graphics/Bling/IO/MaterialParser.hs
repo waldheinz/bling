@@ -11,12 +11,7 @@ import Graphics.Bling.Texture
 import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.RGBE
 import Graphics.Bling.IO.TransformParser
-import Graphics.Bling.Material.Matte
-import Graphics.Bling.Material.Metal
-import Graphics.Bling.Material.Plastic
-import Graphics.Bling.Material.Specular
-import Graphics.Bling.Material.Substrate
-import Graphics.Bling.Material.Wood
+import Graphics.Bling.Material
 
 defaultMaterial :: Material
 defaultMaterial = mkMatte (constant $ fromRGB (0.9, 0.9, 0.9)) (constant 0)
@@ -42,7 +37,6 @@ pMaterial' = pString >>= \t -> case t of
    "plastic"      -> pPlasticMaterial
    "matte"        -> pMatteMaterial
    "mirror"       -> pMirrorMaterial
-   "wood"         -> return mkWood
    _              -> fail ("unknown material type " ++ t)
 
 pBumpMap :: JobParser Material
@@ -199,8 +193,6 @@ pSpectrumTexture = namedBlock $
          t1 <- pSpectrumTexture "tex1"
          t2 <- pSpectrumTexture "tex2"
          return $! graphPaper s t1 t2
-         
-      "wood" -> return woodTexture
       
       _ -> fail ("unknown texture type " ++ tp)
 
