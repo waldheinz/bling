@@ -40,11 +40,7 @@ import Graphics.Bling.Spectrum
 
 -- | an image pixel, which consists of the sample weight, the sample RGB value
 --   and the RGB value of the splatted samples
-type Pixel = (Float, (Float, Float, Float))
 type SplatPixel = (Float, Float, Float)
-
-emptyPixel :: Pixel
-emptyPixel = (0, (0, 0, 0))
 
 emptySplat :: SplatPixel
 emptySplat = (0, 0, 0)
@@ -55,7 +51,7 @@ data MImage m = MImage
    , imageHeight     :: {-# UNPACK #-} ! Int
    , _imageOffset    :: {-# UNPACK #-} ! (Int, Int)
    , imageFilter     :: ! Filter
-   , _imagePixels    :: ! (MV.MVector (PrimState m) Pixel)
+   , _imagePixels    :: ! (MV.MVector (PrimState m) Float)
    , _mSplatPixels   :: ! (MV.MVector (PrimState m) SplatPixel)
    }
 
@@ -66,8 +62,8 @@ mkMImage :: (PrimMonad m)
    -> Int -- ^ the image height
    -> m (MImage m)
 mkMImage flt w h = do
-   p <- MV.replicate (w * h) emptyPixel
-   s <- MV.replicate (w*h) emptySplat
+   p <- MV.replicate (w * h * 4) 0
+   s <- MV.replicate (w * h) emptySplat
    return $! MImage w h (0, 0) flt p s
 
 mkImageTile :: (PrimMonad m) => Filter -> SampleWindow -> m (MImage m)
@@ -79,7 +75,7 @@ mkImageTile f wnd = do
       py = max 0 $ yStart wnd -- + floor (0.5 - fh)
       (fw, fh) = filterSize f
 
-   p <- MV.replicate (w * h) emptyPixel
+   p <- MV.replicate (w * h * 4) 0
    s <- MV.replicate (w * h) emptySplat
    return $! MImage w h (px, py) f p s
    
@@ -88,7 +84,7 @@ data Image = Img
    { imgW      :: {-# UNPACK #-} ! Int
    , imgH      :: {-# UNPACK #-} ! Int
    , imgFilter :: ! Filter
-   , _imgP     :: ! (V.Vector Pixel)
+   , _imgP     :: ! (V.Vector Float)
    , _imgS     :: ! (V.Vector SplatPixel)
    }
 
@@ -104,7 +100,7 @@ mkImage
    -> PixelSize   -- ^ the image width
    -> Image
 mkImage flt (w, h) = Img w h flt p s where
-   p = V.replicate (w * h) emptyPixel
+   p = V.replicate (w * h * 4) 0
    s = V.replicate (w * h) emptySplat
 
 -- | converts an image to a mutable image 
@@ -141,28 +137,43 @@ addTile :: PrimMonad m => MImage m -> (Image, (Int, Int)) -> m ()
 addTile (MImage w h (ox, oy) _ px ps) (Img tw th _ px' ps', (dx, dy)) = {-# SCC addTile #-} do
    forM_ [(x, y) | y <- [0 .. (th-1)], x <- [0 .. (tw-1)]] $ \(x, y) -> do
       let
-         od = w * (y - oy + dy) + (x - ox + dx)
-         os = tw * y + x
+         od    = w * (y - oy + dy) + (x - ox + dx)
+         od'   = 4 * od
+         os    = tw * y + x
+         os'   = 4 * os
          
       unless ((y - oy + dy) >= h || (x - ox + dx) >= w) $ do
-         MV.unsafeRead px od >>= \old -> MV.unsafeWrite px od $ pxAdd old (V.unsafeIndex px' os)
+         -- the splats
          MV.unsafeRead ps od >>= \old -> MV.unsafeWrite ps od $ spAdd old (V.unsafeIndex ps' os)
          
+         -- the pixels
+         forM_ [0..3] $ \o -> do
+            old <- MV.unsafeRead px (od' + o)
+            MV.unsafeWrite px (od' + o) (old + V.unsafeIndex px' (os' + o))
+            
 spAdd :: SplatPixel -> SplatPixel -> SplatPixel
 spAdd (r1, g1, b1) (r2, g2, b2) = (r1 + r2, g1 + g2, b1 + b2)
-         
-pxAdd :: Pixel -> Pixel -> Pixel
-pxAdd (w1, (r1, g1, b1)) (w2, (r2, g2, b2)) =
-      (w1 + w2, (r1 + r2, g1 + g2, b1 + b2))
-      
+
 addPixel :: PrimMonad m => MImage m -> (Int, Int, WeightedSpectrum) -> m ()
 {-# INLINE addPixel #-}
 addPixel !(MImage !w !h (!ox, !oy) _ !p _) (!x, !y, WS !sw !s)
    | (x - ox) < 0 || (y - oy) < 0 = return ()
    | x >= (w + ox) || y >= (h + oy) = return ()
-   | otherwise = let o = (x - ox) + (y - oy) * w in do
-      MV.unsafeRead p o >>= \px -> MV.unsafeWrite p o (pxAdd px $ (sw, toRGB s))
-
+   | otherwise = do
+      let
+         o' = 4 * ((x - ox) + (y - oy) * w)
+         (r', g', b') = toRGB s
+      
+      ow <- MV.unsafeRead p o'
+      r <- MV.unsafeRead p $ (o' + 1)
+      g <- MV.unsafeRead p $ (o' + 2)
+      b <- MV.unsafeRead p $ (o' + 3)
+      
+      MV.unsafeWrite p o' $ ow + sw
+      MV.unsafeWrite p (o' + 1) $ (r + r')
+      MV.unsafeWrite p (o' + 2) $ (g + g')
+      MV.unsafeWrite p (o' + 3) $ (b + b')
+      
 splatSample :: PrimMonad m => MImage m -> ImageSample -> m ()
 {-# INLINE splatSample #-}
 splatSample (MImage w h (iox, ioy) _ _ p) (sx, sy, WS sw ss)
@@ -208,7 +219,8 @@ getPixel (Img _ _ _ p s) sw o
    | w == 0 = (sw * sr, sw * sg, sw * sb)
    | otherwise = (sw * sr + r / w, sw * sg + g / w, sw * sb + b / w)
    where
-      (w, (r, g, b)) = p V.! o
+      o' = 4 * o
+      (w, r, g, b) = (p V.! o', p V.! (o' + 1), p V.! (o' + 2), p V.! (o' + 3))
       (sr, sg, sb) = s V.! o
       
 -- | writes an image in ppm format
@@ -352,10 +364,8 @@ filterSample f (ix, iy, WS sw s) img = do
 
 evalFilter :: Filter -> Float -> Float -> Float
 {-# INLINE evalFilter #-}
-
 evalFilter (Gauss _ _ ex ey a) x y = gaussian x ex * gaussian y ey where
    gaussian d expv = max 0 $ exp (-a * d * d) - expv
-   
 evalFilter (Mitchell w h b c) px py = m1d (px * iw) * m1d (py * ih) where
    (iw, ih) = (1 / w, 1 / h)
    m1d x' = y where
@@ -366,7 +376,7 @@ evalFilter (Mitchell w h b c) px py = m1d (px * iw) * m1d (py * ih) where
              else ((12 - 9*b - 6*c) * x*x*x +
                    ((-18) + 12*b + 6*c) * x*x +
                     (6 - 2*b)) * (1/6)
-                    
+
 evalFilter (Sinc _ _ ix iy tau) px py = sinc1D (px * ix) * sinc1D (py * iy) where
    sinc1D x
       | abs x > 1 = 0
