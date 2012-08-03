@@ -114,7 +114,8 @@ instance Primitive Triangle where
       | isNothing $ mns mesh = dgg
       | otherwise = dgg { dgN = ns, dgDPDU = ss, dgDPDV = ts }
       where
-         (b0, b1, b2) = (1 - b1 - b2, dgU dgg, dgV dgg)
+         (b1, b2) = fromJust $ dgtriB dgg
+         b0 = 1 - b1 - b2
          (n0, n1, n2) = triNormals tri
          ns = normalize $ transNormal o2w ns'
          ns' = (b0 *# n0) + (b1 *# n1) + (b2 *# n2)
@@ -186,11 +187,11 @@ intersectTri tri r@(Ray ro rd tmin tmax)
 
       -- interpolate u and v
       b0 = 1 - b1 - b2
-      tu = b1 -- b0 * uv00 + b1 * uv10 + b2 * uv20
-      tv = b2 -- b0 * uv01 + b1 * uv11 + b2 * uv21
+      tu = b0 * uv00 + b1 * uv10 + b2 * uv20
+      tv = b0 * uv01 + b1 * uv11 + b2 * uv21
          
       -- create intersection
-      dg = mkDg (rayAt r t) tu tv dpdu dpdv (mkV (0, 0, 0)) (mkV (0,0, 0))
+      dg = mkDgTri (rayAt r t) tu tv dpdu dpdv (mkV (0, 0, 0)) (mkV (0,0, 0)) (b1, b2)
       e = 1e-3 * t
       int = Intersection t e dg (mkAnyPrim tri) (triMaterial tri)
          
