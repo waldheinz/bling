@@ -105,14 +105,8 @@ instance GV.Vector V.Vector Spectrum where
 -- ImageSample and the like
 --------------------------------------------------------------------------------
 
-data WeightedSpectrum = WS {-# UNPACK #-} !Float !Spectrum -- the sample weight and the sampled spectrum
+data WeightedSpectrum = WS {-# UNPACK #-} !Float {-# UNPACK #-} !Spectrum -- the sample weight and the sampled spectrum
 type ImageSample = (Float, Float, WeightedSpectrum) -- the pixel coordinates and the weighted spectrum
-
--- data ImageSample = ImageSample {
---    samplePosX :: {-# UNPACK #-} ! Float,
---    samplePosY :: {-# UNPACK #-} ! Float,
---    sampleSpectrum :: {-# UNPACK #-} ! WeightedSpectrum
---    } deriving Show
 
 type Contribution = (Bool, ImageSample)
 
