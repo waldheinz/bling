@@ -17,8 +17,8 @@ mkMatte
    -> Material
    
 mkMatte tex ts dgg dgs
-   | s == 0 = mkBsdf' [MkAnyBxdf $ Lambertian r] dgg dgs
-   | otherwise = mkBsdf' [MkAnyBxdf $ mkOrenNayar r s] dgg dgs
+   | s == 0 = mkBsdf' [mkLambertian r] dgg dgs
+   | otherwise = mkBsdf' [mkOrenNayar r s] dgg dgs
    where
       s = ts dgs
       r = tex dgs

@@ -394,9 +394,9 @@ normalizeRay (Ray ro rd rmin rmax) = Ray ro rd' rmin' rmax' where
 
 -- | an orthonormal basis
 data LocalCoordinates = LocalCoordinates
-    {-# UNPACK #-} ! Vector
-    {-# UNPACK #-} ! Vector
-    {-# UNPACK #-} ! Vector
+    ! Vector
+    ! Vector
+    ! Vector
 
 coordinateSystem :: Vector -> LocalCoordinates
 {-# INLINE coordinateSystem #-}

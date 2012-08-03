@@ -10,7 +10,6 @@ module Graphics.Bling.Material.Metal (
 
 import Graphics.Bling.Texture
 import Graphics.Bling.Reflection
-import Graphics.Bling.Material.Specular
 
 -- | Creates a Metal @Material@
 mkMetal
@@ -21,7 +20,7 @@ mkMetal
 
 mkMetal eta k rough dgg dgs = mkBsdf' [spec] dgg dgs where
    fr = frConductor (eta dgs) (k dgs)
-   spec = MkAnyBxdf $ Microfacet (mkBlinn (1 / rough dgs)) fr white
+   spec = mkMicrofacet (mkBlinn (1 / rough dgs)) fr white
 
 mkShinyMetal
    :: SpectrumTexture -- ^ kr
@@ -30,8 +29,8 @@ mkShinyMetal
    -> Material
 
 mkShinyMetal kr ks rough dgg dgs = mkBsdf' [r, s] dgg dgs where
-   r = MkAnyBxdf $ Microfacet (mkBlinn (1 / rough dgs)) frMf white
-   s = MkAnyBxdf $ mkSpecRefl white frSr
+   r = mkMicrofacet (mkBlinn (1 / rough dgs)) frMf white
+   s = mkSpecularReflection white frSr
    frMf = frConductor (approxEta $ ks dgs) black
    frSr = frConductor (approxEta $ kr dgs) black
 

@@ -82,7 +82,6 @@ Library
       Graphics.Bling.IO.RGBE,
       Graphics.Bling.IO.TransformParser,
       Graphics.Bling.IO.WaveFront,
-      Graphics.Bling.Material.Lafortune,
       Graphics.Bling.Material.Matte,
       Graphics.Bling.Material.Metal,
       Graphics.Bling.Material.Plastic,

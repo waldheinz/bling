@@ -8,7 +8,6 @@ module Graphics.Bling.Edsl (
    module Graphics.Bling.Integrator.BidirPath,
    module Graphics.Bling.Integrator.Path,
    module Graphics.Bling.Light,
-   module Graphics.Bling.Material.Lafortune,
    module Graphics.Bling.Material.Matte,
    module Graphics.Bling.Material.Metal,
    module Graphics.Bling.Material.Plastic,
@@ -37,7 +36,6 @@ import Graphics.Bling.Integrator.BidirPath
 import Graphics.Bling.Integrator.Path
 import Graphics.Bling.Light
 import Graphics.Bling.IO.RGBE
-import Graphics.Bling.Material.Lafortune
 import Graphics.Bling.Material.Matte
 import Graphics.Bling.Material.Metal
 import Graphics.Bling.Material.Plastic

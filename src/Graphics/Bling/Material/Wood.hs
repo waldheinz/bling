@@ -10,9 +10,9 @@ import Data.Monoid
 
 mkWood :: Material
 mkWood dgg dgs = mkBsdf' [diff, spec] dgg dgBump where
-   spec = MkAnyBxdf $ Microfacet (mkBlinn (1 / 0.01)) (frDielectric 1 1.5) white
+   spec = mkMicrofacet (mkBlinn (1 / 0.01)) (frDielectric 1 1.5) white
    
-   diff = MkAnyBxdf $ Lambertian clouds2
+   diff = mkLambertian clouds2
    
    s = scale $ mkV (5, 5, 5)
    o = scale $ mkV (1, 1, 0.05)

@@ -11,7 +11,6 @@ import Graphics.Bling.Texture
 import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.RGBE
 import Graphics.Bling.IO.TransformParser
-import Graphics.Bling.Material.Lafortune
 import Graphics.Bling.Material.Matte
 import Graphics.Bling.Material.Metal
 import Graphics.Bling.Material.Plastic
@@ -37,7 +36,6 @@ pMaterial' = pString >>= \t -> case t of
    "blackbody"    -> return blackBodyMaterial
    "bumpMap"      -> pBumpMap
    "glass"        -> pGlass
-   "measured"     -> pMeasuredMaterial
    "metal"        -> pMetalMaterial
    "shinyMetal"   -> pShinyMetal
    "substrate"    -> pSubstrateMaterial
@@ -92,12 +90,6 @@ pMatteMaterial = do
    kd <- pSpectrumTexture "kd"
    sig <- pScalarTexture "sigma"
    return $! mkMatte kd sig
-   
-pMeasuredMaterial :: JobParser Material
-pMeasuredMaterial = do
-   _ <- string "name" >> ws
-   n <- many alphaNum
-   return $! measuredMaterial (read n)
    
 pPlasticMaterial :: JobParser Material
 pPlasticMaterial = do

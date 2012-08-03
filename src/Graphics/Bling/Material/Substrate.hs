@@ -16,7 +16,7 @@ mkSubstrate
    -> ScalarTexture
    -> Material
 
-mkSubstrate kd ks tur tvr dgg dgs = mkBsdf' [MkAnyBxdf brdf] dgg dgs where
+mkSubstrate kd ks tur tvr dgg dgs = mkBsdf' [brdf] dgg dgs where
    brdf = mkFresnelBlend rd rs dist
    dist = mkAnisotropic (1 / u) (1 / v)
    u = tur dgs
