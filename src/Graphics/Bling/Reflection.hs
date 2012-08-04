@@ -1,5 +1,3 @@
-{-# LANGUAGE UnboxedTuples #-}
-{-# LANGUAGE BangPatterns #-}
 
 module Graphics.Bling.Reflection (
    module Graphics.Bling.DifferentialGeometry,
@@ -311,35 +309,35 @@ bxdfPdf _ wo wi
    | sameHemisphere wo wi = invPi * absCosTheta wi
    | otherwise = 0
 
-bxdfSample :: Bxdf -> Vector -> Rand2D -> (# Spectrum, Normal, Float #)
-bxdfSample fb@(FresnelBlend _ _ d) wo (u1, u2) = (# f, wi, pdf #) where
+bxdfSample :: Bxdf -> Vector -> Rand2D -> (Spectrum, Normal, Float)
+bxdfSample fb@(FresnelBlend _ _ d) wo (u1, u2) = (f, wi, pdf) where
    pdf = bxdfPdf fb wo wi
    f = bxdfEval fb wo wi
    wi = if u1 < 0.5
            then toSameHemisphere wo $ cosineSampleHemisphere (u1 * 2, u2)
            else snd $ mfDistSample d (2 * (u1 - 0.5), u2) wo
 bxdfSample mf@(Microfacet d _ _) wo dirU
-   | sameHemisphere wo wi = (# f, wi, pdf #)
-   | otherwise = (# black, wo, 0 #)
+   | sameHemisphere wo wi = (f, wi, pdf)
+   | otherwise = (black, wo, 0)
    where
          f = bxdfEval mf wo wi
          (pdf, wi) = mfDistSample d dirU wo
 bxdfSample (SpecTrans t ei et) wo u = sampleSpecTrans False t ei et wo u
-bxdfSample (SpecRefl r fr) wo@(Vector x y z) _ = (# f, wi, 1 #) where
+bxdfSample (SpecRefl r fr) wo@(Vector x y z) _ = (f, wi, 1) where
       wi = Vector (-x) (-y) z
       f = sScale (r * fr (cosTheta wo)) (1 / absCosTheta wi)
 
-bxdfSample bxdf wo u = {-# SCC "bxdfSample" #-} (# f, wi, pdf #) where
+bxdfSample bxdf wo u = {-# SCC "bxdfSample" #-} (f, wi, pdf) where
    wi = toSameHemisphere wo (cosineSampleHemisphere u)
    f = bxdfEval bxdf wo wi
    pdf = bxdfPdf bxdf wo wi
 
-bxdfSample' :: Bxdf -> Vector -> Rand2D -> (# Spectrum, Normal, Float #)
+bxdfSample' :: Bxdf -> Vector -> Rand2D -> (Spectrum, Normal, Float)
 bxdfSample' fb@(FresnelBlend _ _ _) wo u = bxdfSample fb wo u
 bxdfSample' mf@(Microfacet _ _ _) wo u = bxdfSample mf wo u
 bxdfSample' (SpecTrans t ei et) wo u = sampleSpecTrans True t ei et wo u
 bxdfSample' sr@(SpecRefl _ _) wo u = bxdfSample sr wo u
-bxdfSample' a wo u = {-# SCC "bxdfSample'" #-} (# f, wi, pdf #) where
+bxdfSample' a wo u = {-# SCC "bxdfSample'" #-} (f, wi, pdf) where
       wi = toSameHemisphere wo (cosineSampleHemisphere u)
       f = bxdfEval a wi wo
       pdf = bxdfPdf a wo wi
@@ -439,8 +437,8 @@ sampleAdjBsdf' = {-# SCC "sampleAdjBsdf'" #-} sampleBsdf'' True
 
 sampleBsdf'' :: Bool -> BxdfType -> Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
 {-# INLINE sampleBsdf'' #-}
-sampleBsdf'' !adj !flags !(Bsdf bs cs _ ng) !woW !uComp !uDir
-   | cntm == 0 || pdf' == 0 || sideTest == 0 = emptyBsdfSample
+sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
+   | V.null bsm || pdf' == 0 || sideTest == 0 = emptyBsdfSample
    | isSpecular bxdf = BsdfSample t (pdf' / fromIntegral cntm) (sScale f' ff) wiW
    | otherwise = BsdfSample t pdf (sScale f ff) wiW where
       wo = worldToLocal cs woW
@@ -448,14 +446,14 @@ sampleBsdf'' !adj !flags !(Bsdf bs cs _ ng) !woW !uComp !uDir
       -- choose BxDF to sample
       bsm = V.filter (\b -> bxdfMatches b flags) bs
       cntm = V.length bsm
-      sNum = min (cntm-1) (floor (uComp * fromIntegral cntm)) -- index to sample
+      sNum = max 0 $ min (cntm-1) (floor (uComp * fromIntegral cntm)) -- index to sample
       bxdf = V.unsafeIndex bsm sNum
-
+   
       -- sample chosen BxDF
-      (# f', wi, pdf' #) = let fun = if adj then bxdfSample' else bxdfSample
+      (f', wi, pdf') = let fun = if adj then bxdfSample' else bxdfSample
                            in fun bxdf wo uDir
       wiW = localToWorld cs wi
-
+   
       -- overall PDF
       bs' = V.ifilter (\i _ -> (i /= sNum)) bsm -- filter explicitly sampled from matching
       pdf = if cntm == 1
@@ -498,10 +496,10 @@ blackBodyMaterial dgg dgs = mkBsdf [] dgs (dgN dgg)
 --------------------------------------------------------------------------------
 
 sampleSpecTrans :: Bool -> Spectrum -> Float -> Float
-   -> Vector -> (Float, Float) -> (# Spectrum, Vector, Float #)
+   -> Vector -> (Float, Float) -> (Spectrum, Vector, Float)
 sampleSpecTrans adj t ei' et' wo@(Vector wox woy _) _
-   | sint2 >= 1 = (# black, wo, 0 #) -- total internal reflection
-   | otherwise = (# f, wi, 1 #)
+   | sint2 >= 1 = (black, wo, 0) -- total internal reflection
+   | otherwise = (f, wi, 1)
    where
       -- find out which eta is incident / transmitted
       entering = cosTheta wo > 0
