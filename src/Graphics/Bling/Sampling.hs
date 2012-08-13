@@ -1,7 +1,5 @@
-{-# LANGUAGE RankNTypes #-}
+
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE FlexibleContexts #-}
 
 module Graphics.Bling.Sampling (
 

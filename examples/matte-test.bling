@@ -4,16 +4,17 @@
 filter mitchell 3.0 3.0 0.333333 0.333333
 #filter box
 
-imageSize 640 480
+imageSize 1280 720
 
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 6 ySamples 6 }
+      sampler { stratified xSamples 16 ySamples 16 }
       integrator { path maxDepth 5 sampleDepth 2 }
    }
 }
 
+# renderer { sampler sampled { sampler { random samples 1 } integrator { debug normals } } }
 # renderer { metropolis maxDepth 5 mpp 1 bootstrap 1000 plarge 0.25 directSamples 4 }
 
 transform {
@@ -31,7 +32,7 @@ camera {
    focalDistance 10
 }
 
-transform { identity }
+newTransform { }
 
 #
 # ground plane
@@ -43,7 +44,7 @@ material {
    sigma { constant 0 }
 }
 
-shape {
+prim {
    mesh
    vertexCount 4
    faceCount 1
@@ -59,22 +60,11 @@ shape {
 #
 
 material { blackbody }
-emission { rgb 10 10 10 }
-
-shape {
-   mesh
-   vertexCount 4
-   faceCount 1
-   v  10.0 50 -10
-   v  10.0 50 10
-   v -10.0 50 10
-   v -10.0 50 -10
-   f 0 1 2 3
-}
-
+emission { rgb 2 2 2 }
+newTransform { rotateX -90 translate 0 25 0 } prim { shape { quad 10 10 } }
 emission { none }
 
-transform { identity translate -5.0 3 -2.5 }
+newTransform { translate -5.0 3 -2.5 }
 
 material {
    matte
@@ -82,9 +72,9 @@ material {
    sigma { constant 0 }
 }
 
-shape { sphere radius 2.0 }
+prim { shape { sphere radius 2.0 } }
 
-transform { identity translate 0.0 3 -2.5 }
+newTransform { translate 0.0 3 -2.5 }
 
 material {
    matte
@@ -92,9 +82,9 @@ material {
    sigma { constant 0.2 }
 }
 
-shape { sphere radius 2.0 }
+prim { shape { sphere radius 2.0 } }
 
-transform { identity translate 5.0 3 -2.5 }
+newTransform { translate 5.0 3 -2.5 }
 
 material {
    matte
@@ -102,9 +92,9 @@ material {
    sigma { constant 0.4 }
 }
 
-shape { sphere radius 2.0 }
+prim { shape { sphere radius 2.0 } }
 
-transform { identity translate -5.0 3 2.5 }
+newTransform { translate -5.0 3 2.5 }
 
 material {
    matte
@@ -112,9 +102,9 @@ material {
    sigma { constant 0.6 }
 }
 
-shape { sphere radius 2.0 }
+prim { shape { sphere radius 2.0 } }
 
-transform { identity translate 0.0 3 2.5 }
+newTransform { translate 0.0 3 2.5 }
 
 material {
    matte
@@ -122,9 +112,9 @@ material {
    sigma { constant 0.8 }
 }
 
-shape { sphere radius 2.0 }
+prim { shape { sphere radius 2.0 } }
 
-transform { identity translate 5.0 3 2.5 }
+newTransform { translate 5.0 3 2.5 }
 
 material {
    matte
@@ -132,4 +122,4 @@ material {
    sigma { constant 1 }
 }
 
-shape { sphere radius 2.0 }
+prim { shape { sphere radius 2.0 } }
