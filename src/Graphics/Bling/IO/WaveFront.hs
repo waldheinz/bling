@@ -3,7 +3,7 @@ module Graphics.Bling.IO.WaveFront (
    parseWaveFront
    ) where
 
-import Graphics.Bling.Transform
+import Graphics.Bling.Reflection
 import Graphics.Bling.IO.ParserCore hiding (space)
 import Graphics.Bling.Primitive.TriangleMesh
 
@@ -15,7 +15,6 @@ import Control.Monad.ST
 import Control.Monad.Trans.Class (lift)
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as MV
-import Text.Parsec.ByteString.Lazy ()
 
 -- the state consists of a list of vertex positions and faces
 data WFState s = WFState
@@ -23,13 +22,14 @@ data WFState s = WFState
    , stPointCount :: ! Int
    , stFaces      :: ! (MV.STVector s Int)
    , stFaceCount  :: ! Int
+   , stMtls       :: ! [(String, Int)] -- material name and first face where to apply it
    }
    
 initialState :: ST s (WFState s)
 initialState = do
    ps <- MV.new 64
    fs <- MV.new 64
-   return $! WFState ps 0 fs 0
+   return $! WFState ps 0 fs 0 []
 
 type WFParser s a = ParsecT BS.ByteString (WFState s) (ST s) a
 
@@ -51,17 +51,22 @@ parseWaveFront fname = {-# SCC "parseWaveFront" #-} do
 
 waveFrontParser :: WFParser s (V.Vector Point, V.Vector Int)
 waveFrontParser = {-# SCC "waveFrontParser" #-} do
-   skipMany $ pUV <|> vertex <|> face <|> ignore
+   skipMany $ pUV <|> vertex <|> face <|> mtlspec <|> ignore
    
-   (WFState ps psc fs fsc) <- getState
-   
+   (WFState ps psc fs fsc mtls) <- getState
    ps' <- lift $ V.freeze (MV.take psc ps)
    vs' <- lift $ V.freeze (MV.take fsc fs)
-
    return $! (V.force ps', V.force vs')
 
+mtlspec :: WFParser s ()
+mtlspec = do
+   _ <- try $ string "usemtl"
+   n <- space >> (many $ noneOf "\n")
+   s <- getState
+   setState s { stMtls = ((n, stFaceCount s):stMtls s) }
+
 pUV :: WFParser s ()
-pUV = {-# SCC "pUV" #-}do
+pUV = {-# SCC "pUV" #-} do
    _ <- try $ string "vt"
    _ <- space >> float -- u
    _ <- space >> float -- v
