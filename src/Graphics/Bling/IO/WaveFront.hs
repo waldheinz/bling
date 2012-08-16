@@ -3,6 +3,7 @@ module Graphics.Bling.IO.WaveFront (
    parseWaveFront
    ) where
 
+import Graphics.Bling.Material
 import Graphics.Bling.Reflection
 import Graphics.Bling.IO.ParserCore hiding (space)
 import Graphics.Bling.Primitive.TriangleMesh
@@ -10,7 +11,7 @@ import Graphics.Bling.Primitive.TriangleMesh
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString.Lex.Lazy.Double as BSLD
 import Data.Functor
-import Control.Monad (foldM)
+import Control.Monad (foldM, forM)
 import Control.Monad.ST
 import Control.Monad.Trans.Class (lift)
 import qualified Data.Vector.Unboxed as V
@@ -33,30 +34,34 @@ initialState = do
 
 type WFParser s a = ParsecT BS.ByteString (WFState s) (ST s) a
 
+matIntervals :: Int -> [(String, Int)] -> [(String, Int, Int)]
+matIntervals cnt mi = filt intervals where
+   filt = filter (\(_, _, l) -> l > 0)
+   starts = ("default", 0) : mi
+   ends = map snd mi ++ [cnt]
+   intervals = zipWith (\(n, s) e -> (n, s, e - s)) starts ends
+   
 -- | parses a WaveFront .obj file into a triangle mesh
-parseWaveFront :: FilePath -> JobParser TriangleMesh
-parseWaveFront fname = {-# SCC "parseWaveFront" #-} do
+parseWaveFront :: MaterialMap -> FilePath -> JobParser [TriangleMesh]
+parseWaveFront mmap fname = {-# SCC "parseWaveFront" #-} do
    inp <- readFileBS fname
    
-   let
-      res = runST $ do
-         st <- initialState
-         runPT waveFrontParser st fname inp
-   
-   case res of
-        (Left e) -> fail $ show e
-        (Right (ps, fs)) -> do
-           s <- getState
-           return $! mkTriangleMesh (transform s) (material s) ps fs Nothing Nothing
-
-waveFrontParser :: WFParser s (V.Vector Point, V.Vector Int)
+   case runST $ initialState >>= \st -> runPT waveFrontParser st fname inp of
+      (Left e) -> fail $ show e
+      (Right (ps, fs, mtls)) -> do
+         st <- getState
+         forM (matIntervals (V.length fs) (reverse mtls)) $ \(n, s, l) -> do
+            let fs' = V.slice s l fs
+            return $ mkTriangleMesh (transform st) (mmap n) ps fs' Nothing Nothing
+            
+waveFrontParser :: WFParser s (V.Vector Point, V.Vector Int, [(String, Int)])
 waveFrontParser = {-# SCC "waveFrontParser" #-} do
    skipMany $ pUV <|> vertex <|> face <|> mtlspec <|> ignore
    
    (WFState ps psc fs fsc mtls) <- getState
    ps' <- lift $ V.freeze (MV.take psc ps)
    vs' <- lift $ V.freeze (MV.take fsc fs)
-   return $! (V.force ps', V.force vs')
+   return $! (V.force ps', V.force vs', mtls)
 
 mtlspec :: WFParser s ()
 mtlspec = do

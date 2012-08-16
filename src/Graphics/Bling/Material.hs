@@ -1,13 +1,27 @@
 
 module Graphics.Bling.Material (
    
+   MaterialMap, mkMaterialMap,
+   
    mkMatte, glassMaterial, mirrorMaterial, mkPlastic, mkMetal, mkShinyMetal,
    mkSubstrate
    
    ) where
    
+import qualified Data.Map as Map
+import Debug.Trace
+
 import Graphics.Bling.Reflection
 import Graphics.Bling.Texture
+
+type MaterialMap = String -> Material
+
+mkMaterialMap
+   :: Material                -- ^ default material (on name not found)
+   -> [(String, Material)]    -- ^ (name, material) mappings
+   -> MaterialMap
+mkMaterialMap def ms name = Map.findWithDefault (traceShow name $ def) name m where
+   m = Map.unions $ map (\(n, mat) -> Map.singleton n mat) ms
 
 -- | Creates a matte @Material@, which uses either a @Lambertian@ or
 --   an @OrenNayar@ BxDF, depending on the roughness

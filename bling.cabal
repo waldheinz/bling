@@ -21,6 +21,7 @@ Library
       base              >= 4.3,
       bytestring        >= 0.9,
       bytestring-lexing >= 0.4,
+      containers        >= 0.4,
       deepseq           >= 1.1,
       filepath          >= 1.2,
       mtl               >= 2.0,

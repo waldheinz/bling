@@ -8,9 +8,11 @@ module Graphics.Bling.IO.PrimitiveParser (
 import Control.Monad
 import qualified Data.Vector.Unboxed as V
 
+import Graphics.Bling.Material
 import Graphics.Bling.Primitive
 import Graphics.Bling.Primitive.TriangleMesh
 import Graphics.Bling.Shape
+import Graphics.Bling.IO.MaterialParser
 import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.WaveFront
 import Graphics.Bling.Primitive.Bezier
@@ -21,7 +23,7 @@ import Graphics.Bling.Primitive.Geometry
 -- Primitives
 --------------------------------------------------------------------------------
 
-pPrimitive :: JobParser AnyPrim
+pPrimitive :: JobParser [AnyPrim]
 pPrimitive = pBlock $ do
    t <- pString
    p <- case t of
@@ -30,33 +32,48 @@ pPrimitive = pBlock $ do
          patches <- many1 (try pBezierPatch)
          optional ws
          s <- getState
-         return $ mkAnyPrim $ tesselateBezier subdivs patches (transform s) (material s)
+         return $ [mkAnyPrim $ tesselateBezier subdivs patches (transform s) (material s)]
                 
       "julia" -> do
          c <- pNamedQuat "c"
          e <- namedFloat "epsilon"
          i <- namedInt "iterations"
          s <- getState
-         return $ mkAnyPrim $ mkFractalPrim (mkJuliaQuat c e i) (material s)
+         return $ [mkAnyPrim $ mkFractalPrim (mkJuliaQuat c e i) (material s)]
                 
       "menger" -> do
          shape <- pShape
          level <- namedInt "level"
          s <- getState
-         return $ mkAnyPrim $ mkMengerSponge shape (material s) level (transform s)
+         return $ [mkAnyPrim $ mkMengerSponge shape (material s) level (transform s)]
          
-      "mesh" -> fmap mkAnyPrim pMesh
+      "mesh" -> pMesh >>= \m -> return $! [mkAnyPrim m]
          
       "shape" -> do
          shp <- pShape
          s <- getState
          sid <- nextId
-         return $ mkAnyPrim $ mkGeom (transform s) False (material s) (emit s) shp sid
+         return $ [mkAnyPrim $ mkGeom (transform s) False (material s) (emit s) shp sid]
          
-      "waveFront" -> fmap mkAnyPrim $ pQString >>= parseWaveFront
-      _ -> fail $ "unknown fractal type " ++ t
+      "waveFront" -> do
+         fname <- pQString
+         mmap <- pNamedMaterialMap "materials"
+         tms <- parseWaveFront mmap fname
+         return $ map mkAnyPrim tms
+      
+      _ -> fail $ "unknown primitive type " ++ t
 
    return $ p
+
+pNamedMaterialMap :: String -> JobParser MaterialMap
+pNamedMaterialMap n = (flip namedBlock) n $ do
+   mats <- many $ do
+      mn <- pQString
+      m <- ws >> pBlock pMaterial'
+      return (mn, m)
+      
+   s <- getState
+   return $ mkMaterialMap (material s) mats
 
 pNamedQuat :: String -> JobParser Quaternion
 pNamedQuat n = string n >> ws >> pQuaternion
@@ -102,8 +119,8 @@ pBezierPatch = (flip namedBlock) "p" $ do
 
 pMesh :: JobParser TriangleMesh
 pMesh = do
-   vc <- namedInt "vertexCount" <|> fail "vertexCount missing"
-   fc <- namedInt "faceCount"  <|> fail "faceCount missing"
+   vc <- namedInt "vertexCount" <?> "vertexCount missing"
+   fc <- namedInt "faceCount"  <?> "faceCount missing"
    vs <- count vc $ char 'v' >> ws >> pVec
    fs <- fmap triangulate $ count fc $ char 'f' >> ws >> many1 (try integ)
    t <- currentTransform

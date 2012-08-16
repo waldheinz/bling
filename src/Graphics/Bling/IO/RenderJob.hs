@@ -51,7 +51,7 @@ object = do
         "prim" -> do -- a top-level primitive
             p <- pPrimitive
             s <- getState
-            setState s {prims = p : (prims s)}
+            setState s {prims = p ++ (prims s)}
         "imageSize" -> pSize
         "renderer" -> pRenderer
         "transform" -> pGlobalTrans

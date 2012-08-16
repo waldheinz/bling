@@ -1,6 +1,6 @@
 
 module Graphics.Bling.IO.MaterialParser (
-   defaultMaterial, pMaterial, pSpectrumMap, namedSpectrumMap
+   defaultMaterial, pMaterial, pMaterial', pSpectrumMap, namedSpectrumMap
    ) where
 
 import Text.ParserCombinators.Parsec
