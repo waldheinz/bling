@@ -20,6 +20,7 @@ Library
    Build-Depends:
       base              >= 4.3,
       bytestring        >= 0.9,
+      bytestring-lexing >= 0.4,
       deepseq           >= 1.1,
       filepath          >= 1.2,
       mtl               >= 2.0,
@@ -36,7 +37,7 @@ Library
       vector-algorithms >= 0.5
       
    Ghc-Options:
-      -Wall -O2 -fexcess-precision
+      -Wall -O2 -fexcess-precision -fllvm
 
    Ghc-Prof-Options:
       -O2 -fexcess-precision -prof

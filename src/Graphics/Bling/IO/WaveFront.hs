@@ -8,6 +8,8 @@ import Graphics.Bling.IO.ParserCore hiding (space)
 import Graphics.Bling.Primitive.TriangleMesh
 
 import qualified Data.ByteString.Lazy as BS
+import qualified Data.ByteString.Lex.Lazy.Double as BSLD
+import Data.Functor
 import Control.Monad (foldM)
 import Control.Monad.ST
 import Control.Monad.Trans.Class (lift)
@@ -114,14 +116,11 @@ eol = char '\n' >> return ()
 -- | parse a floating point number
 float :: (Monad m) => (ParsecT BS.ByteString u m) Float
 float = {-# SCC "float" #-} do
-   sign <- option 1 $ do
-      s <- oneOf "+-"
-      return $! if s == '-' then (-1) else 1
-
-   i <- many digit
-   d <- option "0" (char '.' >> try (many digit))
-   return $! sign * read (i ++ "." ++ d)
-
+   s <- getInput
+   case BSLD.readDouble s of
+      Just (v, s') -> (realToFrac v) <$ setInput s'
+      Nothing -> fail "error parsing float"
+      
 -- | parse an positive integer
 int :: (Monad m) => (ParsecT BS.ByteString u m) Int
 int = {-# SCC "int" #-} fmap read $ many1 digit
