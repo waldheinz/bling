@@ -13,7 +13,7 @@ module Graphics.Bling.Texture (
    -- * Textures
    
    constant, scaleTexture, addTexture, graphPaper, checkerBoard, noiseTexture,
-   fbmTexture, quasiCrystal, spectrumBlend,
+   fbmTexture, quasiCrystal, spectrumBlend, imageTexture, readImageTextureMap,
 
    -- ** Gradients
 
@@ -25,11 +25,15 @@ module Graphics.Bling.Texture (
    
    ) where
 
+import Codec.Picture
 import Data.Bits
+import qualified Data.ByteString as BS
 import Data.Function (on)
 import Data.List (sortBy)
 import Data.Maybe (fromJust)
 import qualified Data.Vector.Unboxed as V
+
+import Debug.Trace
 
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Spectrum
@@ -45,7 +49,7 @@ type SpectrumTexture = Texture Spectrum
 type ScalarTexture = Texture Float
 
 type TextureMapping3d = DifferentialGeometry -> (Float, Float, Float)
-type TextureMapping2d = DifferentialGeometry -> (Float, Float)
+type TextureMapping2d = DifferentialGeometry -> CartesianCoords
 
 data TextureMap a = TexMap
    { texMapEval   :: CartesianCoords -> a
@@ -55,7 +59,28 @@ data TextureMap a = TexMap
 mkTextureMap :: PixelSize -> (CartesianCoords -> a) -> TextureMap a
 mkTextureMap size eval = TexMap eval size
 
+pixelSpectrum :: PixelRGB8 -> Spectrum
+pixelSpectrum (PixelRGB8 r g b) = fromRGB (f r, f g, f b) where
+   f x = fromIntegral x / 255
+
+getPixel :: Image PixelRGB8 -> CartesianCoords -> Spectrum
+getPixel i c =  pixelSpectrum $ pixelAt i px py where
+   (u, v) = unCartesian c
+   px = floor $ u * (fromIntegral $ imageWidth i)
+   py = floor $ v * (fromIntegral $ imageHeight i)
+
+readImageTextureMap :: BS.ByteString -> Either String SpectrumMap
+readImageTextureMap bs = case decodeImage bs of
+   Left err -> Left err
+   Right di -> Right $ mkTextureMap size eval where
+      (size, eval) = case di of
+         (ImageRGB8 i) -> ((imageWidth i, imageHeight i), getPixel i)
+         _ -> error "unsupported image type"
+
 type SpectrumMap = TextureMap Spectrum
+
+imageTexture :: TextureMap a -> TextureMapping2d -> Texture a
+imageTexture tm mapping dg = texMapEval tm (mapping dg)
 
 constSpectrumMap :: Spectrum -> SpectrumMap
 constSpectrumMap x = TexMap (const x) (1, 1)
@@ -69,7 +94,7 @@ spectrumBlend
 spectrumBlend t1 t2 f dg
    | x <= 0 = v1
    | x >= 1 = v2
-   | otherwise = sScale (sScale v1 (1 - x) + sScale v2 x) 0.5
+   | otherwise = sScale v1 (1 - x) + sScale v2 x
    where
       (v1, v2, x) = (t1 dg, t2 dg, f dg)
 
@@ -93,20 +118,20 @@ constant r _ = r
 -- | Extracts the (u, v) parametization from the @DifferentialGeometry@ and
 --   applies a scale / offset to them.
 uvMapping
-   :: (Float, Float)     -- ^ scale factor for (u, v)
-   -> (Float, Float)     -- ^ offsets for (u, v)
+   :: (Float, Float)    -- ^ scale factor for (u, v)
+   -> (Float, Float)    -- ^ offsets for (u, v)
    -> TextureMapping2d
-uvMapping (su, sv) (ou, ov) dg = (su * dgU dg + ou, sv * dgV dg + ov)
+uvMapping (su, sv) (ou, ov) dg = Cartesian (su * dgU dg + ou, sv * dgV dg + ov)
 
 planarMapping
    :: (Vector, Vector)  -- ^ vectors defining the plane
-   -> (Float, Float)        -- ^ offsets for (u, v)
+   -> (Float, Float)    -- ^ offsets for (u, v)
    -> TextureMapping2d
-planarMapping (vu, vv) (ou, ov) dg = (u + ou, v + ov) where
+planarMapping (vu, vv) (ou, ov) dg = Cartesian (u + ou, v + ov) where
    p = dgP dg
    u = p `dot` vu
    v = p `dot` vv
-
+   
 --------------------------------------------------------------------------------
 -- Textures
 --------------------------------------------------------------------------------
@@ -242,7 +267,7 @@ quasiCrystal
    :: Int               -- ^ number of octaves (higher adds more detail)
    -> TextureMapping2d  -- ^ the texture mapping to use
    -> ScalarTexture
-quasiCrystal o t dg = {-# SCC "quasiCrystal" #-} combine (map wave (angles o)) (t dg) where
+quasiCrystal o t dg = {-# SCC "quasiCrystal" #-} combine (map wave (angles o)) (unCartesian $ t dg) where
    angles :: Int -> [Float]
    angles n = take n $ enumFromThen 0 (pi / fromIntegral n)
    

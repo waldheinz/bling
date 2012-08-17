@@ -16,12 +16,13 @@ module Graphics.Bling.IO.ParserCore (
    
    -- * Reading External Resources
 
-   readFileBS, readFileString
+   readFileBS, readFileBS', readFileString
    
    ) where
 
 import Control.Monad (liftM, liftM3)
 import Control.Monad.IO.Class (liftIO)
+import qualified Data.ByteString as BSS
 import qualified Data.ByteString.Lazy as BS
 import System.FilePath as FP
 import Text.Parsec.Prim as PS
@@ -199,6 +200,10 @@ readFileBS :: FilePath -> JobParser BS.ByteString
 readFileBS n = resolveFile n >>= \f -> liftIO $ do
    putStrLn $ "Reading " ++ n
    BS.readFile f
+
+-- | reads a file into a strict ByteString
+readFileBS' :: FilePath -> JobParser BSS.ByteString
+readFileBS' n = readFileBS n >>= (\lbs -> return $ (BSS.concat . BS.toChunks) lbs)
 
 -- | reads a file into a String
 readFileString :: FilePath -> JobParser String

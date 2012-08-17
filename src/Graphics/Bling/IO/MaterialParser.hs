@@ -3,6 +3,7 @@ module Graphics.Bling.IO.MaterialParser (
    defaultMaterial, pMaterial, pMaterial', pSpectrumMap, namedSpectrumMap
    ) where
 
+import Control.Applicative
 import Text.ParserCombinators.Parsec
 
 import Graphics.Bling.Reflection
@@ -161,38 +162,38 @@ pTextureMapping3d = namedBlock $
                  
               _ -> fail $ "unknown 3d mapping " ++ mt
 
+pImageTexture :: JobParser SpectrumTexture
+pImageTexture = do
+   string "file" >> ws
+   texmap <- readImageTextureMap <$> (pQString >>= readFileBS')
+      
+   case texmap of
+      Left err -> fail err
+      Right sm -> imageTexture sm <$> pTextureMapping2d "map"
+
 pSpectrumTexture :: String -> JobParser SpectrumTexture
 pSpectrumTexture = namedBlock $ 
    pString >>= \tp -> case tp of
-      "blend" -> do
-         t1 <- pSpectrumTexture "tex1"
-         t2 <- pSpectrumTexture "tex2"
-         f <- pScalarTexture "f"
-         return $! spectrumBlend t1 t2 f
-         
+      "blend" -> spectrumBlend <$> pSpectrumTexture "tex1" <*> pSpectrumTexture "tex2" <*> pScalarTexture "f"
+      
+      "image" -> pBlock pImageTexture
+      
       "constant" -> do
          s <- pSpectrum
          return $! constant s
       
-      "checker" -> do
-         s <- pVec
-         t1 <- pSpectrumTexture "tex1"
-         t2 <- pSpectrumTexture "tex2"
-         return $! checkerBoard s t1 t2
+      "checker" -> checkerBoard <$> pVec <*> pSpectrumTexture "tex1" <*> pSpectrumTexture "tex2"
       
       "gradient" -> do
          f <- pScalarTexture "f"
-         steps <- (flip namedBlock) "steps" $ (flip sepBy) (char ',' >> optional ws) $ do
+         steps <- (flip namedBlock) "steps" $ (flip sepBy) (char ',' >> Graphics.Bling.IO.ParserCore.optional ws) $ do
             pos <- flt
             col <- pSpectrum
             return $! (pos, col)
             
          return $! gradient (mkGradient steps) f
-      "graphPaper" -> do
-         s <- flt
-         t1 <- pSpectrumTexture "tex1"
-         t2 <- pSpectrumTexture "tex2"
-         return $! graphPaper s t1 t2
+         
+      "graphPaper" -> graphPaper <$> flt <*> pSpectrumTexture "tex1" <*> pSpectrumTexture "tex2"
       
       _ -> fail ("unknown texture type " ++ tp)
 
