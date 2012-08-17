@@ -16,7 +16,7 @@ renderer {
    }
 }
 
-renderer { sppm photonCount 5000 radius 1 }
+# renderer { sppm photonCount 5000 radius 1 }
 
 transform {
    lookAt {
@@ -51,7 +51,7 @@ light {
 
 material {
    bumpMap
-   bump { scale 0.1 texture { fbm octaves 5 omega 0.5 map {
+   bump { scale 0.1 tex { fbm octaves 5 omega 0.5 map {
       identity { scale 2 2 2 }
    }}}
    

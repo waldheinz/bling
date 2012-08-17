@@ -93,6 +93,15 @@ pPlasticMaterial = do
    rough <- pScalarTexture "rough"
    return $! mkPlastic kd ks rough
 
+pImageScalar :: JobParser ScalarTexture
+pImageScalar = do
+   string "file" >> ws
+   texmap <- readImageScalarMap <$> (pQString >>= readFileBS')
+   
+   case texmap of
+      Left err -> fail err
+      Right sm -> imageTexture sm <$> pTextureMapping2d "map"
+
 pScalarTexture :: String -> JobParser ScalarTexture
 pScalarTexture = namedBlock $
    pString >>= \tp -> case tp of
@@ -100,6 +109,8 @@ pScalarTexture = namedBlock $
          v <- flt
          return $! constant v
 
+      "image" -> pBlock pImageScalar
+   
       "cellNoise" -> do
          d <- pString >>= \dn -> return $ case dn of
             "euclidian"    -> euclidianDist
@@ -128,7 +139,7 @@ pScalarTexture = namedBlock $
       
       "scale" -> do
          s <- flt
-         t <- pScalarTexture "texture"
+         t <- pScalarTexture "tex"
          return $! scaleTexture s t
       
       _ -> fail ("unknown texture type " ++ tp)

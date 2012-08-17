@@ -14,7 +14,8 @@ module Graphics.Bling.Texture (
    
    constant, scaleTexture, addTexture, graphPaper, checkerBoard, noiseTexture,
    fbmTexture, quasiCrystal, spectrumBlend, imageTexture, readImageTextureMap,
-
+   readImageScalarMap,
+   
    -- ** Gradients
 
    Gradient, mkGradient, gradient,
@@ -32,8 +33,6 @@ import Data.Function (on)
 import Data.List (sortBy)
 import Data.Maybe (fromJust)
 import qualified Data.Vector.Unboxed as V
-
-import Debug.Trace
 
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Spectrum
@@ -56,6 +55,9 @@ data TextureMap a = TexMap
    , texSize      :: !PixelSize
    }
 
+type SpectrumMap = TextureMap Spectrum
+type ScalarMap = TextureMap Float
+
 mkTextureMap :: PixelSize -> (CartesianCoords -> a) -> TextureMap a
 mkTextureMap size eval = TexMap eval size
 
@@ -75,6 +77,14 @@ getPixel i c =  pixelSpectrum $ pixelAt i px py where
    px = mod' (floor $ u * (fromIntegral w)) w
    py = mod' (floor $ v * (fromIntegral h)) h
 
+getPixelScalar :: Image Pixel8 -> CartesianCoords -> Float
+getPixelScalar i c = (\x -> fromIntegral x / 255) $ pixelAt i px py where
+   (u, v) = unCartesian c
+   (w, h) = (imageWidth i, imageHeight i)
+   px = mod' (floor $ u * (fromIntegral w)) w
+   py = mod' (floor $ v * (fromIntegral h)) h
+
+
 readImageTextureMap :: BS.ByteString -> Either String SpectrumMap
 readImageTextureMap bs = case decodeImage bs of
    Left err -> Left err
@@ -83,7 +93,13 @@ readImageTextureMap bs = case decodeImage bs of
          (ImageRGB8 i) -> ((imageWidth i, imageHeight i), getPixel i)
          _ -> error "unsupported image type"
 
-type SpectrumMap = TextureMap Spectrum
+readImageScalarMap :: BS.ByteString -> Either String ScalarMap
+readImageScalarMap bs = case decodeImage bs of
+   Left err -> Left err
+   Right di -> Right $ mkTextureMap size eval where
+      (size, eval) = case di of
+         (ImageY8 i) -> ((imageWidth i, imageHeight i), getPixelScalar i)
+         _ -> error "unsupported image type"
 
 imageTexture :: TextureMap a -> TextureMapping2d -> Texture a
 imageTexture tm mapping dg = texMapEval tm (mapping dg)
