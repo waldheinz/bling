@@ -63,11 +63,17 @@ pixelSpectrum :: PixelRGB8 -> Spectrum
 pixelSpectrum (PixelRGB8 r g b) = fromRGB (f r, f g, f b) where
    f x = fromIntegral x / 255
 
+mod' :: Int -> Int -> Int
+mod' a b = if a' < 0 then a' + b else a' where
+   a' = a - n * b
+   n = a `div` b
+
 getPixel :: Image PixelRGB8 -> CartesianCoords -> Spectrum
 getPixel i c =  pixelSpectrum $ pixelAt i px py where
    (u, v) = unCartesian c
-   px = floor $ u * (fromIntegral $ imageWidth i)
-   py = floor $ v * (fromIntegral $ imageHeight i)
+   (w, h) = (imageWidth i, imageHeight i)
+   px = mod' (floor $ u * (fromIntegral w)) w
+   py = mod' (floor $ v * (fromIntegral h)) h
 
 readImageTextureMap :: BS.ByteString -> Either String SpectrumMap
 readImageTextureMap bs = case decodeImage bs of

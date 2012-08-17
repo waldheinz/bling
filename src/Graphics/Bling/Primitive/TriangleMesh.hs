@@ -13,6 +13,8 @@ import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 
+import Debug.Trace
+
 data TriangleMesh = Mesh
    { mvidx  :: ! (V.Vector Int)
    , mps    :: ! (V.Vector Point)
@@ -27,18 +29,19 @@ mkTriangleMesh
    -> V.Vector Point                -- ^ vertex positions
    -> V.Vector Int                  -- ^ vertex indices for triangles
    -> Maybe (V.Vector Normal)       -- ^ shading normals
-   -> Maybe (V.Vector Float)          -- ^ uv coordinates for parametrization
+   -> Maybe (V.Vector Float)        -- ^ uv coordinates for parametrization
    -> TriangleMesh
 mkTriangleMesh o2w mat p i n uv
    | V.length i `rem` 3 /= 0 = error "mkTriangleMesh: number of indices must be multiple of 3"
    | V.any (>= V.length p) i = error "mkTriangleMesh: contains out of bounds indices"
+--   | maybe False (\uv' -> V.length uv' /= V.length p) uv = error "mkTriangleMesh: # of UVs and # of points mismatch"
    | V.any (< 0) i = error "mkTriangleMesh: contains negative indices"
-   | otherwise = Mesh i p' n' uv mat
+   | otherwise = traceShow (i, uv, p') $ Mesh i p' n' uv mat
    where
       p' = V.map (transPoint o2w) p
       n' = n >>= \ns -> return $ V.map (transNormal o2w) ns
 
-triangulate :: [[Int]] -> [Int]
+triangulate :: [[a]] -> [a]
 triangulate = concatMap go where
    go [] = []
    go (f0:fs) = concatMap (f0:) $

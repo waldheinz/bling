@@ -8,10 +8,12 @@ import Graphics.Bling.Reflection
 import Graphics.Bling.IO.ParserCore hiding (space)
 import Graphics.Bling.Primitive.TriangleMesh
 
+import Debug.Trace
+
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString.Lex.Lazy.Double as BSLD
 import Data.Functor
-import Control.Monad (foldM, forM)
+import Control.Monad (foldM, forM, forM_)
 import Control.Monad.ST
 import Control.Monad.Trans.Class (lift)
 import qualified Data.Vector.Unboxed as V
@@ -23,6 +25,9 @@ data WFState s = WFState
    , stPointCount :: ! Int
    , stFaces      :: ! (MV.STVector s Int)
    , stFaceCount  :: ! Int
+   , stTexCoords  :: ! (MV.STVector s Float) -- the texture coorinates as found in the file
+   , stTexCount   :: ! Int
+   , stUVs        :: ! (MV.STVector s Float) -- the UVs as needed by TriangleMesh
    , stMtls       :: ! [(String, Int)] -- material name and first face where to apply it
    }
    
@@ -30,7 +35,9 @@ initialState :: ST s (WFState s)
 initialState = do
    ps <- MV.new 64
    fs <- MV.new 64
-   return $! WFState ps 0 fs 0 []
+   ts <- MV.new 64
+   uvs <- MV.new 0
+   return $! WFState ps 0 fs 0 ts 0 uvs []
 
 type WFParser s a = ParsecT BS.ByteString (WFState s) (ST s) a
 
@@ -48,20 +55,25 @@ parseWaveFront mmap fname = {-# SCC "parseWaveFront" #-} do
    
    case runST $ initialState >>= \st -> runPT waveFrontParser st fname inp of
       (Left e) -> fail $ show e
-      (Right (ps, fs, mtls)) -> do
+      (Right (ps, fs, uvs, mtls)) -> do
          st <- getState
          forM (matIntervals (V.length fs) (reverse mtls)) $ \(n, s, l) -> do
             let fs' = V.slice s l fs
-            return $ mkTriangleMesh (transform st) (mmap n) ps fs' Nothing Nothing
+            return $ mkTriangleMesh (transform st) (mmap n) ps fs' Nothing uvs
             
-waveFrontParser :: WFParser s (V.Vector Point, V.Vector Int, [(String, Int)])
+waveFrontParser :: WFParser s (V.Vector Point, V.Vector Int, Maybe (V.Vector Float), [(String, Int)])
 waveFrontParser = {-# SCC "waveFrontParser" #-} do
    skipMany $ pUV <|> vertex <|> face <|> mtlspec <|> ignore
    
-   (WFState ps psc fs fsc mtls) <- getState
+   (WFState ps psc fs fsc _ _ uvs mtls) <- getState
    ps' <- lift $ V.freeze (MV.take psc ps)
    vs' <- lift $ V.freeze (MV.take fsc fs)
-   return $! (V.force ps', V.force vs', mtls)
+   uvs' <- if MV.null uvs then return Nothing else do
+      xx <- lift $ MV.grow uvs $ max 0 ((2 * (V.maximum vs')) - MV.length uvs)
+      x <- lift $ V.freeze xx
+      return $ Just x
+      
+   return $! (V.force ps', V.force vs', uvs', mtls)
 
 mtlspec :: WFParser s ()
 mtlspec = do
@@ -73,10 +85,19 @@ mtlspec = do
 pUV :: WFParser s ()
 pUV = {-# SCC "pUV" #-} do
    _ <- try $ string "vt"
-   _ <- space >> float -- u
-   _ <- space >> float -- v
+   u <- space >> float -- u
+   v <- option 0 $ space >> float -- v
    _ <- optional $ space >> float -- w
-   return ()
+   
+   st <- getState
+   
+   let
+      ts = stTexCoords st
+      tsc = stTexCount st
+      add (vv, l) e = addElement vv l e >>= \v' -> return $! (v', l + 1)
+
+   (ts', tsc') <- foldM add (ts, tsc) [u, v]
+   setState st { stTexCoords = ts', stTexCount = tsc' }
    
 ignore :: WFParser s ()
 ignore = {-# SCC "ignore" #-} skipMany (noneOf "\n") >> eol
@@ -88,20 +109,36 @@ face = {-# SCC "face" #-}do
    indices <- many1 $ try $ do
       space
       vidx <- int
-      _ <- option Nothing $ fmap Just $ char '/' >> int -- uv index
+      uvidx <- option Nothing $ fmap Just $ char '/' >> int -- uv index
       _ <- option Nothing $ fmap Just $ char '/' >> int -- normal index
-      return vidx
-
-   optional space >> eol
-   st <- getState
+      return (vidx, uvidx)
    
-   let
-      fs = stFaces st
-      fsc = stFaceCount st
-      add (v, l) e = addElement v l e >>= \v' -> return $! (v', l + 1)
-
-   (fs', fsc') <- foldM add (fs, fsc) (triangulate [map pred indices])
-   setState st { stFaces = fs', stFaceCount = fsc' }
+   optional space >> eol
+      
+   forM_ (triangulate [map (\(a, b) -> (pred a, b)) indices]) $ \(vidx, uvidx) -> do
+      st <- getState
+      let
+         fs = stFaces st
+         fsc = stFaceCount st
+         coords = stTexCoords st
+         uvs = stUVs st
+         
+      fs' <- addElement fs fsc vidx
+      
+      uvs'' <- case uvidx of
+         Nothing -> return uvs
+         (Just uvi) -> lift $ do
+            sdf <- V.freeze coords
+            u <- traceShow sdf $ MV.read coords $ uvi - 1
+            v <- traceShow (uvi, vidx) $ MV.read coords $ uvi
+            uvs' <- if MV.length uvs > (2 * vidx + 2)
+                        then return uvs
+                        else MV.grow uvs $ (2 * vidx + 2) - MV.length uvs
+            MV.write uvs' (2 * vidx) u
+            MV.write uvs' (2 * vidx + 1) v
+            return uvs'
+      
+      setState st { stFaces = fs', stFaceCount = fsc+1, stUVs = uvs'' }
    
 vertex :: WFParser s ()
 vertex = {-# SCC "vertex" #-}do
