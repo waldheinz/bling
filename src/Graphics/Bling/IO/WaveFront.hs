@@ -54,12 +54,16 @@ parseWaveFront mmap fname = {-# SCC "parseWaveFront" #-} do
       (Right (ps, fs, uvs, mtls)) -> do
          let
             (pis, uvis) = V.unzip fs -- (point indices, uv indices)
-            muv = V.generate (2 * V.length ps) (\i -> uvs V.! ((uvis V.! (pis V.! (i `div` 2)) + i `mod` 2)))
+  --          muv = V.generate (2 * V.length pis) $ \i ->
+  --             let (i', o) = divMod i 2 in uvs V.! (2 * (uvis V.! i') + o)
             
          st <- getState
          forM (matIntervals (V.length pis) (reverse mtls)) $ \(n, s, l) -> do
             let
                fs' = V.slice s l pis
+               muv = V.generate (2 * l) $ \i ->
+                  let (i', o) = divMod i 2 in uvs V.! (2 * (uvis V.! (i' + s)) + o)
+                  
             return $ mkTriangleMesh (transform st) (mmap n) ps fs' Nothing (Just muv)
             
 waveFrontParser :: WFParser s (V.Vector Point, V.Vector (Int, Int), V.Vector Float, [(String, Int)])

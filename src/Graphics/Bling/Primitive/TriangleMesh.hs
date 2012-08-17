@@ -13,8 +13,6 @@ import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 
-import Debug.Trace
-
 data TriangleMesh = Mesh
    { mvidx  :: ! (V.Vector Int)
    , mps    :: ! (V.Vector Point)
@@ -36,7 +34,7 @@ mkTriangleMesh o2w mat p i n uv
    | V.any (>= V.length p) i = error "mkTriangleMesh: contains out of bounds indices"
 --   | maybe False (\uv' -> V.length uv' /= V.length p) uv = error "mkTriangleMesh: # of UVs and # of points mismatch"
    | V.any (< 0) i = error "mkTriangleMesh: contains negative indices"
-   | otherwise = traceShow (i, uv, p') $ Mesh i p' n' uv mat
+   | otherwise = Mesh i p' n' uv mat
    where
       p' = V.map (transPoint o2w) p
       n' = n >>= \ns -> return $ V.map (transNormal o2w) ns
@@ -97,8 +95,8 @@ triMaterial (Tri _ m) = mmat m
 
 triUVs :: Triangle -> (Float, Float, Float, Float, Float, Float)
 {-# INLINE triUVs #-}
-triUVs tri@(Tri _ m) = maybe (0, 0, 1, 0, 1, 1) go (muvs m) where
-   (o1, o2, o3) = triOffsets tri
+triUVs tri@(Tri idx m) = maybe (0, 0, 1, 0, 1, 1) go (muvs m) where
+   (o1, o2, o3) = (idx, idx+1, idx+2) -- triOffsets t
    muv x i = x V.! i
    go uvs = (muv uvs (2 * o1), muv uvs (2 * o1 + 1),
              muv uvs (2 * o2), muv uvs (2 * o2 + 1),
