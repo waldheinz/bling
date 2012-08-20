@@ -27,6 +27,7 @@ module Graphics.Bling.Texture (
    ) where
 
 import Codec.Picture
+import Codec.Picture.Types
 import Data.Bits
 import qualified Data.ByteString as BS
 import Data.Function (on)
@@ -84,13 +85,13 @@ getPixelScalar i c = (\x -> fromIntegral x / 255) $ pixelAt i px py where
    px = mod' (floor $ u * (fromIntegral w)) w
    py = mod' (floor $ v * (fromIntegral h)) h
 
-
 readImageTextureMap :: BS.ByteString -> Either String SpectrumMap
 readImageTextureMap bs = case decodeImage bs of
    Left err -> Left err
    Right di -> Right $ mkTextureMap size eval where
       (size, eval) = case di of
-         (ImageRGB8 i) -> ((imageWidth i, imageHeight i), getPixel i)
+         (ImageRGB8 i)     -> ((imageWidth i, imageHeight i), getPixel i)
+         (ImageYCbCr8 i)   -> ((imageWidth i, imageHeight i), getPixel (convertImage i))
          _ -> error "unsupported image type"
 
 readImageScalarMap :: BS.ByteString -> Either String ScalarMap

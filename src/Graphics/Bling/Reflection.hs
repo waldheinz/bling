@@ -636,7 +636,7 @@ bump d dgg dgs = {-# SCC "bump" #-} dgBump where
    nn = faceForward nn' $ dgN dgg -- match geometric normal
    
    -- shift in u
-   du = 0.001 :: Float
+   du = 0.01 :: Float
    vdu = vpromote du
    dgeu = dgs {
       dgP = dgP dgs + vdu * (dgDPDU dgs),
@@ -645,7 +645,7 @@ bump d dgg dgs = {-# SCC "bump" #-} dgBump where
       }
       
    -- shift in v
-   dv = 0.001 :: Float
+   dv = 0.01 :: Float
    vdv = vpromote dv
    dgev = dgs {
       dgP = dgP dgs + vdv * (dgDPDV dgs),
