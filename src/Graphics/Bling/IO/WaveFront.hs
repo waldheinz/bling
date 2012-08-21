@@ -51,10 +51,11 @@ gvFreeze (GV vr cr) = do
 
 -- the state consists of a list of vertex positions and faces
 data WFState s = WFState
-   { stPoints     :: ! (GrowVec s Point)
-   , stFaces      :: ! (GrowVec s (Int, Int)) -- (point index, uv index)
-   , stTexCoords  :: ! (GrowVec s Float) -- the UVs as found in the file
-   , stMtls       :: ! [(String, Int)] -- material name and first face where to apply it
+   { stPoints     :: ! (GrowVec s Point)           -- vertex positions
+   , stNormals    :: ! (GrowVec s Normal)          -- vertex normals
+   , stFaces      :: ! (GrowVec s (Int, Int, Int)) -- (point index, uv index, normal index)
+   , stTexCoords  :: ! (GrowVec s Float)           -- the UVs as found in the file
+   , stMtls       :: ! [(String, Int)]             -- material name and first face where to apply it
    }
    
 initialState :: ST s (WFState s)
@@ -62,7 +63,8 @@ initialState = do
    ps <- newGV
    fs <- newGV
    ts <- newGV
-   return $! WFState ps fs ts []
+   ns <- newGV
+   return $! WFState ps ns fs ts []
 
 type WFParser s a = ParsecT BS.ByteString (WFState s) (ST s) a
 
@@ -72,7 +74,7 @@ matIntervals cnt mi = filt intervals where
    starts = ("default", 0) : mi
    ends = map snd mi ++ [cnt]
    intervals = zipWith (\(n, s) e -> (n, s, e - s)) starts ends
-   
+      
 -- | parses a WaveFront .obj file into triangle meshes
 parseWaveFront :: MaterialMap -> FilePath -> JobParser [TriangleMesh]
 parseWaveFront mmap fname = {-# SCC "parseWaveFront" #-} do
@@ -80,32 +82,32 @@ parseWaveFront mmap fname = {-# SCC "parseWaveFront" #-} do
    
    case runST $ initialState >>= \st -> runPT waveFrontParser st fname inp of
       (Left e) -> fail $ show e
-      (Right (ps, fs, uvs, mtls)) -> do
+      (Right (ps, ns, fs, uvs, mtls)) -> do
          let
-            (pis, uvis) = V.unzip fs -- (point indices, uv indices)
-  --          muv = V.generate (2 * V.length pis) $ \i ->
-  --             let (i', o) = divMod i 2 in uvs V.! (2 * (uvis V.! i') + o)
+            (pis, uvis, nis) = V.unzip3 fs -- (point indices, uv indices, normal indices)
             
          st <- getState
          forM (matIntervals (V.length pis) (reverse mtls)) $ \(n, s, l) -> do
             let
-               fs' = V.slice s l pis
+               pis' = V.slice s l pis
+               mns = V.generate l $ \i -> ns V.! (nis V.! i)
                muv = V.generate (2 * l) $ \i ->
                   let (i', o) = divMod i 2 in uvs V.! (2 * (uvis V.! (i' + s)) + o)
                   
-            return $! mkTriangleMesh (transform st) (mmap n) ps fs' Nothing (Just muv)
+            return $! mkTriangleMesh (transform st) (mmap n) ps pis' (Just mns) (Just muv)
             
-waveFrontParser :: WFParser s (V.Vector Point, V.Vector (Int, Int), V.Vector Float, [(String, Int)])
+waveFrontParser :: WFParser s (V.Vector Point, V.Vector Normal, V.Vector (Int, Int, Int), V.Vector Float, [(String, Int)])
 waveFrontParser = {-# SCC "waveFrontParser" #-} do
-   skipMany $ pUV <|> vertex <|> face <|> mtlspec <|> ignore
+   skipMany $ pNormal <|> pUV <|> vertex <|> face <|> mtlspec <|> ignore
    
-   (WFState ps fs uvs mtls) <- getState
+   (WFState ps ns fs uvs mtls) <- getState
    
    ps' <- lift $ gvFreeze ps
+   ns' <- lift $ gvFreeze ns
    vs' <- lift $ gvFreeze fs
    uvs' <- lift $ gvFreeze uvs
    
-   return $! (ps', vs', uvs', mtls)
+   return $! (ps', ns', vs', uvs', mtls)
 
 mtlspec :: WFParser s ()
 mtlspec = do
@@ -136,19 +138,14 @@ face = do
       space
       vidx <- int
       uvidx <- option 0 $ char '/' >> int -- uv index
-      _ <- option Nothing $ fmap Just $ char '/' >> int -- normal index
-      return (vidx, uvidx)
+      nidx <- option 0 $ char '/' >> int -- normal index
+      return (vidx, uvidx, nidx)
    
    optional space >> eol
-      
-   forM_ (triangulate [map (\(a, b) -> (pred a, pred b)) indices]) $ \f -> do
-      st <- getState
-      let
-         fs = stFaces st
-         
-      lift $ addElement fs f
---      setState st { stFaces = fs', stFaceCount = fsc+1 }
    
+   forM_ (triangulate [map (\(a, b, c) -> (pred a, pred b, pred c)) indices]) $ \f ->
+      getState >>= \st -> lift $ addElement (stFaces st) f
+      
 vertex :: WFParser s ()
 vertex = do
    _ <- char 'v'
@@ -160,6 +157,17 @@ vertex = do
    
    st <- getState
    lift (addElement (stPoints st) $ mkPoint (x, y, z))
+
+pNormal :: WFParser s ()
+pNormal = do
+   _ <- try $ string "vn"
+   x <- space >> float
+   y <- space >> float
+   z <- space >> float
+   optional space >> eol
+   
+   st <- getState
+   lift (addElement (stNormals st) $ normalize (mkPoint (x, y, z)))
 
 space :: WFParser s ()
 space = skipMany1 (char ' ') <?> "space"

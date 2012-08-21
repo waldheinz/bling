@@ -86,9 +86,9 @@ triPoints t@(Tri _ m) = (p1, p2, p3) where
 -- | assumes that the mesh actually *has* normals
 triNormals :: Triangle -> (Normal, Normal, Normal)
 {-# INLINE triNormals #-}
-triNormals t@(Tri _ m) = (ns V.! o1, ns V.! o2, ns V.! o3) where
+triNormals (Tri i m) = (ns V.! i, ns V.! (i+1), ns V.! (i+2)) where
    ns = fromJust (mns m)
-   (o1, o2, o3) = triOffsets t
+ --  (o1, o2, o3) = triOffsets t
 
 triMaterial :: Triangle -> Material
 {-# INLINE triMaterial #-}
@@ -96,7 +96,7 @@ triMaterial (Tri _ m) = mmat m
 
 triUVs :: Triangle -> (Float, Float, Float, Float, Float, Float)
 {-# INLINE triUVs #-}
-triUVs tri@(Tri idx m) = maybe (0, 0, 1, 0, 1, 1) go (muvs m) where
+triUVs (Tri idx m) = maybe (0, 0, 1, 0, 1, 1) go (muvs m) where
    (o1, o2, o3) = (idx, idx+1, idx+2) -- triOffsets t
    muv x i = x V.! i
    go uvs = (muv uvs (2 * o1), muv uvs (2 * o1 + 1),
