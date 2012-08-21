@@ -76,7 +76,7 @@ getPixel i c =  pixelSpectrum $ pixelAt i px py where
    (u, v) = unCartesian c
    (w, h) = (imageWidth i, imageHeight i)
    px = mod' (floor $ u * (fromIntegral w)) w
-   py = mod' (floor $ v * (fromIntegral h)) h
+   py = mod' (floor $ (-v) * (fromIntegral h)) h
 
 getPixelScalar :: Image Pixel8 -> CartesianCoords -> Float
 getPixelScalar i c = (\x -> fromIntegral x / 255) $ pixelAt i px py where

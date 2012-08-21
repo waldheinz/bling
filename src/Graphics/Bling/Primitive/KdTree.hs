@@ -81,7 +81,7 @@ cT = 1
 
 -- | cost for primitive intersection
 cI :: Float
-cI = 2
+cI = 80
 
 data Edge = Edge {-# UNPACK #-} !BP {-# UNPACK #-} !Float !Bool
 
@@ -125,7 +125,7 @@ trySplit bounds bps depth = {-# SCC "trySplit" #-} go Nothing axii where
    go o [] = o
    go o (axis:axs)
       | null fs = go o axs
-      | c < oldCost = par right (seq left (Just $ Interior left right t axis))
+      | c < oldCost = par left (seq right (Just $ Interior left right t axis))
       | otherwise = go o axs
       where
          (c, (i, t, _, _)) = bestSplit bounds axis fs
@@ -159,7 +159,7 @@ bestSplit bounds axis fs = {-# SCC "bestSplit" #-} go fs (infinity, undefined) w
          c' = cost bounds axis t nl nr
 
 allSplits :: V.Vector Edge -> [Split]
-allSplits es = go 0 (V.toList es) 0 (V.length es `div` 2) where
+allSplits es = {-# SCC "allSplits" #-} go 0 (V.toList es) 0 (V.length es `div` 2) where
    go i (Edge _ t False : es') l r = (i, t, l, r-1):go (i+1) es' l (r-1)
    go i (Edge _ t True  : es') l r = (i, t, l, r  ):go (i+1) es' (l+1) r
    go _ [] _ _ = []
@@ -175,23 +175,23 @@ edges bps axis = {-# SCC "edges" #-} runST $ do
          e1 = Edge bp (pmin .! axis) True
          e2 = Edge bp (pmax .! axis) False
          
-      seq e1 $ MV.write v (2 * idx + 0) e1
-      seq e2 $ MV.write v (2 * idx + 1) e2
+      MV.write v (2 * idx + 0) e1
+      MV.write v (2 * idx + 1) e2
    
    {-# SCC "edges.sort" #-} VA.sort v
    V.freeze v
    
 -- | the SAH cost function
 cost
-   :: AABB -- ^ the bounds of the region to be split
-   -> Dimension -- ^ the dimension to split along
-   -> Float -- ^ the split position
-   -> Int -- ^ the number of prims to the left of the split
-   -> Int -- ^ the number of prims to the right of the split
-   -> Float -- ^ the resulting split cost according to the SAH
+   :: AABB        -- ^ the bounds of the region to be split
+   -> Dimension   -- ^ the dimension to split along
+   -> Float       -- ^ the split position
+   -> Int         -- ^ the number of prims to the left of the split
+   -> Int         -- ^ the number of prims to the right of the split
+   -> Float       -- ^ the resulting split cost according to the SAH
 cost b@(AABB pmin pmax) a0 t nl nr = {-# SCC "cost" #-} cT + cI * eb * pI where
    pI = pl * fromIntegral nl + pr * fromIntegral nr
-   eb = if nl == 0 || nr == 0 then 0.8 else 1
+   eb = if nl == 0 || nr == 0 then 0.5 else 1
    (pl, pr) = (sal * invTotSa, sar * invTotSa)
    invTotSa = 1 / surfaceArea b
    d = pmax - pmin
