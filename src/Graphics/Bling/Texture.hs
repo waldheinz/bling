@@ -91,6 +91,7 @@ readImageTextureMap bs = case decodeImage bs of
    Right di -> Right $ mkTextureMap size eval where
       (size, eval) = case di of
          (ImageRGB8 i)     -> ((imageWidth i, imageHeight i), getPixel i)
+         (ImageRGBA8 i)    -> ((imageWidth i, imageHeight i), getPixel (pixelMap dropTransparency i))
          (ImageYCbCr8 i)   -> ((imageWidth i, imageHeight i), getPixel (convertImage i))
          _ -> error "unsupported image type"
 
