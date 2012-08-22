@@ -46,7 +46,7 @@ data HitPoint = Hit
    { hpBsdf    :: {-# UNPACK #-} ! Bsdf
    , hpPixel   :: {-# UNPACK #-} ! (Float, Float)
    , hpW       :: {-# UNPACK #-} ! Vector
-   , hpF       :: {-# UNPACK #-} ! Spectrum
+   , hpF       :: ! Spectrum
    }
 
 -- | the algorithm's alpha parameter, determining the ratio of new photons
@@ -92,7 +92,7 @@ traceCam cs
             -- record a hitpoint here
             when (bsdfHasNonSpecular (intBsdf int)) $ do
                pxpos <- cameraSample >>= \c -> return (imageX c, imageY c)
-               liftSampled $ gvAdd (csHps cs) (Hit bsdf pxpos wo t)
+               let h = (Hit bsdf pxpos wo t) in seq h (liftSampled $ gvAdd (csHps cs) h)
                
             -- determine outgoing ray
             bsdfC <- rnd
@@ -289,14 +289,14 @@ mkHash hits ps = {-# SCC "mkHash" #-} do
    return $ SH bounds v invSize
 
 data RenderState s = RS
-   { envImg :: MImage s
-   , n1d   :: Int
-   , n2d :: Int
+   { envImg    :: MImage s
+   , n1d       :: Int
+   , n2d       :: Int
    , envScene  :: Scene
    , pxStats   :: PixelStats (PrimState s)
-   , sn  :: Int
-   , envMaxD :: Int
-   , report :: ProgressReporter
+   , sn        :: Int
+   , envMaxD   :: Int
+   , report    :: ProgressReporter
    }
 
 type RenderM a = ReaderT (RenderState (ST RealWorld)) IO a
