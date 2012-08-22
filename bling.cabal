@@ -92,7 +92,8 @@ Library
       Graphics.Bling.Primitive.Geometry,
       Graphics.Bling.Primitive.KdTree,
       Graphics.Bling.Primitive.TriangleMesh,
-      Graphics.Bling.Renderer.SPPM
+      Graphics.Bling.Renderer.SPPM,
+      Graphics.Bling.Utils
       
 Executable bling
    hs-source-dirs:   src/Graphics/Bling/Main

@@ -7,63 +7,35 @@ import Graphics.Bling.Material
 import Graphics.Bling.Reflection
 import Graphics.Bling.IO.ParserCore hiding (space)
 import Graphics.Bling.Primitive.TriangleMesh
+import Graphics.Bling.Utils
 
 import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString.Lazy.Char8 as BSC
 import qualified Data.ByteString.Lex.Lazy.Double as BSLD
 import Data.Functor
-import Data.STRef
-import Control.Monad (forM, forM_, when)
+import Control.Monad (forM, forM_)
 import Control.Monad.ST
 import Control.Monad.Trans.Class (lift)
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as MV
 
-data GrowVec s a = GV ! (STRef s (MV.STVector s a)) ! (STRef s Int)
-
-addElement :: (MV.Unbox a) => GrowVec s a -> a -> ST s ()
-addElement (GV vr cntr) e = do
-   v <- readSTRef vr
-   cnt <- readSTRef cntr
-   
-   let l = MV.length v
-   when (l < (cnt + 1)) $ MV.grow v l >>= writeSTRef vr
-   
-   v' <- readSTRef vr
-   MV.write v' cnt e
-   modifySTRef cntr (+1)
-   
-newGV :: (MV.Unbox a) => ST s (GrowVec s a)
-newGV = do
-   v <- MV.new 64
-   vr <- newSTRef v
-   cr <- newSTRef 0
-   return $! GV vr cr
-
-gvLength :: GrowVec s a -> ST s Int
-gvLength (GV _ cr) = readSTRef cr
-
-gvFreeze :: (MV.Unbox a) => GrowVec s a -> ST s (V.Vector a)
-gvFreeze (GV vr cr) = do
-   v <- readSTRef vr
-   c <- readSTRef cr
-   V.freeze (MV.take c v)
+type STUGrowVec s a = GrowVec (MV.MVector) s a
 
 -- the state consists of a list of vertex positions and faces
 data WFState s = WFState
-   { stPoints     :: ! (GrowVec s Point)           -- vertex positions
-   , stNormals    :: ! (GrowVec s Normal)          -- vertex normals
-   , stFaces      :: ! (GrowVec s (Int, Int, Int)) -- (point index, uv index, normal index)
-   , stTexCoords  :: ! (GrowVec s Float)           -- the UVs as found in the file
+   { stPoints     :: ! (STUGrowVec s Point)           -- vertex positions
+   , stNormals    :: ! (STUGrowVec s Normal)          -- vertex normals
+   , stFaces      :: ! (STUGrowVec s (Int, Int, Int)) -- (point index, uv index, normal index)
+   , stTexCoords  :: ! (STUGrowVec s Float)           -- the UVs as found in the file
    , stMtls       :: ! [(String, Int)]             -- material name and first face where to apply it
    }
    
 initialState :: ST s (WFState s)
 initialState = do
-   ps <- newGV
-   fs <- newGV
-   ts <- newGV
-   ns <- newGV
+   ps <- gvNew
+   fs <- gvNew
+   ts <- gvNew
+   ns <- gvNew
    return $! WFState ps ns fs ts []
 
 type WFParser s a = ParsecT BS.ByteString (WFState s) (ST s) a
@@ -125,7 +97,7 @@ pUV = do
    _ <- optional $ space >> float -- w
    
    st <- getState
-   lift $ mapM_ (addElement $ stTexCoords st) [u, v]
+   lift $ mapM_ (gvAdd $ stTexCoords st) [u, v]
    
 ignore :: WFParser s ()
 ignore = skipMany (noneOf "\n") >> eol
@@ -144,7 +116,7 @@ face = do
    optional space >> eol
    
    forM_ (triangulate [map (\(a, b, c) -> (pred a, pred b, pred c)) indices]) $ \f ->
-      getState >>= \st -> lift $ addElement (stFaces st) f
+      getState >>= \st -> lift $ gvAdd (stFaces st) f
       
 vertex :: WFParser s ()
 vertex = do
@@ -156,7 +128,7 @@ vertex = do
    optional space >> eol
    
    st <- getState
-   lift (addElement (stPoints st) $ mkPoint (x, y, z))
+   lift (gvAdd (stPoints st) $ mkPoint (x, y, z))
 
 pNormal :: WFParser s ()
 pNormal = do
@@ -167,7 +139,7 @@ pNormal = do
    optional space >> eol
    
    st <- getState
-   lift (addElement (stNormals st) $ normalize (mkPoint (x, y, z)))
+   lift (gvAdd (stNormals st) $ normalize (mkPoint (x, y, z)))
 
 space :: WFParser s ()
 space = skipMany1 (char ' ') <?> "space"
