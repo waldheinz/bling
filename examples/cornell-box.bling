@@ -24,11 +24,11 @@ renderer {
 # renderer { sampler sampled { sampler { random samples 32 } integrator { debug reference } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug kdtree } } }
 
-# renderer { sppm photonCount 5000 maxDepth 10 radius 30 }
+renderer { sppm photonCount 5000 maxDepth 1 radius 30 }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 
 imageSize 640 640
-# imageSize 120 120
+imageSize 240 240
 
 #
 # camera

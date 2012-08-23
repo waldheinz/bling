@@ -2,8 +2,8 @@
 #filter sinc 4.0 4.0 3.0
 #filter triangle 2.0 2.0
 #filter mitchell 3.0 3.0 0.333333 0.333333
-#filter box
-filter triangle 2 2
+filter box
+# filter triangle 2 2
 
 renderer {
    sampler
@@ -20,11 +20,12 @@ renderer { sampler sampled { sampler { random samples 64 } integrator { path max
 # renderer { sampler sampled { sampler { stratified xSamples 32 ySamples 32 } integrator { light maxDepth 7 sampleDepth 5 } } }
 # renderer { light passCount 10 passPhotons 100000 }
 
-renderer { sppm photonCount 50000 maxDepth 5 radius 20 }
+renderer { sppm photonCount 500000 maxDepth 8 radius 3 }
 # renderer { sampler sampled { sampler { random samples 1024 } integrator { debug reference } } }
 
 imageSize 480 480
 imageSize 240 240
+imageSize 720 720
 
 #
 # camera
@@ -103,7 +104,7 @@ prim {
 # glass sphere
 #
 
-material { glass ior { constant 1.5 } kr { constant spd { 1 0.95 } } kt { constant rgb 0.6 0.6 0.9 } }
+material { glass ior { constant 1.5 } kr { constant spd { 1 0.95 } } kt { constant rgb 0.8 0.8 0.9 } }
 newTransform { translate 390 130 200 }
 prim { shape { sphere radius 130 } }
 
@@ -114,7 +115,7 @@ prim { shape { sphere radius 130 } }
 material {
    bumpMap
    bump {
-      scale 10 texture {
+      scale 10 tex {
          fbm octaves 3 omega 0.2 map {
             identity { scale 0.01 0.01 0.01 }
          }
@@ -124,7 +125,7 @@ material {
    glass
    ior { constant 1.33 }
    kr { constant rgb 1 1 1 }
-   kt { constant rgb 1 1 1 }
+   kt { constant rgb 0.7 0.7 1 }
 }
 
 newTransform { rotateX 90 translate 280 450 280 }
@@ -228,9 +229,9 @@ material {
 emission {
 #    spd { 400 0, 500 160, 600 312, 700 386 }
 #   rgb 4 4 4
-   temp 2500
+   temp 3500
 }
 
 newTransform { rotateX -90 translate 278 600 279.5  }
+prim { shape { quad 10 10 } }
 
-prim { shape { quad 60 60 } }

@@ -18,6 +18,7 @@ import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Camera
 import Graphics.Bling.Image
+import Graphics.Bling.KdTree
 import Graphics.Bling.Light (le)
 import Graphics.Bling.Primitive
 import qualified Graphics.Bling.Random as R
@@ -68,7 +69,7 @@ data CamState s = CS
    , csScene   :: ! Scene
    , csT       :: ! Spectrum -- throughput
    , csLs      :: ! Spectrum  -- accumulated flux towards camera
-   , csHps     :: ! (GrowVec (MV.MVector) s HitPoint)
+   , csHps     :: ! (GrowVec MV.MVector s HitPoint)
    }
 
 traceCam :: CamState s -> Sampled s (CamState s)
@@ -82,11 +83,11 @@ traceCam cs
          t = csT cs
          
       case scene `intersect` ray of
-         Nothing  -> return $! cs { csLs = csLs cs + (t * (escaped ray scene)) }
+         Nothing  -> return $! cs { csLs = csLs cs + t * escaped ray scene }
          Just int -> do
             
             let
-               wo = (-(rayDir ray))
+               wo = -(rayDir ray)
                bsdf = intBsdf int
                
             -- record a hitpoint here
@@ -104,11 +105,11 @@ traceCam cs
                p = bsdfShadingPoint bsdf
                n = bsdfShadingNormal bsdf
                t' = sScale (f * t) (wi `absDot` n / pdf)
-               ls' = csLs cs + t * (intLe int (-wi))
+               ls' = csLs cs + t * intLe int (-wi)
                
             if pdf == 0 || isBlack f
                then return $ cs { csLs = ls' }
-               else traceCam cs { csDepth = 1 + (csDepth cs), csT = t', csLs = ls', csRay = ray' }
+               else traceCam cs { csDepth = 1 + csDepth cs, csT = t', csLs = ls', csRay = ray' }
                
 mkHitPoints :: RenderM (V.Vector HitPoint)
 mkHitPoints = do
@@ -163,20 +164,18 @@ nextVertex scene sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} do
          nn = lsN stats
          ratio = (nn + alpha) / (nn + 1)
          r2 = lsR2 stats
-         r2' = r2 * ratio
          f = evalBsdf True (hpBsdf hit) (hpW hit) wi
-         nn' = nn + alpha
          (px, py) = hpPixel hit
 
       addContrib img (True, (px, py, WS (1 / (r2 * pi)) (hpF hit * f * li)))
-      sUpdate ps hit (r2', nn')
-
+      sUpdate ps hit (r2 * ratio, nn + alpha)
+      
    -- follow the path
    ubc <- rnd' $ 1 + d * 2
    ubd <- rnd2D' $ 2 + d
    let
       (BsdfSample _ spdf f wo) = sampleBsdf bsdf wi ubc ubd
-      pcont = if d > 4 then 0.8 else 1
+      pcont = if d > 4 then 0.7 else 1
       li' = sScale (f * li) (absDot wo n / (spdf * pcont))
       ray = Ray p wo (intEpsilon int) infinity
 
@@ -199,15 +198,12 @@ lsN = snd
 lsR2 :: Stats -> Float
 lsR2 = fst
 
-data PixelStats s = PS (UMV.MVector s Stats) SampleWindow
+data PixelStats s = PS !(UMV.MVector s Stats) {-# UNPACK #-} !SampleWindow
 
 mkPixelStats :: SampleWindow -> Float -> ST s (PixelStats s)
-mkPixelStats wnd r2 = do
-   v <- UMV.replicate ((w + 1) * (h + 1)) (r2, 0)
-   return $! PS v wnd
-   where
-      (w, h) = (xEnd wnd - xStart wnd, yEnd wnd - yStart wnd)
-      
+mkPixelStats wnd r2 = UMV.replicate (w * h) (r2, 0) >>= \ v-> return $! PS v wnd
+   where (w, h) = (xEnd wnd - xStart wnd + 1, yEnd wnd - yStart wnd + 1)
+   
 sIdx :: PixelStats s -> HitPoint -> Int
 {-# INLINE sIdx #-}
 sIdx (PS _ wnd) hit = w * (iy - yStart wnd) + (ix - xStart wnd) where
