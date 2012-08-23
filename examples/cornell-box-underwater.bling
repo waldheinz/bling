@@ -229,7 +229,7 @@ material {
 emission {
 #    spd { 400 0, 500 160, 600 312, 700 386 }
 #   rgb 4 4 4
-   temp 3500
+   temp 4500
 }
 
 newTransform { rotateX -90 translate 278 600 279.5  }

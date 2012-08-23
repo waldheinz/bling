@@ -10,6 +10,7 @@ module Graphics.Bling.KdTree (
 import Debug.Trace
 
 import Control.Monad.Primitive
+import Control.Monad (when)
 import Data.Function (on)
 import qualified Data.Vector.Algorithms.Intro as I
 import qualified Data.Vector.Generic.Mutable as MV
@@ -17,7 +18,7 @@ import qualified Data.Vector.Generic.Mutable as MV
 class Dimensional a where
    dims     :: a -> Int
    dimOrd   :: Int -> a -> a -> Ordering
-
+   
 instance (Ord a, Ord b) => Dimensional (a, b) where
    dims _ = 2
    
@@ -26,7 +27,7 @@ instance (Ord a, Ord b) => Dimensional (a, b) where
    dimOrd x = error ("dimension " ++ (show x) ++ " out of bounds")
 
 data KdTree a
-   = Node a (KdTree a) (KdTree a)
+   = Node !a !(KdTree a) !(KdTree a)
    | Empty
    deriving (Show)
 
@@ -58,3 +59,12 @@ mkKdTree depth v
       
       return $ Node pivot left right
       
+      
+withinRadiusM :: Monad m => Int -> KdTree a -> Float -> (Int -> a -> Float) -> (a -> m ()) -> m ()
+withinRadiusM depth Empty _ _ _ = return ()
+withinRadiusM depth (Node p l r) rad dist f = do
+   when (dist p < rad) $ f p -- maybe visit current node's value
+   
+   withinRadiusM l rad dist f
+   withinRadiusM r rad dist f
+
