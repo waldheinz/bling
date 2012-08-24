@@ -30,16 +30,16 @@ Library
       parsec            >= 3.1,
       parallel          >= 3.1,
       pretty            >= 1.0,
-      primitive         >= 0.4,
+      primitive         >= 0.4.1,
       random            >= 1.0,
       random-shuffle    >= 0.0,
-      SDL               >= 0.6,
+--      SDL               >= 0.6,
       transformers      >= 0.2,
       vector            >= 0.9,
       vector-algorithms >= 0.5
       
    Ghc-Options:
-      -Wall -O2
+      -Wall -O2 -dcore-lint -debug
 
    Ghc-Prof-Options:
       -prof
@@ -48,8 +48,8 @@ Library
       Graphics.Bling.AABB,
       Graphics.Bling.Camera,
       Graphics.Bling.DifferentialGeometry,
-      Graphics.Bling.Edsl,
-      Graphics.Bling.Gui,
+--      Graphics.Bling.Edsl,
+--      Graphics.Bling.Gui,
       Graphics.Bling.Image,
       Graphics.Bling.Integrator,
       Graphics.Bling.KdTree,
@@ -100,7 +100,7 @@ Executable bling
    hs-source-dirs:   src/Graphics/Bling/Main
    Main-is:          Main.hs
    Build-Depends:    bling, base, pretty, random, mwc-random
-   ghc-options:      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -rtsopts -threaded
+   ghc-options:      -Wall -O2 -rtsopts
    ghc-prof-options: -O2 -fexcess-precision -prof -rtsopts
 
 Executable bling-gui
