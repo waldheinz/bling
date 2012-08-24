@@ -59,7 +59,7 @@ mkKdTree depth v
       
       return $ Node pivot left right
       
-      
+{-      
 withinRadiusM :: Monad m => Int -> KdTree a -> Float -> (Int -> a -> Float) -> (a -> m ()) -> m ()
 withinRadiusM depth Empty _ _ _ = return ()
 withinRadiusM depth (Node p l r) rad dist f = do
@@ -67,4 +67,5 @@ withinRadiusM depth (Node p l r) rad dist f = do
    
    withinRadiusM l rad dist f
    withinRadiusM r rad dist f
+-}
 

@@ -1,4 +1,6 @@
 
+{-# LANGUAGE UnboxedTuples #-}
+
 module Graphics.Bling.Renderer.SPPM (
 
    SPPM, mkSPPM
@@ -18,7 +20,6 @@ import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Camera
 import Graphics.Bling.Image
-import Graphics.Bling.KdTree
 import Graphics.Bling.Light (le)
 import Graphics.Bling.Primitive
 import qualified Graphics.Bling.Random as R
@@ -46,6 +47,7 @@ mkSPPM = SPPM
 data HitPoint = Hit
    { hpBsdf    :: {-# UNPACK #-} ! Bsdf
    , hpPixel   :: {-# UNPACK #-} ! (Float, Float)
+   , hpStatIdx :: {-# UNPACK #-} ! Int -- index into the PixelStats
    , hpW       :: {-# UNPACK #-} ! Vector
    , hpF       :: ! Spectrum
    }
@@ -70,6 +72,7 @@ data CamState s = CS
    , csT       :: ! Spectrum -- throughput
    , csLs      :: ! Spectrum  -- accumulated flux towards camera
    , csHps     :: ! (GrowVec MV.MVector s HitPoint)
+   , csPxStats :: ! (PixelStats s)
    }
 
 traceCam :: CamState s -> Sampled s (CamState s)
@@ -81,6 +84,7 @@ traceCam cs
          ray = csRay cs
          scene = csScene cs
          t = csT cs
+         pxs = csPxStats cs
          
       case scene `intersect` ray of
          Nothing  -> return $! cs { csLs = csLs cs + t * escaped ray scene }
@@ -92,8 +96,8 @@ traceCam cs
                
             -- record a hitpoint here
             when (bsdfHasNonSpecular (intBsdf int)) $ do
-               pxpos <- cameraSample >>= \c -> return (imageX c, imageY c)
-               let h = (Hit bsdf pxpos wo t) in seq h (liftSampled $ gvAdd (csHps cs) h)
+               px <- cameraSample >>= \c -> return (imageX c, imageY c)
+               let h = (Hit bsdf px (sIdx pxs px) wo t) in seq h (liftSampled $ gvAdd (csHps cs) h)
                
             -- determine outgoing ray
             bsdfC <- rnd
@@ -116,12 +120,13 @@ mkHitPoints = do
    sc <- asks envScene
    img <- asks envImg
    md <- asks envMaxD
+   pxs <- asks pxStats
    result <- lift gvNew
    
    lift $ R.runRandIO $ forM_ (splitWindow $ sampleExtent img) $ \w ->
       runSample (mkRandomSampler 1) w 0 0 $ do
          ray <- fireRay $ sceneCam sc
-         cs <- traceCam $ CS ray 0 md sc white black result
+         cs <- traceCam $ CS ray 0 md sc white black result pxs
          (px, py) <- cameraSample >>= \c -> return (imageX c, imageY c)
          liftSampled $ addContrib img (False, (px, py, WS 1 (csLs cs)))
          
@@ -204,20 +209,19 @@ mkPixelStats :: SampleWindow -> Float -> ST s (PixelStats s)
 mkPixelStats wnd r2 = UMV.replicate (w * h) (r2, 0) >>= \ v-> return $! PS v wnd
    where (w, h) = (xEnd wnd - xStart wnd + 1, yEnd wnd - yStart wnd + 1)
    
-sIdx :: PixelStats s -> HitPoint -> Int
+sIdx :: PixelStats s -> (Float, Float) -> Int
 {-# INLINE sIdx #-}
-sIdx (PS _ wnd) hit = w * (iy - yStart wnd) + (ix - xStart wnd) where
+sIdx (PS _ wnd) (px, py) = w * (iy - yStart wnd) + (ix - xStart wnd) where
    (w, h) = (xEnd wnd - xStart wnd, yEnd wnd - yStart wnd)
-   (px, py) = hpPixel hit
    (ix, iy) = (min (w-1) (floor px), min (h-1) (floor py))
 
 slup :: PixelStats s -> HitPoint -> ST s Stats
 {-# INLINE slup #-}
-slup ps@(PS v _) hit = UMV.unsafeRead v (sIdx ps hit)
+slup (PS v _) hit = UMV.unsafeRead v (hpStatIdx hit)
 
 sUpdate :: PixelStats s -> HitPoint -> Stats -> ST s ()
 {-# INLINE sUpdate #-}
-sUpdate ps@(PS v _) hit = UMV.unsafeWrite v (sIdx ps hit)
+sUpdate (PS v _) hit = UMV.unsafeWrite v (hpStatIdx hit)
 
 --------------------------------------------------------------------------------
 -- Spatial Hashing for the Hitpoints
