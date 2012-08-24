@@ -40,7 +40,7 @@ matrix a b c d e f g h i j k l m n o p = Matrix $ UV.fromList
 -- | index into a matrix
 mi :: Matrix -> Int -> Int -> Float
 {-# INLINE mi #-}
-mi m r c = UV.unsafeIndex (unM m) ((r * 4) + c)
+mi m r c = (unM m) UV.! ((r * 4) + c)
 
 invert :: Matrix -> Matrix
 invert m = runST $ do

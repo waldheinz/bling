@@ -144,12 +144,12 @@ addTile (MImage w h (ox, oy) _ px ps) (Img tw th _ px' ps', (dx, dy)) = {-# SCC 
          
       unless ((y - oy + dy) >= h || (x - ox + dx) >= w) $ do
          -- the splats
-         MV.unsafeRead ps od >>= \old -> MV.unsafeWrite ps od $ spAdd old (V.unsafeIndex ps' os)
+         MV.read ps od >>= \old -> MV.write ps od $ spAdd old (ps' V.! os)
          
          -- the pixels
          forM_ [0..3] $ \o -> do
-            old <- MV.unsafeRead px (od' + o)
-            MV.unsafeWrite px (od' + o) (old + V.unsafeIndex px' (os' + o))
+            old <- MV.read px (od' + o)
+            MV.write px (od' + o) (old + px' V.! (os' + o))
             
 spAdd :: SplatPixel -> SplatPixel -> SplatPixel
 spAdd (r1, g1, b1) (r2, g2, b2) = (r1 + r2, g1 + g2, b1 + b2)
@@ -162,8 +162,8 @@ addPixel !(MImage !w !h (!ox, !oy) _ !p _) (!x, !y, WS !sw !s)
    | otherwise = do
       let
          o' = 4 * ((x - ox) + (y - oy) * w)
-         (r', g', b') = toRGB s
-      
+         ( r', g', b' ) = toRGB s
+      {-
       ow <- MV.unsafeRead p o'
       r <- MV.unsafeRead p $ (o' + 1)
       g <- MV.unsafeRead p $ (o' + 2)
@@ -173,11 +173,14 @@ addPixel !(MImage !w !h (!ox, !oy) _ !p _) (!x, !y, WS !sw !s)
       MV.unsafeWrite p (o' + 1) $ (r + r')
       MV.unsafeWrite p (o' + 2) $ (g + g')
       MV.unsafeWrite p (o' + 3) $ (b + b')
+      -}
+      return ()
       
 splatSample :: PrimMonad m => MImage m -> ImageSample -> m ()
 {-# INLINE splatSample #-}
 splatSample (MImage w h (iox, ioy) _ _ p) (sx, sy, WS sw ss)
-   | floor sx >= w || floor sy >= h || sx < 0 || sy < 0 = return ()
+   | (fx - iox) < 0 || (fy - ioy) < 0 = return ()
+   | fx >= (w + iox) || fy >= (h + ioy) = return ()
    | sNaN ss = trace ("not splatting NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | sInfinite ss = trace ("not splatting infinite sample at ("
@@ -187,10 +190,11 @@ splatSample (MImage w h (iox, ioy) _ _ p) (sx, sy, WS sw ss)
    | isInfinite sw = trace ("not splatting infinite weight sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | otherwise = {-# SCC "splatSample" #-} do
-      (ox, oy, oz) <- MV.unsafeRead p o
-      MV.unsafeWrite p o (ox + dx, oy + dy, oz + dz)
+      (ox, oy, oz) <- MV.read p o
+      MV.write p o (ox + dx, oy + dy, oz + dz)
       where
-         o = ((floor sx - iox) + (floor sy - ioy) * w)
+         (# fx, fy #) = (#floor sx, floor sy #)
+         o = ((fx - iox) + (fy - ioy) * w)
          (dx, dy, dz) = (\(x, y, z) -> (x * sw, y * sw, z * sw)) $ toRGB ss
 
 -- | adds a sample to the specified image

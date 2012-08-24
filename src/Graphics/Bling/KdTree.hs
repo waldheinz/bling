@@ -45,7 +45,7 @@ Node (7,2)
 mkKdTree :: forall a m v. (PrimMonad m, MV.MVector v a, Dimensional a, Show a) => Int -> v (PrimState m) a -> m (KdTree a)
 mkKdTree depth v
    | MV.null v = return Empty
-   | MV.length v == 1 = MV.unsafeRead v 0 >>= \e -> return $ Node e Empty Empty
+   | MV.length v == 1 = MV.read v 0 >>= \e -> return $ Node e Empty Empty
    | otherwise = do
       let
          median = MV.length v `div` 2

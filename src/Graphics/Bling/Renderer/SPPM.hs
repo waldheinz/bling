@@ -217,11 +217,11 @@ sIdx (PS _ wnd) (px, py) = w * (iy - yStart wnd) + (ix - xStart wnd) where
 
 slup :: PixelStats s -> HitPoint -> ST s Stats
 {-# INLINE slup #-}
-slup (PS v _) hit = UMV.unsafeRead v (hpStatIdx hit)
+slup (PS v _) hit = UMV.read v (hpStatIdx hit)
 
 sUpdate :: PixelStats s -> HitPoint -> Stats -> ST s ()
 {-# INLINE sUpdate #-}
-sUpdate (PS v _) hit = UMV.unsafeWrite v (hpStatIdx hit)
+sUpdate (PS v _) hit = UMV.write v (hpStatIdx hit)
 
 --------------------------------------------------------------------------------
 -- Spatial Hashing for the Hitpoints
@@ -242,7 +242,7 @@ hashLookup sh p n ps fun = {-# SCC "hashLookup" #-}
    let
       Vector x y z = abs $ (p - aabbMin (shBounds sh)) * vpromote (shScale sh)
       idx = hash (floor x, floor y, floor z) `rem` V.length (shEntries sh)
-      hits = V.unsafeIndex (shEntries sh) idx
+      hits = (shEntries sh) V.! idx
    in V.forM_ hits $ \hit -> do
       stats <- slup ps hit
       let
@@ -264,7 +264,7 @@ mkHash hits ps = {-# SCC "mkHash" #-} do
          go b h = let p = bsdfShadingPoint $ hpBsdf h
                   in extendAABB b $ mkAABB (p - vpromote r) (p + vpromote r)
    
-   v' <- MV.replicate cnt []
+   v' <- MV.replicateM cnt gvNew
    V.forM_ hits $ \hp -> do
       stats <- slup ps hp
       let
@@ -281,10 +281,10 @@ mkHash hits ps = {-# SCC "mkHash" #-} do
          
       unless (r2p == 0) $ forM_ [(x, y, z) | x <- xs, y <- ys, z <- zs] $ \i ->
          let idx = max 0 $ min (cnt - 1) $ hash i `rem` cnt
-         in MV.read v' idx >>= \o -> MV.write v' idx (hp : o)
+         in seq hp $ MV.read v' idx >>= (\gv -> gvAdd gv hp)
 
    -- convert to an (non-mutable) array of arrays
-   v <- V.generateM (MV.length v') $ \i -> fmap V.fromList (MV.read v' i)
+   v <- V.generateM (MV.length v') $ \i -> (MV.read v' i >>= gvFreeze)
 
    return $ SH bounds v invSize
 

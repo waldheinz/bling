@@ -217,8 +217,8 @@ gradient g t dg
    where
       f = t dg
       idx = fromJust $ V.findIndex ((> f) . fst) (gradCols g)
-      e0 = V.unsafeIndex (gradCols g) (idx-1)
-      e1 = V.unsafeIndex (gradCols g) idx
+      e0 = (gradCols g) V.! (idx-1)
+      e1 = (gradCols g) V.! idx
       (c0, c1) = (snd e0, snd e1)
       weight = (f - fst e0) / (fst e1 - fst e0)
 

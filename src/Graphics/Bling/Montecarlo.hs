@@ -59,7 +59,7 @@ sampleDiscrete1D d@(MkDist1D f c fi) u
    | u >= 1 = error "sampleDiscrete1D : u >= 1"
    | otherwise = (offset, pdf) where
       offset = upperBound c u
-      pdf = V.unsafeIndex f offset / (fi * fromIntegral (count d))
+      pdf = f V.! offset / (fi * fromIntegral (count d))
 
 sampleContinuous1D :: Dist1D -> Float -> (Float, Float, Int)
 sampleContinuous1D (MkDist1D func cdf fi) u = (x, pdf, offset) where

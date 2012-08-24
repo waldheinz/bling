@@ -220,28 +220,28 @@ instance MV.MVector V.MVector Vector where
    {-# INLINE basicLength #-}
    
    basicUnsafeSlice s l (MV_Vector v) =
-      MV_Vector $ (MV.unsafeSlice (s * 3) (l * 3) v)
+      MV_Vector $ (MV.slice (s * 3) (l * 3) v)
    {-# INLINE basicUnsafeSlice #-}
 
-   basicUnsafeNew l = MV_Vector `liftM` MV.unsafeNew (l * 3)
+   basicUnsafeNew l = MV_Vector `liftM` MV.new (l * 3)
    {-# INLINE basicUnsafeNew #-}
 
    basicOverlaps (MV_Vector v1) (MV_Vector v2) = MV.overlaps v1 v2
    {-# INLINE basicOverlaps #-}
 
    basicUnsafeRead (MV_Vector v) idx = do
-      x <- MV.unsafeRead v idx'
-      y <- MV.unsafeRead v (idx' + 1)
-      z <- MV.unsafeRead v (idx' + 2)
+      x <- MV.read v idx'
+      y <- MV.read v (idx' + 1)
+      z <- MV.read v (idx' + 2)
       return $ Vector x y z
       where
          idx' = idx * 3
    {-# INLINE basicUnsafeRead #-}
 
    basicUnsafeWrite (MV_Vector v) idx (Vector x y z) = do
-      MV.unsafeWrite v (idx' + 0) x
-      MV.unsafeWrite v (idx' + 1) y
-      MV.unsafeWrite v (idx' + 2) z
+      MV.write v (idx' + 0) x
+      MV.write v (idx' + 1) y
+      MV.write v (idx' + 2) z
       where
          idx' = idx * 3
    {-# INLINE basicUnsafeWrite #-}
@@ -251,19 +251,19 @@ instance GV.Vector V.Vector Vector where
    {-# INLINE basicLength #-}
 
    basicUnsafeSlice s l (V_Vector v) =
-      V_Vector $ (GV.unsafeSlice (s * 3) (l * 3) v)
+      V_Vector $ (GV.slice (s * 3) (l * 3) v)
    {-# INLINE basicUnsafeSlice #-}
 
-   basicUnsafeFreeze (MV_Vector v) = V_Vector `liftM` (GV.unsafeFreeze v)
+   basicUnsafeFreeze (MV_Vector v) = V_Vector `liftM` (GV.freeze v)
    {-# INLINE basicUnsafeFreeze #-}
 
-   basicUnsafeThaw (V_Vector v) = MV_Vector `liftM` (GV.unsafeThaw v)
+   basicUnsafeThaw (V_Vector v) = MV_Vector `liftM` (GV.thaw v)
    {-# INLINE basicUnsafeThaw #-}
 
    basicUnsafeIndexM (V_Vector v) idx = do
-      x <- GV.unsafeIndexM v (idx' + 0)
-      y <- GV.unsafeIndexM v (idx' + 1)
-      z <- GV.unsafeIndexM v (idx' + 2)
+      x <- GV.indexM v (idx' + 0)
+      y <- GV.indexM v (idx' + 1)
+      z <- GV.indexM v (idx' + 2)
       return $ Vector x y z
       where
          idx' = idx * 3

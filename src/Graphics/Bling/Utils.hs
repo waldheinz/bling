@@ -8,7 +8,6 @@ import Control.Monad.Primitive
 import Data.Primitive.MutVar
 import qualified Data.Vector.Generic as V
 import qualified Data.Vector.Generic.Mutable as MV
--- import qualified Data.Vector.Unboxed.Mutable as UMV
 
 data GrowVec v s a = GV ! (MutVar s (v s a)) ! (MutVar s Int)
 

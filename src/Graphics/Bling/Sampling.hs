@@ -214,7 +214,7 @@ rnd' n = do
    case s of
         (RandomSample _) -> rnd
         (PrecomSample _ v _) -> if (V.length v > n)
-                                   then liftSampled $ V.unsafeRead v n
+                                   then liftSampled $ V.read v n
                                    else rnd
 
 rnd2D' :: Int -> Sampled s R.Rand2D
@@ -224,5 +224,5 @@ rnd2D' n = do
    case s of
         (RandomSample _) -> rnd2D
         (PrecomSample _ _ v) -> if (V.length v > n)
-                                   then liftSampled $ V.unsafeRead v n
+                                   then liftSampled $ V.read v n
                                    else rnd2D
