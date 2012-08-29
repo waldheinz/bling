@@ -52,28 +52,28 @@ instance MV.MVector V.MVector Spectrum where
    {-# INLINE basicLength #-}
    
    basicUnsafeSlice s l (MV_Spectrum v) =
-      MV_Spectrum $ (MV.slice (s * bands) (l * bands) v)
+      MV_Spectrum $ (MV.unsafeSlice (s * bands) (l * bands) v)
    {-# INLINE basicUnsafeSlice #-}
    
-   basicUnsafeNew l = MV_Spectrum `liftM` MV.new (l * bands)
+   basicUnsafeNew l = MV_Spectrum `liftM` MV.unsafeNew (l * bands)
    {-# INLINE basicUnsafeNew #-}
    
    basicOverlaps (MV_Spectrum v1) (MV_Spectrum v2) = MV.overlaps v1 v2
    {-# INLINE basicOverlaps #-}
    
    basicUnsafeRead (MV_Spectrum v) idx = do
-      r <- MV.read v idx'
-      g <- MV.read v (idx' + 1)
-      b <- MV.read v (idx' + 2)
+      r <- MV.unsafeRead v idx'
+      g <- MV.unsafeRead v (idx' + 1)
+      b <- MV.unsafeRead v (idx' + 2)
       return $! Spectrum r g b
       where
          idx' = idx * bands
    {-# INLINE basicUnsafeRead #-}
    
    basicUnsafeWrite (MV_Spectrum v) idx (Spectrum r g b) = do
-      MV.write v (idx' + 0) r
-      MV.write v (idx' + 1) g
-      MV.write v (idx' + 2) b
+      MV.unsafeWrite v (idx' + 0) r
+      MV.unsafeWrite v (idx' + 1) g
+      MV.unsafeWrite v (idx' + 2) b
       where
          idx' = idx * bands
    {-# INLINE basicUnsafeWrite #-}
@@ -83,19 +83,19 @@ instance GV.Vector V.Vector Spectrum where
    {-# INLINE basicLength #-}
    
    basicUnsafeSlice s l (V_Spectrum v) =
-      V_Spectrum $ (GV.slice (s * bands) (l * bands) v)
+      V_Spectrum $ (GV.unsafeSlice (s * bands) (l * bands) v)
    {-# INLINE basicUnsafeSlice #-}
    
-   basicUnsafeFreeze (MV_Spectrum v) = V_Spectrum `liftM` (GV.freeze v)
+   basicUnsafeFreeze (MV_Spectrum v) = V_Spectrum `liftM` (GV.unsafeFreeze v)
    {-# INLINE basicUnsafeFreeze #-}
    
-   basicUnsafeThaw (V_Spectrum v) = MV_Spectrum `liftM` (GV.thaw v)
+   basicUnsafeThaw (V_Spectrum v) = MV_Spectrum `liftM` (GV.unsafeThaw v)
    {-# INLINE basicUnsafeThaw #-}
    
    basicUnsafeIndexM (V_Spectrum v) idx = do
-      r <- GV.indexM v (idx' + 0)
-      g <- GV.indexM v (idx' + 1)
-      b <- GV.indexM v (idx' + 2)
+      r <- GV.unsafeIndexM v (idx' + 0)
+      g <- GV.unsafeIndexM v (idx' + 1)
+      b <- GV.unsafeIndexM v (idx' + 2)
       return $! Spectrum r g b
       where
          idx' = idx * bands

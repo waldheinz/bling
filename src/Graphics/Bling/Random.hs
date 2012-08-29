@@ -83,7 +83,7 @@ shuffle v
       -- the obvious alternative would be to use something like
       -- "rndIntR (0, n - i - 1)", but this performs *much* better
       other <- rndInt
-      liftR $ MV.swap v i (abs other `rem` (n - 1))
+      liftR $ MV.unsafeSwap v i (abs other `rem` (n - 1))
    where
       n = MV.length v
 

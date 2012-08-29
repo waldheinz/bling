@@ -114,7 +114,7 @@ sampleOneLight scene@(Scene _ _ lights _) p eps n wo bsdf smp
    | lc == 0 = black
    | lc == 1 = {-# SCC "sampleOneLight.single" #-} ed (V.head lights)
    | otherwise = {-# SCC "sampleOneLight.many" #-} sScale ld (fromIntegral lc) where     
-            ld = ed $ lights V.! ln
+            ld = ed $ V.unsafeIndex lights ln
             ed l = estimateDirect scene l p eps n wo bsdf smp
             lc = V.length lights
             ln = min (floor $ (ulNum smp) * fromIntegral lc) (lc - 1)
@@ -132,7 +132,7 @@ sampleLightRay sc@(Scene _ _ ls _) uL uO uD
    | lc == 1 = sample' (V.head ls) (worldBounds sc) uO uD
    | otherwise = (s, ray, n, pd')
    where
-      (s, ray, n, pd) = sample' (ls V.! ln) (worldBounds sc) uO uD
+      (s, ray, n, pd) = sample' (V.unsafeIndex ls ln) (worldBounds sc) uO uD
       pd' = pd * fromIntegral lc
       lc = V.length ls
       ln = min (floor $ uL * fromIntegral lc) (lc - 1)

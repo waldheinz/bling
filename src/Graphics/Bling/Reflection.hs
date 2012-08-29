@@ -447,7 +447,7 @@ sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
       bsm = V.filter (\b -> bxdfMatches b flags) bs
       cntm = V.length bsm
       sNum = max 0 $ min (cntm-1) (floor (uComp * fromIntegral cntm)) -- index to sample
-      bxdf = bsm V.! sNum
+      bxdf = V.unsafeIndex bsm sNum
    
       -- sample chosen BxDF
       (f', wi, pdf') = let fun = if adj then bxdfSample' else bxdfSample
