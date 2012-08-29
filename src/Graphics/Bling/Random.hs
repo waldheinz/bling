@@ -1,5 +1,5 @@
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, TypeFamilies #-}
 
 module Graphics.Bling.Random (
 
@@ -10,7 +10,8 @@ module Graphics.Bling.Random (
    -- * generating random values
    
    rnd2D, rnd, rndList, rndList2D, rndInt, rndIntR, rndIntList, shuffle,
-
+   rndVec, rndVec2D,
+   
    -- * State in the Rand Monad
 
    newRandRef, readRandRef, writeRandRef, modifyRandRef
@@ -22,6 +23,7 @@ import Control.Monad.Primitive
 import Control.Monad.ST
 import Data.STRef
 import qualified Data.Vector as V
+import qualified Data.Vector.Generic as GV
 import qualified Data.Vector.Generic.Mutable as MV
 import qualified System.Random.MWC as MWC
 
@@ -114,6 +116,11 @@ rndList
 rndList n = replicateM n rnd
 {-# INLINE rndList #-}
 
+-- | generates a vector of given length containing random numbers in [0..1)
+rndVec :: (GV.Vector v Float) => Int -> Rand s (v Float)
+{-# INLINE rndVec #-}
+rndVec n = Rand (\g -> GV.generateM n (\_ -> MWC.uniform g))
+
 -- | generates a list of given length containing tuples of random numbers
 rndList2D
    :: Int -- the length of the list to generate
@@ -123,6 +130,10 @@ rndList2D n = do
    vs <- rndList n
    return $ Prelude.zip us vs
 {-# INLINE rndList2D #-}
+
+rndVec2D :: (GV.Vector v (Float, Float), GV.Vector v Float) => Int -> Rand s (v (Float, Float))
+{-# INLINE rndVec2D #-}
+rndVec2D n =  rndVec n >>= \v1 -> rndVec n >>= \v2 -> return $ GV.zip v1 v2
 
 rnd2D :: Rand s Rand2D
 {-# INLINE rnd2D #-}

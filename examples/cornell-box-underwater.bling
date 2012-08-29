@@ -20,7 +20,7 @@ renderer { sampler sampled { sampler { random samples 64 } integrator { path max
 # renderer { sampler sampled { sampler { stratified xSamples 32 ySamples 32 } integrator { light maxDepth 7 sampleDepth 5 } } }
 # renderer { light passCount 10 passPhotons 100000 }
 
-renderer { sppm photonCount 500000 maxDepth 8 radius 3 }
+renderer { sppm photonCount 750000 maxDepth 8 radius 3 }
 # renderer { sampler sampled { sampler { random samples 1024 } integrator { debug reference } } }
 
 imageSize 480 480

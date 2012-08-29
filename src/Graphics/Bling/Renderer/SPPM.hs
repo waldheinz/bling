@@ -18,6 +18,8 @@ import qualified Data.Vector.Unboxed.Mutable as UMV
 import qualified Data.Vector as V
 import qualified Text.PrettyPrint as PP
 
+import Debug.Trace
+
 import Graphics.Bling.Camera
 import Graphics.Bling.Image
 import Graphics.Bling.Light (le)
@@ -116,7 +118,7 @@ traceCam cs
                else traceCam cs { csDepth = 1 + csDepth cs, csT = t', csLs = ls', csRay = ray' }
                
 mkHitPoints :: RenderM (V.Vector HitPoint)
-mkHitPoints = do
+mkHitPoints = trace "mkHitPoints" $ do
    sc <- asks envScene
    img <- asks envImg
    md <- asks envMaxD
@@ -137,7 +139,7 @@ mkHitPoints = do
 --------------------------------------------------------------------------------
 
 tracePhoton :: Scene -> SpatialHash -> MImage (ST s) -> PixelStats s -> Sampled s ()
-tracePhoton scene sh img ps = {-# SCC "tracePhoton" #-} do
+tracePhoton scene sh img ps = {-# SCC "tracePhoton" #-} trace "tracePhoton" $ do
    ul <- rnd' 0
    ulo <- rnd2D' 0
    uld <- rnd2D' 1
@@ -251,7 +253,7 @@ hashLookup sh p n ps fun = {-# SCC "hashLookup" #-}
       when (n `dot` hpn > 0 && sqLen v <= lsR2 stats) $ {-# SCC "hlFun" #-} fun hit
       
 mkHash :: V.Vector HitPoint -> PixelStats s -> ST s SpatialHash
-mkHash hits ps = {-# SCC "mkHash" #-} do
+mkHash hits ps = {-# SCC "mkHash" #-} trace "mkHash" $ do
    r2 <- let
             go m hp = slup ps hp >>= \stats -> return $! max (lsR2 stats) m
          in V.foldM' go 0 hits
@@ -284,9 +286,9 @@ mkHash hits ps = {-# SCC "mkHash" #-} do
          in MV.read v' idx >>= \o -> MV.write v' idx (hp : o)
 
    -- convert to an (non-mutable) array of arrays
-   v <- V.generateM (MV.length v') $ \i -> fmap V.fromList (MV.read v' i)
+   v <- trace "convert" $ V.generateM (MV.length v') $ \i -> fmap V.fromList (MV.read v' i)
 
-   return $ SH bounds v invSize
+   trace "<- mkHash" $ return $ SH bounds v invSize
 
 data RenderState s = RS
    { envImg    :: MImage s
@@ -313,9 +315,9 @@ onePass passNum = do
    n2d' <- asks n2d
    sn' <- asks sn
    _ <- lift $ stToIO $ R.runWithSeed pseed $
-      runSample (mkStratifiedSampler sn' sn') (SampleWindow 0 0 0 0) n1d' n2d' $ tracePhoton sc hitMap i ps
+      runSample (mkRandomSampler (sn' * sn')) (SampleWindow 0 0 0 0) n1d' n2d' $ tracePhoton sc hitMap i ps
    
-   img' <- lift $ stToIO $ fst <$> freeze i
+   img' <- trace "freeze" $ lift $ stToIO $ fst <$> freeze i
    rep <- asks report
    lift $ rep $ PassDone passNum img' (1 / fromIntegral (passNum * (sn' * sn')))
    
