@@ -313,7 +313,7 @@ onePass passNum = do
    n2d' <- asks n2d
    sn' <- asks sn
    _ <- lift $ stToIO $ R.runWithSeed pseed $
-      runSample (mkRandomSampler (sn' * sn')) (SampleWindow 0 0 0 0) n1d' n2d' $ tracePhoton sc hitMap i ps
+      runSample (mkStratifiedSampler sn' sn') (SampleWindow 0 0 0 0) n1d' n2d' $ tracePhoton sc hitMap i ps
    
    img' <- lift $ stToIO $ fst <$> freeze i
    rep <- asks report
