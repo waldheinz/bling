@@ -32,7 +32,6 @@ Library
       pretty            >= 1.0,
       primitive         >= 0.4,
       random            >= 1.0,
-      random-shuffle    >= 0.0,
       SDL               >= 0.6,
       transformers      >= 0.2,
       vector            >= 0.9,

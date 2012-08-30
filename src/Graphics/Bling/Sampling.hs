@@ -30,11 +30,7 @@ import Control.Monad as CM
 import qualified Data.Vector.Unboxed.Mutable as V
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Generic as GV
-import System.Random
-import qualified System.Random.Shuffle as S
 import qualified Graphics.Bling.Random as R
-
-import Debug.Trace
 
 -- | An (image) region which should be covered with samples
 data SampleWindow = SampleWindow {
@@ -109,32 +105,27 @@ runSample (Random spp) wnd _ _ c = {-# SCC "sample.Random" #-} do
          let s = RandomSample (CameraSample (fx + ox) (fy + oy) luv)
          randToSampled c s
 
-runSample (Stratified nu nv) wnd n1d n2d c = {-# SCC "sample.Stratified" #-} trace "runSample.Strat" $ do
+runSample (Stratified nu nv) wnd n1d n2d c = {-# SCC "sample.Stratified" #-} do
    v1d <- R.liftR $ V.new (nu * nv * n1d)
    v2d <- R.liftR $ V.new (nu * nv * n2d)
    
    forM_ (coverWindow wnd) $ \ (ix, iy) -> do
       ps <- stratified2D nu nv -- pixel samples
-      lens <- stratified2D nu nv >>= shuffle (nu*nv) -- lens samples
+      lens <- stratified2D nu nv >>= \x -> do -- lens samples
+         x' <- R.liftR $ UV.thaw x
+         R.shuffle x'
+         R.liftR $ UV.freeze x'
+         
       let (fx, fy) = (fromIntegral ix, fromIntegral iy)
       
-      fill v1d n1d (nu*nv) (stratified1D' (nu*nv))
-      fill v2d n2d (nu*nv) (stratified2D' nu nv)
+      fill v1d n1d (nu*nv) (stratified1D (nu*nv))
+      fill v2d n2d (nu*nv) (stratified2D nu nv)
       
-      forM_ (zip3 ps lens [0..]) $ \((ox, oy), luv, n) ->
+      UV.forM_ (UV.izipWith (\i p l -> (p, l, i)) ps lens) $ \((ox, oy), luv, n) ->
          let
             cs = CameraSample (fx + ox) (fy + oy) luv
             s = PrecomSample cs (V.slice (n*n1d) n1d v1d) (V.slice (n*n2d) n2d v2d)
          in randToSampled c s
-         
--- | shuffles a list
-shuffle
-   :: Int -- ^ the length of the list
-   -> [a] -- ^ the list to shuffle
-   -> R.Rand m [a]
-shuffle xl xs = do
-   seed <- R.rndInt
-   return $ {-# SCC "shuffle'" #-} S.shuffle' xs xl $ mkStdGen seed
 
 fill :: (V.Unbox a) => V.MVector (PrimState (ST m)) a -> Int -> Int -> (R.Rand m (UV.Vector a)) -> R.Rand m ()
 fill v n n' gen = {-# SCC "fill" #-} do
@@ -161,35 +152,16 @@ almostOne = 0.9999999403953552 -- 0x1.fffffep-1
 
 stratified1D
    :: Int
-   -> R.Rand m [Float]
-stratified1D n = do
-   js <- R.rndList n
-   return $ Prelude.zipWith j us js where
-      du = 1 / fromIntegral n
-      j u ju = min almostOne ((u+ju)*du)
-      us = [fromIntegral u | u <- [0..(n-1)]]
-
-stratified1D'-- :: (GV.Vector v Float)
-   :: Int
    -> R.Rand m (UV.Vector Float)
-stratified1D' n = let du = 1 / fromIntegral n in
+stratified1D n = let du = 1 / fromIntegral n in
    R.rndVec n >>= \x -> return $! GV.imap (\i v -> min almostOne ((fromIntegral i + v) * du)) x
 
 -- | generates stratified samples in two dimensions
 stratified2D
    :: Int -- ^ number of samples in first dimension
    -> Int -- ^ number of samples in second dimension
-   -> R.Rand m [R.Rand2D]
-
-stratified2D nu nv = do
-   js <- R.rndList2D (nu * nv)
-   return $ Prelude.zipWith j uvs js where
-      (du, dv) = (1 / fromIntegral nu, 1 / fromIntegral nv)
-      j (u, v) (ju, jv) = (min almostOne ((u+ju)*du), min almostOne ((v+jv)*dv))
-      uvs = [(fromIntegral u, fromIntegral v) | u <- [0..(nu-1)], v <- [0..(nv-1)]]
-
-stratified2D' :: Int -> Int -> R.Rand m (UV.Vector (Float, Float))
-stratified2D' nu nv = let (du, dv) = (1 / fromIntegral nu, 1 / fromIntegral nv) in do
+   -> R.Rand m (UV.Vector (Float, Float))
+stratified2D nu nv = let (du, dv) = (1 / fromIntegral nu, 1 / fromIntegral nv) in do
    js <- R.rndVec2D (nu * nv)
    return $! GV.imap (\i (ju, jv) -> let (u, v) = quotRem i nu in
       (min almostOne ((fromIntegral u + ju)*du), min almostOne ((fromIntegral v + jv)*dv))) js
