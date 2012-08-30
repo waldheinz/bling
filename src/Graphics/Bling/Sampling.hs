@@ -1,5 +1,5 @@
 
-{-# LANGUAGE GeneralizedNewtypeDeriving, FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Graphics.Bling.Sampling (
 
@@ -118,7 +118,7 @@ runSample (Stratified nu nv) wnd n1d n2d c = {-# SCC "sample.Stratified" #-} tra
       lens <- stratified2D nu nv >>= shuffle (nu*nv) -- lens samples
       let (fx, fy) = (fromIntegral ix, fromIntegral iy)
       
-      fill v1d n1d (nu*nv) ((stratified1D' (nu*nv)) :: R.Rand m (UV.MVector m Float))
+      fill v1d n1d (nu*nv) (stratified1D' (nu*nv))
       fill v2d n2d (nu*nv) (stratified2D' nu nv)
       
       forM_ (zip3 ps lens [0..]) $ \((ox, oy), luv, n) ->
@@ -136,7 +136,7 @@ shuffle xl xs = do
    seed <- R.rndInt
    return $ {-# SCC "shuffle'" #-} S.shuffle' xs xl $ mkStdGen seed
 
-fill :: (V.Unbox a) => V.MVector (PrimState (ST m)) a -> Int -> Int -> (R.Rand m (V.MVector m a)) -> R.Rand m ()
+fill :: (V.Unbox a) => V.MVector (PrimState (ST m)) a -> Int -> Int -> (R.Rand m (UV.Vector a)) -> R.Rand m ()
 fill v n n' gen = {-# SCC "fill" #-} do
    forM_ [0..n-1] $ \off -> do
 {-      rs <- {-# SCC "fill.top" #-} do
@@ -145,7 +145,7 @@ fill v n n' gen = {-# SCC "fill" #-} do
          forM_ (zip xs [0..]) $ \(val, i) -> do
             R.liftR $ V.write vv i val
          return vv-}
-      rs <- gen
+      rs <- gen >>= (\x -> R.liftR $ UV.thaw x)
       
       {-# SCC "fill.shuffle" #-} R.shuffle rs
       
@@ -169,9 +169,9 @@ stratified1D n = do
       j u ju = min almostOne ((u+ju)*du)
       us = [fromIntegral u | u <- [0..(n-1)]]
 
-stratified1D' :: (GV.Vector (UV.MVector m) Float)
-   => Int
-   -> R.Rand m (V.MVector m Float)
+stratified1D'-- :: (GV.Vector v Float)
+   :: Int
+   -> R.Rand m (UV.Vector Float)
 stratified1D' n = let du = 1 / fromIntegral n in
    R.rndVec n >>= \x -> return $! GV.imap (\i v -> min almostOne ((fromIntegral i + v) * du)) x
 
@@ -188,8 +188,7 @@ stratified2D nu nv = do
       j (u, v) (ju, jv) = (min almostOne ((u+ju)*du), min almostOne ((v+jv)*dv))
       uvs = [(fromIntegral u, fromIntegral v) | u <- [0..(nu-1)], v <- [0..(nv-1)]]
 
--- stratified2D'
---    :: Int -> Int -> R.Rand m (UV.Vector (Float, Float))
+stratified2D' :: Int -> Int -> R.Rand m (UV.Vector (Float, Float))
 stratified2D' nu nv = let (du, dv) = (1 / fromIntegral nu, 1 / fromIntegral nv) in do
    js <- R.rndVec2D (nu * nv)
    return $! GV.imap (\i (ju, jv) -> let (u, v) = quotRem i nu in
