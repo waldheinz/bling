@@ -96,10 +96,10 @@ near :: Maybe Intersection -> Maybe Intersection -> Maybe Intersection
 near Nothing i = i
 near i Nothing = i
 near mi1 mi2 = Just $ near' (fromJust mi1) (fromJust mi2) where
-   near' i1@(Intersection d1 _ _ _ _) i2@(Intersection d2 _ _ _ _)
-      | d1 < d2 = i1
+   near' i1 i2
+      | intDist i1 < intDist i2 = i1
       | otherwise = i2
-
+      
 -- | creates an itersection function which can be used to check multiple
 --   AABBs for intersection against a single @Ray@
 intf :: Ray -> AABB -> Float -> Bool

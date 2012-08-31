@@ -83,6 +83,5 @@ instance SurfaceIntegrator DebugIntegrator where
 intToSpectrum :: Intersection -> WeightedSpectrum
 intToSpectrum int = WS 1 (fromRGB (r, g, b)) where
    Vector r g b = (vpromote 1 + n) / 2
-   dg = intGeometry int
    n = bsdfShadingNormal $ intBsdf int
    

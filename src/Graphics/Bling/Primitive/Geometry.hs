@@ -41,7 +41,7 @@ instance Primitive Geometry where
 
    intersect g rw = {-# SCC "intersect.Geometry" #-}
       shape g `S.intersect` ro >>= int where
-         int (t, e, dg) = Just $ Intersection t e (transDg (o2w g) dg) p m
+         int (t, e, dg) = Just $ mkIntersection t e (transDg (o2w g) dg) p m
          m = material g
          p = mkAnyPrim g
          ro = transRay (w2o g) rw -- ray in object space

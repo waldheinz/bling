@@ -4,7 +4,8 @@ module Graphics.Bling.Primitive (
 
    -- * Ray - Primitive intersections
 
-   Intersection(..), intLe, intLight, intBsdf,
+   Intersection, mkIntersection, intLe, intLight,
+   intDist, intEpsilon, intBsdf,
 
    -- * Primitives
 
@@ -86,18 +87,24 @@ nearest' ps x = V.foldl' near x ps
 -- Intersections
 --
 
-data Intersection = Intersection {
-   intDist        :: {-# UNPACK #-} ! Float,
-   intEpsilon     :: {-# UNPACK #-} ! Float,
-   intGeometry    :: {-# UNPACK #-} ! DifferentialGeometry,
-   intPrimitive   :: ! AnyPrim,
-   intMaterial    :: ! Material
+data Intersection = Intersection
+   { intDist      :: {-# UNPACK #-} ! Float
+   , intEpsilon   :: {-# UNPACK #-} ! Float
+   , _intGeometry :: DifferentialGeometry -- ^ true geometry at intersection point
+   , intPrimitive :: ! AnyPrim
+   , intBsdf      :: Bsdf
    }
 
-intBsdf :: Intersection -> Bsdf
-intBsdf int = {-# SCC "intBsdf" #-} intMaterial int dgg dgs where
+mkIntersection :: Float -> Float -> DifferentialGeometry -> AnyPrim -> Material -> Intersection
+mkIntersection d e dg p mat = Intersection d e dg p bsdf where
+   bsdf = mat dg (shadingGeometry p mempty dg)
+
+{-
+intBsdf' :: Intersection -> Bsdf
+intBsdf' int = {-# SCC "intBsdf" #-} intMaterial int dgg dgs where
    dgg = intGeometry int
    dgs = shadingGeometry (intPrimitive int) mempty dgg
+-}
 
 -- | the light emitted at an @Intersection@
 intLe
@@ -109,7 +116,7 @@ intLe (Intersection _ _ dg prim _) wo =
    maybe black (\l -> L.lEmit l p n wo) (light prim) where
       p = dgP dg
       n = dgN dg
-   
+      
 intLight :: Intersection -> Maybe Light
 {-# INLINE intLight #-}
 intLight = light . intPrimitive

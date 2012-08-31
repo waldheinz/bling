@@ -62,7 +62,7 @@ instance Primitive FractalPrim where
    
    intersect p@(FP (Julia q e mi) m) r =
       traverseJulia r q mi e >>= \(d, o) ->
-         Just $ Intersection d (e * 2) (mkDg' o $ normalJulia o q mi e) (mkAnyPrim p) m
+         Just $ mkIntersection d (e * 2) (mkDg' o $ normalJulia o q mi e) (mkAnyPrim p) m
    
    intersect (Menger _ _ _ _) _ = error "Menger : unimplemented intersects"
 
