@@ -11,10 +11,6 @@ Flag Gui
    Description:      Enable building the SDL based GUI
    Default:          False
    
-Flag Devel
-   Description:      Enable building some development tools
-   Default:          False
-   
 Library
    Hs-Source-Dirs:   src
    Build-Depends:
@@ -31,7 +27,6 @@ Library
       parallel          >= 3.1,
       pretty            >= 1.0,
       primitive         >= 0.4,
---      random            >= 1.0,
       SDL               >= 0.6,
       transformers      >= 0.2,
       vector            >= 0.9,
@@ -39,9 +34,6 @@ Library
       
    Ghc-Options:
       -Wall -O2 -fexcess-precision -fllvm
-
-   Ghc-Prof-Options:
-      -O2 -fexcess-precision -prof
 
    Exposed-Modules:
       Graphics.Bling.AABB,

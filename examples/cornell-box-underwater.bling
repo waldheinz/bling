@@ -13,19 +13,19 @@ renderer {
    }
 }
 
-renderer { sampler sampled { sampler { random samples 64 } integrator { path maxDepth 5 sampleDepth 3 } } }
+# renderer { sampler sampled { sampler { random samples 64 } integrator { path maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { stratified xSamples 8 ySamples 8 } integrator { path maxDepth 7 sampleDepth 5 } } }
 # renderer { lightTracer passCount 1 particles 300000 }
 # renderer { metropolis maxDepth 8 mpp 1 bootstrap 1000 plarge 0.25 directSamples 1 }
 # renderer { sampler sampled { sampler { stratified xSamples 32 ySamples 32 } integrator { light maxDepth 7 sampleDepth 5 } } }
 # renderer { light passCount 10 passPhotons 100000 }
 # renderer { sampler sampled { sampler { random samples 16 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
-# renderer { sppm photonCount 500000 maxDepth 8 radius 8 alpha 0.95 }
+renderer { sppm photonCount 500000 maxDepth 8 radius 3 alpha 0.9 }
 # renderer { sampler sampled { sampler { random samples 1024 } integrator { debug reference } } }
 
 imageSize 480 480
 imageSize 240 240
-imageSize 720 720
+# imageSize 720 720
 
 #
 # camera
