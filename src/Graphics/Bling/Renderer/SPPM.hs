@@ -30,7 +30,8 @@ import Graphics.Bling.Scene
 import Graphics.Bling.Utils
 
 -- | the Stochastic Progressive Photon Mapping Renderer
-data SPPM = SPPM {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Float -- ^ #photons and initial radius
+data SPPM = SPPM {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Float {-# UNPACK #-} !Float 
+   -- #photons, max depth, initial radius and alpha
 
 instance Printable SPPM where
    prettyPrint (SPPM {}) = PP.vcat [
@@ -38,9 +39,10 @@ instance Printable SPPM where
 
 -- | creates a SPPM renderer
 mkSPPM
-   :: Int -- ^ the number of photons to emit per pass
-   -> Int -- ^ the maximum depth (path length for eye paths)
+   :: Int   -- ^ the number of photons to emit per pass
+   -> Int   -- ^ the maximum depth (path length for eye paths)
    -> Float -- ^ the initial search radius for collecting photons
+   -> Float -- ^ the algorithm's alpha parameter, determining the shrinking of the radius, must be in (0..1)
    -> SPPM
 mkSPPM = SPPM
 
@@ -51,11 +53,6 @@ data HitPoint = Hit
    , hpW       :: {-# UNPACK #-} ! Vector
    , hpF       :: ! Spectrum
    }
-
--- | the algorithm's alpha parameter, determining the ratio of new photons
---   to keep in each pass
-alpha :: Float
-alpha = 0.7
 
 --------------------------------------------------------------------------------
 -- Tracing Camera Rays for Hitpoint Creation
@@ -136,8 +133,8 @@ mkHitPoints = do
 -- Tracing Photons from the Light Sources and adding Image Contribution
 --------------------------------------------------------------------------------
 
-tracePhoton :: Scene -> SpatialHash -> MImage (ST s) -> PixelStats s -> Sampled s ()
-tracePhoton scene sh img ps = {-# SCC "tracePhoton" #-} do
+tracePhoton :: Scene -> Float -> SpatialHash -> MImage (ST s) -> PixelStats s -> Sampled s ()
+tracePhoton scene alpha sh img ps = {-# SCC "tracePhoton" #-} do
    ul <- rnd' 0
    ulo <- rnd2D' 0
    uld <- rnd2D' 1
@@ -148,14 +145,14 @@ tracePhoton scene sh img ps = {-# SCC "tracePhoton" #-} do
       ls = sScale li (absDot nl wi / pdf)
       
    when ((pdf > 0) && not (isBlack li)) $
-      nextVertex scene sh wi (scene `intersect` ray) ls 0 img ps
+      nextVertex scene alpha sh wi (scene `intersect` ray) ls 0 img ps
 
-nextVertex :: Scene -> SpatialHash -> Vector ->
+nextVertex :: Scene -> Float -> SpatialHash -> Vector ->
    Maybe Intersection -> Spectrum -> Int ->
    MImage (ST s) -> PixelStats s -> Sampled s ()
 
-nextVertex _ _ _ Nothing _ _ _ _ = return ()
-nextVertex scene sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} do
+nextVertex _ _ _ _ Nothing _ _ _ _ = return ()
+nextVertex scene alpha sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} do
 
    -- add contribution for this photon hit
    let
@@ -186,7 +183,7 @@ nextVertex scene sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} do
 
    unless (spdf == 0 || isBlack li') $
       rnd' (2 + d * 2) >>= \x -> unless (x > pcont) $
-         nextVertex scene sh (-wo) (scene `intersect` ray) li' (d+1) img ps
+         nextVertex scene alpha sh (-wo) (scene `intersect` ray) li' (d+1) img ps
 
 --------------------------------------------------------------------------------
 -- Per-Pixel Accumulation Stats
@@ -289,14 +286,15 @@ mkHash hits ps = {-# SCC "mkHash" #-} do
    return $ SH bounds v invSize
 
 data RenderState s = RS
-   { envImg    :: MImage s
-   , n1d       :: Int
-   , n2d       :: Int
-   , envScene  :: Scene
-   , pxStats   :: PixelStats (PrimState s)
-   , sn        :: Int
-   , envMaxD   :: Int
-   , report    :: ProgressReporter
+   { envImg    :: ! (MImage s)
+   , n1d       :: ! Int
+   , n2d       :: ! Int
+   , envScene  :: ! Scene
+   , pxStats   :: ! (PixelStats (PrimState s))
+   , sn        :: ! Int
+   , envMaxD   :: ! Int
+   , report    :: ! ProgressReporter
+   , rsAlpha   :: ! Float
    }
 
 type RenderM a = ReaderT (RenderState (ST RealWorld)) IO a
@@ -312,8 +310,9 @@ onePass passNum = do
    n1d' <- asks n1d
    n2d' <- asks n2d
    sn' <- asks sn
+   alpha <- asks rsAlpha
    _ <- lift $ stToIO $ R.runWithSeed pseed $
-      runSample (mkStratifiedSampler sn' sn') (SampleWindow 0 0 0 0) n1d' n2d' $ tracePhoton sc hitMap i ps
+      runSample (mkStratifiedSampler sn' sn') (SampleWindow 0 0 0 0) n1d' n2d' $ tracePhoton sc alpha hitMap i ps
    
    img' <- lift $ stToIO $ fst <$> freeze i
    rep <- asks report
@@ -328,7 +327,7 @@ sq (x:xs) = x >>= \c -> when c $ sq xs
 --------------------------------------------------------------------------------
 
 instance Renderer SPPM where
-   render (SPPM n md r) job rep = {-# SCC "render" #-} do
+   render (SPPM n md r alpha) job rep = {-# SCC "render" #-} do
       
       let
          scene = jobScene job
@@ -340,5 +339,5 @@ instance Renderer SPPM where
       img <- stToIO $ thaw $ mkJobImage job
       ps <- stToIO $ mkPixelStats (sampleExtent img) (r * r)
       
-      sq $ map (\p -> runReaderT (onePass p) (RS img n1 n2 scene ps sn' md rep)) [1..]
+      sq $ map (\p -> runReaderT (onePass p) (RS img n1 n2 scene ps sn' md rep alpha)) [1..]
                
