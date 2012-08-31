@@ -32,12 +32,6 @@ bands = 3
 
 newtype Spectrum = Spectrum { _unSpectrum :: V.Vector Float } deriving (Show)
 
--- | A Spectrum of colours.
---data Spectrum = Spectrum
---   {-# UNPACK #-} ! Float
---   {-# UNPACK #-} ! Float
---   {-# UNPACK #-} ! Float deriving (Show, Eq)
-
 instance DS.NFData Spectrum where
    rnf (Spectrum v) = seq v ()
 
@@ -65,7 +59,8 @@ instance MV.MVector V.MVector Spectrum where
    {-# INLINE basicOverlaps #-}
    
    basicUnsafeRead (MV_Spectrum v) idx =
-      V.generateM bands (\i -> MV.unsafeRead v $(idx * bands) + i) >>= \v' -> return (Spectrum v')
+      V.generateM bands (\i -> MV.unsafeRead v $(idx * bands) + i)
+      >>= \v' -> return (Spectrum v')
    {-# INLINE basicUnsafeRead #-}
    
    basicUnsafeWrite (MV_Spectrum v) idx (Spectrum vs) = do
@@ -86,9 +81,9 @@ instance GV.Vector V.Vector Spectrum where
    basicUnsafeThaw (V_Spectrum v) = MV_Spectrum `liftM` (GV.unsafeThaw v)
    {-# INLINE basicUnsafeThaw #-}
    
-   basicUnsafeIndexM (V_Spectrum v) idx = do
-      v' <- V.generateM bands (\i -> GV.unsafeIndexM v ((idx * bands) + i))
-      return $! Spectrum v'
+   basicUnsafeIndexM (V_Spectrum v) idx =
+      V.generateM bands (\i -> GV.unsafeIndexM v ((idx * bands) + i))
+      >>= \v' -> return (Spectrum v')
    {-# INLINE basicUnsafeIndexM #-}
    
 --------------------------------------------------------------------------------
@@ -97,16 +92,14 @@ instance GV.Vector V.Vector Spectrum where
 
 data WeightedSpectrum = WS {-# UNPACK #-} !Float !Spectrum -- the sample weight and the sampled spectrum
 type ImageSample = (Float, Float, WeightedSpectrum) -- the pixel coordinates and the weighted spectrum
-
 type Contribution = (Bool, ImageSample)
 
-
--- | A "black" @Spectrum@ (no transmittance or emission) at all wavelengths
+-- | A "black" @Spectrum@ (no transmittance or emission at all wavelengths)
 black :: Spectrum
 {-# INLINE black #-}
 black = Spectrum $ V.replicate bands 0
 
--- | A "white" @Spectrum@ (full transmission at any wavelength).
+-- | A "white" @Spectrum@ (full transmission at any wavelength)
 white :: Spectrum
 {-# INLINE white #-}
 white = Spectrum $ V.replicate bands 1
