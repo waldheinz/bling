@@ -4,47 +4,43 @@
 filter mitchell 3.0 3.0 0.333333 0.333333
 # filter box
 
-imageSize 640 480
+imageSize 640 400
 
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 2 ySamples 2 }
+      sampler { stratified xSamples 8 ySamples 8 }
       integrator { path maxDepth 5 sampleDepth 3 }
    }
 }
 
 # renderer { metropolis mpp 1 bootstrap 1000 plarge 0.25 separateDirect }
+renderer { sppm photonCount 100000 maxDepth 8 radius 0.2 alpha 0.9 }
 
 transform {
    lookAt {
-      pos 3 8 -5
-      look 0 1 0
+      pos 3 16 -12
+      look 0 2 0
       up 0 1 0
    }
 }
 
 camera {
    perspective
-   fov 70
+   fov 35
    lensRadius 0
    focalDistance 10
 }
-
-# transform { identity } camera { environment }
-
-# transform { identity }
-# transform { identity rotateX -90 }
 
 light { infinite { rotateX -90 }
    l { rgbeFile "envmaps/studio015.hdr" }
 }
 
-transform { identity }
-
 #
 # ground plane
 #
+
+newTransform { rotateX 90 translate 0 1 0 }
 
 material {
    matte
@@ -52,7 +48,7 @@ material {
    sigma { constant 0 }
 }
 
-# shape { mesh vertexCount 4 faceCount 1 v  10 1 -10 v -10 1 -10 v -10 1  10 v  10 1  10 f 3 2 1 0 }
+prim { shape { quad 20 20 } }
 
 emission { none }
 
@@ -60,8 +56,7 @@ emission { none }
 # mirror sphere
 #
 
-transform {
-   identity
+newTransform {
    translate -5 3 -2.5
 }
 
@@ -69,14 +64,13 @@ material { mirror
    kr { constant rgb 1 1 1 }
 }
 
-shape { sphere radius 2 }
+prim { shape { sphere radius 2 } }
 
 #
 # glass sphere
 #
 
-transform {
-   identity
+newTransform {
    translate 0.0 3 -2.5
 }
 
@@ -87,14 +81,13 @@ material { glass
 }
 
 
-shape { sphere radius 2 }
+prim { shape { sphere radius 2 } }
 
 #
 # gold sphere
 #
 
-transform {
-   identity
+newTransform {
    translate 5 3 -2.5
 }
 
@@ -150,14 +143,13 @@ material {
    rough { constant 0.002 }
 }
 
-shape { sphere radius 2 }
+prim { shape { sphere radius 2 } }
 
 #
 # sphere 1
 #
 
-transform {
-   identity
+newTransform {
    translate -5.0 3 2.5
 }
 
@@ -167,14 +159,13 @@ material { plastic
    rough { constant 0.003125 }
 }
 
-shape { sphere radius 2.0 }
+prim { shape { sphere radius 2.0 } }
 
 #
 #
 #
 
-transform {
-   identity
+newTransform {
    translate 0.0 3 2.5
 }
 
@@ -184,14 +175,13 @@ material { plastic
    rough { constant 0.00078125 }
 }
 
-shape { sphere radius 2.0 }
+prim { shape { sphere radius 2.0 } }
 
 #
 #
 #
 
-transform {
-   identity
+newTransform {
    translate 5.0 3 2.5
 }
 
@@ -201,5 +191,5 @@ material { plastic
    rough { constant 0.000195312 }
 }
 
-shape { sphere radius 2.0 }
+prim { shape { sphere radius 2.0 } }
 

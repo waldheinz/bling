@@ -1,15 +1,14 @@
 
-filter sinc 4 4 3
+# filter sinc 4 4 3
 # filter triangle 2 2
-# filter mitchell 3 3 0.333333 0.333333
+filter mitchell 3 3 0.333333 0.333333
 # filter box
-
-filter gauss 3 3 2
+# filter gauss 3 3 2
 
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 8 ySamples 8 }
+      sampler { stratified xSamples 16 ySamples 16 }
       integrator { path maxDepth 10 sampleDepth 3 }
    }
 }
@@ -24,11 +23,11 @@ renderer {
 # renderer { sampler sampled { sampler { random samples 32 } integrator { debug reference } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug kdtree } } }
 
-# renderer { sppm photonCount 5000 maxDepth 1 radius 30 }
+# renderer { sppm photonCount 50000 maxDepth 1 radius 15 }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 
-imageSize 640 640
-imageSize 240 240
+imageSize 720 720
+imageSize 480 480
 
 #
 # camera

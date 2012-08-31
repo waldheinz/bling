@@ -19,11 +19,11 @@ import Graphics.Bling.Texture
 import Graphics.Bling.Transform
 
 data LightSample = LightSample {
-   de                :: {-# UNPACK #-} !Spectrum,   -- ^ differential irradiance
-   lightSampleWi     :: {-# UNPACK #-} !Vector,     -- ^ incident direction
-   testRay           :: !Ray,                       -- ^ for visibility test
-   lightSamplePdf    :: {-# UNPACK #-} !Float,      -- ^ the PDF for this sample
-   lightSampleDelta  :: !Bool        -- ^ does that light employ a delta-distributuion?
+   de                :: !Spectrum,                 -- ^ differential irradiance
+   lightSampleWi     :: {-# UNPACK #-} !Vector,    -- ^ incident direction
+   testRay           :: !Ray,                      -- ^ for visibility test
+   lightSamplePdf    :: {-# UNPACK #-} !Float,     -- ^ the PDF for this sample
+   lightSampleDelta  :: !Bool                      -- ^ does that light employ a delta-distributuion?
    }
 
 data Light

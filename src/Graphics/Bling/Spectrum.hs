@@ -16,9 +16,9 @@ module Graphics.Bling.Spectrum (
    
    ) where
 
-import Control.Monad (liftM)
+import Control.Monad (liftM, forM_)
 import Data.List (sortBy)
-import Data.Vector.Unboxed as V
+import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Generic as GV
 import qualified Data.Vector.Generic.Mutable as MV
 import Control.DeepSeq as DS
@@ -26,26 +26,29 @@ import Prelude as P
 
 import Graphics.Bling.Math
 
+-- | the number of spectral bands we use for a spectrum
+bands :: Int
+bands = 3
+
+newtype Spectrum = Spectrum { _unSpectrum :: V.Vector Float } deriving (Show)
+
 -- | A Spectrum of colours.
-data Spectrum = Spectrum
-   {-# UNPACK #-} ! Float
-   {-# UNPACK #-} ! Float
-   {-# UNPACK #-} ! Float deriving (Show, Eq)
+--data Spectrum = Spectrum
+--   {-# UNPACK #-} ! Float
+--   {-# UNPACK #-} ! Float
+--   {-# UNPACK #-} ! Float deriving (Show, Eq)
 
 instance DS.NFData Spectrum where
-   rnf (Spectrum r g b) = rnf (r, g, b)
+   rnf (Spectrum v) = seq v ()
 
 --------------------------------------------------------------------------------
 -- Unboxed Vectors of Spectra
 --------------------------------------------------------------------------------
 
-bands :: Int
-bands = 3
-
 newtype instance V.MVector s Spectrum = MV_Spectrum (V.MVector s Float)
 newtype instance V.Vector Spectrum = V_Spectrum (V.Vector Float)
 
-instance Unbox Spectrum
+instance V.Unbox Spectrum
 
 instance MV.MVector V.MVector Spectrum where
    basicLength (MV_Spectrum v) = MV.basicLength v `div` bands
@@ -61,21 +64,12 @@ instance MV.MVector V.MVector Spectrum where
    basicOverlaps (MV_Spectrum v1) (MV_Spectrum v2) = MV.overlaps v1 v2
    {-# INLINE basicOverlaps #-}
    
-   basicUnsafeRead (MV_Spectrum v) idx = do
-      r <- MV.unsafeRead v idx'
-      g <- MV.unsafeRead v (idx' + 1)
-      b <- MV.unsafeRead v (idx' + 2)
-      return $! Spectrum r g b
-      where
-         idx' = idx * bands
+   basicUnsafeRead (MV_Spectrum v) idx =
+      V.generateM bands (\i -> MV.unsafeRead v $(idx * bands) + i) >>= \v' -> return (Spectrum v')
    {-# INLINE basicUnsafeRead #-}
    
-   basicUnsafeWrite (MV_Spectrum v) idx (Spectrum r g b) = do
-      MV.unsafeWrite v (idx' + 0) r
-      MV.unsafeWrite v (idx' + 1) g
-      MV.unsafeWrite v (idx' + 2) b
-      where
-         idx' = idx * bands
+   basicUnsafeWrite (MV_Spectrum v) idx (Spectrum vs) = do
+      forM_ [0..bands-1] $ \i -> MV.unsafeWrite v ((idx * bands) + i) (V.unsafeIndex vs i)
    {-# INLINE basicUnsafeWrite #-}
    
 instance GV.Vector V.Vector Spectrum where
@@ -93,19 +87,15 @@ instance GV.Vector V.Vector Spectrum where
    {-# INLINE basicUnsafeThaw #-}
    
    basicUnsafeIndexM (V_Spectrum v) idx = do
-      r <- GV.unsafeIndexM v (idx' + 0)
-      g <- GV.unsafeIndexM v (idx' + 1)
-      b <- GV.unsafeIndexM v (idx' + 2)
-      return $! Spectrum r g b
-      where
-         idx' = idx * bands
+      v' <- V.generateM bands (\i -> GV.unsafeIndexM v ((idx * bands) + i))
+      return $! Spectrum v'
    {-# INLINE basicUnsafeIndexM #-}
    
 --------------------------------------------------------------------------------
 -- ImageSample and the like
 --------------------------------------------------------------------------------
 
-data WeightedSpectrum = WS {-# UNPACK #-} !Float {-# UNPACK #-} !Spectrum -- the sample weight and the sampled spectrum
+data WeightedSpectrum = WS {-# UNPACK #-} !Float !Spectrum -- the sample weight and the sampled spectrum
 type ImageSample = (Float, Float, WeightedSpectrum) -- the pixel coordinates and the weighted spectrum
 
 type Contribution = (Bool, ImageSample)
@@ -114,22 +104,22 @@ type Contribution = (Bool, ImageSample)
 -- | A "black" @Spectrum@ (no transmittance or emission) at all wavelengths
 black :: Spectrum
 {-# INLINE black #-}
-black = Spectrum 0 0 0
+black = Spectrum $ V.replicate bands 0
 
 -- | A "white" @Spectrum@ (full transmission at any wavelength).
 white :: Spectrum
 {-# INLINE white #-}
-white = Spectrum 1 1 1
+white = Spectrum $ V.replicate bands 1
 
 -- | Converts from RGB to spectrum. The supplied RGB value is supposed to have
 --   a gamma correction of 2.2 applied, which is reversed by this function.
 fromRGB :: (Float, Float, Float) -> Spectrum
-fromRGB (r, g, b) = let ga = 2.2 in Spectrum (r ** ga) (g ** ga) (b ** ga)
+fromRGB (r, g, b) = let ga = 2.2 in fromRGB' (r ** ga) (g ** ga) (b ** ga)
 
 -- | Converts from RGB to Spectrum. The RGB values are supposed to be in linear
 --   sRGB color space.
-fromRGB' :: Float-> Float -> Float -> Spectrum
-fromRGB' = Spectrum
+fromRGB' :: Float -> Float -> Float -> Spectrum
+fromRGB' r g b = Spectrum $ V.fromList [r, g, b]
 
 fromXYZ :: (Float, Float, Float) -> Spectrum
 fromXYZ (x, y, z) = fromRGB' r g b where
@@ -156,8 +146,8 @@ mkSpd
    -> Spd
 mkSpd [] = error "empty SPD"
 mkSpd xs = IrregularSpd ls vs where
-   ls = fromList (P.map fst sorted)
-   vs = fromList (P.map snd sorted)
+   ls = V.fromList (P.map fst sorted)
+   vs = V.fromList (P.map snd sorted)
    sorted = sortBy cmp xs
    cmp (l1, _) (l2, _) = compare l1 l2
 
@@ -167,7 +157,7 @@ mkSpd'
    -> Float -- ^ the wavelength of the first amplitude sample
    -> Float -- ^ the wavelength of the last amplitude sample
    -> Spd -- ^ the resulting SPD
-mkSpd' vs s e = RegularSpd s e (fromList vs)
+mkSpd' vs s e = RegularSpd s e (V.fromList vs)
 
 mkSpdFunc
    :: (Float -> Float) -- ^ the SPD function from lambda in nanometers to amplitude
@@ -213,20 +203,20 @@ evalSpd
 evalSpd (IrregularSpd ls vs) l
    | l <= V.head ls = V.head vs
    | l >= V.last ls = V.last vs
-   | otherwise = lerp t (vs ! i) (vs ! (i+1)) where
-      t = (l - (ls ! i)) / ((ls ! (i+1)) - (ls ! i))
+   | otherwise = lerp t (vs V.! i) (vs V.! (i+1)) where
+      t = (l - (ls V.! i)) / ((ls V.! (i+1)) - (ls V.! i))
       i = fi 0 (V.length ls - 1)
       fi lo hi -- binary search for index
          | lo == mid = lo
-         | (ls ! mid) == l = mid
-         | (ls ! mid) < l = fi mid hi
+         | (ls V.! mid) == l = mid
+         | (ls V.! mid) < l = fi mid hi
          | otherwise = fi lo mid where
             mid = (lo + hi) `div` 2
 
 evalSpd (RegularSpd l0 l1 amps) l
    | l <= l0 = V.head amps
    | l >= l1 = V.last amps
-   | otherwise = (1 - dx) * (amps ! b0) + dx * (amps ! b1)
+   | otherwise = (1 - dx) * (amps V.! b0) + dx * (amps V.! b1)
    where
       d1 = 1 / ((l1 - l0) / fromIntegral (V.length amps - 1)) -- 1 / delta
       x = (l - l0) * d1
@@ -259,44 +249,42 @@ fromSpd = fromXYZ . spdToXYZ
 
 toRGB :: Spectrum -> (Float, Float, Float)
 {-# INLINE toRGB #-}
-toRGB (Spectrum r g b) = (r, g, b)
+toRGB (Spectrum v) = (v V.! 0, v V.! 1,  v V.! 2)
 
 -- | the brightness
 sY :: Spectrum -> Float
 {-# INLINE sY #-}
-sY (Spectrum r g b) = 0.212671 * r + 0.715160 * g + 0.072169 * b
+sY (Spectrum v) = 0.212671 * (v V.! 0) + 0.715160 * (v V.! 1) + 0.072169 * (v V.! 2)
 
 sConst :: Float -> Spectrum
-sConst r = Spectrum r r r
+sConst r = Spectrum $ V.replicate bands r
 
 instance Fractional Spectrum where
-   Spectrum r1 g1 b1 / Spectrum r2 g2 b2 = Spectrum (r1/r2) (g1/g2) (b1/b2)
-   fromRational i = Spectrum i' i' i' where
-      i' = fromRational i
+   Spectrum v1 / Spectrum v2 = Spectrum $ V.zipWith (/) v1 v2
+   fromRational i = Spectrum $ V.replicate bands (fromRational i)
    
 instance Num Spectrum where
-   Spectrum r1 g1 b1 + Spectrum r2 g2 b2 = Spectrum (r1+r2) (g1+g2) (b1+b2)
-   Spectrum r1 g1 b1 - Spectrum r2 g2 b2 = Spectrum (r1-r2) (g1-g2) (b1-b2)
-   Spectrum r1 g1 b1 * Spectrum r2 g2 b2 = Spectrum (r1*r2) (g1*g2) (b1*b2)
-   abs (Spectrum r g b) = Spectrum (abs r) (abs g) (abs b)
-   negate (Spectrum r g b) = Spectrum (-r) (-g) (-b)
-   signum (Spectrum r g b) = Spectrum (signum r) (signum g) (signum b)
-   fromInteger i = Spectrum i' i' i' where
-      i' = fromInteger i
+   Spectrum v1 + Spectrum v2 = Spectrum $ V.zipWith (+) v1 v2
+   Spectrum v1 - Spectrum v2 = Spectrum $ V.zipWith (-) v1 v2
+   Spectrum v1 * Spectrum v2 = Spectrum $ V.zipWith (*) v1 v2
+   abs (Spectrum v) = Spectrum $ V.map abs v
+   negate (Spectrum v) = Spectrum $ V.map negate v
+   signum (Spectrum v) = Spectrum $ V.map signum v
+   fromInteger i = Spectrum $ V.replicate bands (fromInteger i)
    
 -- | Decides if a @Spectrum@ is black
 isBlack :: Spectrum -> Bool
 {-# INLINE isBlack #-}
-isBlack (Spectrum r g b) = r == 0 && g == 0 && b == 0
+isBlack (Spectrum v) = V.all (== 0) v
 
 sScale :: Spectrum -> Float -> Spectrum
 {-# INLINE sScale #-}
-sScale (Spectrum a b c) f = Spectrum (a*f) (b*f) (c*f)
+sScale (Spectrum v) f = Spectrum $ V.map (*f) v
 
 -- | clamps the @Spectrum@ coefficients the specified range
 sClamp :: Float -> Float -> Spectrum -> Spectrum
 {-# INLINE sClamp #-}
-sClamp smin smax (Spectrum r g b) = Spectrum (c r) (c g) (c b) where
+sClamp smin smax (Spectrum v) = Spectrum $ V.map c v where
    c x = max smin $ min smax x
 
 -- | clamps the @Spectrum@ coefficients to [0,1]
@@ -305,19 +293,19 @@ sClamp' = sClamp 0 1
 
 sSqrt :: Spectrum -> Spectrum
 {-# INLINE sSqrt #-}
-sSqrt (Spectrum r g b) = Spectrum (sqrt r) (sqrt g) (sqrt b)
+sSqrt (Spectrum v) = Spectrum $ V.map sqrt v
 
 sNaN :: Spectrum -> Bool
 {-# INLINE sNaN #-}
-sNaN (Spectrum r g b) = (isNaN r) || (isNaN g) || (isNaN b)
+sNaN (Spectrum v) = V.any isNaN v
 
 sInfinite :: Spectrum -> Bool
 {-# INLINE sInfinite #-}
-sInfinite (Spectrum r g b) = (isInfinite r) || (isInfinite g) || (isInfinite b)
+sInfinite (Spectrum v) = V.any isInfinite v
 
 sPow :: Spectrum -> Spectrum -> Spectrum
 {-# INLINE sPow #-}
-sPow (Spectrum c1 c2 c3) (Spectrum e1 e2 e3) = Spectrum (p' c1 e1) (p' c2 e2) (p' c3 e3) where
+sPow (Spectrum vc) (Spectrum ve) = Spectrum (V.zipWith p' vc ve) where
    p' :: Float -> Float -> Float
    p' c e
       | c > 0 = c ** e
@@ -380,11 +368,11 @@ cieEnd = 830
 cieX :: Int -> Float
 cieX lambda
    | (lambda < cieStart) || (lambda > cieEnd) = 0
-   | otherwise = cieXValues ! (lambda - cieStart)
+   | otherwise = cieXValues V.! (lambda - cieStart)
     
 cieXValues :: V.Vector Float
 {-# NOINLINE cieXValues #-}
-cieXValues = fromList [
+cieXValues = V.fromList [
    0.0001299000, 0.0001458470, 0.0001638021, 0.0001840037,
    0.0002066902,  0.0002321000,  0.0002607280,  0.0002930750,
    0.0003293880,  0.0003699140,  0.0004149000,  0.0004641587,
@@ -507,11 +495,11 @@ cieXValues = fromList [
 cieY :: Int -> Float
 cieY lambda
    | (lambda < cieStart) || (lambda > cieEnd) = 0
-   | otherwise = cieYValues ! (lambda - cieStart)
+   | otherwise = cieYValues V.! (lambda - cieStart)
    
 cieYValues :: V.Vector Float
 {-# NOINLINE cieYValues #-}
-cieYValues = fromList [
+cieYValues = V.fromList [
    0.000003917000,  0.000004393581,  0.000004929604,  0.000005532136,
    0.000006208245,  0.000006965000,  0.000007813219,  0.000008767336,
    0.000009839844,  0.00001104323,  0.00001239000,  0.00001388641,
@@ -634,11 +622,11 @@ cieYValues = fromList [
 cieZ :: Int -> Float
 cieZ lambda
    | (lambda < cieStart) || (lambda > cieEnd) = 0
-   | otherwise = cieZValues ! (lambda - cieStart)
+   | otherwise = cieZValues V.! (lambda - cieStart)
    
 cieZValues :: V.Vector Float
 {-# NOINLINE cieZValues #-}
-cieZValues = fromList [
+cieZValues = V.fromList [
    0.0006061000,  0.0006808792,  0.0007651456,  0.0008600124,
    0.0009665928,  0.001086000,  0.001220586,  0.001372729,
    0.001543579,  0.001734286,  0.001946000,  0.002177777,
