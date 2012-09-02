@@ -162,7 +162,7 @@ addPixel !(MImage !w !h (!ox, !oy) _ !p _) (!x, !y, WS !sw !s)
    | otherwise = do
       let
          o' = 4 * ((x - ox) + (y - oy) * w)
-         (r', g', b') = toRGB s
+         (r', g', b') = spectrumToXYZ s
       
       ow <- MV.unsafeRead p o'
       r <- MV.unsafeRead p $ (o' + 1)
@@ -191,7 +191,7 @@ splatSample (MImage w h (iox, ioy) _ _ p) (sx, sy, WS sw ss)
       MV.unsafeWrite p o (ox + dx, oy + dy, oz + dz)
       where
          o = ((floor sx - iox) + (floor sy - ioy) * w)
-         (dx, dy, dz) = (\(x, y, z) -> (x * sw, y * sw, z * sw)) $ toRGB ss
+         (dx, dy, dz) = (\(x, y, z) -> (x * sw, y * sw, z * sw)) $ spectrumToXYZ ss
 
 -- | adds a sample to the specified image
 addSample :: PrimMonad m => MImage m -> ImageSample -> m ()
@@ -214,10 +214,10 @@ getPixel
    :: Image
    -> Float -- ^ splat weight
    -> Int
-   -> (Float, Float, Float)
+   -> (Float, Float, Float) -- ^ (r, g, b)
 getPixel (Img _ _ _ p s) sw o
-   | w == 0 = (sw * sr, sw * sg, sw * sb)
-   | otherwise = (sw * sr + r / w, sw * sg + g / w, sw * sb + b / w)
+   | w == 0 = xyzToRgb (sw * sr, sw * sg, sw * sb)
+   | otherwise = xyzToRgb (sw * sr + r / w, sw * sg + g / w, sw * sb + b / w)
    where
       o' = 4 * o
       (w, r, g, b) = (p V.! o', p V.! (o' + 1), p V.! (o' + 2), p V.! (o' + 3))

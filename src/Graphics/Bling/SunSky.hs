@@ -67,7 +67,7 @@ initSky basis sdw t = {-# SCC "init" #-} SD sd st px py pY zx zy zY where
 skySpectrum :: SkyData -> Vector -> Spectrum
 skySpectrum ssd dir@(Vector _ _ dz')
    | dz < 0.001 = black
-   | otherwise = fromXYZ (x', y', z')
+   | otherwise = xyzToSpectrum (x', y', z')
    where
       dz = -dz'
       (cx, cy, cz) = chromaticityToXYZ x y
