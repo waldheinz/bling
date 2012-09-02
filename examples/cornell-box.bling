@@ -27,7 +27,7 @@ renderer {
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 
 imageSize 720 720
-imageSize 480 480
+# imageSize 480 480
 imageSize 240 240
 
 #

@@ -29,18 +29,22 @@ import Graphics.Bling.Math
 
 -- | the number of spectral bands we use for a spectrum
 bands :: Int
-bands = 3
+{-# INLINE bands #-}
+bands = 16
 
 spectrumLambdaStart :: Float
+{-# INLINE spectrumLambdaStart #-}
 spectrumLambdaStart = 400
 
 spectrumLambdaEnd :: Float
+{-# INLINE spectrumLambdaEnd #-}
 spectrumLambdaEnd = 700
 
 newtype Spectrum = Spectrum { unSpectrum :: V.Vector Float } deriving (Show)
 
 instance DS.NFData Spectrum where
    rnf (Spectrum v) = seq v ()
+   {-# INLINE rnf #-}
 
 --------------------------------------------------------------------------------
 -- Unboxed Vectors of Spectra
