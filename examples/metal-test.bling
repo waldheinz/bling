@@ -5,11 +5,12 @@ filter mitchell 3 3 0.333333 0.333333
 # filter box
 
 imageSize 640 400
+imageSize 1280 720
 
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 1 ySamples 1 }
+      sampler { stratified xSamples 8 ySamples 8 }
       integrator { path maxDepth 7 sampleDepth 3 }
    }
 }
@@ -42,8 +43,8 @@ material {
    matte
    kd {
       graphPaper 0.1
-      tex1 { constant rgb 0.95 0.95 0.95 }
-      tex2 { constant rgb 0.05 0.05 0.05 }
+      tex1 { constant rgbR 0.95 0.95 0.95 }
+      tex2 { constant rgbR 0.05 0.05 0.05 }
    }
    sigma { constant 0 }
 }
@@ -55,7 +56,7 @@ prim { shape { quad 50 50 } }
 # light source
 #
 
-emission { rgb 12 12 12 }
+emission { rgbI 12 12 12 }
 emission { spd { 400.0 0.0, 500.0 8.0, 600.0 15.6, 700.0 18.4 } }
 newTransform { rotateX -90 translate 0 15 0  }
 # prim { shape { quad 5 5 } }

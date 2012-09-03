@@ -48,7 +48,7 @@ instance SurfaceIntegrator DebugIntegrator where
    contrib KdTreeVis scene tell r = do
       let stats = dbgTraverse t r
       let ints = fromIntegral $ intersections stats
-      li <- mkContrib (WS 1 (fromRGB (fromIntegral $ nodesTraversed stats, ints, 0))) False
+      li <- mkContrib (WS 1 (rgbToSpectrumRefl (fromIntegral $ nodesTraversed stats, ints, 0))) False
       liftSampled $ tell $ li
       where
          t = scenePrim scene
@@ -81,7 +81,7 @@ instance SurfaceIntegrator DebugIntegrator where
                                  return $ (1, (le + sScale (f * rest) (absDot wi n * 4 * pi)))
          
 intToSpectrum :: Intersection -> WeightedSpectrum
-intToSpectrum int = WS 1 (fromRGB (r, g, b)) where
+intToSpectrum int = WS 1 (rgbToSpectrumRefl (r, g, b)) where
    Vector r g b = (vpromote 1 + n) / 2
    n = bsdfShadingNormal $ intBsdf int
    

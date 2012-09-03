@@ -63,7 +63,7 @@ initialState :: MyState
 initialState = MyState [] [] (640, 360) mkBoxFilter
    (mkPerspectiveCamera (lookAt (mkPoint' 0 5 (-10)) (mkPoint' 0 0 0) (mkV' 0 1 0)) 0 1 90 640 360)
 
-   mempty (mkMatte (const $ fromRGB' 0.9 0.9 0.9) (const 0)) Nothing 0
+   mempty (mkMatte (const $ rgbToSpectrumRefl (0.9, 0.9, 0.9)) (const 0)) Nothing 0
 
 type DslState a = (StateT MyState IO a)
 

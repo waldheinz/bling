@@ -134,14 +134,8 @@ namedVector n = do string n >> ws; pVec <?> ("vector " ++ n)
 
 pSpectrum :: JobParser Spectrum
 pSpectrum = pString >>= \t -> case t of
-   "rgb'" -> do
-      r <- flt
-      g <- flt
-      b <- flt
-      return (fromRGB (r, g, b))
-
-   "rgb" -> liftM3 fromRGB' flt flt flt
-   
+   "rgbR" -> liftM3 (\r g b -> rgbToSpectrumRefl (r,g,b))  flt flt flt
+   "rgbI" -> liftM3 (\r g b -> rgbToSpectrumIllum (r,g,b)) flt flt flt
    "spd" -> pSpectrumSpd
    "temp" -> do
       temp <- flt

@@ -63,7 +63,7 @@ mkTextureMap :: PixelSize -> (CartesianCoords -> a) -> TextureMap a
 mkTextureMap size eval = TexMap eval size
 
 pixelSpectrum :: PixelRGB8 -> Spectrum
-pixelSpectrum (PixelRGB8 r g b) = fromRGB (f r, f g, f b) where
+pixelSpectrum (PixelRGB8 r g b) = rgbToSpectrumRefl (f r, f g, f b) where
    f x = fromIntegral x / 255
 
 mod' :: Int -> Int -> Int

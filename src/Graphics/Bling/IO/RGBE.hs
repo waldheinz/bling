@@ -100,7 +100,7 @@ readFlatPixel bs = (BS.drop 4 bs, [rgbeToSpectrum r g b e]) where
    (r:g:b:e:_) = BS.unpack $ BS.take 4 bs
 
 rgbeToSpectrum :: Word8 -> Word8 -> Word8 -> Word8 -> Spectrum
-rgbeToSpectrum r g b e = fromRGB' r' g' b' where
+rgbeToSpectrum r g b e = rgbToSpectrumIllum (r', g', b') where
    r' = fromIntegral r * f;
    g' = fromIntegral g * f;
    b' = fromIntegral b * f;

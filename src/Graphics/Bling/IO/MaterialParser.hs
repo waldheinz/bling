@@ -15,7 +15,7 @@ import Graphics.Bling.IO.TransformParser
 import Graphics.Bling.Material
 
 defaultMaterial :: Material
-defaultMaterial = mkMatte (constant $ fromRGB (0.9, 0.9, 0.9)) (constant 0)
+defaultMaterial = mkMatte (constant $ rgbToSpectrumRefl (0.9, 0.9, 0.9)) (constant 0)
 
 --
 -- parsing materials
