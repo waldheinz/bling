@@ -100,15 +100,12 @@ readFlatPixel bs = (BS.drop 4 bs, [rgbeToSpectrum r g b e]) where
    (r:g:b:e:_) = BS.unpack $ BS.take 4 bs
 
 rgbeToSpectrum :: Word8 -> Word8 -> Word8 -> Word8 -> Spectrum
-rgbeToSpectrum r g b e
-  -- | e == 0 = black
-   | otherwise = fromRGB' r' g' b'
-   where
-      r' = fromIntegral r * f;
-      g' = fromIntegral g * f;
-      b' = fromIntegral b * f;
-      f = ldexp 1 ((fromIntegral e :: Int) - (128 + 8))
-      ldexp x ex = x * (2 ** fromIntegral ex)
+rgbeToSpectrum r g b e = fromRGB' r' g' b' where
+   r' = fromIntegral r * f;
+   g' = fromIntegral g * f;
+   b' = fromIntegral b * f;
+   f = ldexp 1 ((fromIntegral e :: Int) - (128 + 8))
+   ldexp x ex = x * (2 ** fromIntegral ex)
 
 parseRGBEHeader :: BS.ByteString -> (BS.ByteString, Maybe RGBEHeader)
 parseRGBEHeader bs = (BS.tail rest, Just size) where

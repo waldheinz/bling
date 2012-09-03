@@ -8,7 +8,7 @@ filter mitchell 3 3 0.333333 0.333333
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 3 ySamples 3 }
+      sampler { stratified xSamples 8 ySamples 8 }
       integrator { path maxDepth 10 sampleDepth 3 }
    }
 }
@@ -28,7 +28,7 @@ renderer {
 
 imageSize 720 720
 # imageSize 480 480
-imageSize 240 240
+# imageSize 240 240
 
 #
 # camera

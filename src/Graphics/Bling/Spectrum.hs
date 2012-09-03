@@ -97,14 +97,6 @@ instance GV.Vector V.Vector Spectrum where
       >>= \v' -> return (Spectrum v')
    {-# INLINE basicUnsafeIndexM #-}
    
---------------------------------------------------------------------------------
--- ImageSample and the like
---------------------------------------------------------------------------------
-
-data WeightedSpectrum = WS {-# UNPACK #-} !Float !Spectrum -- the sample weight and the sampled spectrum
-type ImageSample = (Float, Float, WeightedSpectrum) -- the pixel coordinates and the weighted spectrum
-type Contribution = (Bool, ImageSample)
-
 -- | a "black" @Spectrum@ (no transmittance or emission at all wavelengths)
 black :: Spectrum
 {-# INLINE black #-}
@@ -135,6 +127,15 @@ xyzToRgb (x, y, z) = (r, g, b) where
    b =   0.055648  * x - 0.204043 * y + 1.057311 * z
 
 --------------------------------------------------------------------------------
+-- ImageSample and the like
+--------------------------------------------------------------------------------
+
+data WeightedSpectrum = WS {-# UNPACK #-} !Float !Spectrum -- the sample weight and the sampled spectrum
+type ImageSample = (Float, Float, WeightedSpectrum) -- the pixel coordinates and the weighted spectrum
+type Contribution = (Bool, ImageSample)
+
+
+--------------------------------------------------------------------------------
 -- SPDs
 --------------------------------------------------------------------------------
 
@@ -142,9 +143,15 @@ data Spd
    = IrregularSpd
       { _spdLambdas :: !(V.Vector Float)
       ,  _spdValues :: !(V.Vector Float) }
-   | RegularSpd !Float !Float !(V.Vector Float) -- min, max lambda and amplitudes
-   | Chromaticity !Float !Float -- CIE M1 and M2 parameters
-   | SpdFunc (Float -> Float) -- ^ defined by a function
+   | RegularSpd
+      {-# UNPACK #-} !Float   -- min lambda
+      {-# UNPACK #-} !Float   -- max lambda
+      !(V.Vector Float)       -- amplitudes
+   | Chromaticity
+      {-# UNPACK #-} !Float   -- M1   
+      {-# UNPACK #-} !Float   -- M2
+   | SpdFunc
+      !(Float -> Float)       -- defined by a function
    
 -- | creates a SPD from a list of (lambda, value) pairs, which must
 --   not be empty
@@ -160,10 +167,10 @@ mkSpd xs = IrregularSpd ls vs where
 
 -- | creates a SPD from a list of regulary sampled amplitudes
 mkSpd'
-   :: [Float] -- ^ the amplitudes of the SPD, must not be empty
-   -> Float -- ^ the wavelength of the first amplitude sample
-   -> Float -- ^ the wavelength of the last amplitude sample
-   -> Spd -- ^ the resulting SPD
+   :: [Float]  -- ^ the amplitudes of the SPD, must not be empty
+   -> Float    -- ^ the wavelength of the first amplitude sample
+   -> Float    -- ^ the wavelength of the last amplitude sample
+   -> Spd      -- ^ the resulting SPD
 mkSpd' vs s e = RegularSpd s e (V.fromList vs)
 
 mkSpdFunc
@@ -238,11 +245,33 @@ evalSpd (Chromaticity m1 m2) l = s0 + m1 * s1 + m2 * s2 where
 
 evalSpd (SpdFunc f) l = f l
 
+-- | determines the average value of a @Spd@ in the specified interval
+--   TODO: should compute the weighted average
 avgSpd
-   :: Spd
+   :: Spd   -- ^ the Spd to evaluate
+   -> Float -- ^ the minimum wavelength of interest
+   -> Float -- ^ the maximum wavelength of interest, must be >= the minimum
    -> Float
-   -> Float
-   -> Float
+   
+avgSpd (RegularSpd s0 s1 amps) l0 l1
+   | l1 <= s0 = V.head amps
+   | l0 >= s1 = V.last amps
+   | otherwise = V.sum amps' / fromIntegral (V.length amps')
+   where
+      amps' = V.slice i0 (i1 - i0 + 1) amps
+      n = V.length amps
+      i0 = max 0 $ min n $ floor $ fromIntegral n * ((l0 - s0) / (s1 - s0))
+      i1 = max 0 $ min n $ floor $ fromIntegral n * ((l1 - s0) / (s1 - s0))
+
+avgSpd (IrregularSpd ls vs) l0 l1
+   | l1 <= V.head ls = V.head vs
+   | l0 >= V.last ls = V.last vs
+   | otherwise = V.sum vs' / fromIntegral (V.length vs')
+   where
+      vs' = V.slice i0 (i1 - i0 + 1) vs
+      i0 = maybe 0 id $ V.findIndex (>= l0) ls
+      i1 = maybe (V.length vs - 1) id $ V.findIndex (>= l1) ls
+      
 avgSpd spd l0 l1 = (evalSpd spd l0 + evalSpd spd l1) * 0.5
 
 -- | converts a @Spd@ to CIE XYZ values
@@ -412,7 +441,7 @@ cieS2 = mkSpd' amps 300 830 where
            6.4, 5.5, 6.1, 6.5]
 
 --------------------------------------------------------------------------------
--- CIE XYZ color space
+-- CIE XYZ SPDs
 --------------------------------------------------------------------------------
 
 cieStart :: Int
@@ -421,29 +450,25 @@ cieStart = 360
 cieEnd :: Int
 cieEnd = 830
     
-cieSpd :: V.Vector Float -> Float -> Float
-cieSpd v l
-   | (lambda < cieStart) || (lambda > cieEnd) = 0
-   | otherwise = v V.! (lambda - cieStart)
-   where
-      lambda = floor l
+cieSpd :: [Float] -> Spd
+cieSpd vals = mkSpd' vals (fromIntegral cieStart) (fromIntegral cieEnd)
     
 cieX :: Spd
-cieX = mkSpdFunc (cieSpd cieXValues)
+cieX = cieSpd cieXValues
 
 cieY :: Spd
-cieY = mkSpdFunc (cieSpd cieYValues)
+cieY = cieSpd cieYValues
 
 cieZ :: Spd
-cieZ = mkSpdFunc (cieSpd cieZValues)
+cieZ = cieSpd cieZValues
 
 --------------------------------------------------------------------------------
 -- Only boring tables below
 --------------------------------------------------------------------------------
 
-cieXValues :: V.Vector Float
+cieXValues :: [Float]
 {-# NOINLINE cieXValues #-}
-cieXValues = V.fromList [
+cieXValues = [
    0.0001299000, 0.0001458470, 0.0001638021, 0.0001840037,
    0.0002066902,  0.0002321000,  0.0002607280,  0.0002930750,
    0.0003293880,  0.0003699140,  0.0004149000,  0.0004641587,
@@ -563,9 +588,9 @@ cieXValues = V.fromList [
    0.000001905497,  0.000001776509,  0.000001656215,  0.000001544022,
    0.000001439440, 0.000001341977, 0.000001251141]
    
-cieYValues :: V.Vector Float
+cieYValues :: [Float]
 {-# NOINLINE cieYValues #-}
-cieYValues = V.fromList [
+cieYValues = [
    0.000003917000,  0.000004393581,  0.000004929604,  0.000005532136,
    0.000006208245,  0.000006965000,  0.000007813219,  0.000008767336,
    0.000009839844,  0.00001104323,  0.00001239000,  0.00001388641,
@@ -685,9 +710,9 @@ cieYValues = V.fromList [
    0.0000006881098,  0.0000006415300,  0.0000005980895,  0.0000005575746,
    0.0000005198080, 0.0000004846123, 0.0000004518100 ]
    
-cieZValues :: V.Vector Float
+cieZValues :: [Float]
 {-# NOINLINE cieZValues #-}
-cieZValues = V.fromList [
+cieZValues = [
    0.0006061000,  0.0006808792,  0.0007651456,  0.0008600124,
    0.0009665928,  0.001086000,  0.001220586,  0.001372729,
    0.001543579,  0.001734286,  0.001946000,  0.002177777,
