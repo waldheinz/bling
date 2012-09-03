@@ -21,6 +21,11 @@ pSurfaceIntegrator = (flip namedBlock) "integrator" $
            sd <- namedInt "sampleDepth"
            return $ mkAnySurface $ mkBidirPathIntegrator md sd
 
+        "bidirnod" -> do
+           md <- namedInt "maxDepth"
+           sd <- namedInt "sampleDepth"
+           return $ mkAnySurface $ mkNoDirectBidirIntegrator md sd
+
         "debug" -> do
            dt <- pString
            case dt of
@@ -39,3 +44,4 @@ pSurfaceIntegrator = (flip namedBlock) "integrator" $
            return $ mkAnySurface $ mkPathIntegrator md sd
            
         _ -> fail $ "unknown integrator type " ++ t
+        

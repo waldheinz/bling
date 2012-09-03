@@ -7,14 +7,14 @@ filter box
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 3 ySamples 3 }
+      sampler { stratified xSamples 8 ySamples 8 }
       integrator { path maxDepth 10 sampleDepth 3 }
    }
 }
 
 # renderer { sampler sampled { sampler { random samples 1 } integrator { path maxDepth 1 sampleDepth 1 } } }
 # renderer { light passCount 10 passPhotons 5000 }
-# renderer { metropolis maxDepth 5 mpp 1 bootstrap 1000 plarge 0.25 directSamples 16 }
+renderer { metropolis maxDepth 10 mpp 1 bootstrap 1000 plarge 0.25 directSamples 16 }
 # renderer { sampler sampled { sampler { stratified xSamples 3 ySamples 3 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 16 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
@@ -22,7 +22,7 @@ renderer {
 # renderer { sampler sampled { sampler { random samples 32 } integrator { debug reference } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug kdtree } } }
 
-# renderer { sppm photonCount 50000 maxDepth 10 radius 0.5 }
+# renderer { sppm photonCount 1000000 maxDepth 10 radius 0.25 alpha 0.9}
 # renderer { sampler sampled { sampler { random samples 1 } integrator { debug normals } } }
 
 imageSize 640 360
@@ -51,14 +51,14 @@ camera {
 newTransform { translate 20 20 -5 }
 material { blackbody }
 # emission { temp 6000 }
-emission { rgbIllum 50 50 50 }
+emission { rgbI 50 50 50 }
 prim { shape { sphere radius 3 } }
 emission { none }
 
 # ground plane
 
 newTransform { }
-material { matte kd { constant rgb 0.7 0.7 0.7 } sigma { constant 0 } }
+material { matte kd { constant rgbR 0.7 0.7 0.7 } sigma { constant 0 } }
 
 prim { shape { box pmin -50 -6  10 pmax  150  0  90 } } # back
 prim { shape { box pmin -50 -6 -50 pmax  150  0 -10 } } # front
@@ -71,17 +71,17 @@ prim { shape { box pmin -10 -6 -10 pmax   10 -5  10 } } # pool ground
 material {
    bumpMap
    bump {
-      scale 0.5 texture {
+      scale 0.2 tex {
          fbm octaves 3 omega 0.2 map {
-            identity { scale 1 1 1 }
+            identity { scale 0.5 0.5 0.5 }
          }
       }
    }
    
    glass
    ior { constant 1.33 }
-   kr { constant rgb 0.7 0.7 0.9 }
-   kt { constant rgb 0.7 0.7 0.9 }
+   kr { constant rgbR 0.7 0.7 0.9 }
+   kt { constant rgbR 0.7 0.7 0.9 }
 }
 
 # material { glass ior { constant 1.33 } kr { constant rgb 1 1 0.9 } kt { constant rgb 1 1 0.9 } }
@@ -96,8 +96,8 @@ prim { shape { quad 10 10 } }
 material {
    matte
    kd { blend
-      tex1 { constant rgb 0.9 0.9 0.9 }
-      tex2 { constant rgb 0.1 0.1 0.1 }
+      tex1 { constant rgbR 0.9 0.9 0.9 }
+      tex2 { constant rgbR 0.1 0.1 0.1 }
       f { crystal octaves 17 map {
          planar
          8 0 0

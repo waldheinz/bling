@@ -20,7 +20,7 @@ renderer {
 # renderer { sampler sampled { sampler { stratified xSamples 32 ySamples 32 } integrator { light maxDepth 7 sampleDepth 5 } } }
 # renderer { light passCount 10 passPhotons 100000 }
 # renderer { sampler sampled { sampler { random samples 16 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
-renderer { sppm photonCount 1000000 maxDepth 8 radius 3 alpha 0.9 }
+renderer { sppm photonCount 10000 maxDepth 8 radius 6 alpha 0.9 }
 # renderer { sampler sampled { sampler { random samples 1024 } integrator { debug reference } } }
 
 imageSize 480 480
@@ -104,7 +104,7 @@ prim {
 # glass sphere
 #
 
-material { glass ior { constant 1.5 } kr { constant spd { 1 0.95 } } kt { constant rgb 0.8 0.8 0.9 } }
+material { glass ior { constant 1.5 } kr { constant spd { 1 0.95 } } kt { constant rgbR 0.8 0.8 0.9 } }
 newTransform { translate 390 130 200 }
 prim { shape { sphere radius 130 } }
 
@@ -124,8 +124,8 @@ material {
    
    glass
    ior { constant 1.33 }
-   kr { constant rgb 1 1 1 }
-   kt { constant rgb 0.7 0.7 1 }
+   kr { constant rgbR 1 1 1 }
+   kt { constant rgbR 0.7 0.7 1 }
 }
 
 newTransform { rotateX 90 translate 280 450 280 }
@@ -229,7 +229,7 @@ material {
 emission {
 #    spd { 400 0, 500 160, 600 312, 700 386 }
 #   rgb 4 4 4
-   temp 4500
+   temp 3500
 }
 
 newTransform { rotateX -90 translate 278 600 279.5  }

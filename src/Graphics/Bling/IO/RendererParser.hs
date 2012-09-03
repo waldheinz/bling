@@ -9,9 +9,9 @@ import Graphics.Bling.Rendering
 import Graphics.Bling.Sampling
 import Graphics.Bling.Integrator
 import Graphics.Bling.Integrator.LightTracer
-import Graphics.Bling.Integrator.Metropolis
 import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.IntegratorParser
+import Graphics.Bling.Renderer.Metropolis
 import Graphics.Bling.Renderer.SPPM
 
 defaultRenderer :: AnyRenderer
@@ -65,12 +65,12 @@ pSamplerRenderer = (flip namedBlock) "sampled" $ do
 pSampler :: JobParser Sampler
 pSampler = (flip namedBlock) "sampler" $ pString >>= \t -> case t of
    "stratified" -> do
-      nx <- namedInt "xSamples"
-      ny <- namedInt "ySamples"
+      nx <- integ
+      ny <- integ
       return $ mkStratifiedSampler nx ny
                 
    "random" -> do
-      ns <- namedInt "samples"
+      ns <- integ
       return $ mkRandomSampler ns
                 
    _ -> fail $ "unknown sampler type " ++ t

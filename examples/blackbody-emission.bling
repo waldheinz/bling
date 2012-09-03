@@ -5,12 +5,12 @@
 filter triangle 2 2
 #filter box
 #filter mitchell 3.0 3.0 0.333333 0.333333
-imageSize 640 480
+imageSize 640 400
 
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 1 ySamples 1 }
+      sampler { stratified xSamples 3 ySamples 3 }
       integrator { directLighting maxDepth 5 }
    }
 }
@@ -37,8 +37,8 @@ camera {
 newTransform { rotateX 90 }
 
 material { plastic
-   kd { constant rgb 0.0001 0.0001 0.0001 }
-   ks { constant rgb 0.0005 0.0005 0.0005 }
+   kd { constant rgbR 0.001 0.001 0.001 }
+   ks { constant rgbR 0.005 0.005 0.005 }
    rough { constant 0.00078125 }
 }
 

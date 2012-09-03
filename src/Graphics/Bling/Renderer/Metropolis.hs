@@ -1,5 +1,5 @@
 
-module Graphics.Bling.Integrator.Metropolis (
+module Graphics.Bling.Renderer.Metropolis (
 
    Metropolis, mkMLT
 

@@ -5,7 +5,7 @@ module Graphics.Bling.Integrator.BidirPath (
 
 import qualified Data.Vector.Unboxed.Mutable as MV
 import qualified Data.Vector.Unboxed as V
-import Control.Monad (liftM, forM, forM_)
+import Control.Monad (liftM, forM, forM_, unless)
 import Control.Monad.ST
 import Control.Parallel.Strategies (parMap, rdeepseq)
 import qualified Text.PrettyPrint as PP
@@ -26,13 +26,12 @@ data BidirPath = BDP
    
 -- | a path vertex
 data Vertex = Vert
-   { _vbsdf    :: Bsdf
-   , _vpoint   :: Point
-   , _vwi      :: Vector
-   , _vwo      :: Vector
-   , _vint     :: Intersection
-   , _vtype    :: BxdfType
-   , _valpha   :: Spectrum
+   { _vpoint   :: {-# UNPACK #-} !Point
+   , _vwi      :: {-# UNPACK #-} !Vector
+   , _vwo      :: {-# UNPACK #-} !Vector
+   , _vint     :: !Intersection
+   , _vtype    :: {-# UNPACK #-} !BxdfType
+   , _valpha   :: !Spectrum
    }
 
 type Path = [Vertex]
@@ -94,7 +93,9 @@ instance SurfaceIntegrator BidirPath where
           li = zip lp [0..]
           l = sum $ parMap rdeepseq (connect scene nspecBouces) $ pairs ei li
           
-      mkContrib (WS 1 (l + ld + le)) False >>= addContrib
+      unless (null ep || null lp) $
+         mkContrib (WS 1 (l + ld + le)) False >>= addContrib
+         
       where
          addContrib = liftSampled . addContrib'
 
@@ -117,8 +118,8 @@ countSpec ep lp = runST $ do
 
 connect :: Scene -> V.Vector Float -> ((Vertex, Int),  (Vertex, Int)) -> Spectrum
 connect scene nspec
-   ((Vert bsdfe pe _ wie inte te alphae, i),  -- eye vertex
-    (Vert bsdfl pl _ wil intl tl alphal, j))  -- camera vertex
+   ((Vert pe _ wie inte te alphae, i),  -- eye vertex
+    (Vert pl _ wil intl tl alphal, j))  -- camera vertex
        | te `bxdfIs` Specular = black
        | tl `bxdfIs` Specular = black
        | isBlack fe || isBlack fl = black
@@ -132,18 +133,22 @@ connect scene nspec
           fe = sScale (evalBsdf True bsdfe wie w) (1 + nspece)
           nspecl = fromIntegral $ bsdfSpecCompCount bsdfl
           fl = sScale (evalBsdf False bsdfl (-w) wil) (1 + nspecl)
-          r = Ray pl rd (intEpsilon intl) (len rd - intEpsilon inte)
+--          r = Ray pl rd (intEpsilon intl) (len rd - intEpsilon inte)
+          r = Ray pl rd 1 (len rd - 1)
           rd = pe - pl
           ne = bsdfShadingNormal bsdfe
           nl = bsdfShadingNormal bsdfl
+          bsdfe = intBsdf inte
+          bsdfl = intBsdf intl
           
 estimateDirect :: Scene -> Vertex -> Int -> Sampled s Spectrum
-estimateDirect scene (Vert bsdf p wi _ int _ alpha) depth = do
+estimateDirect scene (Vert p wi _ int _ alpha) depth = do
    lNumU <- rnd' $ 0 + 1 + smps1D * depth * 3
    lDirU <- rnd2D' $ 0 + 2 + smps2D * depth * 3
    lBsdfCompU <- rnd' $ 1 + 1 + smps1D * depth * 3
    lBsdfDirU <- rnd2D' $ 1 + 2 + smps2D * depth * 3
    let
+      bsdf = intBsdf int
       n = bsdfShadingNormal bsdf
       lHere = sampleOneLight scene p (intEpsilon int) n wi bsdf $
          RLS lNumU lDirU lBsdfCompU lBsdfDirU
@@ -197,7 +202,7 @@ nextVertex adj sc wi (Just int) alpha depth md f1d f2d
       let (BsdfSample t spdf f wo) = fun bsdf wi ubc ubd
       let int' = intersect sc $ Ray p wo (intEpsilon int) infinity
       let wi' = -wo
-      let vHere = Vert bsdf p wi wo int t alpha
+      let vHere = Vert p wi wo int t alpha
       let pathScale = sScale f $ absDot wo (bsdfShadingNormal bsdf) / spdf
       let rrProb = min 1 $ sY pathScale
       let alpha' = sScale (pathScale * alpha) (1 / rrProb)
