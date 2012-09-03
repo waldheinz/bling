@@ -1,15 +1,15 @@
 
 # metal
 
-filter mitchell 3.0 3.0 0.333333 0.333333
+filter mitchell 3 3 0.333333 0.333333
 # filter box
 
-imageSize 640 480
+imageSize 640 400
 
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 4 ySamples 4 }
+      sampler { stratified xSamples 1 ySamples 1 }
       integrator { path maxDepth 7 sampleDepth 3 }
    }
 }
@@ -18,16 +18,16 @@ renderer {
 
 transform {
    lookAt {
-      pos 0 8 -7
-#      look 0 1 0
-      look -5 2 0
+      pos 0 12 -12
+      look 0 1 0
+#      look -5 2 0
       up 0 1 0
    }
 }
 
 camera {
    perspective
-   fov 35
+   fov 40
    lensRadius 0
    focalDistance 10
 }
@@ -56,6 +56,7 @@ prim { shape { quad 50 50 } }
 #
 
 emission { rgb 12 12 12 }
+emission { spd { 400.0 0.0, 500.0 8.0, 600.0 15.6, 700.0 18.4 } }
 newTransform { rotateX -90 translate 0 15 0  }
 # prim { shape { quad 5 5 } }
 emission { none }
@@ -66,12 +67,9 @@ light { infinite { rotateX -90 } l { rgbeFile "envmaps/studio015.hdr" } }
 # Gold Sphere (left)
 #
 
-newTransform { translate -5 3 0 }
+newTransform { translate -5 2 0 }
 
 material {
-   bumpMap
-   bump { scale 0.01 texture { cellNoise manhattan map { identity { scale 3 3 3 } } } }
-   
    metal
    eta {
       constant spd {
@@ -128,7 +126,7 @@ prim { shape { sphere radius 2 } }
 # Aluminium Sphere (center)
 #
 
-newTransform { translate 0 3 0 }
+newTransform { translate 0 2 0 }
 
 material {
    metal
@@ -187,12 +185,9 @@ prim { shape { sphere radius 2 } }
 # Copper Shpere (right)
 #
 
-newTransform { translate 5 3 0 }
+newTransform { translate 5 2 0 }
 
 material {
-   bumpMap
-   bump { scale 0.01 texture { perlin map { identity { scale 10 10 10 } } } }
-   
    metal
    eta {
       constant spd {
