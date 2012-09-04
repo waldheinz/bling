@@ -58,7 +58,7 @@ instance Renderer LightTracer where
       --   and total number of samples
       sSmp :: ImageSample -> ImageSample
       sSmp (x, y, (WS w s)) = (x, y, (WS (w * f) s))
-      f = 1 / (fromIntegral $ ppp)
+      f = 1 / (fromIntegral ppp)
 
 oneRay :: Scene -> (ImageSample -> Rand m ()) -> Rand m ()
 oneRay scene splat = do
@@ -73,11 +73,9 @@ oneRay scene splat = do
       
 connectCam :: Scene -> (ImageSample -> Rand s ()) -> Spectrum -> Bsdf -> Vector -> Float -> Rand s ()
 connectCam sc splat li bsdf wi eps
-   | isBlack f = return ()
-   | isBlack csf = return ()
-   | cPdf == 0 = return ()
+   | isBlack f || isBlack csf || cPdf == 0 = return ()
    | sc `intersects` cray = return ()
-   | otherwise = do
+   | otherwise = 
       splat $ (px, py, WS (absDot n we / (cPdf * dCam2)) (f * li * csf))
    where
       (CameraSampleResult csf pCam px py cPdf) = sampleCam (sceneCam sc) p
@@ -85,7 +83,7 @@ connectCam sc splat li bsdf wi eps
       we = normalize $ dCam
       f = evalBsdf True bsdf wi we
       dCam2 = sqLen dCam
-      cray = Ray p dCam eps (sqrt dCam2 - eps)
+      cray = Ray p we eps (sqrt dCam2 - eps)
       n = normalize $ bsdfShadingNormal bsdf
       p = bsdfShadingPoint bsdf
       

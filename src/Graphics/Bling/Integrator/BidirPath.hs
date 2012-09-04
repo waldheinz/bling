@@ -86,8 +86,8 @@ instance SurfaceIntegrator BidirPath where
           -- light sources directly visible, or via specular reflection
           le = if noDirect
                   then black
-                  else sum $ map (\v -> _valpha v * (intLe (_vint v) (_vwi v))) $
-                             map fst $ filter snd $ zip ep prevSpec
+                  else sum $ map (\v -> _valpha v * (intLe (_vint v) (_vwi v)))
+                           $ map fst $ filter snd $ zip ep prevSpec
       
           ei = zip ep [0..]
           li = zip lp [0..]
@@ -133,8 +133,7 @@ connect scene nspec
           fe = sScale (evalBsdf True bsdfe wie w) (1 + nspece)
           nspecl = fromIntegral $ bsdfSpecCompCount bsdfl
           fl = sScale (evalBsdf False bsdfl (-w) wil) (1 + nspecl)
---          r = Ray pl rd (intEpsilon intl) (len rd - intEpsilon inte)
-          r = Ray pl rd 1 (len rd - 1)
+          r = Ray pl (normalize rd) (intEpsilon intl) (len rd - intEpsilon inte)
           rd = pe - pl
           ne = bsdfShadingNormal bsdfe
           nl = bsdfShadingNormal bsdfl
