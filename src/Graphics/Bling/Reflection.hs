@@ -515,7 +515,7 @@ sampleSpecTrans adj t ei' et' wo@(Vector wox woy _) _
       f' = ((white - fr) * t)
       f = if adj
              then sScale f' (1 / absCosTheta wi)
-             else sScale f' (((ei*ei) / (et*et)) / absCosTheta wi)
+             else sScale f' (((et' * et') / (ei' * ei')) / absCosTheta wi)
 
 --------------------------------------------------------------------------------
 -- Microfacet Distributions

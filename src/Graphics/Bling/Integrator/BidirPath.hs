@@ -130,9 +130,9 @@ connect scene nspec
           g = ((absDot ne w) * (absDot nl w)) / sqLen (pl - pe)
           w = normalize $ pl - pe
           nspece = fromIntegral $ bsdfSpecCompCount bsdfe
-          fe = sScale (evalBsdf False bsdfe wie w) (1 + nspece)
+          fe = sScale (evalBsdf True bsdfe wie w) (1 + nspece)
           nspecl = fromIntegral $ bsdfSpecCompCount bsdfl
-          fl = sScale (evalBsdf True bsdfl (-w) wil) (1 + nspecl)
+          fl = sScale (evalBsdf False bsdfl (-w) wil) (1 + nspecl)
 --          r = Ray pl rd (intEpsilon intl) (len rd - intEpsilon inte)
           r = Ray pl rd 1 (len rd - 1)
           rd = pe - pl

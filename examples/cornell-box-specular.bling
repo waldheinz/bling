@@ -7,20 +7,20 @@ filter box
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 3 ySamples 3 }
+      sampler { stratified 3 3 }
       integrator { path maxDepth 7 sampleDepth 4 }
    }
 }
 
 # renderer { sampler sampled { sampler { stratified xSamples 8 ySamples 8 } integrator { path maxDepth 7 sampleDepth 4 } } }
-# renderer { sampler sampled { sampler { stratified xSamples 3 ySamples 3 } integrator { bidir maxDepth 7 sampleDepth 4 } } }
+renderer { sampler sampled { sampler { stratified 3 3 } integrator { bidir maxDepth 7 sampleDepth 4 } } }
 # renderer { metropolis maxDepth 7 mpp 1 bootstrap 1000 plarge 0.25 directSamples 16 }
-renderer { sppm photonCount 10000 maxDepth 8 radius 20 }
+# renderer { sppm photonCount 10000 maxDepth 8 radius 20 }
 # renderer { sampler sampled { sampler { random samples 32 } integrator { debug reference } } }
 
 # imageSize 640 640
 imageSize 240 240
-imageSize 480 480
+# imageSize 480 480
 
 #
 # camera
@@ -121,7 +121,7 @@ material { glass
 }
 
 newTransform { translate 400 130 200 }
-prim { shape { sphere radius 130 } }
+# prim { shape { sphere radius 130 } }
 
 #
 # mirror sphere
@@ -129,7 +129,7 @@ prim { shape { sphere radius 130 } }
 
 material { mirror kr { constant rgbR 1 1 1 } }
 newTransform { translate 150 100 300 }
-prim { shape { sphere radius 100 } }
+prim { shape { sphere radius 200 } }
 newTransform { }
 
 #
