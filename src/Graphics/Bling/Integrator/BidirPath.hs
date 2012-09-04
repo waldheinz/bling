@@ -130,9 +130,9 @@ connect scene nspec
           g = ((absDot ne w) * (absDot nl w)) / sqLen (pl - pe)
           w = normalize $ pl - pe
           nspece = fromIntegral $ bsdfSpecCompCount bsdfe
-          fe = sScale (evalBsdf True bsdfe wie w) (1 + nspece)
+          fe = sScale (evalBsdf False bsdfe wie w) (1 + nspece)
           nspecl = fromIntegral $ bsdfSpecCompCount bsdfl
-          fl = sScale (evalBsdf False bsdfl (-w) wil) (1 + nspecl)
+          fl = sScale (evalBsdf True bsdfl (-w) wil) (1 + nspecl)
 --          r = Ray pl rd (intEpsilon intl) (len rd - intEpsilon inte)
           r = Ray pl rd 1 (len rd - 1)
           rd = pe - pl
@@ -165,7 +165,7 @@ pairs (x:xs) ys = zip (repeat x) ys ++ pairs xs ys
 
 -- | generates the eye path
 eyePath :: Scene -> Ray -> Int -> Sampled m Path
-eyePath s r md = nextVertex False s wi int white 0 md (\d -> 2 + 1 + smps1D * d * 3) (\d -> 2 + 2 + smps2D * d * 3) where
+eyePath s r md = nextVertex True s wi int white 0 md (\d -> 2 + 1 + smps1D * d * 3) (\d -> 2 + 2 + smps2D * d * 3) where
    wi = normalize $ (-(rayDir r))
    int = s `intersect` r
 
@@ -177,7 +177,7 @@ lightPath s md ul ulo uld =
       wo = normalize $ rayDir ray
       nl' = normalize nl
    in do
-      nextVertex True s (-wo) (s `intersect` ray) (sScale li (absDot nl' wo / pdf)) 0 md (\d -> 3 + 1 + smps1D * d * 3) (\d -> 3 + 2 + smps2D * d * 3)
+      nextVertex False s (-wo) (s `intersect` ray) (sScale li (absDot nl' wo / pdf)) 0 md (\d -> 3 + 1 + smps1D * d * 3) (\d -> 3 + 2 + smps2D * d * 3)
    
 nextVertex
    :: Bool -- ^ adjoint ?

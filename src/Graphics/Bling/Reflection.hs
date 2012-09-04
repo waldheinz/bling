@@ -470,7 +470,7 @@ sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
       ff = if adj then 1 else abs (ng `dot` wiW / ng `dot` woW)
 
 evalBsdf :: Bool -> Bsdf -> Vector -> Vector -> Spectrum
-evalBsdf adj bsdf@(Bsdf bxdfs cs _ ng) woW wiW
+evalBsdf adj (Bsdf bxdfs cs _ ng) woW wiW
    | sideTest == 0 = black
    | otherwise = {-# SCC "evalBsdf" #-} sScale f ff
    where
@@ -481,9 +481,8 @@ evalBsdf adj bsdf@(Bsdf bxdfs cs _ ng) woW wiW
       wo = worldToLocal cs woW
       wi = worldToLocal cs wiW
       
-      -- correct throughput in presence of shading normals
-      ns = bsdfShadingNormal bsdf
-      ff = if adj then 1 else abs (ns `dot` woW / ng `dot` woW)
+      -- correct throughput for adjoint
+      ff = if adj then 1 else abs (ng `dot` wiW / ng `dot` woW)
 
 emptyBsdfSample :: BsdfSample
 emptyBsdfSample = BsdfSample (mkBxdfType [Reflection, Diffuse]) 0 black (Vector 0 1 0)
