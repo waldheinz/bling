@@ -7,7 +7,6 @@ import qualified Data.Vector.Unboxed.Mutable as MV
 import qualified Data.Vector.Unboxed as V
 import Control.Monad (liftM, forM, forM_, unless)
 import Control.Monad.ST
-import Control.Parallel.Strategies (parMap, rdeepseq)
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.DifferentialGeometry
@@ -17,6 +16,8 @@ import Graphics.Bling.Random
 import Graphics.Bling.Reflection
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
+
+import Debug.Trace
 
 data BidirPath = BDP
    { _maxDepth    :: {-# UNPACK #-} ! Int
@@ -91,7 +92,7 @@ instance SurfaceIntegrator BidirPath where
       
           ei = zip ep [0..]
           li = zip lp [0..]
-          l = sum $ parMap rdeepseq (connect scene nspecBouces) $ pairs ei li
+          l = sum $ map (connect scene nspecBouces) $ pairs ei li
           
       unless (null ep || null lp) $
          mkContrib (WS 1 (l + ld + le)) False >>= addContrib
@@ -128,13 +129,12 @@ connect scene nspec
        where
           pathWt = 1 / (fromIntegral (i + j + 2) - nspec V.! (i+j+2))
           g = ((absDot ne w) * (absDot nl w)) / sqLen (pl - pe)
-          w = normalize $ pl - pe
+          (w, wl) = normLen $ pl - pe
           nspece = fromIntegral $ bsdfSpecCompCount bsdfe
           fe = sScale (evalBsdf True bsdfe wie w) (1 + nspece)
           nspecl = fromIntegral $ bsdfSpecCompCount bsdfl
           fl = sScale (evalBsdf False bsdfl (-w) wil) (1 + nspecl)
-          r = Ray pl (normalize rd) (intEpsilon intl) (len rd - intEpsilon inte)
-          rd = pe - pl
+          r = Ray pe w (intEpsilon inte) (wl - intEpsilon intl)
           ne = bsdfShadingNormal bsdfe
           nl = bsdfShadingNormal bsdfl
           bsdfe = intBsdf inte

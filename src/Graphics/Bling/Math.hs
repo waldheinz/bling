@@ -14,7 +14,7 @@ module Graphics.Bling.Math (
    
    -- * Vectors
    
-   Vector(..), mkV, mkV', vpromote, dot, cross, normalize, absDot,
+   Vector(..), mkV, mkV', vpromote, dot, cross, normalize, normLen, absDot,
    len, sqLen,
    Normal, mkNormal, Point, mkPoint, mkPoint',
    Dimension, allDimensions, setComponent, (.!), dominant, dimX, dimY, dimZ,
@@ -350,6 +350,16 @@ normalize v
   | sqLen v /= 0 = v * vpromote (1 / len v)
   | otherwise = Vector 0 1 0
 
+-- | normalizes a vector and returns the length of the original vector
+normLen :: Vector -> (Vector, Float)
+{-# INLINE normLen #-}
+normLen v
+   | sqLen v /= 0 = (v * vpromote (1 / l), l)
+   | otherwise = (v, 0)
+   where
+      l2 = sqLen v
+      l = sqrt l2
+      
 faceForward :: Vector -> Vector -> Vector
 {-# INLINE faceForward #-}
 faceForward v v2

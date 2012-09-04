@@ -7,13 +7,13 @@ filter box
 renderer {
    sampler
    sampled {
-      sampler { stratified 3 3 }
+      sampler { stratified 6 6 }
       integrator { path maxDepth 7 sampleDepth 4 }
    }
 }
 
 # renderer { sampler sampled { sampler { stratified xSamples 8 ySamples 8 } integrator { path maxDepth 7 sampleDepth 4 } } }
-# renderer { sampler sampled { sampler { stratified 5 5 } integrator { bidir maxDepth 7 sampleDepth 4 } } }
+# renderer { sampler sampled { sampler { stratified 8 8 } integrator { bidir maxDepth 7 sampleDepth 4 } } }
 # renderer { metropolis maxDepth 7 mpp 1 bootstrap 1000 plarge 0.25 directSamples 16 }
 # renderer { sppm photonCount 10000 maxDepth 8 radius 20 }
 # renderer { sampler sampled { sampler { random samples 32 } integrator { debug reference } } }

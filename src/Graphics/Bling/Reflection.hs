@@ -470,13 +470,17 @@ sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
       ff = if adj then 1 else abs (ng `dot` wiW / ng `dot` woW)
 
 evalBsdf :: Bool -> Bsdf -> Vector -> Vector -> Spectrum
-evalBsdf adj (Bsdf bxdfs cs _ ng) woW wiW
-   | sideTest == 0 = black
+evalBsdf adj bsdf@(Bsdf bxdfs cs _ ng') woW wiW
+   | sideTest < 1e-4 = black
+   | wiW `dot` ng * wiW `dot` ns <= 0 = black
+   | woW `dot` ng * woW `dot` ns <= 0 = black
    | otherwise = {-# SCC "evalBsdf" #-} sScale f ff
    where
+      ns = bsdfShadingNormal bsdf
+      ng = if ng' `dot` ns >= 0 then ng' else (-ng')
       sideTest = woW `dot` ng * wiW `dot` ng
       flt = if sideTest < 0 then isTransmission else isReflection
-      fun = \b -> if adj then bxdfEval b wi wo else bxdfEval b wo wi
+      fun = \b -> if adj then bxdfEval b wo wi else bxdfEval b wi wo
       f = V.sum $ V.map fun $ V.filter flt bxdfs
       wo = worldToLocal cs woW
       wi = worldToLocal cs wiW
