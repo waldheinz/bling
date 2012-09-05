@@ -174,8 +174,7 @@ sample' (AreaLight _ s r t _) _ uo ud = (r, ray, ns, pd) where
    (org, ns) = (transPoint t org', transNormal t ns')
    pd = invTwoPi * shapePdf' s org
    wi = let d = uniformSampleSphere ud in if ns `dot` d < 0 then -d else d
-   ray = Ray org wi 1e-2 infinity
- --  rayW = transRay t ray
+   ray = Ray org wi 1e-3 infinity
 
 sample' (Directional r n) bounds uo _ = (r, ray, ns, pd) where
    (wc, wr) = boundingSphere bounds

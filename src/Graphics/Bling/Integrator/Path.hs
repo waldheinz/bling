@@ -76,7 +76,7 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) md t l
          eps = intEpsilon int
          lHere = intl + (sampleOneLight scene p eps n wo bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU)
          l' = l + t * lHere
-         pc = if depth <= 3 then 1 else min 0.5 (sY t) -- cont. probability
+         pc = if depth <= 7 then 1 else min 0.75 (sY t) -- cont. probability
         
       rnd' (3 + smp1doff depth) >>= \x -> do
          if x > pc
@@ -85,7 +85,7 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) md t l
                uc <- rnd'   $ 0 + smp1doff depth
                ud <- rnd2D' $ 0 + smp2doff depth
                let
-                  (BsdfSample smpType spdf f wi) = sampleAdjBsdf bsdf wo uc ud
+                  (BsdfSample smpType spdf f wi) = sampleBsdf bsdf wo uc ud
                   ray' = Ray p wi eps infinity
                   spec' = smpType `bxdfIs` Specular
                   t' = sScale (f * t) (absDot wi n / (spdf * pc))

@@ -14,7 +14,7 @@ renderer {
 }
 
 # renderer { sampler sampled { sampler { random samples 3 } integrator { path maxDepth 1 sampleDepth 1 } } }
-# renderer { light passCount 10 passPhotons 100000 }
+renderer { light passPhotons 100000 }
 # renderer { metropolis maxDepth 10 mpp 1 bootstrap 1000 plarge 0.25 directSamples 4 }
 # renderer { sampler sampled { sampler { stratified 5 5 } integrator { bidir maxDepth 10 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
@@ -26,8 +26,8 @@ renderer {
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 
 # imageSize 720 720
-# imageSize 480 480
-imageSize 240 240
+imageSize 480 480
+# imageSize 240 240
 
 #
 # camera

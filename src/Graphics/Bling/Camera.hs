@@ -130,8 +130,8 @@ mkProjective c2w p lr fd sx sy fl = ProjectiveCamera c2w r2c w2r ap lr fd where
    w2r = w2s <> s2r -- world to raster
    w2s = (inverse c2w) <> p  -- world to screen
    ap = (pw * ph) -- pixel area
-   pw = fl * (s1 - s0) / 2 / sx
-   ph = fl * (s3 - s2) / 2 / sy
+   pw = fl * (s1 - s0) / sx
+   ph = fl * (s3 - s2) / sy
    
 -- | creates a perspective camera using the specified parameters
 mkPerspectiveCamera

@@ -437,7 +437,7 @@ sampleAdjBsdf' = {-# SCC "sampleAdjBsdf'" #-} sampleBsdf'' True
 
 sampleBsdf'' :: Bool -> BxdfType -> Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
 {-# INLINE sampleBsdf'' #-}
-sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
+sampleBsdf'' adj flags bsdf@(Bsdf bs cs _ ng) woW uComp uDir
    | V.null bsm || pdf' == 0 || sideTest == 0 = emptyBsdfSample
    | isSpecular bxdf = BsdfSample t (pdf' / fromIntegral cntm) (sScale f' ff) wiW
    | otherwise = BsdfSample t pdf (sScale f ff) wiW where
@@ -467,26 +467,25 @@ sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
       t = bxdfType bxdf
       
       -- correct throughput for adjoint
-      ff = if adj then 1 else abs (ng `dot` wiW / ng `dot` woW)
+      ns = bsdfShadingNormal bsdf
+      ff = if not adj then 1 else abs (ns `dot` wiW / ng `dot` wiW)
 
 evalBsdf :: Bool -> Bsdf -> Vector -> Vector -> Spectrum
 evalBsdf adj bsdf@(Bsdf bxdfs cs _ ng') woW wiW
-   | sideTest < 1e-4 = black
+   | sideTest == 0 = black
    | wiW `dot` ng * wiW `dot` ns <= 0 = black
    | woW `dot` ng * woW `dot` ns <= 0 = black
-   | otherwise = {-# SCC "evalBsdf" #-} sScale f ff
+   | adj = sScale f $ abs (ns `dot` woW / ng `dot` woW) -- correct throughput for shading normals
+   | otherwise = {-# SCC "evalBsdf" #-} f
    where
       ns = bsdfShadingNormal bsdf
       ng = if ng' `dot` ns >= 0 then ng' else (-ng')
       sideTest = woW `dot` ng * wiW `dot` ng
       flt = if sideTest < 0 then isTransmission else isReflection
-      fun = \b -> if adj then bxdfEval b wo wi else bxdfEval b wi wo
+      fun = \b -> if adj then bxdfEval b wi wo else bxdfEval b wo wi
       f = V.sum $ V.map fun $ V.filter flt bxdfs
       wo = worldToLocal cs woW
       wi = worldToLocal cs wiW
-      
-      -- correct throughput for adjoint
-      ff = if adj then 1 else abs (ng `dot` wiW / ng `dot` woW)
 
 emptyBsdfSample :: BsdfSample
 emptyBsdfSample = BsdfSample (mkBxdfType [Reflection, Diffuse]) 0 black (Vector 0 1 0)
@@ -516,10 +515,10 @@ sampleSpecTrans adj t ei' et' wo@(Vector wox woy _) _
                 in if entering then (-x) else x
       wi = mkV (eta * (-wox), eta * (-woy), cost)
       fr = frDielectric ei et $ cosTheta wo
-      f' = ((white - fr) * t)
+      f' = (white - fr) * t
       f = if adj
-             then sScale f' (1 / absCosTheta wi)
-             else sScale f' (((et' * et') / (ei' * ei')) / absCosTheta wi)
+            then sScale f' (1 / absCosTheta wi)
+            else sScale f' (((et * et) / (ei * ei)) / absCosTheta wi)
 
 --------------------------------------------------------------------------------
 -- Microfacet Distributions

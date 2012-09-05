@@ -101,7 +101,7 @@ traceCam cs
             bsdfD <- rnd2D
             
             let
-               (BsdfSample _ pdf f wi) = sampleAdjBsdf' (mkBxdfType [Specular, Reflection, Transmission]) bsdf wo bsdfC bsdfD
+               (BsdfSample _ pdf f wi) = sampleBsdf' (mkBxdfType [Specular, Reflection, Transmission]) bsdf wo bsdfC bsdfD
                ray' = Ray p wi (intEpsilon int) infinity
                p = bsdfShadingPoint bsdf
                n = bsdfShadingNormal bsdf
@@ -166,7 +166,7 @@ nextVertex scene alpha sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} d
          nn = lsN stats
          ratio = (nn + alpha) / (nn + 1)
          r2 = lsR2 stats
-         f = evalBsdf True (hpBsdf hit) (hpW hit) wi
+         f = evalBsdf False (hpBsdf hit) (hpW hit) wi
          (px, py) = hpPixel hit
 
       addContrib img (True, (px, py, WS (1 / (r2 * pi)) (hpF hit * f * li)))
@@ -176,7 +176,7 @@ nextVertex scene alpha sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} d
    ubc <- rnd' $ 1 + d * 2
    ubd <- rnd2D' $ 2 + d
    let
-      (BsdfSample _ spdf f wo) = sampleBsdf bsdf wi ubc ubd
+      (BsdfSample _ spdf f wo) = sampleAdjBsdf bsdf wi ubc ubd
       pcont = if d > 4 then 0.7 else 1
       li' = sScale (f * li) (absDot wo n / (spdf * pcont))
       ray = Ray p wo (intEpsilon int) infinity

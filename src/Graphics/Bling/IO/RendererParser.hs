@@ -28,10 +28,9 @@ pRenderer = pBlock $ do
    r <- case tName of
 
              "light" -> do
-               pc <- namedInt "passCount"
-               pp <- namedInt "passPhotons"
-               return $ mkAnyRenderer $ mkLightTracer pc pp
-  
+               ppp <- namedInt "passPhotons"
+               return $ mkAnyRenderer $ mkLightTracer ppp
+   
              "metropolis" -> do
                 md <- namedInt "maxDepth"
                 mpp <- namedFloat "mpp"
