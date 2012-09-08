@@ -105,7 +105,7 @@ traceCam cs
                ray' = Ray p wi (intEpsilon int) infinity
                p = bsdfShadingPoint bsdf
                n = bsdfShadingNormal bsdf
-               t' = sScale (f * t) (wi `absDot` n / pdf)
+               t' = f * t -- sScale (f * t) (wi `absDot` n / pdf)
                ls' = csLs cs + t * intLe int (-wi)
                
             if pdf == 0 || isBlack f
@@ -178,7 +178,7 @@ nextVertex scene alpha sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} d
    let
       (BsdfSample _ spdf f wo) = sampleAdjBsdf bsdf wi ubc ubd
       pcont = if d > 4 then 0.7 else 1
-      li' = sScale (f * li) (absDot wo n / (spdf * pcont))
+      li' = sScale (f * li) (1 / pcont) -- (absDot wo n / (spdf * pcont))
       ray = Ray p wo (intEpsilon int) infinity
 
    unless (spdf == 0 || isBlack li') $

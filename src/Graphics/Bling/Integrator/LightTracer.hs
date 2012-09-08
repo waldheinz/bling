@@ -64,12 +64,12 @@ connectCam sc splat li bsdf wi eps
    | isBlack f || isBlack csf || cPdf == 0 = return ()
    | sc `intersects` cray = return ()
    | otherwise = 
-      splat (px, py, WS (absDot n we / (cPdf * dCam2)) (f * li))
+      splat (px, py, WS (1 / (cPdf * dCam2)) (f * li))
    where
       (CameraSampleResult csf pCam px py cPdf) = sampleCam (sceneCam sc) p
       dCam = pCam - p
       we = normalize dCam
-      f = evalBsdf True bsdf wi we
+      f = evalBsdf False bsdf we wi
       dCam2 = sqLen dCam
       cray = Ray p we eps (sqrt dCam2 - eps)
       n = bsdfShadingNormal bsdf
@@ -98,7 +98,7 @@ nextVertex sc wi (Just int) li depth splat
          n = bsdfShadingNormal bsdf
          p = bsdfShadingPoint bsdf
          (BsdfSample _ spdf bf wo) = sampleAdjBsdf bsdf wi ubc ubd
-         li' = sScale (li * bf) (absDot n wo / (spdf * pcont))
+         li' = sScale (li * bf) (1 / pcont)
          int' = intersect sc $ Ray p wo (intEpsilon int) infinity
          wi' = -wo
       

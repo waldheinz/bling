@@ -213,7 +213,7 @@ data Bxdf
    | SpecRefl     !Spectrum !Fresnel
    
 mkLambertian :: Spectrum -> Bxdf
-mkLambertian r = Lambertian $ sScale r invPi
+mkLambertian r = Lambertian $ r
 
 -- Creates an Oren Nayar BxDF
 mkOrenNayar
@@ -246,7 +246,7 @@ mkSpecularReflection
 mkSpecularReflection = SpecRefl
 
 bxdfEval :: Bxdf -> Vector -> Vector -> Spectrum
-bxdfEval (Lambertian r) _ _ = r
+bxdfEval (Lambertian r) wo _ = sScale r $ invPi * absCosTheta wo
 bxdfEval (OrenNayar r a b) wo wi = r' where
    r' = sScale r (invPi * (a + b * maxcos * sina * tanb))
    (sina, tanb) = if absCosTheta wi > absCosTheta wo
@@ -310,6 +310,10 @@ bxdfPdf _ wo wi
    | otherwise = 0
 
 bxdfSample :: Bxdf -> Vector -> Rand2D -> (Spectrum, Normal, Float)
+bxdfSample l@(Lambertian r) wo u = {-# SCC "bxdfSample'" #-} (r, wi, pdf) where
+      wi = toSameHemisphere wo (cosineSampleHemisphere u)
+      pdf = bxdfPdf l wo wi
+      
 bxdfSample fb@(FresnelBlend _ _ d) wo (u1, u2) = (f, wi, pdf) where
    pdf = bxdfPdf fb wo wi
    f = bxdfEval fb wo wi
@@ -333,13 +337,18 @@ bxdfSample bxdf wo u = {-# SCC "bxdfSample" #-} (f, wi, pdf) where
    pdf = bxdfPdf bxdf wo wi
 
 bxdfSample' :: Bxdf -> Vector -> Rand2D -> (Spectrum, Normal, Float)
+bxdfSample' l@(Lambertian r) wo u = {-# SCC "bxdfSample'" #-} (sScale f (abs $ cosTheta wo / cosTheta wi), wi, pdf) where
+      wi = toSameHemisphere wo (cosineSampleHemisphere u)
+      f = sScale r pi --bxdfEval a wo wi
+      pdf = bxdfPdf l wo wi
+      
 bxdfSample' fb@(FresnelBlend _ _ _) wo u = bxdfSample fb wo u
 bxdfSample' mf@(Microfacet _ _ _) wo u = bxdfSample mf wo u
 bxdfSample' (SpecTrans t ei et) wo u = sampleSpecTrans True t ei et wo u
 bxdfSample' sr@(SpecRefl _ _) wo u = bxdfSample sr wo u
-bxdfSample' a wo u = {-# SCC "bxdfSample'" #-} (f, wi, pdf) where
+bxdfSample' a wo u = {-# SCC "bxdfSample'" #-} (sScale f (abs $ cosTheta wo / cosTheta wi), wi, pdf) where
       wi = toSameHemisphere wo (cosineSampleHemisphere u)
-      f = bxdfEval a wi wo
+      f = bxdfEval a wo wi
       pdf = bxdfPdf a wo wi
 
 bxdfType :: Bxdf -> BxdfType
@@ -439,7 +448,7 @@ sampleBsdf'' :: Bool -> BxdfType -> Bsdf -> Vector -> Float -> Rand2D -> BsdfSam
 {-# INLINE sampleBsdf'' #-}
 sampleBsdf'' adj flags bsdf@(Bsdf bs cs _ ng) woW uComp uDir
    | V.null bsm || pdf' == 0 || sideTest == 0 = emptyBsdfSample
-   | isSpecular bxdf = BsdfSample t (pdf' / fromIntegral cntm) (sScale f' ff) wiW
+--   | isSpecular bxdf = BsdfSample t (pdf' / fromIntegral cntm) (sScale f' ff) wiW
    | otherwise = BsdfSample t pdf (sScale f ff) wiW where
       wo = worldToLocal cs woW
       
@@ -450,8 +459,7 @@ sampleBsdf'' adj flags bsdf@(Bsdf bs cs _ ng) woW uComp uDir
       bxdf = V.unsafeIndex bsm sNum
    
       -- sample chosen BxDF
-      (f', wi, pdf') = let fun = if adj then bxdfSample' else bxdfSample
-                           in fun bxdf wo uDir
+      (f', wi, pdf') = (if adj then bxdfSample' else bxdfSample) bxdf wo uDir
       wiW = localToWorld cs wi
    
       -- overall PDF
@@ -461,29 +469,26 @@ sampleBsdf'' adj flags bsdf@(Bsdf bs cs _ ng) woW uComp uDir
                else (pdf' + (V.sum $ V.map (\b -> bxdfPdf b wo wi) bs')) / (fromIntegral cntm)
       
       -- throughput for sampled direction
-      sideTest = woW `dot` ng * wiW `dot` ng
+      sideTest = wiW `dot` ng / woW `dot` ng
       flt = if sideTest < 0 then isTransmission else isReflection
-      f = V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bsm
+      f = f' -- V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bsm -- bs' ?!
       t = bxdfType bxdf
       
       -- correct throughput for adjoint
       ns = bsdfShadingNormal bsdf
-      ff = if not adj then 1 else abs (ns `dot` wiW / ng `dot` wiW)
+      ff = if adj then abs sideTest else 1
 
 evalBsdf :: Bool -> Bsdf -> Vector -> Vector -> Spectrum
-evalBsdf adj bsdf@(Bsdf bxdfs cs _ ng') woW wiW
+evalBsdf adj bsdf@(Bsdf bxdfs cs _ ng) woW wiW
    | sideTest == 0 = black
-   | wiW `dot` ng * wiW `dot` ns <= 0 = black
-   | woW `dot` ng * woW `dot` ns <= 0 = black
-   | adj = sScale f $ abs (ns `dot` woW / ng `dot` woW) -- correct throughput for shading normals
+   | adj = sScale f $ abs sideTest -- correct throughput for shading normals
    | otherwise = {-# SCC "evalBsdf" #-} f
    where
       ns = bsdfShadingNormal bsdf
-      ng = if ng' `dot` ns >= 0 then ng' else (-ng')
-      sideTest = woW `dot` ng * wiW `dot` ng
+      sideTest = wiW `dot` ng / woW `dot` ng
       flt = if sideTest < 0 then isTransmission else isReflection
-      fun = \b -> if adj then bxdfEval b wi wo else bxdfEval b wo wi
-      f = V.sum $ V.map fun $ V.filter flt bxdfs
+--      fun = \b -> if adj then bxdfEval b wi wo else bxdfEval b wo wi
+      f = V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bxdfs
       wo = worldToLocal cs woW
       wi = worldToLocal cs wiW
 
