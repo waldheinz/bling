@@ -67,7 +67,7 @@ sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n
    | otherwise = sScale (f * li) (weight / lpdf)
    where
          f = evalBsdf False bsdf wi wo
-         weight = powerHeuristic (1, lpdf) (1, bsdfPdf bsdf wo wi)
+         weight = powerHeuristic (1, lpdf) (1, bsdfPdf bsdf wi wo)
 
 sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Float -> Spectrum
 {-# INLINE sampleBsdfMis #-}
@@ -78,7 +78,7 @@ sampleBsdfMis (Scene _ sp _ _) l (BsdfSample _ bPdf f wi) n p epsilon
    where
          ff l' = if l' == l then sc $ intLe (fromJust lint) (-wi) else black
          lPdf = pdf l p wi
-         sc li = sScale (f * li) $ 1 -- powerHeuristic (1, bPdf) (1, lPdf)
+         sc li = sScale (f * li) $ powerHeuristic (1, bPdf) (1, lPdf)
          ray = Ray p wi epsilon infinity
          lint = sp `intersect` ray
 
@@ -94,7 +94,7 @@ estimateDirect
    -> Spectrum
 {-# INLINE estimateDirect #-}
 estimateDirect s l p eps n wo bsdf smp = ls + bs where
-   ls = black -- {-# SCC "estimateDirect.light" #-} sampleLightMis s (sample l p eps n $ ulDir smp) bsdf wo n
+   ls = {-# SCC "estimateDirect.light" #-} sampleLightMis s (sample l p eps n $ ulDir smp) bsdf wo n
    bs = {-# SCC "estimateDirect.bsdf"  #-} sampleBsdfMis s l (sampleBsdf bsdf wo uBC uBD) n p eps
    uBC = uBsdfComp smp
    uBD = uBsdfDir smp

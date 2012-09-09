@@ -8,7 +8,7 @@ filter box
 renderer {
    sampler
    sampled {
-      sampler { stratified 5 5 }
+      sampler { stratified 3 3 }
       integrator { path maxDepth 10 sampleDepth 3 }
    }
 }
@@ -18,10 +18,9 @@ renderer {
 # renderer { metropolis maxDepth 10 mpp 1 bootstrap 1000 plarge 0.25 directSamples 4 }
 # renderer { sampler sampled { sampler { stratified 5 5 } integrator { bidir maxDepth 10 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
-# renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
+# renderer { sampler sampled { sampler { random 4 } integrator { debug normals } } }
 # renderer { sampler sampled { sampler { random 256 } integrator { debug reference } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug kdtree } } }
-
 # renderer { sppm photonCount 50000 maxDepth 10 radius 10 }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 
@@ -200,7 +199,7 @@ material {
    bumpMap
    bump {
       scale 5 tex {
-         fbm octaves 5 omega 0.7 map {
+         fbm octaves 8 omega 0.5 map {
             identity { scale 0.05 0.05 0.05 }
          }
       }
@@ -233,6 +232,8 @@ prim {
    v 0.0   0.0   0.0
    v 0.0 548.8   0.0
    v 0.0 548.8 559.2
+   # f 3 2 1
+   # f 1 0 3
    f 3 2 1 0
 }
 

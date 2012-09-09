@@ -5,7 +5,7 @@ module Graphics.Bling.Primitive (
    -- * Ray - Primitive intersections
 
    Intersection, mkIntersection, intLe, intLight,
-   intDist, intEpsilon, intBsdf,
+   intDist, intEpsilon, intBsdf, intGeometry,
 
    -- * Primitives
 
@@ -90,7 +90,7 @@ nearest' ps x = V.foldl' near x ps
 data Intersection = Intersection
    { intDist      :: {-# UNPACK #-} ! Float
    , intEpsilon   :: {-# UNPACK #-} ! Float
-   , _intGeometry :: DifferentialGeometry -- ^ true geometry at intersection point
+   , intGeometry  :: DifferentialGeometry -- ^ true geometry at intersection point
    , intPrimitive :: ! AnyPrim
    , intBsdf      :: Bsdf
    }
@@ -99,18 +99,11 @@ mkIntersection :: Float -> Float -> DifferentialGeometry -> AnyPrim -> Material 
 mkIntersection d e dg p mat = Intersection d e dg p bsdf where
    bsdf = mat dg (shadingGeometry p mempty dg)
 
-{-
-intBsdf' :: Intersection -> Bsdf
-intBsdf' int = {-# SCC "intBsdf" #-} intMaterial int dgg dgs where
-   dgg = intGeometry int
-   dgs = shadingGeometry (intPrimitive int) mempty dgg
--}
-
 -- | the light emitted at an @Intersection@
 intLe
-   :: Intersection -- ^ the intersection to query for the emitted light
-   -> Vector       -- ^ the outgoing direction (must be normalized)
-   -> Spectrum     -- ^ the resulting spectrum
+   :: Intersection -- ^ intersection to query for the emitted light
+   -> Vector       -- ^ outgoing direction (must be normalized)
+   -> Spectrum     -- ^ emitted spectrum
 {-# INLINE intLe #-}
 intLe (Intersection _ _ dg prim _) wo =
    maybe black (\l -> L.lEmit l p n wo) (light prim) where
@@ -120,3 +113,4 @@ intLe (Intersection _ _ dg prim _) wo =
 intLight :: Intersection -> Maybe Light
 {-# INLINE intLight #-}
 intLight = light . intPrimitive
+

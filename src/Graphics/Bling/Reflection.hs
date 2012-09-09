@@ -340,9 +340,8 @@ bxdfSample bxdf wo u = {-# SCC "bxdfSample" #-} (f, wi, pdf) where
    pdf = bxdfPdf bxdf wo wi
 
 bxdfSample' :: Bxdf -> Vector -> Rand2D -> (Spectrum, Normal, Float)
-bxdfSample' l@(Lambertian r) wo u = {-# SCC "bxdfSample'" #-} (sScale f (abs $ cosTheta wo / cosTheta wi), wi, pdf) where
+bxdfSample' l@(Lambertian r) wo u = {-# SCC "bxdfSample'" #-} (sScale r (abs $ cosTheta wo / cosTheta wi), wi, pdf) where
       wi = toSameHemisphere wo (cosineSampleHemisphere u)
-      f = sScale r pi --bxdfEval a wo wi
       pdf = bxdfPdf l wo wi
       
 bxdfSample' fb@(FresnelBlend _ _ _) wo u = bxdfSample fb wo u
@@ -644,7 +643,7 @@ bump d dgg dgs = {-# SCC "bump" #-} dgBump where
    nn = faceForward nn' $ dgN dgg -- match geometric normal
    
    -- shift in u
-   du = 0.01 :: Float
+   du = 0.001 :: Float
    vdu = vpromote du
    dgeu = dgs {
       dgP = dgP dgs + vdu * (dgDPDU dgs),
@@ -653,7 +652,7 @@ bump d dgg dgs = {-# SCC "bump" #-} dgBump where
       }
       
    -- shift in v
-   dv = 0.01 :: Float
+   dv = 0.001 :: Float
    vdv = vpromote dv
    dgev = dgs {
       dgP = dgP dgs + vdv * (dgDPDV dgs),
