@@ -63,10 +63,10 @@ sampleLightMis :: Scene -> LightSample -> Bsdf -> Vector -> Normal -> Spectrum
 {-# INLINE sampleLightMis #-}
 sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n
    | lpdf == 0 || isBlack li || isBlack f || occluded scene ray = black
-   | delta = sScale (f * li) (absDot wi n / lpdf)
-   | otherwise = sScale (f * li) (absDot wi n * weight / lpdf)
+   | delta = sScale (f * li) (1 / lpdf)
+   | otherwise = sScale (f * li) (weight / lpdf)
    where
-         f = evalBsdf False bsdf wo wi
+         f = evalBsdf False bsdf wi wo
          weight = powerHeuristic (1, lpdf) (1, bsdfPdf bsdf wo wi)
 
 sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Float -> Spectrum
@@ -78,8 +78,7 @@ sampleBsdfMis (Scene _ sp _ _) l (BsdfSample _ bPdf f wi) n p epsilon
    where
          ff l' = if l' == l then sc $ intLe (fromJust lint) (-wi) else black
          lPdf = pdf l p wi
-         weight = 1 -- powerHeuristic (1, bPdf) (1, lPdf)
-         sc li = sScale (f * li) (absDot wi n * weight / bPdf)
+         sc li = sScale (f * li) $ 1 -- powerHeuristic (1, bPdf) (1, lPdf)
          ray = Ray p wi epsilon infinity
          lint = sp `intersect` ray
 

@@ -310,7 +310,10 @@ bxdfPdf _ wo wi
    | otherwise = 0
 
 bxdfSample :: Bxdf -> Vector -> Rand2D -> (Spectrum, Normal, Float)
-bxdfSample l@(Lambertian r) wo u = {-# SCC "bxdfSample'" #-} (r, wi, pdf) where
+bxdfSample l@(Lambertian r) wo u
+   | sameHemisphere wo wi = (r, wi, pdf)
+   | otherwise = (black, wo, 0)
+   where
       wi = toSameHemisphere wo (cosineSampleHemisphere u)
       pdf = bxdfPdf l wo wi
       
@@ -479,15 +482,13 @@ sampleBsdf'' adj flags bsdf@(Bsdf bs cs _ ng) woW uComp uDir
       ff = if adj then abs sideTest else 1
 
 evalBsdf :: Bool -> Bsdf -> Vector -> Vector -> Spectrum
-evalBsdf adj bsdf@(Bsdf bxdfs cs _ ng) woW wiW
+evalBsdf adj (Bsdf bxdfs cs _ ng) woW wiW
    | sideTest == 0 = black
    | adj = sScale f $ abs sideTest -- correct throughput for shading normals
    | otherwise = {-# SCC "evalBsdf" #-} f
    where
-      ns = bsdfShadingNormal bsdf
       sideTest = wiW `dot` ng / woW `dot` ng
       flt = if sideTest < 0 then isTransmission else isReflection
---      fun = \b -> if adj then bxdfEval b wi wo else bxdfEval b wo wi
       f = V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bxdfs
       wo = worldToLocal cs woW
       wi = worldToLocal cs wiW
@@ -634,10 +635,10 @@ bump d dgg dgs = {-# SCC "bump" #-} dgBump where
    disp = d dgs
    
    vscale = vpromote $ (vDisp - disp) / dv
-   dpdv = (dgDPDV dgs) + vscale * (dgN dgs) + (vpromote disp) * (dgDNDV dgs)
+   dpdv = (dgDPDV dgs) + vscale * (dgN dgs) -- + (vpromote disp) * (dgDNDV dgs)
    
    uscale = vpromote $ (uDisp - disp) / du
-   dpdu = (dgDPDU dgs) + uscale * (dgN dgs) + (vpromote disp) * (dgDNDU dgs)
+   dpdu = (dgDPDU dgs) + uscale * (dgN dgs) -- + (vpromote disp) * (dgDNDU dgs)
    
    nn' = normalize $ dpdu `cross` dpdv
    nn = faceForward nn' $ dgN dgg -- match geometric normal
