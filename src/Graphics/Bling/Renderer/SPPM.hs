@@ -94,7 +94,7 @@ traceCam cs
             -- record a hitpoint here
             when (bsdfHasNonSpecular (intBsdf int)) $ do
                px <- cameraSample >>= \c -> return (imageX c, imageY c)
-               let h = (Hit bsdf px (sIdx pxs px) wo t) in seq h (liftSampled $ gvAdd (csHps cs) h)
+               let h = (Hit bsdf px (sIdx pxs px) wo (sScale t (1 / absDot wo (bsdfNg bsdf)))) in seq h (liftSampled $ gvAdd (csHps cs) h)
                
             -- determine outgoing ray
             bsdfC <- rnd
@@ -166,7 +166,7 @@ nextVertex scene alpha sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} d
          nn = lsN stats
          ratio = (nn + alpha) / (nn + 1)
          r2 = lsR2 stats
-         f = evalBsdf False (hpBsdf hit) wi (hpW hit) 
+         f = evalBsdf True (hpBsdf hit) wi (hpW hit) 
          (px, py) = hpPixel hit
 
       addContrib img (True, (px, py, WS (1 / (r2 * pi)) (hpF hit * f * li)))

@@ -93,7 +93,7 @@ sampleCam
    -> CameraSampleResult
 
 sampleCam (ProjectiveCamera c2w r2c w2r ap _ _) p = smp where
-   smp = CameraSampleResult white pLens px py (ap {- * cost3-})
+   smp = CameraSampleResult white pLens px py (ap * cost3)
    pRas@(Vector px py _) = transPoint w2r p
    pLens = transPoint c2w $ mkPoint' 0 0 0
    pRas' = transPoint r2c pRas

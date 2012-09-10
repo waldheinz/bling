@@ -8,8 +8,8 @@ filter box
 renderer {
    sampler
    sampled {
-      sampler { stratified 3 3 }
-      integrator { path maxDepth 10 sampleDepth 3 }
+      sampler { stratified 8 8 }
+      integrator { path maxDepth 2 sampleDepth 2 }
    }
 }
 

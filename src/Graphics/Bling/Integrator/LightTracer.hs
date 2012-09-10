@@ -69,11 +69,11 @@ connectCam sc splat li bsdf wi eps
       (CameraSampleResult csf pCam px py cPdf) = sampleCam (sceneCam sc) p
       dCam = pCam - p
       we = normalize dCam
-      f = evalBsdf False bsdf wi we
+      f = evalBsdf False bsdf we wi
       dCam2 = sqLen dCam
       cray = Ray p we eps (sqrt dCam2)
       p = bsdfShadingPoint bsdf
-      n = bsdfShadingNormal bsdf
+ --     n = bsdfShadingNormal bsdf
       
 nextVertex
    :: Scene
@@ -97,7 +97,7 @@ nextVertex sc wi (Just int) li depth splat
          bsdf = intBsdf int
          p = bsdfShadingPoint bsdf
          (BsdfSample _ spdf bf wo) = sampleAdjBsdf bsdf wi ubc ubd
-         li' = sScale (li * bf) (1 / pcont)
+         li' = sScale (li * bf) (1  / pcont)
          int' = intersect sc $ Ray p wo (intEpsilon int) infinity
          wi' = -wo
       

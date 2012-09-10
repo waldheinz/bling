@@ -68,13 +68,13 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) md t l
       lBsdfDirU <- rnd2D' $ 2 + smp2doff depth
       
       let
-         intl = if spec then intLe int wo else black 
+         intl = if True || spec then intLe int wo else black 
          wo = -rd
          bsdf = intBsdf int
          n = bsdfShadingNormal bsdf
          p = bsdfShadingPoint bsdf
          eps = intEpsilon int
-         lHere = intl + (sampleOneLight scene p eps n wo bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU)
+         lHere = intl -- + (sampleOneLight scene p eps n wo bsdf $ RLS lNumU lDirU lBsdfCompU lBsdfDirU)
          l' = l + t * lHere
          pc = if depth <= 7 then 1 else min 0.75 (sY t) -- cont. probability
         
@@ -88,7 +88,7 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) md t l
                   (BsdfSample smpType spdf f wi) = sampleBsdf bsdf wo uc ud
                   ray' = Ray p wi eps infinity
                   spec' = smpType `bxdfIs` Specular
-                  t' = sScale (f * t) (1 / pc) -- (absDot wi n / (spdf * pc))
+                  t' = sScale (f * t) (1 / pc)
                   depth' = depth + 1
                if spdf == 0 || isBlack f
                   then return $! l'

@@ -26,7 +26,7 @@ module Graphics.Bling.Reflection (
    -- * BSDF
    
    Bsdf, BsdfSample(..), mkBsdf, mkBsdf', evalBsdf, sampleBsdf, sampleBsdf',
-   bsdfPdf, sampleAdjBsdf, sampleAdjBsdf',
+   bsdfPdf, sampleAdjBsdf, sampleAdjBsdf', bsdfNg,
 
    -- ** Querying BSDF properties
    bsdfHasNonSpecular, bsdfShadingNormal, bsdfShadingPoint, bsdfSpecCompCount
@@ -310,13 +310,14 @@ bxdfPdf _ wo wi
    | otherwise = 0
 
 bxdfSample :: Bxdf -> Vector -> Rand2D -> (Spectrum, Normal, Float)
+{-
 bxdfSample l@(Lambertian r) wo u
-   | sameHemisphere wo wi = (r, wi, pdf)
+   | sameHemisphere wo wi = (sScale r (absCosTheta wi), wi, pdf)
    | otherwise = (black, wo, 0)
    where
       wi = toSameHemisphere wo (cosineSampleHemisphere u)
       pdf = bxdfPdf l wo wi
-      
+      -}
 bxdfSample fb@(FresnelBlend _ _ d) wo (u1, u2) = (f, wi, pdf) where
    pdf = bxdfPdf fb wo wi
    f = bxdfEval fb wo wi
@@ -334,13 +335,16 @@ bxdfSample (SpecRefl r fr) wo@(Vector x y z) _ = (f, wi, 1) where
       wi = Vector (-x) (-y) z
       f = sScale (r * fr (cosTheta wo)) (1 / absCosTheta wi)
 
-bxdfSample bxdf wo u = {-# SCC "bxdfSample" #-} (f, wi, pdf) where
+bxdfSample bxdf wo u = {-# SCC "bxdfSample" #-} (sScale f (1 / pdf), wi, pdf) where
    wi = toSameHemisphere wo (cosineSampleHemisphere u)
-   f = bxdfEval bxdf wo wi
+   f = bxdfEval bxdf wi wo
    pdf = bxdfPdf bxdf wo wi
 
 bxdfSample' :: Bxdf -> Vector -> Rand2D -> (Spectrum, Normal, Float)
-bxdfSample' l@(Lambertian r) wo u = {-# SCC "bxdfSample'" #-} (sScale r (abs $ cosTheta wo / cosTheta wi), wi, pdf) where
+bxdfSample' l@(Lambertian r) wo u
+   | sameHemisphere wo wi = (sScale r (abs $ cosTheta wo / cosTheta wi), wi, pdf)
+   | otherwise = (black, wo, 0)
+   where
       wi = toSameHemisphere wo (cosineSampleHemisphere u)
       pdf = bxdfPdf l wo wi
       
@@ -348,7 +352,7 @@ bxdfSample' fb@(FresnelBlend _ _ _) wo u = bxdfSample fb wo u
 bxdfSample' mf@(Microfacet _ _ _) wo u = bxdfSample mf wo u
 bxdfSample' (SpecTrans t ei et) wo u = sampleSpecTrans True t ei et wo u
 bxdfSample' sr@(SpecRefl _ _) wo u = bxdfSample sr wo u
-bxdfSample' a wo u = {-# SCC "bxdfSample'" #-} (sScale f (abs $ cosTheta wo / cosTheta wi), wi, pdf) where
+bxdfSample' a wo u = {-# SCC "bxdfSample'" #-} (sScale f (absCosTheta wo / pdf), wi, pdf) where
       wi = toSameHemisphere wo (cosineSampleHemisphere u)
       f = bxdfEval a wo wi
       pdf = bxdfPdf a wo wi
@@ -373,7 +377,7 @@ data Bsdf = Bsdf
    { bsdfComponents  :: ! (V.Vector Bxdf) -- ^ BxDFs the BSDF is composed of
    , _bsdfCs         :: {-# UNPACK #-} ! LocalCoordinates -- ^ shading coordinate system
    , _bsdfP          :: {-# UNPACK #-} ! Point
-   , _bsdfNg         :: {-# UNPACK #-} ! Normal -- ^ geometric normal
+   , bsdfNg          :: {-# UNPACK #-} ! Normal -- ^ geometric normal
    }
 
 -- | creates a BSDF
@@ -384,9 +388,9 @@ mkBsdf
    -> Bsdf
 mkBsdf bs dgs ng = Bsdf (V.fromList bs) cs (dgP dgs) ng where
    cs = LocalCoordinates sn tn nn
-   nn = dgN dgs
+   nn = normalize $ dgN dgs
    sn = normalize $ dgDPDU dgs
-   tn = nn `cross` sn
+   tn = normalize $ nn `cross` sn
 
 mkBsdf'
    :: [Bxdf]
@@ -459,11 +463,11 @@ sampleBsdf'' adj flags bsdf@(Bsdf bs cs _ ng) woW uComp uDir
       cntm = V.length bsm
       sNum = max 0 $ min (cntm-1) (floor (uComp * fromIntegral cntm)) -- index to sample
       bxdf = V.unsafeIndex bsm sNum
-   
+      
       -- sample chosen BxDF
       (f', wi, pdf') = (if adj then bxdfSample' else bxdfSample) bxdf wo uDir
       wiW = localToWorld cs wi
-   
+           
       -- overall PDF
       bs' = V.ifilter (\i _ -> (i /= sNum)) bsm -- filter explicitly sampled from matching
       pdf = if cntm == 1
@@ -484,7 +488,7 @@ evalBsdf :: Bool -> Bsdf -> Vector -> Vector -> Spectrum
 evalBsdf adj (Bsdf bxdfs cs _ ng) woW wiW
    | sideTest == 0 = black
    | adj = sScale f $ abs sideTest -- correct throughput for shading normals
-   | otherwise = {-# SCC "evalBsdf" #-} f
+   | otherwise = f
    where
       sideTest = wiW `dot` ng / woW `dot` ng
       flt = if sideTest < 0 then isTransmission else isReflection
