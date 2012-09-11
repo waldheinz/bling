@@ -3,7 +3,7 @@ LookAt 278 273 -800  278 273 0   0 1 0
 Camera "perspective" "float fov" [37.5]
 PixelFilter "mitchell" "float xwidth" [2] "float ywidth" [2]
 # Accelerator "kdtree"
-Sampler "bestcandidate" "integer pixelsamples" [256]
+Sampler "bestcandidate" "integer pixelsamples" [1024]
 Film "image"
    "string filename" ["cornell-bump.exr"]
    "integer xresolution" [480]

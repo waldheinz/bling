@@ -11,7 +11,7 @@ imageSize 200 150
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 2 ySamples 2 }
+      sampler { stratified 2 2 }
       integrator { path maxDepth 5 sampleDepth 3 }
    }
 }
@@ -121,8 +121,8 @@ prim {
 
 material {
    matte
-   kd { constant rgb 0.8 0.8 0.8 }
-   sigma { constant 0.3 }
+   kd { constant rgbR 0.8 0.8 0.8 }
+   sigma { constant 0 }
 }
 
 newTransform { translate 0 1.5 0 }

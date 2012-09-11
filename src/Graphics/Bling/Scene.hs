@@ -66,8 +66,8 @@ sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n
    | delta = sScale (f * li) (1 / lpdf)
    | otherwise = sScale (f * li) (weight / lpdf)
    where
-         f = evalBsdf False bsdf wi wo
-         weight = powerHeuristic (1, lpdf) (1, bsdfPdf bsdf wi wo)
+         f = evalBsdf False bsdf wo wi
+         weight = powerHeuristic (1, lpdf) (1, bsdfPdf bsdf wo wi)
 
 sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Float -> Spectrum
 {-# INLINE sampleBsdfMis #-}

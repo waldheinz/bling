@@ -43,6 +43,8 @@ import Graphics.Bling.Random
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Texture
 
+import Debug.Trace
+
 -- | a material can turn a geometric DG and a shading DG into a BSDF
 type Material = DifferentialGeometry -> DifferentialGeometry -> Bsdf
 
@@ -310,14 +312,15 @@ bxdfPdf _ wo wi
    | otherwise = 0
 
 bxdfSample :: Bxdf -> Vector -> Rand2D -> (Spectrum, Normal, Float)
-{-
+
 bxdfSample l@(Lambertian r) wo u
-   | sameHemisphere wo wi = (sScale r (absCosTheta wi), wi, pdf)
-   | otherwise = (black, wo, 0)
+   | otherwise = (r, wi, pdf)
+--   | sameHemisphere wo wi = (r, wi, pdf)
+--   | otherwise = (black, wo, 0)
    where
       wi = toSameHemisphere wo (cosineSampleHemisphere u)
       pdf = bxdfPdf l wo wi
-      -}
+
 bxdfSample fb@(FresnelBlend _ _ d) wo (u1, u2) = (f, wi, pdf) where
    pdf = bxdfPdf fb wo wi
    f = bxdfEval fb wo wi
@@ -335,7 +338,7 @@ bxdfSample (SpecRefl r fr) wo@(Vector x y z) _ = (f, wi, 1) where
       wi = Vector (-x) (-y) z
       f = sScale (r * fr (cosTheta wo)) (1 / absCosTheta wi)
 
-bxdfSample bxdf wo u = {-# SCC "bxdfSample" #-} (sScale f (1 / pdf), wi, pdf) where
+bxdfSample bxdf wo u = (sScale f (absCosTheta wi), wi, pdf) where
    wi = toSameHemisphere wo (cosineSampleHemisphere u)
    f = bxdfEval bxdf wi wo
    pdf = bxdfPdf bxdf wo wi
@@ -388,9 +391,9 @@ mkBsdf
    -> Bsdf
 mkBsdf bs dgs ng = Bsdf (V.fromList bs) cs (dgP dgs) ng where
    cs = LocalCoordinates sn tn nn
-   nn = normalize $ dgN dgs
+   nn = dgN dgs
    sn = normalize $ dgDPDU dgs
-   tn = normalize $ nn `cross` sn
+   tn = nn `cross` sn
 
 mkBsdf'
    :: [Bxdf]
@@ -453,9 +456,9 @@ sampleAdjBsdf' = {-# SCC "sampleAdjBsdf'" #-} sampleBsdf'' True
 sampleBsdf'' :: Bool -> BxdfType -> Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
 {-# INLINE sampleBsdf'' #-}
 sampleBsdf'' adj flags bsdf@(Bsdf bs cs _ ng) woW uComp uDir
-   | V.null bsm || pdf' == 0 || sideTest == 0 = emptyBsdfSample
+--   | V.null bsm || pdf' == 0 || sideTest == 0 = emptyBsdfSample
 --   | isSpecular bxdf = BsdfSample t (pdf' / fromIntegral cntm) (sScale f' ff) wiW
-   | otherwise = BsdfSample t pdf (sScale f ff) wiW where
+   | otherwise = BsdfSample t 1 (sScale f ff) wiW where
       wo = worldToLocal cs woW
       
       -- choose BxDF to sample
@@ -467,7 +470,7 @@ sampleBsdf'' adj flags bsdf@(Bsdf bs cs _ ng) woW uComp uDir
       -- sample chosen BxDF
       (f', wi, pdf') = (if adj then bxdfSample' else bxdfSample) bxdf wo uDir
       wiW = localToWorld cs wi
-           
+      
       -- overall PDF
       bs' = V.ifilter (\i _ -> (i /= sNum)) bsm -- filter explicitly sampled from matching
       pdf = if cntm == 1
@@ -476,7 +479,7 @@ sampleBsdf'' adj flags bsdf@(Bsdf bs cs _ ng) woW uComp uDir
       
       -- throughput for sampled direction
       sideTest = wiW `dot` ng / woW `dot` ng
-      flt = if sideTest < 0 then isTransmission else isReflection
+      flt = if sideTest < 0 then traceShow sideTest $ isTransmission else isReflection
       f = f' -- V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bsm -- bs' ?!
       t = bxdfType bxdf
       
@@ -492,7 +495,8 @@ evalBsdf adj (Bsdf bxdfs cs _ ng) woW wiW
    where
       sideTest = wiW `dot` ng / woW `dot` ng
       flt = if sideTest < 0 then isTransmission else isReflection
-      f = V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bxdfs
+      f = V.sum $ V.map (\b -> eval b wo wi) $ V.filter flt bxdfs
+      eval b = if adj then bxdfEval b else flip (bxdfEval b)
       wo = worldToLocal cs woW
       wi = worldToLocal cs wiW
 
@@ -632,35 +636,33 @@ bumpMapped d mat dgg dgs = mat dgg $ bump d dgg dgs
 
 bump :: ScalarTexture -> DifferentialGeometry -> DifferentialGeometry -> DifferentialGeometry
 bump d dgg dgs = {-# SCC "bump" #-} dgBump where
-   dgBump = dgs { dgN = nn, dgDPDU = dpdu, dgDPDV = dpdv }
+   dgBump = dgs { dgN = nn , dgDPDU = dpdu, dgDPDV = dpdv }
    uDisp = d dgeu
    vDisp = d dgev
    disp = d dgs
    
-   vscale = vpromote $ (vDisp - disp) / dv
-   dpdv = (dgDPDV dgs) + vscale * (dgN dgs) -- + (vpromote disp) * (dgDNDV dgs)
+   vscale = (vDisp - disp) / dv
+   dpdv = (dgDPDV dgs) + vscale *# (dgN dgs) -- + (vpromote disp) * (dgDNDV dgs)
    
-   uscale = vpromote $ (uDisp - disp) / du
-   dpdu = (dgDPDU dgs) + uscale * (dgN dgs) -- + (vpromote disp) * (dgDNDU dgs)
+   uscale = (uDisp - disp) / du
+   dpdu = (dgDPDU dgs) + uscale *# (dgN dgs) -- + (vpromote disp) * (dgDNDU dgs)
    
    nn' = normalize $ dpdu `cross` dpdv
    nn = faceForward nn' $ dgN dgg -- match geometric normal
-   
+
    -- shift in u
-   du = 0.001 :: Float
-   vdu = vpromote du
+   du = 0.01 :: Float
    dgeu = dgs {
-      dgP = dgP dgs + vdu * (dgDPDU dgs),
+      dgP = dgP dgs + du *# (dgDPDU dgs),
       dgU = dgU dgs + du,
-      dgN = normalize $ ((dgDPDU dgs) `cross` (dgDPDV dgs) + vdu * (dgDNDU dgs))
+      dgN = normalize $ ((dgDPDU dgs) `cross` (dgDPDV dgs) + du *# (dgDNDU dgs))
       }
       
    -- shift in v
-   dv = 0.001 :: Float
-   vdv = vpromote dv
+   dv = 0.01 :: Float
    dgev = dgs {
-      dgP = dgP dgs + vdv * (dgDPDV dgs),
+      dgP = dgP dgs + dv *# (dgDPDV dgs),
       dgV = dgV dgs + dv,
-      dgN = normalize $ ((dgDPDU dgs) `cross` (dgDPDV dgs) + vdv * (dgDNDV dgs))
+      dgN = normalize $ ((dgDPDU dgs) `cross` (dgDPDV dgs) + dv *# (dgDNDV dgs))
       }
       

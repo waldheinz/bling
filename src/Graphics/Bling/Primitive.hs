@@ -105,10 +105,10 @@ intLe
    -> Vector       -- ^ outgoing direction (must be normalized)
    -> Spectrum     -- ^ emitted spectrum
 {-# INLINE intLe #-}
-intLe (Intersection _ _ dg prim _) wo =
+intLe (Intersection _ _ dg prim bsdf) wo =
    maybe black (\l -> L.lEmit l p n wo) (light prim) where
-      p = dgP dg
-      n = dgN dg
+      p = bsdfShadingPoint bsdf -- dgP dg
+      n = bsdfShadingNormal bsdf -- dgN dg
       
 intLight :: Intersection -> Maybe Light
 {-# INLINE intLight #-}

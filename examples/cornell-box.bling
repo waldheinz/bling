@@ -9,7 +9,7 @@ renderer {
    sampler
    sampled {
       sampler { stratified 8 8 }
-      integrator { path maxDepth 2 sampleDepth 2 }
+      integrator { path maxDepth 25 sampleDepth 3 }
    }
 }
 
@@ -26,6 +26,7 @@ renderer {
 
 # imageSize 720 720
 imageSize 480 480
+# imageSize 128 128
 # imageSize 240 240
 
 #
@@ -125,7 +126,7 @@ prim {
 prim {
    mesh
    vertexCount 20
-   faceCount 5
+   faceCount 0
    v 130.0 165.0  65.0
    v  82.0 165.0 225.0
    v 240.0 165.0 272.0
@@ -146,11 +147,11 @@ prim {
    v 240.0 165.0 272.0
    v  82.0 165.0 225.0
    v  82.0   0.0 225.0
-   f 3 2 1 0
-   f 7 6 5 4
-   f 11 10 9 8
-   f 15 14 13 12
-   f 19 18 17 16
+#   f 3 2 1 0
+#   f 7 6 5 4
+#   f 11 10 9 8
+#   f 15 14 13 12
+#   f 19 18 17 16
 }
 
 #
@@ -163,7 +164,7 @@ prim {
 prim {
    mesh
    vertexCount 20
-   faceCount 5
+   faceCount 0
    v 423.0 330.0 247.0
    v 265.0 330.0 296.0
    v 314.0 330.0 456.0
@@ -184,11 +185,11 @@ prim {
    v 265.0 330.0 296.0
    v 423.0 330.0 247.0
    v 423.0   0.0 247.0
-   f 3 2 1 0
-   f 7 6 5 4
-   f 11 10 9 8
-   f 15 14 13 12
-   f 19 18 17 16
+#   f 3 2 1 0
+#   f 7 6 5 4
+#   f 11 10 9 8
+#   f 15 14 13 12
+#   f 19 18 17 16
 }
 
 #
@@ -198,9 +199,9 @@ prim {
 material {
    bumpMap
    bump {
-      scale 5 tex {
+      scale 15 tex {
          fbm octaves 8 omega 0.5 map {
-            identity { scale 0.05 0.05 0.05 }
+            identity { scale 0.01 0.01 0.01 }
          }
       }
    }
@@ -224,18 +225,24 @@ material {
    sigma { constant 0 }
 }
 
-prim {
-   mesh
-   vertexCount 4
-   faceCount 1
-   v 0.0   0.0 559.2
-   v 0.0   0.0   0.0
-   v 0.0 548.8   0.0
-   v 0.0 548.8 559.2
+newTransform { rotateY 90 translate 0 300 300 }
+
+prim { shape { quad 300 300 } }
+
+newTransform { }
+
+#prim {
+#   mesh
+#   vertexCount 4
+#   faceCount 1
+#   v 0.0   0.0 559.2
+#   v 0.0   0.0   0.0
+#   v 0.0 548.8   0.0
+#   v 0.0 548.8 559.2
    # f 3 2 1
    # f 1 0 3
-   f 3 2 1 0
-}
+#   f 3 2 1 0
+#}
 
 #
 # left (red) wall

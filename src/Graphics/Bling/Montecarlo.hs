@@ -152,15 +152,15 @@ concentricSampleDisk (u1, u2) = concentricSampleDisk' (sx, sy) where
 concentricSampleDisk' :: (Float, Float) -> (Float, Float)
 concentricSampleDisk' (0, 0) = (0, 0) -- handle degeneracy at origin
 concentricSampleDisk' (sx, sy) = (r * cos theta, r * sin theta) where
-   theta = theta' * pi / 4.0
+   theta = theta' * pi / 4
    (r, theta')
       | sx >= (-sy) =
          if sx > sy then
-            if sy > 0 then (sx, sy / sx) else (sx, 8.0 + sy / sx)
+            if sy > 0 then (sx, sy / sx) else (sx, 8 + sy / sx)
          else
-            (sy, 2.0 - sx / sy)
-      | sx <= sy = (-sx, 4.0 - sy / (-sx))
-      | otherwise = (-sy, 6.0 + sx / (-sy))
+            (sy, 2 - sx / sy)
+      | sx <= sy = (-sx, 4 - sy / (-sx))
+      | otherwise = (-sy, 6 + sx / (-sy))
 
 -- | generates a random point on the unit sphere,
 -- see http://mathworld.wolfram.com/SpherePointPicking.html

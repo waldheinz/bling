@@ -33,7 +33,7 @@ Library
       vector-algorithms >= 0.5
       
    Ghc-Options:
-      -Wall -O2 -fexcess-precision -fllvm
+      -Wall -O2 -fexcess-precision
 
    Exposed-Modules:
       Graphics.Bling.AABB,
@@ -91,8 +91,8 @@ Executable bling
    hs-source-dirs:   src/Graphics/Bling/Main
    Main-is:          Main.hs
    Build-Depends:    bling, base, pretty, random, mwc-random
-   ghc-options:      -Wall -O2 -fexcess-precision -fspec-constr-count=64 -rtsopts -threaded
-   ghc-prof-options: -O2 -fexcess-precision -prof -rtsopts
+   ghc-options:      -Wall -O2 -fexcess-precision -rtsopts -threaded
+   ghc-prof-options: -prof 
 
 Executable bling-gui
    if flag(Gui)
@@ -104,6 +104,6 @@ Executable bling-gui
    hs-source-dirs:   src/Graphics/Bling/Main
    Main-is:          GuiMain.hs
    
-   ghc-options:      -Wall -fexcess-precision -fspec-constr-count=64 -rtsopts -threaded
-   ghc-prof-options: -O2 -fexcess-precision -prof -auto-all -rtsopts
+   ghc-options:      -Wall -O2 -fexcess-precision -rtsopts -threaded
+   ghc-prof-options: -prof
 

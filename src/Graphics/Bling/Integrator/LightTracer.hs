@@ -69,7 +69,7 @@ connectCam sc splat li bsdf wi eps
       (CameraSampleResult csf pCam px py cPdf) = sampleCam (sceneCam sc) p
       dCam = pCam - p
       we = normalize dCam
-      f = evalBsdf False bsdf we wi
+      f = evalBsdf True bsdf wi we
       dCam2 = sqLen dCam
       cray = Ray p we eps (sqrt dCam2)
       p = bsdfShadingPoint bsdf

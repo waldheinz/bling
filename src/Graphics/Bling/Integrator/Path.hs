@@ -16,6 +16,8 @@ import Graphics.Bling.Reflection
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 
+import Debug.Trace
+
 data PathIntegrator = PathIntegrator {-# UNPACK #-} !Int {-# UNPACK #-} !Int  
 
 mkPathIntegrator
@@ -86,7 +88,17 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) md t l
                ud <- rnd2D' $ 0 + smp2doff depth
                let
                   (BsdfSample smpType spdf f wi) = sampleBsdf bsdf wo uc ud
-                  ray' = Ray p wi eps infinity
+        --          wi' = 30 *# wi
+                  ray' ={- trace (
+                           (show $ vx p) ++ " " ++
+                           (show $ vy p) ++ " " ++ 
+                           (show $ vz p) ++ " " ++
+                           (show $ vx wi') ++ " " ++
+                           (show $ vy wi') ++ " " ++ 
+                           (show $ vz wi')
+                           
+                           ) $ -}Ray p wi eps infinity
+                  
                   spec' = smpType `bxdfIs` Specular
                   t' = sScale (f * t) (1 / pc)
                   depth' = depth + 1
