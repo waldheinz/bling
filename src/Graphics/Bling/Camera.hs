@@ -80,11 +80,11 @@ fireRay (Environment c2w sx sy) = do
 --
 
 data CameraSampleResult = CameraSampleResult
-   { csF             :: Spectrum -- ^ transport
-   , csP             :: Point -- ^ point on lens
-   , csImgX          :: Float -- ^ pixel pos x
-   , csImgY          :: Float -- ^ pixel pos y
-   , csPdf           :: Float
+   { csF             :: !Spectrum -- ^ transport
+   , csP             :: {-# UNPACK #-} !Point -- ^ point on lens
+   , csImgX          :: {-# UNPACK #-} !Float -- ^ pixel pos x
+   , csImgY          :: {-# UNPACK #-} !Float -- ^ pixel pos y
+   , csPdf           :: {-# UNPACK #-} !Float
    }
 
 sampleCam

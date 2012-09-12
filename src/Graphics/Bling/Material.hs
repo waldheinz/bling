@@ -13,6 +13,7 @@ import Debug.Trace
 
 import Graphics.Bling.Reflection
 import Graphics.Bling.Reflection.Diffuse
+import Graphics.Bling.Reflection.Microfacet
 import Graphics.Bling.Reflection.Specular
 import Graphics.Bling.Texture
 
@@ -67,7 +68,7 @@ mkPlastic
    -> Material
 mkPlastic kd ks kr dgg dgs = mkBsdf' [diff, spec] dgg dgs where
    diff = mkLambertian rd
-   spec = undefined -- mkMicrofacet (mkBlinn (1 / rough)) (frDielectric 1.0 1.5) rs
+   spec = mkMicrofacet (mkBlinn (1 / rough)) (frDielectric 1.0 1.5) rs
    rough = kr dgs
    rd = kd dgs
    rs = ks dgs

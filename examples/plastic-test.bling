@@ -4,29 +4,31 @@
 filter mitchell 3.0 3.0 0.333333 0.333333
 filter box
 
-imageSize 640 480
+imageSize 640 360
 
 renderer {
    sampler
    sampled {
-      sampler { stratified 3 3 }
+      sampler { stratified 4 4 }
       integrator { path maxDepth 7 sampleDepth 4 }
    }
 }
 
 # renderer { metropolis mpp 1 bootstrap 1000 plarge 0.25 separateDirect }
+# renderer { light passPhotons 100000 }
+renderer { sppm photonCount 50000 maxDepth 10 radius 0.25 alpha 0.95 }
 
 transform {
    lookAt {
-      pos 9 15 -9
-      look 0 1 0
+      pos 6 20 -15
+      look 0 2 0
       up 0 1 0
    }
 }
 
 camera {
    perspective
-   fov 45
+   fov 30
    lensRadius 0
    focalDistance 10
 }
@@ -42,29 +44,23 @@ newTransform { }
 material {
    matte
    kd { constant rgbR 0.7 0.7 0.7 }
-   sigma { constant 0.0 }
+   sigma { constant 0 }
 }
 
 prim {
    mesh
    vertexCount 4
    faceCount 1
-   v  50.0 1 -50.0
-   v -50.0 1 -50.0
-   v -50.0 1  50.0
-   v  50.0 1  50.0
+   v  50 1 -50
+   v -50 1 -50
+   v -50 1  50
+   v  50 1  50
    f 3 2 1 0
 }
 
-
-emission {
-   spd { 400.0 0.0, 500.0 8.0, 600.0 15.6, 700.0 18.4 }
-}
-
+emission { spd { 400.0 0.0, 500.0 8.0, 600.0 15.6, 700.0 18.4 } }
 newTransform { rotateX -90 translate 0 20 0  }
-
-prim { shape { quad 10 10 } }
-
+prim { shape { quad 5 5 } }
 emission { none }
 
 #

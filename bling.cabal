@@ -84,6 +84,7 @@ Library
       Graphics.Bling.Primitive.TriangleMesh,
       Graphics.Bling.Reflection,
       Graphics.Bling.Reflection.Diffuse,
+      Graphics.Bling.Reflection.Microfacet,
       Graphics.Bling.Reflection.Specular,
       Graphics.Bling.Renderer.Metropolis,
       Graphics.Bling.Renderer.SPPM,
