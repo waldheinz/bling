@@ -6,8 +6,6 @@ module Graphics.Bling.Reflection.Diffuse (
 import Graphics.Bling.Montecarlo
 import Graphics.Bling.Reflection
 
---   | OrenNayar    !Spectrum {-# UNPACK #-} !Float {-# UNPACK #-} !Float
-
 cosPdf :: BxdfPdf
 cosPdf wo wi
    | sameHemisphere wo wi = invPi * absCosTheta wi
@@ -24,7 +22,7 @@ cosSample r adj wo u
             else r
 
 mkLambertian :: Spectrum -> BxDF
-mkLambertian r = mkBxDF (mkBxdfType [Reflection, Diffuse]) e (cosSample r) cosPdf where
+mkLambertian r = mkBxDF [Reflection, Diffuse] e (cosSample r) cosPdf where
    e wo _ = sScale r $ invPi * absCosTheta wo   -- eval
    
 -- Creates an Oren Nayar BxDF
@@ -32,7 +30,7 @@ mkOrenNayar
    :: Spectrum -- ^ reflectance
    -> Float    -- ^ sigma, should be in [0..1] and is clamped otherwise
    -> BxDF
-mkOrenNayar r sig = mkBxDF (mkBxdfType [Reflection, Diffuse]) e s cosPdf where
+mkOrenNayar r sig = mkBxDF [Reflection, Diffuse] e s cosPdf where
    sig2 = let sig' = clamp sig 0 1 in sig' * sig'
    a = 1 - (sig2 / (2 * (sig2 + 0.33)))
    b = 0.45 * sig2 / (sig2 + 0.09)

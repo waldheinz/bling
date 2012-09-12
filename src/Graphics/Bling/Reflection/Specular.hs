@@ -1,35 +1,34 @@
 
 module Graphics.Bling.Reflection.Specular (
-    mkSpecularTransmission,
-   mkSpecularReflection
+
+   specRefl, specTrans
+   
    ) where
 
+import Graphics.Bling.Reflection
 
-   | SpecTrans    !Spectrum {-# UNPACK #-} !Float {-# UNPACK #-} !Float
-   | SpecRefl     !Spectrum !Fresnel   
+--   | SpecTrans    !Spectrum {-# UNPACK #-} !Float {-# UNPACK #-} !Float
+--   | SpecRefl     !Spectrum !Fresnel   
 
-mkSpecularTransmission
+
+specRefl
+   :: Fresnel
+   -> BxDF
+specRefl fr = mkBxDF [Reflection, Specular] e s p where
+   e _ _ = black
+   p _ _ = 0
+   
+   s adj wo _ = (fr $ cosTheta wo, wi, 1) where
+      wi = mkV (-(vx wo), -(vy wo), vz wo)
+
+specTrans
    :: Spectrum    -- ^ transmitted spectrum
    -> Float       -- ^ eta incoming
    -> Float       -- ^ eta transmitted
-   -> Bxdf
-mkSpecularTransmission = SpecTrans
+   -> BxDF
+specTrans = undefined
 
-mkSpecularReflection
-   :: Spectrum 
-   -> Fresnel
-   -> Bxdf
-mkSpecularReflection = SpecRefl
-
-
-bxdfEval (SpecTrans _ _ _) _ _ = black
-bxdfEval (SpecRefl _ _) _ _ = black
-
-
-bxdfPdf (SpecTrans _ _ _) _ _ = 0
-bxdfPdf (SpecRefl _ _) _ _ = 0
-
-
+{-
 bxdfSample (SpecTrans t ei et) wo u = sampleSpecTrans False t ei et wo u
 bxdfSample (SpecRefl r fr) wo@(Vector x y z) _ = (f, wi, 1) where
       wi = Vector (-x) (-y) z
@@ -44,7 +43,7 @@ bxdfSample' a wo u = {-# SCC "bxdfSample'" #-} (sScale f (absCosTheta wo / pdf),
       pdf = bxdfPdf a wo wi
 
 
-bxdfType (SpecTrans _ _ _)    = mkBxdfType [Transmission, Specular]
+bxdfType (SpecTrans _ _ _)    = 
 bxdfType (SpecRefl _ _)       = mkBxdfType [Reflection, Specular]
 
 
@@ -74,4 +73,4 @@ sampleSpecTrans adj t ei' et' wo@(Vector wox woy _) _
       f = if adj
             then sScale f' (1 / absCosTheta wi)
             else sScale f' (((et * et) / (ei * ei)) / absCosTheta wi)
-
+-}

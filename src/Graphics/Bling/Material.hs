@@ -13,6 +13,7 @@ import Debug.Trace
 
 import Graphics.Bling.Reflection
 import Graphics.Bling.Reflection.Diffuse
+import Graphics.Bling.Reflection.Specular
 import Graphics.Bling.Texture
 
 type MaterialMap = String -> Material
@@ -54,7 +55,7 @@ mirrorMaterial
    :: SpectrumTexture -- ^ reflection color
    -> Material
 mirrorMaterial rt dgg dgs = mkBsdf' [bxdf] dgg dgs where
-   bxdf = undefined -- mkSpecularReflection r frNoOp
+   bxdf = specRefl $ frNoOp r
    r = sClamp 0 1 $ rt dgs
 
 -- | Creates a plasic @Material@ using lambertian reflection for the base

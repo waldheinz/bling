@@ -16,11 +16,11 @@ module Graphics.Bling.Reflection (
    BxdfPdf, BxdfSample, BxDF, mkBxDF,
    
    -- ** BxDF Types
-   BxdfProp(..), BxdfType, bxdfIs, mkBxdfType,
+   BxdfProp(..), BxdfType, bxdfIs,
    
    -- ** Working in shading coordinates
    
-   cosTheta, absCosTheta, sinTheta, sinPhi, cosPhi,
+   cosTheta, absCosTheta, sinTheta, sinTheta2, sinPhi, cosPhi,
    sameHemisphere, toSameHemisphere,
    
    -- * BSDF
@@ -38,7 +38,6 @@ import Data.List (foldl')
 import qualified Data.Vector as V
 
 import Graphics.Bling.DifferentialGeometry
-import Graphics.Bling.Montecarlo
 import Graphics.Bling.Random
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Texture
@@ -54,8 +53,8 @@ type Fresnel = Float -> Spectrum
 
 -- | a no-op Fresnel implementation, which always returns white
 --   @Spectrum@
-frNoOp :: Fresnel
-frNoOp = const white
+frNoOp :: Spectrum -> Fresnel
+frNoOp r = const r
 
 -- | Fresnel incidence effects for dielectrics
 frDielectric :: Float -> Float -> Fresnel
@@ -215,8 +214,8 @@ data BxDF = BxDF
    , bxdfPdf      :: ! BxdfPdf
    }
 
-mkBxDF :: BxdfType -> BxdfEval -> BxdfSample -> BxdfPdf -> BxDF
-mkBxDF = BxDF
+mkBxDF :: [BxdfProp] -> BxdfEval -> BxdfSample -> BxdfPdf -> BxDF
+mkBxDF ps e s p = BxDF (mkBxdfType ps) e s p
 
 -- | has this @BxDF@ the provided flags set?
 bxdfMatches :: BxDF -> BxdfType -> Bool

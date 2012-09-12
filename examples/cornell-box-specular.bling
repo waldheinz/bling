@@ -7,8 +7,8 @@ filter box
 renderer {
    sampler
    sampled {
-      sampler { stratified 6 6 }
-      integrator { path maxDepth 7 sampleDepth 4 }
+      sampler { stratified 3 3 }
+      integrator { path maxDepth 25 sampleDepth 4 }
    }
 }
 
@@ -17,7 +17,7 @@ renderer {
 # renderer { metropolis maxDepth 7 mpp 1 bootstrap 1000 plarge 0.25 directSamples 16 }
 # renderer { sppm photonCount 50000 maxDepth 15 radius 10 }
 # renderer { sampler sampled { sampler { random samples 32 } integrator { debug reference } } }
-renderer { light passPhotons 500000 }
+# renderer { light passPhotons 500000 }
 
 # imageSize 640 640
 # imageSize 240 240
