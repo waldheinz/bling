@@ -9,7 +9,7 @@ imageSize 640 480
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 4 ySamples 4 }
+      sampler { stratified 3 3 }
       integrator { path maxDepth 7 sampleDepth 4 }
    }
 }
@@ -41,7 +41,7 @@ newTransform { }
 
 material {
    matte
-   kd { constant rgb 0.7 0.7 0.7 }
+   kd { constant rgbR 0.7 0.7 0.7 }
    sigma { constant 0.0 }
 }
 
@@ -76,8 +76,8 @@ newTransform {
 }
 
 material { plastic
-   kd { constant rgb 0.49 0.3 0.02 }
-   ks { constant rgb 0.5 0.5 0.5 }
+   kd { constant rgbR 0.49 0.3 0.02 }
+   ks { constant rgbR 0.5 0.5 0.5 }
    rough { constant 0.2 }
 }
 
@@ -88,8 +88,8 @@ newTransform {
 }
 
 material { plastic
-   kd { constant rgb 0.3 0.02 0.4 }
-   ks { constant rgb 0.5 0.5 0.5 }
+   kd { constant rgbR 0.3 0.02 0.4 }
+   ks { constant rgbR 0.5 0.5 0.5 }
    rough { constant 0.05 }
 }
 
@@ -100,8 +100,8 @@ newTransform {
 }
 
 material { plastic
-   kd { constant rgb 0.3 0.4 0.2 }
-   ks { constant rgb 0.5 0.5 0.5 }
+   kd { constant rgbR 0.3 0.4 0.2 }
+   ks { constant rgbR 0.5 0.5 0.5 }
    rough { constant 0.0125 }
 }
 
@@ -112,8 +112,8 @@ newTransform {
 }
 
 material { plastic
-   kd { constant rgb 0.1 0.2 0.4 }
-   ks { constant rgb 0.5 0.5 0.5 }
+   kd { constant rgbR 0.1 0.2 0.4 }
+   ks { constant rgbR 0.5 0.5 0.5 }
    rough { constant 0.003125 }
 }
 
@@ -124,8 +124,8 @@ newTransform {
 }
 
 material { plastic
-   kd { constant rgb 0.3 0.15 0.01 }
-   ks { constant rgb 0.5 0.5 0.5 }
+   kd { constant rgbR 0.3 0.15 0.01 }
+   ks { constant rgbR 0.5 0.5 0.5 }
    rough { constant 0.00078125 }
 }
 
@@ -136,8 +136,8 @@ newTransform {
 }
 
 material { plastic
-   kd { constant rgb 0.01 0.4 0.35 }
-   ks { constant rgb 0.5 0.5 0.5 }
+   kd { constant rgbR 0.01 0.4 0.35 }
+   ks { constant rgbR 0.5 0.5 0.5 }
    rough { constant 0.000195312 }
 }
 

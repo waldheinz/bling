@@ -12,6 +12,7 @@ import qualified Data.Map as Map
 import Debug.Trace
 
 import Graphics.Bling.Reflection
+import Graphics.Bling.Reflection.Diffuse
 import Graphics.Bling.Texture
 
 type MaterialMap = String -> Material
@@ -43,8 +44,8 @@ glassMaterial
    -> SpectrumTexture -- ^ transmission color
    -> Material
 glassMaterial iort rt tt dgg dgs = mkBsdf' [refl, trans] dgg dgs where
-   refl = mkSpecularReflection r $ frDielectric 1 ior
-   trans = mkSpecularTransmission t 1 ior
+   refl = undefined -- mkSpecularReflection r $ frDielectric 1 ior
+   trans = undefined -- mkSpecularTransmission t 1 ior
    r = sClamp' $ rt dgs
    t = sClamp' $ tt dgs
    ior = iort dgs
@@ -53,7 +54,7 @@ mirrorMaterial
    :: SpectrumTexture -- ^ reflection color
    -> Material
 mirrorMaterial rt dgg dgs = mkBsdf' [bxdf] dgg dgs where
-   bxdf = mkSpecularReflection r frNoOp
+   bxdf = undefined -- mkSpecularReflection r frNoOp
    r = sClamp 0 1 $ rt dgs
 
 -- | Creates a plasic @Material@ using lambertian reflection for the base
@@ -65,11 +66,10 @@ mkPlastic
    -> Material
 mkPlastic kd ks kr dgg dgs = mkBsdf' [diff, spec] dgg dgs where
    diff = mkLambertian rd
-   spec = mkMicrofacet (mkBlinn (1 / rough)) (frDielectric 1.0 1.5) rs
+   spec = undefined -- mkMicrofacet (mkBlinn (1 / rough)) (frDielectric 1.0 1.5) rs
    rough = kr dgs
    rd = kd dgs
    rs = ks dgs
-   
 
 -- | Creates a Metal @Material@
 mkMetal
@@ -79,7 +79,7 @@ mkMetal
    -> Material
 mkMetal eta k rough dgg dgs = mkBsdf' [spec] dgg dgs where
    fr = frConductor (eta dgs) (k dgs)
-   spec = mkMicrofacet (mkBlinn (1 / rough dgs)) fr white
+   spec = undefined -- mkMicrofacet (mkBlinn (1 / rough dgs)) fr white
 
 mkShinyMetal
    :: SpectrumTexture -- ^ kr
@@ -87,8 +87,8 @@ mkShinyMetal
    -> ScalarTexture -- ^ roughness
    -> Material
 mkShinyMetal kr ks rough dgg dgs = mkBsdf' [r, s] dgg dgs where
-   r = mkMicrofacet (mkBlinn (1 / rough dgs)) frMf white
-   s = mkSpecularReflection white frSr
+   r = undefined --mkMicrofacet (mkBlinn (1 / rough dgs)) frMf white
+   s = undefined --mkSpecularReflection white frSr
    frMf = frConductor (approxEta $ ks dgs) black
    frSr = frConductor (approxEta $ kr dgs) black
 
@@ -103,8 +103,8 @@ mkSubstrate
    -> ScalarTexture
    -> Material
 mkSubstrate kd ks tur tvr dgg dgs = mkBsdf' [brdf] dgg dgs where
-   brdf = mkFresnelBlend rd rs dist
-   dist = mkAnisotropic (1 / u) (1 / v)
+   brdf = undefined -- mkFresnelBlend rd rs dist
+   dist = undefined -- mkAnisotropic (1 / u) (1 / v)
    u = tur dgs
    v = tvr dgs
    rd = sClamp 0 1 $ kd dgs

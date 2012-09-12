@@ -9,19 +9,19 @@ module Graphics.Bling.Reflection (
    
    -- * Fresnel incidence effects
    
-   Fresnel, frDielectric, frConductor, frNoOp, mkFresnelBlend,
-   
-   -- * Microfacet Distribution based BRDF
-   
-   mkMicrofacet, Distribution, mkBlinn, mkAnisotropic,
+   Fresnel, frDielectric, frConductor, frNoOp,
    
    -- * BxDF Functions
-
-   Bxdf,  mkLambertian, mkOrenNayar, mkSpecularTransmission,
-   mkSpecularReflection,
+   
+   BxdfPdf, BxdfSample, BxDF, mkBxDF,
    
    -- ** BxDF Types
    BxdfProp(..), BxdfType, bxdfIs, mkBxdfType,
+   
+   -- ** Working in shading coordinates
+   
+   cosTheta, absCosTheta, sinTheta, sinPhi, cosPhi,
+   sameHemisphere, toSameHemisphere,
    
    -- * BSDF
    
@@ -42,8 +42,6 @@ import Graphics.Bling.Montecarlo
 import Graphics.Bling.Random
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Texture
-
-import Debug.Trace
 
 -- | a material can turn a geometric DG and a shading DG into a BSDF
 type Material = DifferentialGeometry -> DifferentialGeometry -> Bsdf
@@ -166,15 +164,15 @@ bxdfIs' :: BxdfType -> BxdfType -> Bool
 {-# INLINE bxdfIs' #-}
 bxdfIs' t1 t2 = ((unBxdfType t1) .&. (unBxdfType t2)) == (unBxdfType t1)
 
-isReflection :: Bxdf -> Bool
+isReflection :: BxDF -> Bool
 {-# INLINE isReflection #-}
 isReflection b = bxdfIs (bxdfType b) Reflection
 
-isTransmission :: Bxdf -> Bool
+isTransmission :: BxDF -> Bool
 {-# INLINE isTransmission #-}
 isTransmission b = bxdfIs (bxdfType b) Transmission
 
-isSpecular :: Bxdf -> Bool
+isSpecular :: BxDF -> Bool
 {-# INLINE isSpecular #-}
 isSpecular b = bxdfIs (bxdfType b) Specular
 
@@ -203,173 +201,25 @@ bxdfAll :: BxdfType
 bxdfAll = combineBxdfType bxdfAllReflection bxdfAllTransmission
 
 --------------------------------------------------------------------------------
--- The BxDFs
+-- BxDF
 --------------------------------------------------------------------------------
 
-data Bxdf
-   = Lambertian   !Spectrum
-   | OrenNayar    !Spectrum {-# UNPACK #-} !Float {-# UNPACK #-} !Float
-   | FresnelBlend !Spectrum !Spectrum !Distribution
-   | Microfacet   !Distribution !Fresnel !Spectrum
-   | SpecTrans    !Spectrum {-# UNPACK #-} !Float {-# UNPACK #-} !Float
-   | SpecRefl     !Spectrum !Fresnel
-   
-mkLambertian :: Spectrum -> Bxdf
-mkLambertian r = Lambertian $ r
+type BxdfEval     = Vector -> Vector -> Spectrum
+type BxdfSample   = Bool -> Vector -> Rand2D -> (Spectrum, Vector, Float)
+type BxdfPdf      = Vector -> Vector -> Float
 
--- Creates an Oren Nayar BxDF
-mkOrenNayar
-   :: Spectrum -- ^ the reflectance
-   -> Float      -- ^ sigma, should be in [0..1] and is clamped otherwise
-   -> Bxdf
-mkOrenNayar r sig = OrenNayar r a b where
-   sig' = clamp sig 0 1
-   sig2 = sig' * sig'
-   a = 1 - (sig2 / (2 * (sig2 + 0.33)))
-   b = 0.45 * sig2 / (sig2 + 0.09)
+data BxDF = BxDF
+   { bxdfType     :: {-# UNPACK #-} !BxdfType
+   , bxdfEval     :: ! BxdfEval
+   , bxdfSample   :: ! BxdfSample
+   , bxdfPdf      :: ! BxdfPdf
+   }
 
-mkFresnelBlend :: Spectrum -> Spectrum -> Distribution -> Bxdf
-mkFresnelBlend = FresnelBlend
-
-mkMicrofacet :: Distribution -> Fresnel -> Spectrum -> Bxdf
-mkMicrofacet = Microfacet
-
-mkSpecularTransmission
-   :: Spectrum    -- ^ transmitted spectrum
-   -> Float       -- ^ eta incoming
-   -> Float       -- ^ eta transmitted
-   -> Bxdf
-mkSpecularTransmission = SpecTrans
-
-mkSpecularReflection
-   :: Spectrum 
-   -> Fresnel
-   -> Bxdf
-mkSpecularReflection = SpecRefl
-
-bxdfEval :: Bxdf -> Vector -> Vector -> Spectrum
-bxdfEval (Lambertian r) wo _ = sScale r $ invPi * absCosTheta wo
-bxdfEval (OrenNayar r a b) wo wi = r' where
-   r' = sScale r (invPi * (a + b * maxcos * sina * tanb))
-   (sina, tanb) = if absCosTheta wi > absCosTheta wo
-                     then (sinto, sinti / absCosTheta wi)
-                     else (sinti, sinto / absCosTheta wo)
-   (sinti, sinto) = (sinTheta wi, sinTheta wo)
-   maxcos
-      | sinti > 1e-4 && sinto > 1e-4 =
-         let
-            (sinpi, cospi) = (sinPhi wi, cosPhi wi)
-            (sinpo, cospo) = (sinPhi wo, cosPhi wo)
-            dcos = cospi * cospo + sinpi * sinpo
-         in max 0 dcos
-      | otherwise = 0
-
-bxdfEval (FresnelBlend rd rs d) wo wi
-   | vx wh' == 0 && vy wh' == 0 && vz wh' == 0 = black
-   | otherwise = diff + spec
-   where
-      costi = absCosTheta wi
-      costo = absCosTheta wo
-      wh' = wi + wo
-      wh = normalize $ wh'
-      diff = sScale (rd * (white - rs)) $ (28 / 23 * pi) *
-               (1 - ((1 - 0.5 * costi) ** 5)) *
-               (1 - ((1 - 0.5 * costo) ** 5))
-
-      spec = sScale schlick $ mfDistD d wh / (4 * wi `absDot` wh) * (max costi costo)
-      cost = wi `dot` wh
-      schlick = rs + sScale (white - rs) ((1 - cost) ** 5)
-
-bxdfEval (Microfacet d fresn r) wo wi
-   | costi == 0 || costo == 0 = black
-   | vx wh' == 0 && vy wh' == 0 && vz wh' == 0 = black
-   | otherwise = sScale (r * fresn costh) x
-   where
-      x = mfDistD d wh * mfG wo wi wh / (4 * costi * costo)
-      costo = absCosTheta wo
-      costi = absCosTheta wi
-      wh' = wi + wo
-      wh = normalize $ wh'
-      costh = wi `dot` wh
-
-bxdfEval (SpecTrans _ _ _) _ _ = black
-bxdfEval (SpecRefl _ _) _ _ = black
-
-bxdfPdf :: Bxdf -> Vector -> Vector -> Float
-bxdfPdf (FresnelBlend _ _ d) wo wi
-   | sameHemisphere wo wi = 0.5 * (absCosTheta wi * invPi + mfDistPdf d wo wi)
-   | otherwise = 0
-
-bxdfPdf (Microfacet d _ _) wo wi 
-   | sameHemisphere wo wi = mfDistPdf d wo wi
-   | otherwise = 0
-
-bxdfPdf (SpecTrans _ _ _) _ _ = 0
-bxdfPdf (SpecRefl _ _) _ _ = 0
-
-bxdfPdf _ wo wi
-   | sameHemisphere wo wi = invPi * absCosTheta wi
-   | otherwise = 0
-
-bxdfSample :: Bxdf -> Vector -> Rand2D -> (Spectrum, Normal, Float)
-
-bxdfSample l@(Lambertian r) wo u
-   | otherwise = (r, wi, pdf)
---   | sameHemisphere wo wi = (r, wi, pdf)
---   | otherwise = (black, wo, 0)
-   where
-      wi = toSameHemisphere wo (cosineSampleHemisphere u)
-      pdf = bxdfPdf l wo wi
-
-bxdfSample fb@(FresnelBlend _ _ d) wo (u1, u2) = (f, wi, pdf) where
-   pdf = bxdfPdf fb wo wi
-   f = bxdfEval fb wo wi
-   wi = if u1 < 0.5
-           then toSameHemisphere wo $ cosineSampleHemisphere (u1 * 2, u2)
-           else snd $ mfDistSample d (2 * (u1 - 0.5), u2) wo
-bxdfSample mf@(Microfacet d _ _) wo dirU
-   | sameHemisphere wo wi = (f, wi, pdf)
-   | otherwise = (black, wo, 0)
-   where
-         f = bxdfEval mf wo wi
-         (pdf, wi) = mfDistSample d dirU wo
-bxdfSample (SpecTrans t ei et) wo u = sampleSpecTrans False t ei et wo u
-bxdfSample (SpecRefl r fr) wo@(Vector x y z) _ = (f, wi, 1) where
-      wi = Vector (-x) (-y) z
-      f = sScale (r * fr (cosTheta wo)) (1 / absCosTheta wi)
-
-bxdfSample bxdf wo u = (sScale f (absCosTheta wi), wi, pdf) where
-   wi = toSameHemisphere wo (cosineSampleHemisphere u)
-   f = bxdfEval bxdf wi wo
-   pdf = bxdfPdf bxdf wo wi
-
-bxdfSample' :: Bxdf -> Vector -> Rand2D -> (Spectrum, Normal, Float)
-bxdfSample' l@(Lambertian r) wo u
-   | sameHemisphere wo wi = (sScale r (abs $ cosTheta wo / cosTheta wi), wi, pdf)
-   | otherwise = (black, wo, 0)
-   where
-      wi = toSameHemisphere wo (cosineSampleHemisphere u)
-      pdf = bxdfPdf l wo wi
-      
-bxdfSample' fb@(FresnelBlend _ _ _) wo u = bxdfSample fb wo u
-bxdfSample' mf@(Microfacet _ _ _) wo u = bxdfSample mf wo u
-bxdfSample' (SpecTrans t ei et) wo u = sampleSpecTrans True t ei et wo u
-bxdfSample' sr@(SpecRefl _ _) wo u = bxdfSample sr wo u
-bxdfSample' a wo u = {-# SCC "bxdfSample'" #-} (sScale f (absCosTheta wo / pdf), wi, pdf) where
-      wi = toSameHemisphere wo (cosineSampleHemisphere u)
-      f = bxdfEval a wo wi
-      pdf = bxdfPdf a wo wi
-
-bxdfType :: Bxdf -> BxdfType
-bxdfType (Lambertian _)       = mkBxdfType [Reflection, Diffuse]
-bxdfType (OrenNayar _ _ _)    = mkBxdfType [Reflection, Diffuse]
-bxdfType (FresnelBlend _ _ _) = mkBxdfType [Reflection, Glossy]
-bxdfType (Microfacet _ _ _)   = mkBxdfType [Reflection, Glossy]
-bxdfType (SpecTrans _ _ _)    = mkBxdfType [Transmission, Specular]
-bxdfType (SpecRefl _ _)       = mkBxdfType [Reflection, Specular]
+mkBxDF :: BxdfType -> BxdfEval -> BxdfSample -> BxdfPdf -> BxDF
+mkBxDF = BxDF
 
 -- | has this @BxDF@ the provided flags set?
-bxdfMatches :: Bxdf -> BxdfType -> Bool
+bxdfMatches :: BxDF -> BxdfType -> Bool
 bxdfMatches bxdf flags = bxdfIs' (bxdfType bxdf) flags
 
 --------------------------------------------------------------------------------
@@ -377,7 +227,7 @@ bxdfMatches bxdf flags = bxdfIs' (bxdfType bxdf) flags
 --------------------------------------------------------------------------------
 
 data Bsdf = Bsdf
-   { bsdfComponents  :: ! (V.Vector Bxdf) -- ^ BxDFs the BSDF is composed of
+   { bsdfComponents  :: ! (V.Vector BxDF) -- ^ BxDFs the BSDF is composed of
    , _bsdfCs         :: {-# UNPACK #-} ! LocalCoordinates -- ^ shading coordinate system
    , _bsdfP          :: {-# UNPACK #-} ! Point
    , bsdfNg          :: {-# UNPACK #-} ! Normal -- ^ geometric normal
@@ -385,7 +235,7 @@ data Bsdf = Bsdf
 
 -- | creates a BSDF
 mkBsdf
-   :: [Bxdf] -- ^ the BxDFs that constitute the BSDF
+   :: [BxDF] -- ^ the BxDFs that constitute the BSDF
    -> DifferentialGeometry -- ^ the differential geometry for shading
    -> Normal -- ^ the normal from the geometry
    -> Bsdf
@@ -396,7 +246,7 @@ mkBsdf bs dgs ng = Bsdf (V.fromList bs) cs (dgP dgs) ng where
    tn = nn `cross` sn
 
 mkBsdf'
-   :: [Bxdf]
+   :: [BxDF]
    -> DifferentialGeometry -- ^ the geometric differential geometry
    -> DifferentialGeometry -- ^ the differential geometry for shading
    -> Bsdf
@@ -455,10 +305,10 @@ sampleAdjBsdf' = {-# SCC "sampleAdjBsdf'" #-} sampleBsdf'' True
 
 sampleBsdf'' :: Bool -> BxdfType -> Bsdf -> Vector -> Float -> Rand2D -> BsdfSample
 {-# INLINE sampleBsdf'' #-}
-sampleBsdf'' adj flags bsdf@(Bsdf bs cs _ ng) woW uComp uDir
---   | V.null bsm || pdf' == 0 || sideTest == 0 = emptyBsdfSample
---   | isSpecular bxdf = BsdfSample t (pdf' / fromIntegral cntm) (sScale f' ff) wiW
-   | otherwise = BsdfSample t 1 (sScale f ff) wiW where
+sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
+   | V.null bsm || pdf' == 0 || sideTest == 0 = emptyBsdfSample
+   | isSpecular bxdf = BsdfSample t (pdf' / fromIntegral cntm) (fAdj fSample) wiW
+   | otherwise = BsdfSample t pdf (fAdj fSum) wiW where
       wo = worldToLocal cs woW
       
       -- choose BxDF to sample
@@ -468,7 +318,7 @@ sampleBsdf'' adj flags bsdf@(Bsdf bs cs _ ng) woW uComp uDir
       bxdf = V.unsafeIndex bsm sNum
       
       -- sample chosen BxDF
-      (f', wi, pdf') = (if adj then bxdfSample' else bxdfSample) bxdf wo uDir
+      (fSample, wi, pdf') = bxdfSample bxdf adj wo uDir
       wiW = localToWorld cs wi
       
       -- overall PDF
@@ -479,13 +329,12 @@ sampleBsdf'' adj flags bsdf@(Bsdf bs cs _ ng) woW uComp uDir
       
       -- throughput for sampled direction
       sideTest = wiW `dot` ng / woW `dot` ng
-      flt = if sideTest < 0 then traceShow sideTest $ isTransmission else isReflection
-      f = f' -- V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bsm -- bs' ?!
+      flt = if sideTest < 0 then isTransmission else isReflection
+      fSum = fSample + (V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bs')
       t = bxdfType bxdf
       
       -- correct throughput for adjoint
-      ns = bsdfShadingNormal bsdf
-      ff = if adj then abs sideTest else 1
+      fAdj ff = if adj then sScale ff (abs sideTest) else ff
 
 evalBsdf :: Bool -> Bsdf -> Vector -> Vector -> Spectrum
 evalBsdf adj (Bsdf bxdfs cs _ ng) woW wiW
@@ -505,127 +354,6 @@ emptyBsdfSample = BsdfSample (mkBxdfType [Reflection, Diffuse]) 0 black (Vector 
 
 blackBodyMaterial :: Material
 blackBodyMaterial dgg dgs = mkBsdf [] dgs (dgN dgg)
-
---------------------------------------------------------------------------------
--- Specular Reflection / Transmission 
---------------------------------------------------------------------------------
-
-sampleSpecTrans :: Bool -> Spectrum -> Float -> Float
-   -> Vector -> (Float, Float) -> (Spectrum, Vector, Float)
-sampleSpecTrans adj t ei' et' wo@(Vector wox woy _) _
-   | sint2 >= 1 = (black, wo, 0) -- total internal reflection
-   | otherwise = (f, wi, 1)
-   where
-      -- find out which eta is incident / transmitted
-      entering = cosTheta wo > 0
-      (ei, et) = if entering then (ei', et') else (et', ei')
-
-      -- find transmitted ray direction
-      sini2 = sinTheta2 wo
-      eta = ei / et
-      sint2 = eta * eta * sini2
-      cost = let x =  sqrt $ max 0 (1 - sint2)
-                in if entering then (-x) else x
-      wi = mkV (eta * (-wox), eta * (-woy), cost)
-      fr = frDielectric ei et $ cosTheta wo
-      f' = (white - fr) * t
-      f = if adj
-            then sScale f' (1 / absCosTheta wi)
-            else sScale f' (((et * et) / (ei * ei)) / absCosTheta wi)
-
---------------------------------------------------------------------------------
--- Microfacet Distributions
---------------------------------------------------------------------------------
-
-mfG :: Vector -> Vector -> Vector -> Float
-mfG wo wi wh = min 1 $ min
-      (2 * nDotWh * nDotWo / woDotWh)
-      (2 * nDotWh * nDotWi / woDotWh) where
-         nDotWh = absCosTheta wh
-         nDotWo = absCosTheta wo
-         nDotWi = absCosTheta wi
-         woDotWh = wo `absDot` wh
-
-data Distribution
-   = Blinn        {-# UNPACK #-} !Float -- ^ e
-   | Anisotropic  {-# UNPACK #-} !Float {-# UNPACK #-} !Float -- ^ ex and ey
-
--- | fixes the exponent for microfacet distribution to a usable range
-fixExponent :: Float -> Float
-fixExponent e = if e > 10000 || isNaN e then 10000 else e
-
--- | create a Blinn microfacet distribution
-mkBlinn
-   :: Float -- ^ the exponent in [0..10000]
-   -> Distribution
-mkBlinn e = Blinn $ fixExponent e
-
-mkAnisotropic :: Float -> Float -> Distribution
-mkAnisotropic ex ey = Anisotropic (fixExponent ex) (fixExponent ey)
-
-mfDistPdf :: Distribution -> Vector -> Vector -> Float
-mfDistPdf (Anisotropic ex ey) wo wi
-   | ds > 0 && wo `dot` wh > 0 = d / (4 * (wo `dot` wh))
-   | otherwise = 0
-   where
-      wh = normalize $ wo + wi
-      costh = absCosTheta wh
-      ds = 1 - costh * costh
-      (whx, why) = (vx wh, vy wh)
-      e = (ex * whx * whx + ey * why * why) / ds
-      d = sqrt ((ex + 1) * (ey + 1)) * invTwoPi * (costh ** e)
-      
-mfDistPdf (Blinn e) wo wi = (e + 2) * (cost ** e) / (2 * pi * 4 * dot wo h) where
-   h@(Vector _ _ hz) = normalize $ wo + wi
-   cost = abs hz
-   
-mfDistSample :: Distribution -> Rand2D -> Vector -> (Float, Vector)
-
-mfDistSample (Anisotropic ex ey) (u1, u2) wo
-   | ds > 0 && wo `dot` wh > 0 = (d / (4 * wo `dot` wh), wi)
-   | otherwise = (0, wi)
-   where
-      wi = -wo + (wh * (vpromote $ 2 * (wo `dot` wh)))
-      wh' = sphericalDirection sint cost phi
-      wh = if sameHemisphere wo wh' then wh' else -wh'
-      sint = sqrt $ max 0 (1 - cost * cost)
-      ds = 1 - cost * cost
-      d = sqrt ((ex + 1) * (ey + 1)) * invTwoPi * (cost ** e)
-      (whx, why) = (vx wh, vy wh)
-      e = (ex * whx * whx + ey * why * why) / ds
-      
-      (phi, cost)
-         | u1 < 0.25 = smpFirstQuadrand (4 * u1) id
-         | u1 < 0.50 = smpFirstQuadrand (4 * (0.5 - u1)) (\x -> pi - x)
-         | u1 < 0.75 = smpFirstQuadrand (4 * (u1 - 0.5)) (\x -> x + pi)
-         | otherwise = smpFirstQuadrand (4 * (1 - u1)) (\x -> twoPi - x)
-         
-      smpFirstQuadrand u1' rsmp = (rsmp p, c) where
-         p = if ex == ey
-                then pi * u1' * 0.5
-                else atan $ (sqrt $ (ex + 1) / (ey + 1)) * tan (pi * u1' * 0.5)
-         (cp, sp) = (cos p, sin p)
-         c = u2 ** (1 / (ex * cp * cp + ey * sp * sp + 1))
-      
-mfDistSample (Blinn e) (u1, u2) wo = (pdf, wi) where
-   pdf = (e + 2) * (cost ** e) / (2 * pi * 4 * dot wo h) -- possible divide by zero?
-   wi = (-wo) + (h * vpromote (2 * dot h wo))
-   h = toSameHemisphere wo $ sphericalDirection sint cost phi
-   cost = u1 ** (1 / (e + 1))
-   sint = sqrt $ max 0 (1 - cost * cost)
-   phi = u2 * 2 * pi
-
-mfDistD :: Distribution -> Vector -> Float
-mfDistD (Anisotropic ex ey) wh
-   | d == 0 = 0
-   | otherwise = sqrt ((ex + 2) * (ey + 2)) * invTwoPi * (costh ** e)
-   where
-      costh = absCosTheta wh
-      d = 1 - costh * costh
-      (whx, why) = (vx wh, vy wh)
-      e = (ex * whx * whx + ey * why * why) / d
-mfDistD (Blinn e) wh = (e + 2) * invTwoPi * (costh ** e) where
-   costh = absCosTheta wh
 
 --------------------------------------------------------------------------------
 -- Bump Mapping

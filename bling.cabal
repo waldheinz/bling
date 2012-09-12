@@ -49,7 +49,7 @@ Library
       Graphics.Bling.Montecarlo,
       Graphics.Bling.Primitive,
       Graphics.Bling.Random,
-      Graphics.Bling.Reflection,
+
       Graphics.Bling.Rendering,
       Graphics.Bling.Sampling,
       Graphics.Bling.Scene,
@@ -83,6 +83,8 @@ Library
       Graphics.Bling.Primitive.Geometry,
       Graphics.Bling.Primitive.KdTree,
       Graphics.Bling.Primitive.TriangleMesh,
+      Graphics.Bling.Reflection,
+      Graphics.Bling.Reflection.Diffuse,
       Graphics.Bling.Renderer.Metropolis,
       Graphics.Bling.Renderer.SPPM,
       Graphics.Bling.Utils

@@ -8,13 +8,13 @@ filter box
 renderer {
    sampler
    sampled {
-      sampler { stratified 8 8 }
+      sampler { stratified 2 2 }
       integrator { path maxDepth 25 sampleDepth 3 }
    }
 }
 
 # renderer { sampler sampled { sampler { random samples 3 } integrator { path maxDepth 1 sampleDepth 1 } } }
-# renderer { light passPhotons 100000 }
+renderer { light passPhotons 100000 }
 # renderer { metropolis maxDepth 10 mpp 1 bootstrap 1000 plarge 0.25 directSamples 4 }
 # renderer { sampler sampled { sampler { stratified 5 5 } integrator { bidir maxDepth 10 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
@@ -69,7 +69,7 @@ material {
       664 0.703, 668 0.729, 672 0.750, 676 0.760, 680 0.751, 684 0.739,
       688 0.724, 692 0.730, 696 0.740, 700 0.737
    }}
-   sigma { constant 0 }
+   sigma { constant 0.5 }
 }
 
 #
@@ -126,7 +126,7 @@ prim {
 prim {
    mesh
    vertexCount 20
-   faceCount 0
+   faceCount 5
    v 130.0 165.0  65.0
    v  82.0 165.0 225.0
    v 240.0 165.0 272.0
@@ -147,11 +147,11 @@ prim {
    v 240.0 165.0 272.0
    v  82.0 165.0 225.0
    v  82.0   0.0 225.0
-#   f 3 2 1 0
-#   f 7 6 5 4
-#   f 11 10 9 8
-#   f 15 14 13 12
-#   f 19 18 17 16
+   f 3 2 1 0
+   f 7 6 5 4
+   f 11 10 9 8
+   f 15 14 13 12
+   f 19 18 17 16
 }
 
 #
@@ -164,7 +164,7 @@ prim {
 prim {
    mesh
    vertexCount 20
-   faceCount 0
+   faceCount 5
    v 423.0 330.0 247.0
    v 265.0 330.0 296.0
    v 314.0 330.0 456.0
@@ -185,11 +185,11 @@ prim {
    v 265.0 330.0 296.0
    v 423.0 330.0 247.0
    v 423.0   0.0 247.0
-#   f 3 2 1 0
-#   f 7 6 5 4
-#   f 11 10 9 8
-#   f 15 14 13 12
-#   f 19 18 17 16
+   f 3 2 1 0
+   f 7 6 5 4
+   f 11 10 9 8
+   f 15 14 13 12
+   f 19 18 17 16
 }
 
 #
@@ -197,14 +197,14 @@ prim {
 #
 
 material {
-   bumpMap
-   bump {
-      scale 15 tex {
-         fbm octaves 8 omega 0.5 map {
-            identity { scale 0.01 0.01 0.01 }
-         }
-      }
-   }
+#   bumpMap
+#   bump {
+#      scale 5 tex {
+#         fbm octaves 8 omega 0.5 map {
+#            identity { scale 0.05 0.05 0.05 }
+#         }
+#      }
+#   }
    
    matte
    kd { constant spd {
