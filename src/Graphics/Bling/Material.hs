@@ -45,8 +45,8 @@ glassMaterial
    -> SpectrumTexture -- ^ transmission color
    -> Material
 glassMaterial iort rt tt dgg dgs = mkBsdf' [refl, trans] dgg dgs where
-   refl = undefined -- mkSpecularReflection r $ frDielectric 1 ior
-   trans = undefined -- mkSpecularTransmission t 1 ior
+   refl = specRefl $ frDielectric 1 ior
+   trans = specTrans t 1 ior
    r = sClamp' $ rt dgs
    t = sClamp' $ tt dgs
    ior = iort dgs

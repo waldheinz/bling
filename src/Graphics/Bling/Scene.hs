@@ -59,9 +59,9 @@ lightPower s = V.sum $ V.map (\l -> L.power l (worldBounds s)) (sceneLights s)
 -- Sampling Scene Light Sources
 --------------------------------------------------------------------------------
 
-sampleLightMis :: Scene -> LightSample -> Bsdf -> Vector -> Normal -> Spectrum
+sampleLightMis :: Scene -> LightSample -> Bsdf -> Vector -> Spectrum
 {-# INLINE sampleLightMis #-}
-sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n
+sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo
    | lpdf == 0 || isBlack li || isBlack f || occluded scene ray = black
    | delta = sScale (f * li) (1 / lpdf)
    | otherwise = sScale (f * li) (weight / lpdf)
@@ -69,9 +69,9 @@ sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo n
          f = evalBsdf False bsdf wo wi
          weight = powerHeuristic (1, lpdf) (1, bsdfPdf bsdf wo wi)
 
-sampleBsdfMis :: Scene -> Light -> BsdfSample -> Normal -> Point -> Float -> Spectrum
+sampleBsdfMis :: Scene -> Light -> BsdfSample -> Point -> Float -> Spectrum
 {-# INLINE sampleBsdfMis #-}
-sampleBsdfMis (Scene _ sp _ _) l (BsdfSample _ bPdf f wi) n p epsilon
+sampleBsdfMis (Scene _ sp _ _) l (BsdfSample _ bPdf f wi) p epsilon
    | bPdf == 0  || isBlack f = black
    | isJust lint = maybe black ff $ intLight (fromJust lint)
    | otherwise = sc (le l ray)
@@ -94,8 +94,8 @@ estimateDirect
    -> Spectrum
 {-# INLINE estimateDirect #-}
 estimateDirect s l p eps n wo bsdf smp = ls + bs where
-   ls = {-# SCC "estimateDirect.light" #-} sampleLightMis s (sample l p eps n $ ulDir smp) bsdf wo n
-   bs = {-# SCC "estimateDirect.bsdf"  #-} sampleBsdfMis s l (sampleBsdf bsdf wo uBC uBD) n p eps
+   ls = {-# SCC "estimateDirect.light" #-} sampleLightMis s (sample l p eps n $ ulDir smp) bsdf wo
+   bs = {-# SCC "estimateDirect.bsdf"  #-} sampleBsdfMis s l (sampleBsdf bsdf wo uBC uBD) p eps
    uBC = uBsdfComp smp
    uBD = uBsdfDir smp
       

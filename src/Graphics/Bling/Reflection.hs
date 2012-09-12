@@ -16,7 +16,7 @@ module Graphics.Bling.Reflection (
    BxdfPdf, BxdfSample, BxDF, mkBxDF,
    
    -- ** BxDF Types
-   BxdfProp(..), BxdfType, bxdfIs,
+   BxdfProp(..), BxdfType, bxdfIs, mkBxdfType,
    
    -- ** Working in shading coordinates
    
@@ -306,7 +306,7 @@ sampleBsdf'' :: Bool -> BxdfType -> Bsdf -> Vector -> Float -> Rand2D -> BsdfSam
 {-# INLINE sampleBsdf'' #-}
 sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
    | V.null bsm || pdf' == 0 || sideTest == 0 = emptyBsdfSample
-   | isSpecular bxdf = BsdfSample t (pdf' / fromIntegral cntm) (fAdj fSample) wiW
+   | isSpecular bxdf = BsdfSample t (pdf' / fromIntegral cntm) (sScale (fAdj fSample) $ fromIntegral cntm) wiW
    | otherwise = BsdfSample t pdf (fAdj fSum) wiW where
       wo = worldToLocal cs woW
       
