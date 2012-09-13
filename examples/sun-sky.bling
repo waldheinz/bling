@@ -6,7 +6,7 @@ filter mitchell 3 3 0.333333 0.333333
 # filter box
 filter triangle 2 2
 
-imageSize 640 480
+imageSize 640 360
 
 renderer {
    sampler
@@ -15,6 +15,9 @@ renderer {
       integrator { path maxDepth 7 sampleDepth 4 }
    }
 }
+
+# renderer { light passPhotons 100000 }
+renderer { sppm photonCount 50000 maxDepth 10 radius 0.2 }
 
 transform {
    lookAt {
@@ -31,7 +34,7 @@ camera {
    focalDistance 7
 }
 
-camera { environment }
+# camera { environment }
 
 light { infinite { rotateX -90 }
    l {
@@ -60,7 +63,7 @@ material {
    rough { constant 0.001 }
 }
 
-prim { shape { quad 50 50 } }
+prim { shape { quad 10 10 } }
 # mesh vertexCount 4 faceCount 1 v  50.0 0.0 -50.0 v -50.0 0.0 -50.0 v -50.0 0.0  50.0 v  50.0 0.0  50.0 f 3 2 1 0 }
 
 #

@@ -197,8 +197,8 @@ sample' (Infinite rmap _ dist w2l) bounds uo ud
       (worldCenter, worldRad) = boundingSphere bounds
       (LocalCoordinates v1 v2 _) = coordinateSystem (-d)
       (d1, d2) = concentricSampleDisk uo
-      pDisk = worldCenter + vpromote worldRad * (vpromote d1 * v1 + vpromote d2 * v2)
-      ray = Ray (pDisk + vpromote worldRad * (-d)) d 0 infinity
+      pDisk = worldCenter + worldRad *# (d1 *# v1 + d2 *# v2)
+      ray = Ray (pDisk + worldRad *# (d)) (-d) 0 infinity
       -- find PDF
       sint = sphSinTheta sphDir
       pdDir = pdMap / (2 * pi * pi * sint)
