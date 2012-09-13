@@ -93,7 +93,7 @@ light { infinite { rotateX -90 } l { rgbeFile "envmaps/studio015.hdr" } }
 
 
 #
-# Titanium Dioxide (TiO2) (left)
+# Titanium Dioxide (TiO2) (bottom left)
 #
 
 newTransform { translate -2.5 2 -5 }
@@ -132,7 +132,7 @@ material {
          899.709961 0.000000
       }
    }
-   rough { constant 0.01 }
+   rough { constant 0.0005 }
 }
 
 prim { shape { sphere radius 2 } }
@@ -294,7 +294,7 @@ prim { shape { sphere radius 2 } }
 
 
 #
-# Vanadium (far right)
+# Vanadium (bottom right)
 #
 
 newTransform { translate 2.5 2 -5 }
@@ -329,7 +329,7 @@ material {
          885.570984 3.220000
       }
    }
-   rough { constant 0.01 }
+   rough { constant 0.001 }
 }
 
 prim { shape { sphere radius 2 } }

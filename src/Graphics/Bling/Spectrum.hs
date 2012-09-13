@@ -15,7 +15,7 @@ module Graphics.Bling.Spectrum (
    
    isBlack, sNaN, sInfinite,
    xyzToRgb,  toRGB, fromSpd, sConst, sBlackBody, sY,
-   sScale, sPow, sClamp, sClamp', sSqrt, chromaticityToXYZ,
+   sScale, sPow, sExp, sClamp, sClamp', sSqrt, chromaticityToXYZ,
    spectrumToXYZ, xyzToSpectrum
    
    ) where
@@ -353,11 +353,14 @@ spectrumToXYZ s = scale $ V.foldl' (\(a, b, c) (v, x, y, z) -> (a + x * v, b + y
    scale (x, y, z) = (x / spectrumCieYSum, y / spectrumCieYSum, z / spectrumCieYSum)
 
 xyzToSpectrum :: (Float, Float, Float) -> Spectrum
-xyzToSpectrum (x, y, z) =
-   sScale spectrumCieX x +
-   sScale spectrumCieY y +
-   sScale spectrumCieZ z
-
+xyzToSpectrum = rgbToSpectrumIllum . xyzToRgb
+{-
+xyzToSpectrum (x, y, z) = 
+   sScale spectrumCieX (x / spectrumCieYSum) +
+   sScale spectrumCieY (y / spectrumCieYSum) +
+   sScale spectrumCieZ (z / spectrumCieYSum)
+  -}
+   
 toRGB :: Spectrum -> (Float, Float, Float)
 {-# INLINE toRGB #-}
 toRGB (Spectrum v) = (v V.! 0, v V.! 1,  v V.! 2)
@@ -432,6 +435,10 @@ sPow (Spectrum vc) (Spectrum ve) = Spectrum (V.zipWith p' vc ve) where
    p' c e
       | c > 0 = c ** e
       | otherwise = 0
+
+sExp :: Spectrum -> Spectrum
+{-# INLINE sExp #-}
+sExp (Spectrum vc) = Spectrum $ V.map exp vc
 
 -- | The spectrum of a black body emitter
 sBlackBody

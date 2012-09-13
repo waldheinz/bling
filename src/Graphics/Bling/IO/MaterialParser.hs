@@ -50,9 +50,11 @@ pSubstrateMaterial :: JobParser Material
 pSubstrateMaterial = do
    kd <- pSpectrumTexture "kd"
    ks <- pSpectrumTexture "ks"
+   ka <- pSpectrumTexture "ka"
    urough <- pScalarTexture "urough"
    vrough <- pScalarTexture "vrough"
-   return $! mkSubstrate kd ks urough vrough
+   depth <- pScalarTexture "depth"
+   return $! mkSubstrate kd ks ka urough vrough depth
 
 pGlass :: JobParser Material
 pGlass = do
@@ -138,9 +140,10 @@ pScalarTexture = namedBlock $
          return $! quasiCrystal o m
       
       "scale" -> do
+         a <- flt
          s <- flt
          t <- pScalarTexture "tex"
-         return $! scaleTexture s t
+         return $! scaleTexture a s t
       
       _ -> fail ("unknown texture type " ++ tp)
 

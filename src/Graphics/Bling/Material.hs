@@ -81,7 +81,7 @@ mkMetal
    -> Material
 mkMetal eta k rough dgg dgs = mkBsdf' [spec] dgg dgs where
    fr = frConductor (eta dgs) (k dgs)
-   spec = undefined -- mkMicrofacet (mkBlinn (1 / rough dgs)) fr white
+   spec = mkMicrofacet (mkBlinn (1 / rough dgs)) fr white
 
 mkShinyMetal
    :: SpectrumTexture -- ^ kr
@@ -99,16 +99,20 @@ approxEta r = (white + r') / (white - r') where
    r' = sSqrt $ sClamp 0 0.999 r
    
 mkSubstrate
-   :: SpectrumTexture
-   -> SpectrumTexture
-   -> ScalarTexture
-   -> ScalarTexture
+   :: SpectrumTexture   -- ^ diffuse
+   -> SpectrumTexture   -- ^ specular
+   -> SpectrumTexture   -- ^ absorption
+   -> ScalarTexture     -- ^ anisotropic u
+   -> ScalarTexture     -- ^ anisotropic v
+   -> ScalarTexture     -- ^ coating thickness
    -> Material
-mkSubstrate kd ks tur tvr dgg dgs = mkBsdf' [brdf] dgg dgs where
-   brdf = undefined -- mkFresnelBlend rd rs dist
-   dist = undefined -- mkAnisotropic (1 / u) (1 / v)
-   u = tur dgs
-   v = tvr dgs
+mkSubstrate kd ks ka tur tvr td dgg dgs = mkBsdf' [brdf] dgg dgs where
+   brdf = mkFresnelBlend rd rs ra dist depth
+   dist = mkAnisotropic (1 / u) (1 / v)
+   u = max 0 $ tur dgs
+   v = max 0 $ tvr dgs
    rd = sClamp 0 1 $ kd dgs
    rs = sClamp 0 1 $ ks dgs
+   ra = sClamp 0 1 $ ka dgs
+   depth = td dgs
    

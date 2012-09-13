@@ -160,8 +160,8 @@ planarMapping (vu, vv) (ou, ov) dg = Cartesian (u + ou, v + ov) where
 -- Textures
 --------------------------------------------------------------------------------
 
-scaleTexture :: (Num a) => a -> Texture a -> Texture a
-scaleTexture s t dg = s * t dg
+scaleTexture :: (Num a) => a -> a -> Texture a -> Texture a
+scaleTexture a s t dg = a + s * t dg
 
 addTexture :: (Num a) => Texture a -> Texture a -> Texture a
 addTexture t1 t2 dg = t1 dg + t2 dg

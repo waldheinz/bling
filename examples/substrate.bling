@@ -1,39 +1,35 @@
 
 # substrate
 
-filter mitchell 3.0 3.0 0.333333 0.333333
-# filter box
+filter mitchell 3 3 0.333333 0.333333
+filter box
 
-imageSize 640 480
+imageSize 1280 720
+# imageSize 640 360
 
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 2 ySamples 2 }
+      sampler { stratified 8 8 }
       integrator { path maxDepth 7 sampleDepth 3 }
    }
 }
 
-renderer {
-   sampler
-   sampled {
-      sampler { stratified xSamples 4 ySamples 4 }
-      integrator { directLighting maxDepth 5 }
-   }
-}
+# renderer { sampler sampled { sampler { random 128 } integrator { debug reference } } }
+# renderer { sppm photonCount 50000 maxDepth 10 radius 0.1 }
 
 transform {
    lookAt {
-      pos 0 7 -5
-      look 0 0.5 1
+      pos -5 12 -12
+      look 0 2 1
       up 0 1 0
    }
 }
 
 camera {
    perspective
-   fov 70
-   lensRadius 0.05
+   fov 33
+   lensRadius 0
    focalDistance 8.6
 }
 
@@ -47,8 +43,8 @@ material {
    matte
    kd {
       graphPaper 0.1
-      tex1 { constant rgb 0.8 0.8 0.8 }
-      tex2 { constant rgb 0.05 0.05 0.05 }
+      tex1 { constant rgbR 0.8 0.8 0.8 }
+      tex2 { constant rgbR 0.05 0.05 0.05 }
    }
    sigma { constant 0.005 }
 }
@@ -68,7 +64,7 @@ prim {
 # light source
 #
 
-emission { rgbIllum 10 10 10 }
+emission { rgbI 10 10 10 }
 
 newTransform {
    rotateX -90
@@ -78,6 +74,15 @@ newTransform {
 prim { shape { quad 4 4 } }
 
 emission { none }
+
+#light { infinite { rotateX -90 }
+#   l {
+#      sunSky
+#      east 1 0 0
+#      sunDir -1 0.5 1
+#      turbidity 8
+#   }
+#}
 
 #
 # sphere 1
@@ -104,9 +109,11 @@ material { substrate
       688 0.657, 692 0.639, 696 0.635, 700 0.642
    }}
    
-   ks { constant rgb 0.8 0.8 0.8 }
+   ks { constant rgbR 0.8 0.8 0.8 }
+   ka { constant rgbR 0.7 0.7 0.7 }
    urough { constant 0.005 }
    vrough { constant 0.0002 }
+   depth { constant 0.1 }
 }
 
 prim { shape { sphere radius 2 } }
@@ -131,15 +138,17 @@ material { substrate
       664 0.627, 668 0.620, 672 0.630, 676 0.628, 680 0.642, 684 0.639,
       688 0.657, 692 0.639, 696 0.635, 700 0.642
    }}
-   ks { constant rgb 0.8 0.8 0.8 }
+   ks { constant rgbR 0.8 0.8 0.8 }
+   ka { constant rgbR 0.7 0.7 0.7 }
    urough { constant 0.0002 }
    vrough { constant 0.005 }
+   depth { constant 0.2 }
 }
 
 prim { shape { sphere radius 2 } }
 
 newTransform {
-   translate 0 2 4
+   translate 0 2.5 4
 }
 
 material {
@@ -159,9 +168,18 @@ material {
       664 0.122, 668 0.128, 672 0.132, 676 0.139, 680 0.144, 684 0.146,
       688 0.150, 692 0.152, 696 0.157, 700 0.159
    }}
-   ks { constant rgb 0.7 0.7 0.7 }
-   urough { constant 0.005 }
-   vrough { constant 0.005 }
+   ks { constant rgbR 0.5 0.5 0.5 }
+   ka { constant rgbR 0.3 0.3 0.3 }
+   
+   urough { constant 0.005  }
+   vrough { constant 0.005  }
+      
+   depth { scale 0.6 0.6 tex {
+         fbm octaves 3 omega 0.5 map {
+            identity { scale 1 1 1 }
+         }
+      } }
 }
 
-prim { shape { sphere radius 2 } }
+prim { shape { sphere radius 2.5 } }
+

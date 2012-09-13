@@ -9,14 +9,14 @@ imageSize 640 360
 renderer {
    sampler
    sampled {
-      sampler { stratified 4 4 }
+      sampler { stratified 8 8 }
       integrator { path maxDepth 7 sampleDepth 4 }
    }
 }
 
 # renderer { metropolis mpp 1 bootstrap 1000 plarge 0.25 separateDirect }
 # renderer { light passPhotons 100000 }
-renderer { sppm photonCount 50000 maxDepth 10 radius 0.25 alpha 0.95 }
+# renderer { sppm photonCount 50000 maxDepth 10 radius 0.25 alpha 0.95 }
 
 transform {
    lookAt {

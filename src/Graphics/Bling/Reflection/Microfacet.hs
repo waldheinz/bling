@@ -5,17 +5,15 @@ module Graphics.Bling.Reflection.Microfacet (
    
    Distribution, mkBlinn, mkAnisotropic,    
 
-   -- * Microfacet Distribution based BRDF
+   -- * Microfacet Distribution based BxDFs
    
-   mkMicrofacet -- , mkFresnelBlend,
+   mkMicrofacet, mkFresnelBlend
    
    ) where
-   
+
+import Graphics.Bling.Montecarlo   
 import Graphics.Bling.Random
 import Graphics.Bling.Reflection
-
--- data Micro = Microfacet !Distribution !Fresnel !Spectrum
---    | FresnelBlend !Spectrum !Spectrum !Distribution
 
 mkMicrofacet :: Distribution -> Fresnel -> Spectrum -> BxDF
 mkMicrofacet dist fr r = mkBxDF [Reflection, Glossy] e s p where
@@ -54,57 +52,58 @@ mkMicrofacet dist fr r = mkBxDF [Reflection, Glossy] e s p where
             then sScale f' (fact / absCosTheta wo)
             else sScale f' (fact / absCosTheta wi)
 
-{-
-
-mkFresnelBlend :: Spectrum -> Spectrum -> Distribution -> Bxdf
-mkFresnelBlend = FresnelBlend
-
-
-bxdfEval (Microfacet d fresn r) wo wi
+mkFresnelBlend
+   :: Spectrum       -- ^ diffuse layer
+   -> Spectrum       -- ^ specular reflection
+   -> Spectrum       -- ^ absorption
+   -> Distribution   -- ^ MF distribution
+   -> Float          -- ^ thickness of coating
+   -> BxDF
+mkFresnelBlend rd rs ra dist depth = mkBxDF [Reflection, Glossy] e s p where
    
+   e wo wi = diff + spec
+      where
+         costi = absCosTheta wi
+         costo = absCosTheta wo
 
-bxdfEval (FresnelBlend rd rs d) wo wi
-   | vx wh' == 0 && vy wh' == 0 && vz wh' == 0 = black
-   | otherwise = diff + spec
-   where
-      costi = absCosTheta wi
-      costo = absCosTheta wo
-      wh' = wi + wo
-      wh = normalize $ wh'
-      diff = sScale (rd * (white - rs)) $ (28 / 23 * pi) *
+         -- absorption
+         a = if depth > 0
+            then sExp (sScale ra (-depth * (costi + costo) / (costi * costo)))
+            else white
+         
+         -- diffuse
+         diff = sScale (a * rd * (white - rs)) $ (28 / 23 * pi) *
                (1 - ((1 - 0.5 * costi) ** 5)) *
                (1 - ((1 - 0.5 * costo) ** 5))
-
-      spec = sScale schlick $ mfDistD d wh / (4 * wi `absDot` wh) * (max costi costo)
-      cost = wi `dot` wh
-      schlick = rs + sScale (white - rs) ((1 - cost) ** 5)
-
-
-
-
-bxdfSample fb@(FresnelBlend _ _ d) wo (u1, u2) = (f, wi, pdf) where
-   pdf = bxdfPdf fb wo wi
-   f = bxdfEval fb wo wi
-   wi = if u1 < 0.5
-           then toSameHemisphere wo $ cosineSampleHemisphere (u1 * 2, u2)
-           else snd $ mfDistSample d (2 * (u1 - 0.5), u2) wo
-
-
-bxdfSample' mf@(Microfacet _ _ _) wo u = bxdfSample mf wo u
-
-bxdfSample' fb@(FresnelBlend _ _ _) wo u = bxdfSample fb wo u
-
-bxdfPdf (FresnelBlend _ _ d) wo wi
-   | sameHemisphere wo wi = 0.5 * (absCosTheta wi * invPi + mfDistPdf d wo wi)
-   | otherwise = 0
-
-
-
-
-bxdfType (Microfacet _ _ _)   = mkBxdfType 
-bxdfType (FresnelBlend _ _ _) = mkBxdfType [Reflection, Glossy]
--}
-
+            
+         -- specular
+         wh = let wh' = normalize $ wi + wo in if vz wh' < 0 then (-wh') else wh'
+         costih = wi `absDot` wh
+         spec = sScale schlick $
+            mfDistD dist wh * costo / (4 * costih * max costi costo)
+         schlick = rs + sScale (white - rs) ((1 - costih) ** 5)
+      
+   s adj wo (u1, u2)
+      | pdf' == 0 = (black, wi, 0)
+      | otherwise = (sScale f (1 / pdf), wi, pdf)
+      where
+         f = if adj then e wi wo else e wo wi
+         pdf = 0.5 * (absCosTheta wi * invPi + pdf' / (4 * absDot wo wh))
+         (pdf', wh, wi) = if u1 < 0.5
+            then
+               let wis = toSameHemisphere wo $ cosineSampleHemisphere (u1 * 2, u2) in
+               let whs = let wh' = normalize $ wi + wo in if vz wh' < 0 then -wh' else wh' in
+               (mfDistPdf dist whs, whs, wis)
+            else
+               let (whs, _, pdfs) = mfDistSample dist (2 * (u1 - 0.5), u2)
+               in (pdfs, whs, 2 * wo `dot` wh *# wh - wo)
+               
+   p wo wi
+      | sameHemisphere wo wi =
+         0.5 * (absCosTheta wi * invPi + mfDistPdf dist wh / (4 * absDot wo wh))
+      | otherwise = 0
+      where
+         wh = let wh' = normalize $ wi + wo in if vz wh' < 0 then -wh' else wh'
 --------------------------------------------------------------------------------
 -- Microfacet Distributions
 --------------------------------------------------------------------------------
