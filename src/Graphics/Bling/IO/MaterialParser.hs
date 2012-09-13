@@ -37,6 +37,7 @@ pMaterial' = pString >>= \t -> case t of
    "substrate"    -> pSubstrateMaterial
    "plastic"      -> pPlasticMaterial
    "matte"        -> pMatteMaterial
+   "transMatte"   -> pMatteTranslucent
    "mirror"       -> pMirrorMaterial
    _              -> fail ("unknown material type " ++ t)
 
@@ -88,6 +89,13 @@ pMatteMaterial = do
    sig <- pScalarTexture "sigma"
    return $! mkMatte kd sig
    
+pMatteTranslucent :: JobParser Material
+pMatteTranslucent = do
+   kr <- pSpectrumTexture "kr"
+   kt <- pSpectrumTexture "kt"
+   ks <- pScalarTexture "ks"
+   return $! translucentMatte kr kt ks
+
 pPlasticMaterial :: JobParser Material
 pPlasticMaterial = do
    kd <- pSpectrumTexture "kd"

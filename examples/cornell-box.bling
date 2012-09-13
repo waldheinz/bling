@@ -8,18 +8,18 @@ filter box
 renderer {
    sampler
    sampled {
-      sampler { stratified 2 2 }
+      sampler { stratified 16 16 }
       integrator { path maxDepth 25 sampleDepth 3 }
    }
 }
 
 # renderer { sampler sampled { sampler { random samples 3 } integrator { path maxDepth 1 sampleDepth 1 } } }
-renderer { light passPhotons 100000 }
+# renderer { light passPhotons 100000 }
 # renderer { metropolis maxDepth 10 mpp 1 bootstrap 1000 plarge 0.25 directSamples 4 }
 # renderer { sampler sampled { sampler { stratified 5 5 } integrator { bidir maxDepth 10 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random 4 } integrator { debug normals } } }
-# renderer { sampler sampled { sampler { random 256 } integrator { debug reference } } }
+# renderer { sampler sampled { sampler { random 1 } integrator { debug reference } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug kdtree } } }
 # renderer { sppm photonCount 50000 maxDepth 10 radius 10 }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
@@ -296,4 +296,14 @@ emission {
 
 # newTransform { translate 278 448.7 279.5 } prim { shape { sphere radius 30 } }
 newTransform { rotateX -90 translate 278 548.7 279.5 } prim { shape { quad 65 52.2 } }
+
+material { transMatte
+   kr { constant rgbR 0.3 0.1 0.1 }
+   kt { constant rgbR 0.8 0.1 0.1 }
+   ks { constant 0 }
+}
+
+emission { none }
+
+newTransform { rotateX -90 translate 278 500 279.5 } prim { shape { quad 200 200 } }
 

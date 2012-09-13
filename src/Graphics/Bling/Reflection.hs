@@ -9,7 +9,7 @@ module Graphics.Bling.Reflection (
    
    -- * BxDF Functions
    
-   BxdfPdf, BxdfSample, BxDF, mkBxDF,
+   BxdfPdf, BxdfSample, BxDF, mkBxDF, brdfToBtdf,
    
    -- ** BxDF Types
    BxdfProp(..), BxdfType, bxdfIs, mkBxdfType,
@@ -107,7 +107,10 @@ fromBxdfProp Diffuse       = 4
 fromBxdfProp Glossy        = 8
 fromBxdfProp Specular      = 16
 
-newtype BxdfType = BxdfType { unBxdfType :: Int } deriving (Show)
+newtype BxdfType = BxdfType { unBxdfType :: Int }
+
+instance Show BxdfType where
+   show t = show $ bxdfTypeToProps t
 
 bxdfIs :: BxdfType -> BxdfProp -> Bool
 {-# INLINE bxdfIs #-}
@@ -133,6 +136,10 @@ mkBxdfType :: [BxdfProp] -> BxdfType
 {-# INLINE mkBxdfType #-}
 mkBxdfType ps = BxdfType $ foldl' (\a p -> a .|. (fromBxdfProp p)) 0 ps
 
+bxdfTypeToProps :: BxdfType -> [BxdfProp]
+bxdfTypeToProps t = filter (bxdfIs t)
+   [Reflection, Transmission, Diffuse, Glossy, Specular]
+
 combineBxdfType :: BxdfType -> BxdfType -> BxdfType
 {-# INLINE combineBxdfType #-}
 combineBxdfType t1 t2 = BxdfType $ (unBxdfType t1 .|. unBxdfType t2)
@@ -152,6 +159,9 @@ bxdfAllTransmission = combineBxdfType bxdfAllTypes $ mkBxdfType [Transmission]
 -- | for any kind of scattering
 bxdfAll :: BxdfType
 bxdfAll = combineBxdfType bxdfAllReflection bxdfAllTransmission
+
+bxdfTypeFlip :: BxdfType -> BxdfType -> BxdfType
+bxdfTypeFlip t f = BxdfType $ (unBxdfType t `xor` unBxdfType f)
 
 --------------------------------------------------------------------------------
 -- BxDF
@@ -175,6 +185,15 @@ mkBxDF ps e s p = BxDF (mkBxdfType ps) e s p
 bxdfMatches :: BxDF -> BxdfType -> Bool
 bxdfMatches bxdf flags = bxdfIs' (bxdfType bxdf) flags
 
+brdfToBtdf :: BxDF -> BxDF
+brdfToBtdf brdf = BxDF tp e s p where
+   otherHemisphere w = mkV (vx w, vy w, -(vz w))
+   e wo wi = bxdfEval brdf wo $ otherHemisphere wi
+   s adj wo u = (f, otherHemisphere wi, pdf) where
+      (f, wi, pdf) = bxdfSample brdf adj wo u
+   p wo wi = bxdfPdf brdf wo $ otherHemisphere wi
+   tp = bxdfTypeFlip (bxdfType brdf) (mkBxdfType [Reflection, Transmission])
+   
 --------------------------------------------------------------------------------
 -- The BSDF (bidirectional scattering distribution function)
 --------------------------------------------------------------------------------

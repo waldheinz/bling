@@ -4,7 +4,7 @@ module Graphics.Bling.Material (
    MaterialMap, mkMaterialMap,
    
    mkMatte, glassMaterial, mirrorMaterial, mkPlastic, mkMetal, mkShinyMetal,
-   mkSubstrate
+   mkSubstrate, translucentMatte
    
    ) where
    
@@ -30,8 +30,8 @@ mkMaterialMap def ms name = Map.findWithDefault (traceShow name $ def) name m wh
 -- | Creates a matte @Material@, which uses either a @Lambertian@ or
 --   an @OrenNayar@ BxDF, depending on the roughness
 mkMatte
-   :: SpectrumTexture -- ^ the overall color
-   -> ScalarTexture -- ^ the sigma (roughness) parameter
+   :: SpectrumTexture   -- ^ the overall color
+   -> ScalarTexture     -- ^ the sigma (roughness) parameter
    -> Material
 mkMatte tex ts dgg dgs
    | s == 0 = mkBsdf' [mkLambertian r] dgg dgs
@@ -40,6 +40,18 @@ mkMatte tex ts dgg dgs
       s = ts dgs
       r = tex dgs
 
+translucentMatte
+   :: SpectrumTexture   -- ^ reflected
+   -> SpectrumTexture   -- ^ transmitted
+   -> ScalarTexture     -- ^ roughness
+   -> Material
+translucentMatte kr kt ks dgg dgs = mkBsdf' [refl, trans] dgg dgs where
+   refl = if s == 0 then mkLambertian r else mkOrenNayar r s
+   trans = brdfToBtdf $ if s == 0 then mkLambertian t else mkOrenNayar t s
+   r = sClamp 0 1 $ kr dgs
+   t = (sClamp 0 1 $ kt dgs) * (white - r)
+   s = ks dgs
+   
 -- | a glass material
 glassMaterial
    :: ScalarTexture -- ^ index of refraction

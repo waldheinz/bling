@@ -104,8 +104,7 @@ traceCam cs
                (BsdfSample _ pdf f wi) = sampleBsdf' (mkBxdfType [Specular, Reflection, Transmission]) bsdf wo bsdfC bsdfD
                ray' = Ray p wi (intEpsilon int) infinity
                p = bsdfShadingPoint bsdf
-               n = bsdfShadingNormal bsdf
-               t' = f * t -- sScale (f * t) (wi `absDot` n / pdf)
+               t' = f * t
                ls' = csLs cs + t * intLe int (-wi)
                
             if pdf == 0 || isBlack f
