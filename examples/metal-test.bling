@@ -17,6 +17,8 @@ renderer {
 
 # renderer { metropolis mpp 0.5 bootstrap 500 plarge 0.25 }
 
+renderer { light passPhotons 100000 }
+
 transform {
    lookAt {
       pos -2 12 -12

@@ -8,9 +8,9 @@ import Text.ParserCombinators.Parsec
 import Graphics.Bling.Rendering
 import Graphics.Bling.Sampling
 import Graphics.Bling.Integrator
-import Graphics.Bling.Integrator.LightTracer
 import Graphics.Bling.IO.ParserCore
 import Graphics.Bling.IO.IntegratorParser
+import Graphics.Bling.Renderer.LightTracer
 import Graphics.Bling.Renderer.Metropolis
 import Graphics.Bling.Renderer.SPPM
 

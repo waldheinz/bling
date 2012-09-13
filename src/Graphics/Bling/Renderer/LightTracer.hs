@@ -1,5 +1,5 @@
 
-module Graphics.Bling.Integrator.LightTracer (
+module Graphics.Bling.Renderer.LightTracer (
 
    LightTracer, mkLightTracer
 
@@ -73,7 +73,6 @@ connectCam sc splat li bsdf wi eps
       dCam2 = sqLen dCam
       cray = Ray p we eps (sqrt dCam2)
       p = bsdfShadingPoint bsdf
- --     n = bsdfShadingNormal bsdf
       
 nextVertex
    :: Scene
