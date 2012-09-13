@@ -105,7 +105,7 @@ traceCam cs
                ray' = Ray p wi (intEpsilon int) infinity
                p = bsdfShadingPoint bsdf
                t' = f * t
-               ls' = csLs cs + t * intLe int (-wi)
+               ls' = csLs cs + t * intLe int wo
                
             if pdf == 0 || isBlack f
                then return $ cs { csLs = ls' }

@@ -8,7 +8,7 @@ filter box
 renderer {
    sampler
    sampled {
-      sampler { stratified 16 16 }
+      sampler { stratified 3 3 }
       integrator { path maxDepth 25 sampleDepth 3 }
    }
 }
@@ -21,10 +21,10 @@ renderer {
 # renderer { sampler sampled { sampler { random 4 } integrator { debug normals } } }
 # renderer { sampler sampled { sampler { random 1 } integrator { debug reference } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug kdtree } } }
-# renderer { sppm photonCount 50000 maxDepth 10 radius 10 }
+renderer { sppm photonCount 10000 maxDepth 10 radius 15 alpha 0.9 }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 
-# imageSize 720 720
+imageSize 720 720
 imageSize 480 480
 # imageSize 128 128
 # imageSize 240 240
@@ -118,48 +118,14 @@ prim {
 }
 
 #
-# short block
-#
-
-# material { glass ior 1.5 r { constant spd { 1 0.95 } } }
-
-prim {
-   mesh
-   vertexCount 20
-   faceCount 5
-   v 130.0 165.0  65.0
-   v  82.0 165.0 225.0
-   v 240.0 165.0 272.0
-   v 290.0 165.0 114.0
-   v 290.0   0.0 114.0
-   v 290.0 165.0 114.0
-   v 240.0 165.0 272.0
-   v 240.0   0.0 272.0
-   v 130.0   0.0  65.0
-   v 130.0 165.0  65.0
-   v 290.0 165.0 114.0
-   v 290.0   0.0 114.0
-   v  82.0   0.0 225.0
-   v  82.0 165.0 225.0
-   v 130.0 165.0  65.0
-   v 130.0   0.0  65.0
-   v 240.0   0.0 272.0
-   v 240.0 165.0 272.0
-   v  82.0 165.0 225.0
-   v  82.0   0.0 225.0
-   f 3 2 1 0
-   f 7 6 5 4
-   f 11 10 9 8
-   f 15 14 13 12
-   f 19 18 17 16
-}
-
-#
 # tall block
 #
 
-#material { mirror spd { 1 0.95 } }
-#material { glass ior 1.5 r { constant spd { 1 0.95 } } }
+material { glass
+   ior { constant 1.5 }
+   kr { constant rgbR 1 1 1 }
+   kt { constant rgbR 1 1 1 }
+}
 
 prim {
    mesh
@@ -197,15 +163,6 @@ prim {
 #
 
 material {
-#   bumpMap
-#   bump {
-#      scale 5 tex {
-#         fbm octaves 8 omega 0.5 map {
-#            identity { scale 0.05 0.05 0.05 }
-#         }
-#      }
-#   }
-   
    matte
    kd { constant spd {
       400 0.092, 404 0.096, 408 0.098, 412 0.097, 416 0.098, 420 0.095,
@@ -230,19 +187,6 @@ newTransform { rotateY 90 translate 0 300 300 }
 prim { shape { quad 300 300 } }
 
 newTransform { }
-
-#prim {
-#   mesh
-#   vertexCount 4
-#   faceCount 1
-#   v 0.0   0.0 559.2
-#   v 0.0   0.0   0.0
-#   v 0.0 548.8   0.0
-#   v 0.0 548.8 559.2
-   # f 3 2 1
-   # f 1 0 3
-#   f 3 2 1 0
-#}
 
 #
 # left (red) wall
@@ -279,6 +223,51 @@ prim {
    f 3 2 1 0
 }
 
+
+#
+# short block
+#
+
+# material { glass ior 1.5 r { constant spd { 1 0.95 } } }
+
+material { transMatte
+   kr { constant rgbR 0.3 0.3 0.3 }
+   kt { constant rgbR 0.7 0.7 0.7 }
+   ks { constant 0 }
+}
+
+prim {
+   mesh
+   vertexCount 20
+   faceCount 5
+   v 130.0 165.0  65.0
+   v  82.0 165.0 225.0
+   v 240.0 165.0 272.0
+   v 290.0 165.0 114.0
+   v 290.0   0.0 114.0
+   v 290.0 165.0 114.0
+   v 240.0 165.0 272.0
+   v 240.0   0.0 272.0
+   v 130.0   0.0  65.0
+   v 130.0 165.0  65.0
+   v 290.0 165.0 114.0
+   v 290.0   0.0 114.0
+   v  82.0   0.0 225.0
+   v  82.0 165.0 225.0
+   v 130.0 165.0  65.0
+   v 130.0   0.0  65.0
+   v 240.0   0.0 272.0
+   v 240.0 165.0 272.0
+   v  82.0 165.0 225.0
+   v  82.0   0.0 225.0
+   f 3 2 1 0
+   f 7 6 5 4
+   f 11 10 9 8
+   f 15 14 13 12
+   f 19 18 17 16
+}
+
+
 #
 # light source
 #
@@ -290,18 +279,10 @@ material {
 }
 
 emission {
-   spd { 400.0 0.0, 500.0 8.0, 600.0 15.6, 700.0 18.4 }
+   temp 2300
 }
 
-
-# newTransform { translate 278 448.7 279.5 } prim { shape { sphere radius 30 } }
-newTransform { rotateX -90 translate 278 548.7 279.5 } prim { shape { quad 65 52.2 } }
-
-material { transMatte
-   kr { constant rgbR 0.3 0.1 0.1 }
-   kt { constant rgbR 0.8 0.1 0.1 }
-   ks { constant 0 }
-}
+newTransform { translate 180 80 150 } prim { shape { sphere radius 25 } }
 
 emission { none }
 
