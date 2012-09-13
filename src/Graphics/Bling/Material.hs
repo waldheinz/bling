@@ -11,6 +11,7 @@ module Graphics.Bling.Material (
 import qualified Data.Map as Map
 import Debug.Trace
 
+import Graphics.Bling.Fresnel
 import Graphics.Bling.Reflection
 import Graphics.Bling.Reflection.Diffuse
 import Graphics.Bling.Reflection.Microfacet
@@ -89,8 +90,8 @@ mkShinyMetal
    -> ScalarTexture -- ^ roughness
    -> Material
 mkShinyMetal kr ks rough dgg dgs = mkBsdf' [r, s] dgg dgs where
-   r = undefined --mkMicrofacet (mkBlinn (1 / rough dgs)) frMf white
-   s = undefined --mkSpecularReflection white frSr
+   r = mkMicrofacet (mkBlinn (1 / rough dgs)) frMf white
+   s = specRefl frSr
    frMf = frConductor (approxEta $ ks dgs) black
    frSr = frConductor (approxEta $ kr dgs) black
 

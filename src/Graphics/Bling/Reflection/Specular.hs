@@ -5,11 +5,8 @@ module Graphics.Bling.Reflection.Specular (
    
    ) where
 
+import Graphics.Bling.Fresnel
 import Graphics.Bling.Reflection
-
---   | SpecTrans    !Spectrum {-# UNPACK #-} !Float {-# UNPACK #-} !Float
---   | SpecRefl     !Spectrum !Fresnel   
-
 
 specRefl
    :: Fresnel

@@ -11,6 +11,7 @@ module Graphics.Bling.Reflection.Microfacet (
    
    ) where
 
+import Graphics.Bling.Fresnel
 import Graphics.Bling.Montecarlo   
 import Graphics.Bling.Random
 import Graphics.Bling.Reflection
