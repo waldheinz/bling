@@ -10,12 +10,13 @@ import Graphics.Bling.Reflection
 
 specRefl
    :: Fresnel
+   -> Spectrum -- ^ reflected spectrum
    -> BxDF
-specRefl fr = mkBxDF [Reflection, Specular] e s p where
+specRefl fr r = mkBxDF [Reflection, Specular] e s p where
    e _ _ = black
    p _ _ = 0
    
-   s _ wo _ = (fr $ cosTheta wo, wi, 1) where
+   s _ wo _ = (r * (fr $ cosTheta wo), wi, 1) where
       wi = mkV (-(vx wo), -(vy wo), vz wo)
 
 specTrans

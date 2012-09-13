@@ -3,23 +3,19 @@ module Graphics.Bling.Fresnel (
 
    -- * Fresnel incidence effects
    
-   Fresnel, frDielectric, frConductor, frNoOp,
+   Fresnel, frDielectric, frConductor, frNoOp, frApproxEta, frApproxK
    
    ) where
 
 import Graphics.Bling.Math   
 import Graphics.Bling.Spectrum
 
---------------------------------------------------------------------------------
--- Fresnel incidence effects
---------------------------------------------------------------------------------
-
 type Fresnel = Float -> Spectrum
 
 -- | a no-op Fresnel implementation, which always returns white
 --   @Spectrum@
-frNoOp :: Spectrum -> Fresnel
-frNoOp r = const r
+frNoOp :: Fresnel
+frNoOp = const white
 
 -- | Fresnel incidence effects for dielectrics
 frDielectric :: Float -> Float -> Fresnel
@@ -41,7 +37,10 @@ frDiel' cosi cost etai etat = sScale (rPar * rPar + rPer * rPer) 0.5 where
           (sScale etai cosi + sScale etat cost)
 
 -- | Fresnel incidence effects for conductors
-frConductor :: Spectrum -> Spectrum -> Fresnel
+frConductor
+   :: Spectrum -- ^ eta
+   -> Spectrum -- ^ k
+   -> Fresnel
 frConductor eta k cosi = (rPer2 + rPar2) / 2 where
    rPer2 = (tmpF - ec2 + sConst (acosi * acosi)) /
            (tmpF + ec2 + sConst (acosi * acosi))
@@ -51,4 +50,12 @@ frConductor eta k cosi = (rPer2 + rPar2) / 2 where
    tmp = sScale (eta * eta + k * k) (acosi * acosi)
    tmpF = eta * eta + k * k
    acosi = abs cosi
+
+frApproxEta :: Spectrum -> Spectrum
+frApproxEta r = (white + r') / (white - r') where
+   r' = sqrt $ sClamp 0 0.999 r
+
+frApproxK :: Spectrum -> Spectrum
+frApproxK r = sScale (sqrt $ refl / (white - refl)) 2 where
+   refl = sClamp 0 0.999 r
 

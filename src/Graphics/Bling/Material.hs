@@ -47,7 +47,7 @@ glassMaterial
    -> SpectrumTexture -- ^ transmission color
    -> Material
 glassMaterial iort rt tt dgg dgs = mkBsdf' [refl, trans] dgg dgs where
-   refl = specRefl $ frDielectric 1 ior
+   refl = specRefl (frDielectric 1 ior) r
    trans = specTrans t 1 ior
    r = sClamp' $ rt dgs
    t = sClamp' $ tt dgs
@@ -57,9 +57,8 @@ mirrorMaterial
    :: SpectrumTexture -- ^ reflection color
    -> Material
 mirrorMaterial rt dgg dgs = mkBsdf' [bxdf] dgg dgs where
-   bxdf = specRefl $ frNoOp r
-   r = sClamp 0 1 $ rt dgs
-
+   bxdf = specRefl frNoOp $ sClamp 0 1 $ rt dgs
+   
 -- | Creates a plasic @Material@ using lambertian reflection for the base
 --   color and a Blinn microfacet distribution for the specular component
 mkPlastic
@@ -89,15 +88,13 @@ mkShinyMetal
    -> SpectrumTexture -- ^ ks
    -> ScalarTexture -- ^ roughness
    -> Material
-mkShinyMetal kr ks rough dgg dgs = mkBsdf' [r, s] dgg dgs where
-   r = mkMicrofacet (mkBlinn (1 / rough dgs)) frMf white
-   s = specRefl frSr
-   frMf = frConductor (approxEta $ ks dgs) black
-   frSr = frConductor (approxEta $ kr dgs) black
-
-approxEta :: Spectrum -> Spectrum
-approxEta r = (white + r') / (white - r') where
-   r' = sSqrt $ sClamp 0 0.999 r
+mkShinyMetal kr ks rough dgg dgs = mkBsdf' [diff, spec] dgg dgs where
+   diff = mkMicrofacet (mkBlinn (1 / rough dgs)) frMf white
+   spec = specRefl frSr white
+   frMf = frConductor (frApproxEta s) (frApproxK s)
+   frSr = frConductor (frApproxEta r) (frApproxK r)
+   r = kr dgs
+   s = ks dgs
    
 mkSubstrate
    :: SpectrumTexture   -- ^ diffuse

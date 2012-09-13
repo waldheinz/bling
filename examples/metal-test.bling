@@ -2,7 +2,7 @@
 # metal
 
 filter mitchell 3 3 0.333333 0.333333
-# filter box
+filter box
 
 imageSize 640 400
 # imageSize 1280 720

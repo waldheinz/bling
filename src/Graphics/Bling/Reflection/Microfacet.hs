@@ -69,7 +69,7 @@ mkFresnelBlend rd rs ra dist depth = mkBxDF [Reflection, Glossy] e s p where
 
          -- absorption
          a = if depth > 0
-            then sExp (sScale ra (-depth * (costi + costo) / (costi * costo)))
+            then exp (sScale ra (-depth * (costi + costo) / (costi * costo)))
             else white
          
          -- diffuse

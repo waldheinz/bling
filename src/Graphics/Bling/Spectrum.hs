@@ -15,7 +15,7 @@ module Graphics.Bling.Spectrum (
    
    isBlack, sNaN, sInfinite,
    xyzToRgb,  toRGB, fromSpd, sConst, sBlackBody, sY,
-   sScale, sPow, sExp, sClamp, sClamp', sSqrt, chromaticityToXYZ,
+   sScale, sPow, sClamp, sClamp', chromaticityToXYZ,
    spectrumToXYZ, xyzToSpectrum
    
    ) where
@@ -145,16 +145,16 @@ rgbToSpectrum :: RGBToSpectrumBase -> (Float, Float, Float) -> Spectrum
 rgbToSpectrum (RGBBases rb gb bb cb mb yb wb) (r, g, b)
    | r <= g && r <= b =
       sScale wb r + if g <= b
-         then sScale cb (g - r) + sScale bb  (b - g)
+         then sScale cb (g - r) + sScale bb (b - g)
          else sScale cb (b - r) + sScale gb (g - b)
    |  g <= r && g <= b =
       sScale wb g + if r <= b
          then sScale mb (r - g) + sScale bb (b - r)
-         else sScale mb (b - g) + sScale rb  (r - b)
+         else sScale mb (b - g) + sScale rb (r - b)
    | otherwise =
       sScale wb b + if r <= b
          then sScale yb (r - b) + sScale gb (g - r)
-         else sScale yb (g - b) + sScale rb   (r - g)
+         else sScale yb (g - b) + sScale rb (r - g)
 
 -- | converts from CIE XYZ to sRGB
 xyzToRgb
@@ -374,6 +374,48 @@ sConst :: Float -> Spectrum
 {-# INLINE sConst #-}
 sConst r = Spectrum $ V.replicate bands r
 
+sMap :: (Float -> Float) -> Spectrum -> Spectrum
+{-# INLINE sMap #-}
+sMap f s = Spectrum $ V.map f $ unSpectrum s
+
+instance Floating Spectrum where
+   pi    = sConst pi
+   {-# INLINE pi #-}
+   exp   = sMap exp
+   {-# INLINE exp #-}
+   sqrt  = sMap sqrt
+   {-# INLINE sqrt #-}
+   log   = sMap log
+   {-# INLINE log #-}
+   (**) (Spectrum s1) (Spectrum s2) = Spectrum $ V.zipWith (**) s1 s2
+   {-# INLINE (**) #-}
+   logBase (Spectrum s1) (Spectrum s2) = Spectrum $ V.zipWith logBase s1 s2
+   {-# INLINE logBase #-}
+   sin   = sMap sin
+   {-# INLINE sin #-}
+   tan   = sMap tan
+   {-# INLINE tan #-}
+   cos   = sMap cos
+   {-# INLINE cos #-}
+   asin  = sMap asin
+   {-# INLINE asin #-}
+   atan  = sMap atan
+   {-# INLINE atan #-}
+   acos  = sMap acos
+   {-# INLINE acos #-}
+   sinh  = sMap sinh
+   {-# INLINE sinh #-}
+   tanh  = sMap tanh
+   {-# INLINE tanh #-}
+   cosh  = sMap cosh
+   {-# INLINE cosh #-}
+   asinh = sMap asinh
+   {-# INLINE asinh #-}
+   atanh = sMap atanh
+   {-# INLINE atanh #-}
+   acosh = sMap acosh
+   {-# INLINE acosh #-}
+
 instance Fractional Spectrum where
    Spectrum v1 / Spectrum v2 = Spectrum $ V.zipWith (/) v1 v2
    {-# INLINE (/) #-}
@@ -416,10 +458,6 @@ sClamp' :: Spectrum -> Spectrum
 {-# INLINE sClamp' #-}
 sClamp' = sClamp 0 1
 
-sSqrt :: Spectrum -> Spectrum
-{-# INLINE sSqrt #-}
-sSqrt (Spectrum v) = Spectrum $ V.map sqrt v
-
 sNaN :: Spectrum -> Bool
 {-# INLINE sNaN #-}
 sNaN (Spectrum v) = V.any isNaN v
@@ -435,10 +473,6 @@ sPow (Spectrum vc) (Spectrum ve) = Spectrum (V.zipWith p' vc ve) where
    p' c e
       | c > 0 = c ** e
       | otherwise = 0
-
-sExp :: Spectrum -> Spectrum
-{-# INLINE sExp #-}
-sExp (Spectrum vc) = Spectrum $ V.map exp vc
 
 -- | The spectrum of a black body emitter
 sBlackBody
