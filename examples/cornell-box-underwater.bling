@@ -17,8 +17,8 @@ renderer {
 # renderer { sampler sampled { sampler { stratified xSamples 8 ySamples 8 } integrator { path maxDepth 7 sampleDepth 5 } } }
 # renderer { light passPhotons 100000 }
 # renderer { metropolis maxDepth 8 mpp 1 bootstrap 1000 plarge 0.25 directSamples 1 }
-# renderer { sampler sampled { sampler { random samples 16 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
-renderer { sppm photonCount 500000 maxDepth 15 radius 3 alpha 0.98 }
+# renderer { sampler sampled { sampler { random 16 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
+renderer { sppm photonCount 25000 maxDepth 15 radius 6 alpha 0.98 }
 # renderer { sampler sampled { sampler { random 1024 } integrator { debug reference } } }
 
 imageSize 480 480
@@ -31,9 +31,9 @@ imageSize 480 480
 
 transform {
    lookAt {
-      pos 278.0 273.0 -800.0
-      look 278.0 273.0 0.0
-      up 0.0 1.0 0.0
+      pos   278 273 -800
+      look  278 273 0
+      up    0 1 0
    }
 }
 
@@ -102,7 +102,7 @@ prim {
 # glass sphere
 #
 
-material { glass ior { constant 1.5 } kr { constant spd { 1 0.95 } } kt { constant rgbR 0.8 0.8 0.9 } }
+material { glass ior { constant 1.5 } kr { constant spd { 1 1 } } kt { constant spd { 1 1 } } }
 newTransform { translate 390 130 200 }
 prim { shape { sphere radius 130 } }
 
@@ -113,7 +113,7 @@ prim { shape { sphere radius 130 } }
 material {
    bumpMap
    bump {
-      scale 10 10 tex {
+      scale 5 5 tex {
          fbm octaves 4 omega 0.5 map {
             identity { scale 0.01 0.01 0.01 }
          }
@@ -123,10 +123,13 @@ material {
    glass
    ior { constant 1.33 }
    kr { constant rgbR 1 1 1 }
-   kt { constant rgbR 0.7 0.7 1 }
+   kt { constant rgbR 1 1 1 }
 }
 
-newTransform { rotateX 90 translate 280 550 280 }
+
+# material { transMatte kr { constant rgbR 0.3 0.3 0.3 } kt { constant rgbR 0.7 0.7 0.7 } ks { constant 0 } }
+
+newTransform { rotateX -90 translate 280 550 280 }
 
 # prim { mesh vertexCount 4 faceCount 1 v 570 550 -10 v -10 550 -10 v -10 550 570 v 570 550 570 f 3 2 1 0 }
 
@@ -225,11 +228,11 @@ material {
 }
 
 emission {
-#    spd { 400 0, 500 160, 600 312, 700 386 }
+    spd { 400 0, 500 160, 600 312, 700 386 }
 #   rgb 4 4 4
-   temp 4000
+#   temp 2400
 }
 
-newTransform { rotateX -90 translate 278 800 279.5  }
-prim { shape { quad 5 5 } }
+newTransform { rotateX -90 translate 278 850 279.5  }
+prim { shape { quad 25 25 } }
 

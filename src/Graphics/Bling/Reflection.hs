@@ -114,7 +114,7 @@ instance Show BxdfType where
 
 bxdfIs :: BxdfType -> BxdfProp -> Bool
 {-# INLINE bxdfIs #-}
-bxdfIs b p = ((fromBxdfProp p) .&. (unBxdfType b)) /= 0
+bxdfIs b p = bxdfIs' (BxdfType $ fromBxdfProp p) b
 
 bxdfIs' :: BxdfType -> BxdfType -> Bool
 {-# INLINE bxdfIs' #-}
@@ -280,8 +280,9 @@ sampleBsdf'' :: Bool -> BxdfType -> Bsdf -> Vector -> Float -> Rand2D -> BsdfSam
 sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
    | V.null bsm || pdf' == 0 || sideTest == 0 = emptyBsdfSample
    | not (flt bxdf) = emptyBsdfSample
-   | isSpecular bxdf || cntm == 1 =
-      BsdfSample t pdf' (fAdj fSample) wiW
+   | isSpecular bxdf =
+      BsdfSample t (pdf' * invCnt) (sScale (fAdj fSample) cntf) wiW
+   | cntm == 1 = BsdfSample t pdf' (fAdj fSample) wiW
    | otherwise = BsdfSample t pdf (fAdj fSum) wiW
    where
       wo = worldToLocal cs woW
@@ -289,7 +290,9 @@ sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
       -- choose BxDF to sample
       bsm = V.filter (\b -> bxdfMatches b flags) bs
       cntm = V.length bsm
-      sNum = max 0 $ min (cntm-1) (floor (uComp * fromIntegral cntm)) -- index to sample
+      cntf = fromIntegral cntm
+      invCnt = 1 / cntf
+      sNum = max 0 $ min (cntm-1) (floor (uComp * cntf)) -- index to sample
       bxdf = V.unsafeIndex bsm sNum
       
       -- sample chosen BxDF
@@ -299,8 +302,8 @@ sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
       flt = if sideTest < 0 then isTransmission else isReflection
       
       -- overall PDF
-      bs' = V.ifilter (\i _ -> (i /= sNum)) bsm -- filter explicitly sampled from matching
-      pdf = (pdf' + (V.sum $ V.map (\b -> bxdfPdf b wo wi) bs')) / (fromIntegral cntm)
+      bs' = V.ifilter (\i _ -> (i /= sNum)) bsm -- filter explicitly sampled
+      pdf = (pdf' + (V.sum $ V.map (\b -> bxdfPdf b wo wi) bs')) * invCnt
       
       -- throughput for sampled direction
       fOthers = V.sum $ V.map (\b -> eval b wo wi) $ V.filter flt bs'

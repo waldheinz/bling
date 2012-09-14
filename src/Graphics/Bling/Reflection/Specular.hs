@@ -32,22 +32,22 @@ specTrans t ei et = mkBxDF [Transmission, Specular] e s p where
 
 sampleSpecTrans :: Bool -> Spectrum -> Float -> Float
    -> Vector -> (Float, Float) -> (Spectrum, Vector, Float)
-sampleSpecTrans adj t ei et wo@(Vector wox woy _) _
+sampleSpecTrans adj t ei' et' wo@(Vector wox woy _) _
    | sint2 >= 1 = (black, wo, 0) -- total internal reflection
    | otherwise = (f, wi, 1)
    where
       -- find out which eta is incident / transmitted
       entering = cosTheta wo > 0
- --     (ei, et) = if entering then (ei', et') else (et', ei')
+      (ei, et) = if entering then (ei', et') else (et', ei')
       
       -- find transmitted ray direction
       sini2 = sinTheta2 wo
-      eta = if entering then ei / et else et / ei
+      eta = ei / et
       eta2 = eta * eta
       sint2 = eta2 * sini2
       
-      cost = let x = sqrt $ max 0 (1 - sint2)
-             in if entering then (-x) else x
+      cost = let c = sqrt $ max 0 (1 - sint2)
+             in if entering then -c else c
       wi = mkV (eta * (-wox), eta * (-woy), cost)
       fr = frDielectric ei et $ if adj then cosTheta wo else cost
       f' = (white - fr) * t

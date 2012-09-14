@@ -7,7 +7,7 @@ module Graphics.Bling.Fresnel (
    
    ) where
 
-import Graphics.Bling.Math   
+import Graphics.Bling.Math
 import Graphics.Bling.Spectrum
 
 type Fresnel = Float -> Spectrum
@@ -19,22 +19,40 @@ frNoOp = const white
 
 -- | Fresnel incidence effects for dielectrics
 frDielectric :: Float -> Float -> Fresnel
-frDielectric etai etat cosi
-   | sint >= 1 = white -- total internal reflection
-   | otherwise = frDiel' (abs cosi') cost (sConst ei) (sConst et)
+{-
+frDielectric _ etat cosi = frDiel' (abs cosi) cost (if cosi > 0 then sConst etat else sScale white (1 / etat))
    where
-      cosi' = clamp cosi (-1) 1
-      (ei, et) = if cosi' > 0 then (etai, etat) else (etat, etai)
-      -- find sint using Snell's law
-      sint = (ei / et) * sqrt (max 0 (1 - cosi' * cosi'))
-      cost = sqrt $ max 0 (1 - sint * sint)
-      
-frDiel' :: Float -> Float -> Spectrum -> Spectrum -> Spectrum
-frDiel' cosi cost etai etat = sScale (rPar * rPar + rPer * rPer) 0.5 where
-   rPar = (sScale etat cosi - sScale etai cost) /
-          (sScale etat cosi + sScale etai cost)
-   rPer = (sScale etai cosi - sScale etat cost) /
-          (sScale etai cosi + sScale etat cost)
+      cost = let c = sClamp 0 1 cost' in sqrt $ white - c
+      cost' = let c = sConst $ max 0 (1 - cosi * cosi) in if cosi > 0
+         then sScale c (1 / (etat * etat))
+         else sScale c (etat * etat)
+-}
+
+frDielectric etai etat cosi = frDiel (abs cosi) cost (sConst etai) (sConst etat)
+   where
+      cost = let c = clamp cost' 0 1 in sqrt $ 1 - c
+      cost' = let c = max 0 (1 - cosi * cosi) in if cosi > 0
+         then c / (etat * etat)
+         else c * (etat * etat)
+         
+frDiel
+   :: Float    -- ^ cosi
+   -> Float    -- ^ cost
+   -> Spectrum -- ^ etai
+   -> Spectrum -- ^ etat
+   -> Spectrum -- ^ f
+frDiel cosi cost etai etat = frDiel' cosi (sConst cost) (etat / etai)
+
+frDiel'
+   :: Float    -- ^ cosi
+   -> Spectrum -- ^ cost
+   -> Spectrum -- ^ eta
+   -> Spectrum -- ^ f
+frDiel' cosi cost eta = sScale (rParl * rParl + rPerp * rPerp) 0.5 where
+   rParl'   = sScale eta cosi
+   rParl    = (cost - rParl') / (cost + rParl')
+   rPerp'   = eta * cost
+   rPerp    = (sConst cosi - rPerp') / (sConst cosi + rPerp')
 
 -- | Fresnel incidence effects for conductors
 frConductor

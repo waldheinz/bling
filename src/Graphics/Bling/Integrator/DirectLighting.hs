@@ -58,14 +58,13 @@ cont e d md s bsdf wo t
    | d == md = return $! black
    | otherwise = do
       let
-         (BsdfSample _ pdf f wi) = sampleAdjBsdf' t bsdf wo 0.5 (0.5, 0.5)
+         (BsdfSample _ pdf f wi) = sampleBsdf' t bsdf wo 0.5 (0.5, 0.5)
          p = bsdfShadingPoint bsdf
-         n = bsdfShadingNormal bsdf
          ray = Ray p wi e infinity
 
       if (pdf == 0)
          then return $! black
          else do
             (WS _ l) <- directLighting d md s ray
-            return $! sScale (f * l) (wi `absDot` n / pdf)
+            return $! f * l
             

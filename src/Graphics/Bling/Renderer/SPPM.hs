@@ -47,7 +47,7 @@ mkSPPM
 mkSPPM = SPPM
 
 data HitPoint = Hit
-   { hpBsdf    :: {-# UNPACK #-} ! Bsdf
+   { hpBsdf    :: ! Bsdf
    , hpPixel   :: {-# UNPACK #-} ! (Float, Float)
    , hpStatIdx :: {-# UNPACK #-} ! Int -- index into the PixelStats
    , hpW       :: {-# UNPACK #-} ! Vector
@@ -94,7 +94,7 @@ traceCam cs
             -- record a hitpoint here
             when (bsdfHasNonSpecular (intBsdf int)) $ do
                px <- cameraSample >>= \c -> return (imageX c, imageY c)
-               let h = (Hit bsdf px (sIdx pxs px) wo (sScale t (1 / absDot wo (bsdfNg bsdf)))) in seq h (liftSampled $ gvAdd (csHps cs) h)
+               let h = (Hit bsdf px (sIdx pxs px) wo (sScale t (1 / absDot wo (bsdfShadingNormal bsdf)))) in seq h (liftSampled $ gvAdd (csHps cs) h)
                
             -- determine outgoing ray
             bsdfC <- rnd
@@ -157,9 +157,8 @@ nextVertex scene alpha sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} d
    let
       bsdf = intBsdf int
       p = bsdfShadingPoint bsdf
-      n = bsdfShadingNormal bsdf
 
-   when (bsdfHasNonSpecular bsdf) $ liftSampled $ hashLookup sh p n ps $ \hit -> {-# SCC "contrib" #-} do
+   when (bsdfHasNonSpecular bsdf) $ liftSampled $ hashLookup sh p ps $ \hit -> {-# SCC "contrib" #-} do
       stats <- slup ps hit
       let
          nn = lsN stats
@@ -233,16 +232,16 @@ hash :: (Int, Int, Int) -> Int
 {-# INLINE hash #-}
 hash (x, y, z) = abs $ (x * 73856093) `xor` (y * 19349663) `xor` (z * 83492791)
 
-hashLookup :: SpatialHash -> Point -> Normal -> PixelStats s -> (HitPoint -> ST s ()) -> ST s ()
-hashLookup sh p n ps fun = {-# SCC "hashLookup" #-}
+hashLookup :: SpatialHash -> Point -> PixelStats s -> (HitPoint -> ST s ()) -> ST s ()
+hashLookup sh p ps fun = {-# SCC "hashLookup" #-}
    let
       Vector x y z = abs $ (p - aabbMin (shBounds sh)) * vpromote (shScale sh)
       idx = hash (floor x, floor y, floor z) `rem` V.length (shEntries sh)
       hits = V.unsafeIndex (shEntries sh) idx
    in V.forM_ hits $ \hit -> do
       stats <- slup ps hit
+      
       let
-         hpn = bsdfShadingNormal $ hpBsdf hit
          v = bsdfShadingPoint (hpBsdf hit) - p
       when (sqLen v <= lsR2 stats) $ {-# SCC "hlFun" #-} fun hit
       
