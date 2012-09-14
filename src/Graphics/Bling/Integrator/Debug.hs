@@ -67,14 +67,13 @@ instance SurfaceIntegrator DebugIntegrator where
       go r = maybe (return $ (0, black)) evalInt (scene `intersect` r) where
           evalInt int = let
                             p = bsdfShadingPoint bsdf
-                            n = bsdfShadingNormal bsdf
                             wo = -(rayDir r)
                             le = intLe int wo
                             bsdf = intBsdf int
                         in do
                            wi <- uniformSampleSphere `liftM` rnd2D
                            let
-                              f = evalBsdf False bsdf wo wi
+                              f = evalBsdf False bsdf wi wo
                               
                            if isBlack f
                               then return $(1, le)

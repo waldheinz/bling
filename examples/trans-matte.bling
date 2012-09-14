@@ -9,7 +9,7 @@ renderer {
    sampler
    sampled {
       sampler { stratified 3 3 }
-      integrator { path maxDepth 25 sampleDepth 3 }
+      integrator { path maxDepth 25 sampleDepth 4 }
    }
 }
 
@@ -19,12 +19,12 @@ renderer {
 # renderer { sampler sampled { sampler { stratified 5 5 } integrator { bidir maxDepth 10 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random 4 } integrator { debug normals } } }
-# renderer { sampler sampled { sampler { random 1 } integrator { debug reference } } }
+# renderer { sampler sampled { sampler { random 256 } integrator { debug reference } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug kdtree } } }
-renderer { sppm photonCount 10000 maxDepth 10 radius 15 alpha 0.9 }
+# renderer { sppm photonCount 10000 maxDepth 10 radius 4 alpha 0.95 }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 
-imageSize 720 720
+# imageSize 720 720
 imageSize 480 480
 # imageSize 128 128
 # imageSize 240 240
@@ -121,11 +121,11 @@ prim {
 # tall block
 #
 
-material { glass
-   ior { constant 1.5 }
-   kr { constant rgbR 1 1 1 }
-   kt { constant rgbR 1 1 1 }
-}
+# material { glass
+#    ior { constant 1.5 }
+#    kr { constant rgbR 1 1 1 }
+#    kt { constant rgbR 1 1 1 }
+# }
 
 prim {
    mesh

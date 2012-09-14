@@ -165,7 +165,7 @@ nextVertex scene alpha sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} d
          nn = lsN stats
          ratio = (nn + alpha) / (nn + 1)
          r2 = lsR2 stats
-         f = evalBsdf True (hpBsdf hit) wi (hpW hit) 
+         f = evalBsdf True (hpBsdf hit) wi (hpW hit)
          (px, py) = hpPixel hit
 
       addContrib img (True, (px, py, WS (1 / (r2 * pi)) (hpF hit * f * li)))
@@ -176,7 +176,7 @@ nextVertex scene alpha sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} d
    ubd <- rnd2D' $ 2 + d
    let
       (BsdfSample _ spdf f wo) = sampleAdjBsdf bsdf wi ubc ubd
-      pcont = if d > 4 then 0.7 else 1
+      pcont = if d > 7 then 0.8 else 1
       li' = sScale (f * li) (1 / pcont) -- (absDot wo n / (spdf * pcont))
       ray = Ray p wo (intEpsilon int) infinity
 
@@ -244,7 +244,7 @@ hashLookup sh p n ps fun = {-# SCC "hashLookup" #-}
       let
          hpn = bsdfShadingNormal $ hpBsdf hit
          v = bsdfShadingPoint (hpBsdf hit) - p
-      when (n `dot` hpn > 0 && sqLen v <= lsR2 stats) $ {-# SCC "hlFun" #-} fun hit
+      when (sqLen v <= lsR2 stats) $ {-# SCC "hlFun" #-} fun hit
       
 mkHash :: V.Vector HitPoint -> PixelStats s -> ST s SpatialHash
 mkHash hits ps = {-# SCC "mkHash" #-} do

@@ -279,8 +279,11 @@ sampleBsdf'' :: Bool -> BxdfType -> Bsdf -> Vector -> Float -> Rand2D -> BsdfSam
 {-# INLINE sampleBsdf'' #-}
 sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
    | V.null bsm || pdf' == 0 || sideTest == 0 = emptyBsdfSample
-   | isSpecular bxdf = BsdfSample t (pdf' / fromIntegral cntm) (sScale (fAdj fSample) $ fromIntegral cntm) wiW
-   | otherwise = BsdfSample t pdf (fAdj fSum) wiW where
+   | not (flt bxdf) = emptyBsdfSample
+   | isSpecular bxdf || cntm == 1 =
+      BsdfSample t pdf' (fAdj fSample) wiW
+   | otherwise = BsdfSample t pdf (fAdj fSum) wiW
+   where
       wo = worldToLocal cs woW
       
       -- choose BxDF to sample
@@ -292,17 +295,18 @@ sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
       -- sample chosen BxDF
       (fSample, wi, pdf') = bxdfSample bxdf adj wo uDir
       wiW = localToWorld cs wi
+      sideTest = wiW `dot` ng / woW `dot` ng
+      flt = if sideTest < 0 then isTransmission else isReflection
       
       -- overall PDF
       bs' = V.ifilter (\i _ -> (i /= sNum)) bsm -- filter explicitly sampled from matching
-      pdf = if cntm == 1
-               then pdf'
-               else (pdf' + (V.sum $ V.map (\b -> bxdfPdf b wo wi) bs')) / (fromIntegral cntm)
+      pdf = (pdf' + (V.sum $ V.map (\b -> bxdfPdf b wo wi) bs')) / (fromIntegral cntm)
       
       -- throughput for sampled direction
-      sideTest = wiW `dot` ng / woW `dot` ng
-      flt = if sideTest < 0 then isTransmission else isReflection
-      fSum = fSample + (V.sum $ V.map (\b -> bxdfEval b wo wi) $ V.filter flt bs')
+      fOthers = V.sum $ V.map (\b -> eval b wo wi) $ V.filter flt bs'
+      eval b = if adj then bxdfEval b else flip (bxdfEval b)
+      
+      fSum = sScale (sScale fSample pdf' + fOthers) (1 / pdf)
       t = bxdfType bxdf
       
       -- correct throughput for adjoint

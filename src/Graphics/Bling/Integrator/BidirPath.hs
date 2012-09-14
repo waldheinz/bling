@@ -126,15 +126,13 @@ connect scene nspec
        | otherwise = sScale (alphae * fe * alphal * fl) (g * pathWt)
        where
           pathWt = 1 / (fromIntegral (i + j + 2) - nspec V.! (i+j+2))
-          g = ((absDot ne w) * (absDot nl w)) / sqLen (pl - pe)
+          g = 1 / sqLen (pl - pe)
           (w, wl) = normLen $ pl - pe
           nspece = fromIntegral $ bsdfSpecCompCount bsdfe
           fe = sScale (evalBsdf False bsdfe wie w) (1 + nspece)
           nspecl = fromIntegral $ bsdfSpecCompCount bsdfl
           fl = sScale (evalBsdf True bsdfl (-w) wil) (1 + nspecl)
           r = Ray pe w (intEpsilon inte) (wl - intEpsilon intl)
-          ne = bsdfShadingNormal bsdfe
-          nl = bsdfShadingNormal bsdfl
           bsdfe = intBsdf inte
           bsdfl = intBsdf intl
           
@@ -199,7 +197,7 @@ nextVertex adj sc wi (Just int) alpha depth md f1d f2d
       let int' = intersect sc $ Ray p wo (intEpsilon int) infinity
       let wi' = -wo
       let vHere = Vert p wi wo int t alpha
-      let pathScale = sScale f $ absDot wo (bsdfShadingNormal bsdf) / spdf
+      let pathScale = f -- sScale f $ absDot wo (bsdfShadingNormal bsdf) / spdf
       let rrProb = min 1 $ sY pathScale
       let alpha' = sScale (pathScale * alpha) (1 / rrProb)
       let rest = if rr > rrProb
@@ -213,3 +211,4 @@ nextVertex adj sc wi (Just int) alpha depth md f1d f2d
       where
          bsdf = intBsdf int
          p = bsdfShadingPoint bsdf
+         

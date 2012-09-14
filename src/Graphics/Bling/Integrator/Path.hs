@@ -84,22 +84,14 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) md t l
             else do
                uc <- rnd'   $ 0 + smp1doff depth
                ud <- rnd2D' $ 0 + smp2doff depth
+               
                let
                   (BsdfSample smpType spdf f wi) = sampleBsdf bsdf wo uc ud
-        --          wi' = 30 *# wi
-                  ray' ={- trace (
-                           (show $ vx p) ++ " " ++
-                           (show $ vy p) ++ " " ++ 
-                           (show $ vz p) ++ " " ++
-                           (show $ vx wi') ++ " " ++
-                           (show $ vy wi') ++ " " ++ 
-                           (show $ vz wi')
-                           
-                           ) $ -}Ray p wi eps infinity
-                  
+                  ray' = Ray p wi eps infinity
                   spec' = smpType `bxdfIs` Specular
                   t' = sScale (f * t) (1 / pc)
                   depth' = depth + 1
+                  
                if spdf == 0 || isBlack f
                   then return $! l'
                   else nextVertex scene depth' spec' ray' (scene `intersect` ray') md t' l'
