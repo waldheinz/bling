@@ -8,7 +8,7 @@ import Text.Parsec.Error
 import Control.Applicative ((<*>), (<$>))
 import Data.Monoid
 
-import Graphics.Bling.Image
+import Graphics.Bling.Filter
 import Graphics.Bling.Rendering
 import Graphics.Bling.Scene
 import Graphics.Bling.IO.CameraParser

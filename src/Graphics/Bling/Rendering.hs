@@ -21,6 +21,7 @@ import Control.Parallel.Strategies
 import qualified System.Random.MWC as MWC
 import qualified Text.PrettyPrint as PP
 
+import Graphics.Bling.Filter
 import Graphics.Bling.Image
 import Graphics.Bling.Integrator
 import Graphics.Bling.Camera
@@ -109,18 +110,18 @@ instance (SurfaceIntegrator i) => Renderer (SamplerRenderer i) where
 
 prender :: (SurfaceIntegrator i) => SamplerRenderer i -> RenderJob -> ProgressReporter -> IO ()
 prender (SR sampler integ) job report = do
-   
-   image <- thaw $ mkJobImage job
+   let image' = mkJobImage job
+   image <- thaw image'
    
    let
       scene = jobScene job
-      flt = imageFilter image
+--      flt = imageFilter image
       wnds = splitWindow $ sampleExtent image
       pm f = withStrategy (parBuffer (numCapabilities) rdeepseq) . map f
       
       eval :: (MWC.Seed, SampleWindow) -> ((Image, (Int, Int)), SampleWindow)
       eval (s, w) = runST $ do
-         i <- mkImageTile flt w 
+         i <- mkImageTile image' w 
          runWithSeed s $ tile scene sampler integ i w
          i' <- freeze i
          return (i', w)

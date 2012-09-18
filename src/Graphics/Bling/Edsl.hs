@@ -28,6 +28,7 @@ import qualified Data.ByteString.Lazy as BS
 import Data.Monoid
 
 import Graphics.Bling.Camera
+import Graphics.Bling.Filter
 import Graphics.Bling.Gui
 import Graphics.Bling.Image
 import Graphics.Bling.Integrator.BidirPath

@@ -1,16 +1,16 @@
 
-# plastic
+# matte
 
-filter mitchell 3.0 3.0 0.333333 0.333333
-filter box
+filter mitchell 3 3 0.333333 0.333333
+# filter box
 
 imageSize 1280 720
-imageSize 640 360
+# imageSize 640 360
 
 renderer {
    sampler
    sampled {
-      sampler { stratified 3 3 }
+      sampler { stratified 8 8 }
       integrator { path maxDepth 5 sampleDepth 2 }
    }
 }

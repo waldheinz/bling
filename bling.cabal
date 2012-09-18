@@ -40,6 +40,7 @@ Library
       Graphics.Bling.Camera,
       Graphics.Bling.DifferentialGeometry,
       Graphics.Bling.Edsl,
+      Graphics.Bling.Filter,
       Graphics.Bling.Fresnel,
       Graphics.Bling.Gui,
       Graphics.Bling.Image,
