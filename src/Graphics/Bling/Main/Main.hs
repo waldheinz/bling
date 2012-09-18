@@ -1,12 +1,11 @@
 
---import Control.Monad
 import System.Environment (getArgs)
 import System.IO
 import Text.Printf
 import qualified Text.PrettyPrint as PP
---import Time
 
 import Graphics.Bling.Image
+import Graphics.Bling.IO.RGBE
 import Graphics.Bling.Rendering
 import Graphics.Bling.Types
 import Graphics.Bling.IO.RenderJob

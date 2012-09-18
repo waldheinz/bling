@@ -3,9 +3,9 @@
 {-# LANGUAGE UnboxedTuples #-}
 
 module Graphics.Bling.Image (
- --  module Graphics.Bling.Filter,
    
    Image, ImageSample, mkImage, rgbPixels, imageWindow', imgW, imgH, imgFilter,
+   getPixel,
    
    MImage, imageFilter,
    
@@ -19,9 +19,6 @@ module Graphics.Bling.Image (
    Filter, mkBoxFilter, mkTriangleFilter, mkMitchellFilter, mkSincFilter,
    mkGaussFilter,
    
-   -- * Reading and Writing RGBE
-   writeRgbe
-   
    ) where
 
 import Control.DeepSeq
@@ -31,12 +28,11 @@ import Debug.Trace
 import qualified Data.Vector.Generic as GV
 import qualified Data.Vector.Unboxed as V 
 import qualified Data.Vector.Unboxed.Mutable as MV
-import qualified Data.ByteString.Lazy as BS
 import System.IO
 
 import Graphics.Bling.Sampling
-import Graphics.Bling.Types
 import Graphics.Bling.Spectrum
+import Graphics.Bling.Types
 
 -- | an image pixel, which consists of the sample weight, the sample RGB value
 --   and the RGB value of the splatted samples
@@ -259,38 +255,6 @@ ppmPixel ws = (toString . gamma 2.2) ws
    where
       toString (r, g, b) = show (clamp r) ++ " " ++ show (clamp g) ++ " " ++ show (clamp b) ++ " "
 
---------------------------------------------------------------------------------
--- RGBE
---------------------------------------------------------------------------------
-
-frexp :: Float -> (Float, Int)
-frexp x
-   | isNaN x = error "NaN given to frexp"
-   | isInfinite x = error "infinity given to frexp"
-   | otherwise  = frexp' (x, 0) where
-      frexp' (s, e)
-         | s >= 1.0 = frexp' (s / 2, e + 1)
-         | s < 0.5 = frexp' (s * 2, e - 1)
-         | otherwise = (s, e)
-
-writeRgbe :: Image -> Float -> Handle -> IO ()
-writeRgbe img@(Img w h _ _ _) spw hnd =
-   let header = "#?RGBE\nFORMAT=32-bit_rgbe\n\n-Y " ++ show h ++ " +X " ++ show w ++ "\n"
-       pixel :: Int -> IO BS.ByteString
-       pixel p = return $ toRgbe $ getPixel img spw p
-   in do
-      hPutStr hnd header
-      mapM_ (\p -> pixel p >>= BS.hPutStr hnd) [0..(w*h-1)]
-
-toRgbe :: (Float, Float, Float) -> BS.ByteString
-toRgbe (r, g, b)
-   | v < 0.00001 = BS.pack [0,0,0,0]
-   | otherwise = BS.pack $ map truncate [r * v'', g * v'', b * v'', fromIntegral $ e + 128]
-   where
-         v = max r $ max g b
-         (v', e) = frexp v
-         v'' = v' * 256 / v
-         
 --------------------------------------------------------------------------------
 -- Filters
 --------------------------------------------------------------------------------

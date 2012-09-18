@@ -3,7 +3,7 @@ module Graphics.Bling.IO.RGBE (
 
    -- * RGBE image format support
 
-   RGBEImage, parseRGBE, rgbeToTextureMap
+   RGBEImage, parseRGBE, rgbeToTextureMap, writeRgbe
    
    ) where
    
@@ -15,7 +15,9 @@ import qualified Data.ByteString.Internal as BSI
 import Data.Bits ((.&.), (.|.), shiftL)
 import Data.Char as C
 import Data.Word
+import System.IO
 
+import Graphics.Bling.Image
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Texture
 import Graphics.Bling.Types
@@ -125,3 +127,38 @@ splitHeader bs = go ([], bs) where
       where
          (line, rest') = BS.span (/=(BSI.c2w '\n')) rest
    
+
+--------------------------------------------------------------------------------
+-- writing
+--------------------------------------------------------------------------------
+
+frexp :: Float -> (Float, Int)
+frexp x
+   | isNaN x = error "NaN given to frexp"
+   | isInfinite x = error "infinity given to frexp"
+   | otherwise  = frexp' (x, 0) where
+      frexp' (s, e)
+         | s >= 1.0 = frexp' (s / 2, e + 1)
+         | s < 0.5 = frexp' (s * 2, e - 1)
+         | otherwise = (s, e)
+
+writeRgbe :: Image -> Float -> Handle -> IO ()
+writeRgbe img spw hnd =
+   let header = "#?RGBE\nFORMAT=32-bit_rgbe\n\n-Y " ++ show h ++ " +X " ++ show w ++ "\n"
+       (w, h) = (imgW img, imgH img)
+       pixel :: Int -> IO BS.ByteString
+       pixel p = return $ toRgbe $ getPixel img spw p
+
+   in do
+      hPutStr hnd header
+      mapM_ (\p -> pixel p >>= BS.hPutStr hnd) [0..(w*h-1)]
+      
+toRgbe :: (Float, Float, Float) -> BS.ByteString
+toRgbe (r, g, b)
+   | v < 0.00001 = BS.pack [0,0,0,0]
+   | otherwise = BS.pack $ map truncate [r * v'', g * v'', b * v'', fromIntegral $ e + 128]
+   where
+         v = max r $ max g b
+         (v', e) = frexp v
+         v'' = v' * 256 / v
+         

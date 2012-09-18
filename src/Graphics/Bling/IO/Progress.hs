@@ -8,9 +8,8 @@ import System.IO
 import Text.Printf
 
 import Graphics.Bling.Image
+import Graphics.Bling.IO.RGBE
 import Graphics.Bling.Rendering
-
-
 
 -- | allows to combine two progress reporters into a new one. the new
 --   reporter will request continued operation iff both of the provided
