@@ -20,7 +20,7 @@ Library
       containers        >= 0.4,
       deepseq           >= 1.1,
       filepath          >= 1.2,
-      JuicyPixels       >= 1.3,
+      JuicyPixels       >= 2.0,
       mtl               >= 2.0,
       mwc-random        >= 0.10,
       parsec            >= 3.1,

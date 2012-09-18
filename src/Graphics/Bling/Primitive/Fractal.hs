@@ -12,6 +12,7 @@ module Graphics.Bling.Primitive.Fractal (
 ) where
 
 import Data.Monoid
+import qualified Data.Vector as V
 
 import Graphics.Bling.AABB
 import Graphics.Bling.DifferentialGeometry
@@ -112,24 +113,25 @@ qpromote (Vector x y z) = Quaternion x $ mkV (y, z, 0)
 normalJulia :: Point -> Quaternion -> Int -> Float -> Normal
 normalJulia p c mi e = {-# SCC "normalJulia" #-} normalize v where
    v = mkV (gx, gy, gz)
-   (gx, gy, gz) = (qlen gx2' - qlen gx1', qlen gy2' - qlen gy1', qlen gz2' - qlen gz1')
+   (gx, gy, gz) = (
+      qlen (V.unsafeIndex v' 1) - qlen (V.unsafeIndex v' 0),
+      qlen (V.unsafeIndex v' 3) - qlen (V.unsafeIndex v' 2),
+      qlen (V.unsafeIndex v' 5) - qlen (V.unsafeIndex v' 4))
+      
    qp = qpromote p
    (dx, gx1, gx2) = (qpromote $ mkV (e, 0, 0), qp `qsub` dx, qp `qadd` dx)
    (dy, gy1, gy2) = (qpromote $ mkV (0, e, 0), qp `qsub` dy, qp `qadd` dy)
    (dz, gz1, gz2) = (qpromote $ mkV (0, 0, e), qp `qsub` dz, qp `qadd` dz)
-   v' = {-# SCC "normalJulia.iter'" #-} iter' [gx1, gx2, gy1, gy2, gz1, gz2] c mi
-   (gx1':gx2':gy1':gy2':gz1':gz2':[]) = v'
+   v' = {-# SCC "normalJulia.iter'" #-} iter' (V.fromList [gx1, gx2, gy1, gy2, gz1, gz2]) c mi
    
 -- | iterates several @Quaternion@s together
 iter'
-   :: [Quaternion] -- ^ the quaternions to iterate
+   :: V.Vector Quaternion -- ^ the quaternions to iterate
    -> Quaternion -- ^ the c value
    -> Int -- ^ the number of iterations
-   -> [Quaternion]
+   -> V.Vector Quaternion
    
-iter' qs _ 0 = qs
-iter' qs c n = iter' qs' c (n-1) where
-   qs' = map (qadd c . qsq) qs
+iter' qs c n = iterate (V.map $ qadd c . qsq) qs !! n
 
 -- | if the magnitude of the quaternion exceeds this value it is considered
 -- to diverge

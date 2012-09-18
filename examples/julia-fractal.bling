@@ -11,8 +11,8 @@ imageSize 1280 720
 renderer {
    sampler
    sampled {
-      sampler { stratified 8 8 }
-      integrator { path maxDepth 5 sampleDepth 3 }
+      sampler { stratified 16 16 }
+      integrator { path maxDepth 15 sampleDepth 3 }
    }
 }
 
@@ -40,20 +40,20 @@ newTransform { rotateX 90 translate 0 -1 0 }
 material {
    plastic
    kd {
-      graphPaper 0.08
-      tex1 { constant rgbR 0.4 0.4 0.4 }
+      graphPaper 0.04
+      tex1 { constant rgbR 0.6 0.6 0.6 }
       tex2 { constant rgbR 0.02 0.02 0.02 }
 
    }
 
    ks  {
-      graphPaper 0.08
+      graphPaper 0.04
       tex1 { constant rgbR 0.85 0.85 0.85 }
       tex2 { constant rgbR 0.00 0.00 0.00 }
 
    }
-
-   rough { constant 0.002 }
+   
+   rough { constant 0.0005 }
 }
 
 prim { shape { quad 50 50 } }
@@ -66,13 +66,14 @@ light { infinite { rotateX -90 }
    l {
       sunSky
       east 0 0 1
-      sunDir 0 0.15 -0.5
-      turbidity 5
+      sunDir 1 1 -0.5
+      turbidity 6
    }
 }
 
 material {
    metal
+   
    eta {
       constant spd {
          298.757050 1.795000, 302.400421 1.812000, 306.133759 1.822625,
@@ -120,7 +121,8 @@ material {
          855.063293 5.631250, 885.601257 5.880000
       }
    }
-   rough { constant 0.002 }
+   
+   rough { constant 0.0002 }
 }
 
 prim {
@@ -131,6 +133,6 @@ prim {
    #   c -0.291 -0.399 0.339 0.437
       c -0.450 -0.447 0.181 0.306
    #   c -0.2 0.8 0 0
-      epsilon 0.00005
+      epsilon 0.0001
       iterations 15
 }
