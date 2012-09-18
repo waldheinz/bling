@@ -124,7 +124,7 @@ mkHitPoints = do
          ray <- fireRay $ sceneCam sc
          cs <- traceCam $ CS ray 0 md sc white black result pxs
          (px, py) <- cameraSample >>= \c -> return (imageX c, imageY c)
-         liftSampled $ addContrib img (False, (px, py, WS 1 (csLs cs)))
+         liftSampled $ addSample img px py (csLs cs)
          
    lift $ gvFreeze result
    
@@ -167,7 +167,7 @@ nextVertex scene alpha sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} d
          f = evalBsdf True (hpBsdf hit) wi (hpW hit)
          (px, py) = hpPixel hit
 
-      addContrib img (True, (px, py, WS (1 / (r2 * pi)) (hpF hit * f * li)))
+      splatSample img (px, py, WS (1 / (r2 * pi)) (hpF hit * f * li))
       sUpdate ps hit (r2 * ratio, nn + alpha)
       
    -- follow the path

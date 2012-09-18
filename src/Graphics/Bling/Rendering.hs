@@ -143,9 +143,11 @@ prender (SR sampler integ) job report = do
    
 tile :: Scene -> Sampler -> SurfaceIntegrator -> MImage (ST s) -> SampleWindow -> Rand s ()
 tile scene smp si img w = do
-   let comp = fireRay cam >>= surfaceLi si scene
-   _ <- runSample smp w (sampleCount1D si) (sampleCount2D si) comp
-   return ()
+   runSample smp w (sampleCount1D si) (sampleCount2D si) $ do
+      li <- fireRay cam >>= surfaceLi si scene
+      cs <- cameraSample
+      liftSampled $ addSample img (imageX cs) (imageY cs) li
+      
    where
       cam = sceneCam scene
       

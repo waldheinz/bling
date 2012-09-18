@@ -1,6 +1,6 @@
 
 module Graphics.Bling.Integrator.DirectLighting (
-   DirectLighting, mkDirectLightingIntegrator
+   mkDirectLightingIntegrator
    ) where
 
 import qualified Text.PrettyPrint as PP
@@ -12,28 +12,24 @@ import Graphics.Bling.Reflection
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 
-data DirectLighting = DL { _maxDepth  :: {-# UNPACK #-} ! Int }
+--data DirectLighting = DL { _maxDepth  :: {-# UNPACK #-} ! Int }
+
+--instance Printable DirectLighting where
+--   prettyPrint _ = PP.text "Direct Lighting" 
 
 -- | creates an instance of @DirectLighting@
 mkDirectLightingIntegrator
    :: Int -- ^ maximum depth
-   -> DirectLighting
-mkDirectLightingIntegrator = DL
-
-instance Printable DirectLighting where
-   prettyPrint _ = PP.text "Direct Lighting" 
-
-instance SurfaceIntegrator DirectLighting where
-   sampleCount1D (DL md) = 2 * md
-   sampleCount2D (DL md) = 2 * md
+   -> SurfaceIntegrator
+mkDirectLightingIntegrator md = SurfaceIntegrator li s1d s2d where
+   s1d = 2 * md
+   s2d = 2 * md
    
-   contrib (DL md) s addSample r = do
-      c <- directLighting 0 md s r >>= \is -> mkContrib is False
-      liftSampled $ addSample c
-
-directLighting :: Int -> Int -> Scene -> Ray -> Sampled m WeightedSpectrum
+   li s r = directLighting 0 md s r
+   
+directLighting :: Int -> Int -> Scene -> Ray -> Sampled m Spectrum
 directLighting d md s r@(Ray _ rd _ _) =
-   maybe (return $! (WS 0 black)) ls (s `intersect` r) where
+   maybe (return $! black) ls (s `intersect` r) where
       ls int = do
          uln <- rnd' $ 0 + (2 * d)
          uld <- rnd2D' $ 0 + (2 * d)
@@ -51,7 +47,7 @@ directLighting d md s r@(Ray _ rd _ _) =
          re <- cont e (d+1) md s bsdf wo $ mkBxdfType [Specular, Reflection]
          tr <- cont e (d+1) md s bsdf wo $ mkBxdfType [Specular, Transmission]
              
-         return $! WS 1 $ l + re + tr + intLe int wo
+         return $! l + re + tr + intLe int wo
 
 cont :: Float -> Int -> Int -> Scene -> Bsdf -> Vector -> BxdfType -> Sampled s Spectrum
 cont e d md s bsdf wo t
@@ -65,6 +61,6 @@ cont e d md s bsdf wo t
       if (pdf == 0)
          then return $! black
          else do
-            (WS _ l) <- directLighting d md s ray
+            l <- directLighting d md s ray
             return $! f * l
             

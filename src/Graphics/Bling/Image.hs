@@ -193,10 +193,9 @@ splatSample (MImage w h (iox, ioy) _ _ p) (sx, sy, WS sw ss)
 
 
 -- | adds a sample to the specified image
-addSample :: PrimMonad m => MImage m -> ImageSample -> m ()
+addSample :: PrimMonad m => MImage m -> Float -> Float -> Spectrum -> m ()
 {-# INLINE addSample #-}
-addSample (MImage !w !h (!ox, !oy) ftbl !p _) (!sx, !sy, !WS !sw !ss)
-   | sw == 0 = return ()
+addSample (MImage !w !h (!ox, !oy) ftbl !p _) sx sy ss
    | sNaN ss = trace ("skipping NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | sInfinite ss = trace ("skipping infinite sample at ("
@@ -243,11 +242,11 @@ addSample (MImage !w !h (!ox, !oy) ftbl !p _) (!sx, !sy, !WS !sw !ss)
             MV.unsafeWrite p (imgo + 2) $ (ory + smy * fltw)
             MV.unsafeWrite p (imgo + 3) $ (orz + smz * fltw)
             
-addContrib :: PrimMonad m => MImage m -> Contribution -> m ()
-{-# INLINE addContrib #-}
-addContrib !img (!splat, !is)
-   | splat = {-# SCC "addContrib.splat" #-} splatSample img is
-   | otherwise = {-# SCC "addContrib.sample" #-} addSample img is
+--addContrib :: PrimMonad m => MImage m -> Contribution -> m ()
+-- {-# INLINE addContrib #-}
+--addContrib !img (!splat, !is)
+--   | splat = {-# SCC "addContrib.splat" #-} splatSample img is
+--   | otherwise = {-# SCC "addContrib.sample" #-} addSample img is
 
 -- | extracts the pixel at the specified offset from an Image
 getPixel

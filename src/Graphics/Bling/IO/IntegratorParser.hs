@@ -10,38 +10,38 @@ import Graphics.Bling.Integrator.DirectLighting
 import Graphics.Bling.Integrator.Path
 import Graphics.Bling.IO.ParserCore
 
-defaultSurfaceIntegrator :: AnySurfaceIntegrator
-defaultSurfaceIntegrator = mkAnySurface $ mkPathIntegrator 7 3
+defaultSurfaceIntegrator :: SurfaceIntegrator
+defaultSurfaceIntegrator = mkPathIntegrator 7 3
 
-pSurfaceIntegrator :: JobParser AnySurfaceIntegrator
+pSurfaceIntegrator :: JobParser SurfaceIntegrator
 pSurfaceIntegrator = (flip namedBlock) "integrator" $ 
    pString >>= \t -> case t of
         "bidir" -> do
            md <- namedInt "maxDepth"
            sd <- namedInt "sampleDepth"
-           return $ mkAnySurface $ mkBidirPathIntegrator md sd
+           return $ mkBidirPathIntegrator md sd
 
         "bidirnod" -> do
            md <- namedInt "maxDepth"
            sd <- namedInt "sampleDepth"
-           return $ mkAnySurface $ mkNoDirectBidirIntegrator md sd
+           return $ mkNoDirectBidirIntegrator md sd
 
         "debug" -> do
            dt <- pString
            case dt of
-                "kdtree"   -> return $ mkAnySurface $ mkKdVision
-                "normals"  -> return $ mkAnySurface $ mkNormalMap
-                "reference" -> return $ mkAnySurface $ mkReference
+                "kdtree"   -> return $ mkKdVision
+                "normals"  -> return $ mkNormalMap
+                "reference" -> return $ mkReference
                 _          -> fail $ "unknown debug integrator " ++ dt
                 
         "directLighting" -> do
            md <- namedInt "maxDepth"
-           return $ mkAnySurface $ mkDirectLightingIntegrator md
+           return $ mkDirectLightingIntegrator md
 
         "path" -> do
            md <- namedInt "maxDepth"
            sd <- namedInt "sampleDepth"
-           return $ mkAnySurface $ mkPathIntegrator md sd
+           return $ mkPathIntegrator md sd
            
         _ -> fail $ "unknown integrator type " ++ t
         

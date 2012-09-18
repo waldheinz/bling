@@ -28,7 +28,7 @@ import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 
 data Metropolis = MLT
-   { _integrator        :: ! BidirPath
+   { _integrator        :: ! SurfaceIntegrator
    , _maxDepth          :: ! Int
    , _mpp               :: ! Float -- ^ mutations per pixel
    , _nbootstrap        :: ! Int
@@ -51,7 +51,7 @@ mkMLT md mpp nboot pl dspp = MLT integ md mpp nboot pl dspp where
 instance Printable Metropolis where
    prettyPrint (MLT integ md mpp _ _ dspp) = PP.vcat [
       PP.text "metropolis light transport",
-      PP.text "integrator" PP.<+> prettyPrint integ,
+--      PP.text "integrator" PP.<+> prettyPrint integ,
       PP.text "max. Depth" PP.<+> PP.int md,
       PP.text "direct lighting samples" PP.<+> PP.int dspp,
       PP.float mpp PP.<+> PP.text "mutations per pixel"]
@@ -121,7 +121,7 @@ instance Renderer Metropolis where
 runDirectLighting :: RenderJob -> Int -> Int -> (Progress -> IO Bool) -> IO Image
 runDirectLighting job maxDepth dspp report =
    let
-      integrator = mkAnySurface $ mkDirectLightingIntegrator maxDepth
+      integrator = mkDirectLightingIntegrator maxDepth
       sampler = mkStratifiedSampler' dspp
       renderer = mkSamplerRenderer sampler integrator
    in do
@@ -138,10 +138,10 @@ runDirectLighting job maxDepth dspp report =
            Just img -> return img
                                        
 
-bootstrap :: (SurfaceIntegrator i)
-   => Scene
+bootstrap
+   :: Scene
    -> Int -- ^ number of bootstrap samples
-   -> i -- ^ integrator to use
+   -> SurfaceIntegrator -- ^ integrator to use
    -> (Float, Float) -- ^ image size
    -> (Int, Int) -- ^ (n1d, n2d) sampling needs (redundant to integ)
    -> Rand s (Float, Sample s) -- ^ (b)
@@ -240,11 +240,12 @@ jitter v vmin vmax
 evalI :: [ImageSample] -> Float
 evalI smps = sum $ map (\(_, _, WS _ ss) -> sY ss) smps
 
-evalSample :: (SurfaceIntegrator i) => Scene -> i -> Sample s -> Rand s [ImageSample]
+evalSample :: Scene -> SurfaceIntegrator -> Sample s -> Rand s [ImageSample]
 evalSample scn si smp = {-# SCC "evalSample" #-} do
    smps <- liftR $ newSTRef []
    (flip randToSampled) smp $ do
       ray <- (fireRay (sceneCam scn))
-      contrib si scn (\is -> modifySTRef smps ((snd is) :)) ray
+--      contrib si scn (\is -> modifySTRef smps ((snd is) :)) ray
+      error "evalSample missing"
    liftR $ readSTRef smps
    

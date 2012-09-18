@@ -27,15 +27,15 @@ data DebugIntegrator
    | NormalMap
    | Reference 
 
-mkKdVision :: DebugIntegrator
-mkKdVision = KdTreeVis
+mkKdVision :: SurfaceIntegrator
+mkKdVision = undefined -- KdTreeVis
 
-mkNormalMap :: DebugIntegrator
-mkNormalMap = NormalMap
+mkNormalMap :: SurfaceIntegrator
+mkNormalMap = undefined --NormalMap
 
-mkReference :: DebugIntegrator
-mkReference = Reference
-
+mkReference :: SurfaceIntegrator
+mkReference = undefined --Reference
+{-
 instance Printable DebugIntegrator where
    prettyPrint KdTreeVis = PP.text "kd tree vision"
    prettyPrint NormalMap = PP.text "Normal Map"
@@ -85,4 +85,4 @@ intToSpectrum :: Intersection -> WeightedSpectrum
 intToSpectrum int = WS 1 (rgbToSpectrumRefl (r, g, b)) where
    Vector r g b = (vpromote 1 + n) / 2
    n = bsdfShadingNormal $ intBsdf int
-   
+   -}
