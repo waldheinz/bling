@@ -1,13 +1,12 @@
 
 module Graphics.Bling.Integrator.BidirPath (
-   BidirPath, mkBidirPathIntegrator, mkNoDirectBidirIntegrator
+   mkBidirPathIntegrator, mkNoDirectBidirIntegrator
    ) where
 
 import qualified Data.Vector.Unboxed.Mutable as MV
 import qualified Data.Vector.Unboxed as V
-import Control.Monad (liftM, forM, forM_, unless)
+import Control.Monad (liftM, forM, forM_)
 import Control.Monad.ST
-import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Integrator
@@ -17,12 +16,6 @@ import Graphics.Bling.Reflection
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 
-data BidirPath = BDP
-   { _maxDepth    :: {-# UNPACK #-} ! Int
-   , _sampleDepth :: {-# UNPACK #-} ! Int
-   , _noDirect    :: ! Bool -- ^ should we skip direct illumination?
-   }
-   
 -- | a path vertex
 data Vertex = Vert
    { _vpoint   :: {-# UNPACK #-} !Point
@@ -35,15 +28,12 @@ data Vertex = Vert
 
 type Path = [Vertex]
 
-mkBidirPathIntegrator :: Int -> Int -> BidirPath
-mkBidirPathIntegrator md sd = BDP md sd False
-
 -- | a bi-directional path integrator which skips the direct lighting
-mkNoDirectBidirIntegrator :: Int -> Int -> BidirPath
-mkNoDirectBidirIntegrator md sd = BDP md sd True
-
-instance Printable BidirPath where
-   prettyPrint (BDP _ _ _) = PP.text "Bi-Dir Path"
+mkNoDirectBidirIntegrator :: Int -> Int -> SurfaceIntegrator
+mkNoDirectBidirIntegrator md sd = SurfaceIntegrator li s1d s2d where
+   s1d = smps1D * sd * 3 + 1
+   s2d = smps2D * sd * 3 + 2
+   li = contrib True md
 
 smps2D :: Int
 smps2D = 3
@@ -51,53 +41,53 @@ smps2D = 3
 smps1D :: Int
 smps1D = 4
 
-instance SurfaceIntegrator BidirPath where
-   sampleCount1D (BDP _ sd _) = smps1D * sd * 3 + 1
-   
-   sampleCount2D (BDP _ sd _) = smps2D * sd * 3 + 2
-   
-   contrib (BDP md _ noDirect) scene addContrib' r = {-# SCC "contrib" #-} do
-      ul <- rnd' 0
-      ulo <- rnd2D' 0
-      uld <- rnd2D' 1
-      
-      lp <- lightPath scene md ul ulo uld
-      ep <- eyePath scene r md
-      
-      let
-         -- precompute sum of specular bounces in eye or light path
-         nspecBouces = countSpec ep lp
-         
-         -- if we do separate DL, we must drop the specular bounces at the
-         -- beginning of the eye path to avoid double-counting
-         ep' = if noDirect
-                  then dropWhile (\v -> _vtype v `bxdfIs` Specular) $ tail ep
-                  else ep
-      
-      -- direct illumination, aka "one light" or S1 subpaths
-      ld <- liftM sum $ forM (zip ep' [0..]) $ \(v, i) -> do
-         d <- estimateDirect scene v i
-         return $ sScale d (1 / (1 + fromIntegral i - nspecBouces V.! i))
-      
-      let
-          prevSpec = True : map (\v -> _vtype v `bxdfIs` Specular) ep
+mkBidirPathIntegrator :: Int -> Int -> SurfaceIntegrator
+mkBidirPathIntegrator md sd = SurfaceIntegrator li s1d s2d where
+   s1d = smps1D * sd * 3 + 1
+   s2d = smps2D * sd * 3 + 2
+   li = contrib False md
 
-          -- light sources directly visible, or via specular reflection
-          le = if noDirect
-                  then black
-                  else sum $ map (\v -> _valpha v * (intLe (_vint v) (_vwi v)))
+contrib :: Bool -> Int -> Scene -> Ray -> Sampled s Spectrum
+contrib noDirect md scene r = {-# SCC "contrib" #-} do
+   ul <- rnd' 0
+   ulo <- rnd2D' 0
+   uld <- rnd2D' 1
+      
+   lp <- lightPath scene md ul ulo uld
+   ep <- eyePath scene r md
+      
+   let
+      -- precompute sum of specular bounces in eye or light path
+      nspecBouces = countSpec ep lp
+         
+      -- if we do separate DL, we must drop the specular bounces at the
+      -- beginning of the eye path to avoid double-counting
+      ep' = if noDirect
+               then dropWhile (\v -> _vtype v `bxdfIs` Specular) $ tail ep
+               else ep
+      
+   -- direct illumination, aka "one light" or S1 subpaths
+   ld <- liftM sum $ forM (zip ep' [0..]) $ \(v, i) -> do
+      d <- estimateDirect scene v i
+      return $ sScale d (1 / (1 + fromIntegral i - nspecBouces V.! i))
+      
+   let
+       prevSpec = True : map (\v -> _vtype v `bxdfIs` Specular) ep
+
+       -- light sources directly visible, or via specular reflection
+       le = if noDirect
+               then black
+               else sum $ map (\v -> _valpha v * (intLe (_vint v) (_vwi v)))
                            $ map fst $ filter snd $ zip ep prevSpec
       
-          ei = zip ep [0..]
-          li = zip lp [0..]
-          l = sum $ map (connect scene nspecBouces) $ pairs ei li
+       ei = zip ep [0..]
+       li = zip lp [0..]
+       l = sum $ map (connect scene nspecBouces) $ pairs ei li
           
-      unless (null ep || null lp) $
-         mkContrib (WS 1 (l + ld + le)) False >>= addContrib
-         
-      where
-         addContrib = liftSampled . addContrib'
-
+   if (null ep || null lp)
+      then return black
+      else return $! l + ld + le
+      
 --------------------------------------------------------------------------------
 -- Path Evaluation
 --------------------------------------------------------------------------------

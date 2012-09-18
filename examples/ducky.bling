@@ -1,15 +1,15 @@
 
-# plastic
+# ducky
 
-filter mitchell 3.0 3.0 0.333333 0.333333
+filter mitchell 3 3 0.333333 0.333333
 # filter box
 
-imageSize 640 480
+imageSize 640 360
 
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 2 ySamples 2 }
+      sampler { stratified 6 6 }
       integrator { path maxDepth 5 sampleDepth 3 }
    }
 }
@@ -18,7 +18,7 @@ renderer {
 
 transform {
    lookAt {
-      pos 0 35 -300
+      pos 0 235 -500
       look 0 30 0
       up 0 1 0
    }
@@ -26,28 +26,61 @@ transform {
 
 camera {
    perspective
-   fov 75
+   fov 35
    lensRadius 0
    focalDistance 10
 }
 
 # transform { identity } camera { environment }
 
-newTransform { rotateX -90 }
-
 material {
    matte
-   kd { constant rgb 0.7 0.7 0.7 }
+   kd { constant rgbR 0.3 0.3 0.7 }
    sigma { constant 0 }
 }
 
+newTransform { rotateX 90 translate 0 -92 0 }
+prim { shape { quad 1000 1000 } }
+
+newTransform { rotateY 140 }
+
 prim {
    waveFront "meshes/ducky.obj"
+   materials {
+      "DBody" {
+         plastic
+         kd { constant rgbR 0.7 0.7 0.3 }
+         ks { constant rgbR 0.5 0.5 0.5 }
+         rough { constant 0.0005 }
+      }
+      
+      "DWhite" {
+         plastic
+         kd { constant rgbR 0.8 0.8 0.8 }
+         ks { constant rgbR 0.5 0.5 0.5 }
+         rough { constant 0.0005 }
+      }
+      
+      
+      "DBill" {
+         plastic
+         kd { constant rgbR 0.8 0.2 0.2 }
+         ks { constant rgbR 0.5 0.5 0.5 }
+         rough { constant 0.0005 }
+      }
+      
+      "DBlack" {
+         plastic
+         kd { constant rgbR 0.2 0.2 0.2 }
+         ks { constant rgbR 0.5 0.5 0.5 }
+         rough { constant 0.0005 }
+      }
+   }
 }
 
 light { infinite { rotateX -90 }
    l { rgbeFile "envmaps/studio015.hdr" }
 #   l { rgbeFile "/home/trem/Downloads/garage4_hd.hdr" }
 #   l { rgbeFile "/home/trem/Downloads/ennis.hdr" }
-#   l { constant rgb 1 1 1 }
+#   l { constant rgbI 1 1 1 }
 }

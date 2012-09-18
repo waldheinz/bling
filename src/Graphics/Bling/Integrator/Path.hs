@@ -2,11 +2,10 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module Graphics.Bling.Integrator.Path (
-   mkPathIntegrator, PathIntegrator
+   mkPathIntegrator
    ) where
 
 import qualified Data.Vector.Generic as V
-import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Integrator
@@ -16,13 +15,8 @@ import Graphics.Bling.Reflection
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 
-data PathIntegrator = PathIntegrator {-# UNPACK #-} !Int {-# UNPACK #-} !Int  
+-- data PathIntegrator = PathIntegrator {-# UNPACK #-} !Int {-# UNPACK #-} !Int  
 
-mkPathIntegrator
-   :: Int -- ^ maximum depth
-   -> Int -- ^ sample depth
-   -> PathIntegrator
-mkPathIntegrator m s = PathIntegrator m (min m s)
 
 smps2D :: Int
 smps2D = 3
@@ -36,19 +30,16 @@ smp2doff d = smps2D * d
 smp1doff :: Int -> Int
 smp1doff d = smps1D * d
 
-instance Printable PathIntegrator where
-   prettyPrint (PathIntegrator md sd) =
-      PP.text ("Path Integrator " ++ (show md) ++ " " ++ (show sd))
-
-instance SurfaceIntegrator PathIntegrator where
-   sampleCount1D (PathIntegrator _ sd) = smps1D * sd
+mkPathIntegrator
+   :: Int -- ^ maximum depth
+   -> Int -- ^ sample depth
+   -> SurfaceIntegrator
+mkPathIntegrator md sd = SurfaceIntegrator li s1d s2d where
+   s1d = smps1D * sd
+   s2d = smps2D * sd
    
-   sampleCount2D (PathIntegrator _ sd) = smps2D * sd
-   
-   contrib (PathIntegrator md _) s addSample r = {-# SCC "contrib" #-} do
-      li <- nextVertex s 0 True r (s `intersect` r) md white black
-      c <- mkContrib (WS 1 li) False
-      liftSampled $ addSample c
+   li s r = {-# SCC "contrib" #-}
+      nextVertex s 0 True r (s `intersect` r) md white black
       
 nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Int -> Spectrum -> Spectrum -> Sampled m Spectrum
 

@@ -93,22 +93,22 @@ instance Renderer AnyRenderer where render (AR a) = render a
 -- the sampler renderer
 --
 
-data SamplerRenderer i =
-   SR Sampler i
+data SamplerRenderer =
+   SR Sampler SurfaceIntegrator
 
-mkSamplerRenderer :: (SurfaceIntegrator i)
-   => Sampler
-   -> i
-   -> SamplerRenderer i
+mkSamplerRenderer
+   :: Sampler
+   -> SurfaceIntegrator
+   -> SamplerRenderer
 mkSamplerRenderer = SR
 
-instance Printable (SamplerRenderer i) where
+instance Printable SamplerRenderer where
    prettyPrint (SR _ _) = PP.text "sampler renderer"
 
-instance (SurfaceIntegrator i) => Renderer (SamplerRenderer i) where
+instance Renderer SamplerRenderer where
    render = prender
 
-prender :: (SurfaceIntegrator i) => SamplerRenderer i -> RenderJob -> ProgressReporter -> IO ()
+prender :: SamplerRenderer -> RenderJob -> ProgressReporter -> IO ()
 prender (SR sampler integ) job report = do
    let image' = mkJobImage job
    image <- thaw image'
@@ -141,10 +141,9 @@ prender (SR sampler integ) job report = do
    
    onePass 1
    
-tile :: SurfaceIntegrator i =>
-   Scene -> Sampler -> i -> MImage (ST s) -> SampleWindow -> Rand s ()
+tile :: Scene -> Sampler -> SurfaceIntegrator -> MImage (ST s) -> SampleWindow -> Rand s ()
 tile scene smp si img w = do
-   let comp = fireRay cam >>= contrib si scene (addContrib img)
+   let comp = fireRay cam >>= surfaceLi si scene
    _ <- runSample smp w (sampleCount1D si) (sampleCount2D si) comp
    return ()
    where

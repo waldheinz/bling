@@ -9,7 +9,7 @@ module Graphics.Bling.Image (
    
    MImage, 
       
-   mkMImage, mkImageTile, addSample, splatSample, addContrib, addTile,
+   mkMImage, mkImageTile, addSample, splatSample, addTile,
    
    imageWidth, imageHeight, sampleExtent, writePpm, 
    

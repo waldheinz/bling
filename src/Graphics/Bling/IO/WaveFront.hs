@@ -66,7 +66,7 @@ parseWaveFront mmap fname = {-# SCC "parseWaveFront" #-} do
                muv = V.generate (2 * l) $ \i ->
                   let (i', o) = divMod i 2 in uvs V.! (2 * (uvis V.! (i' + s)) + o)
                   
-            return $! mkTriangleMesh (transform st) (mmap n) ps pis' (Just mns) (Just muv)
+            return $! mkTriangleMesh (transform st) (mmap n) ps pis' Nothing Nothing -- (Just mns) (Just muv)
             
 waveFrontParser :: WFParser s (V.Vector Point, V.Vector Normal, V.Vector (Int, Int, Int), V.Vector Float, [(String, Int)])
 waveFrontParser = {-# SCC "waveFrontParser" #-} do

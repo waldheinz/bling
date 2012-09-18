@@ -11,8 +11,8 @@ imageSize 1280 720
 renderer {
    sampler
    sampled {
-      sampler { stratified 16 16 }
-      integrator { path maxDepth 15 sampleDepth 3 }
+      sampler { stratified 8 8 }
+      integrator { path maxDepth 125 sampleDepth 3 }
    }
 }
 
@@ -63,12 +63,8 @@ prim { shape { quad 50 50 } }
 #
 
 light { infinite { rotateX -90 }
-   l {
-      sunSky
-      east 0 0 1
-      sunDir 1 1 -0.5
-      turbidity 6
-   }
+#   l { sunSky east 0 0 1 sunDir 1 1 -0.5 turbidity 6 }
+   l { rgbeFile "/home/trem/Dropbox/bling-scenes/envmaps/ennis.hdr" }
 }
 
 material {
