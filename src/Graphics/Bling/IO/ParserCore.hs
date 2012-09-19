@@ -113,9 +113,9 @@ flt' = do
       s <- oneOf "+-"
       return $ if s == '-' then (-1) else 1
       
-   i <- many digit
+   i <- many1 digit
    d <- option "0" (char '.' >> try (many digit))
-   return $ sign * read (i ++ "." ++ d)
+   return $! sign * read (i ++ "." ++ d)
 
 -- | parse a floating point number and consume optional trailing whitespace
 flt :: (Monad m) => (ParsecT String u m) Float

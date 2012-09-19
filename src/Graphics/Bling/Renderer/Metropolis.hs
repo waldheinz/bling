@@ -20,6 +20,7 @@ import Graphics.Bling.Image
 import Graphics.Bling.Integrator
 import Graphics.Bling.Integrator.BidirPath
 import Graphics.Bling.Integrator.DirectLighting
+import Graphics.Bling.Integrator.Path
 import Graphics.Bling.Montecarlo
 import Graphics.Bling.Random as R
 import Graphics.Bling.Reflection
@@ -65,8 +66,9 @@ instance Renderer Metropolis where
       where
       scene = jobScene job
       
-      sSmp :: Float -> ImageSample -> ImageSample
-      sSmp f (x, y, WS w s) = (x, y, WS (w * f * wt) s)
+      sSmp :: Float -> (Float, Float, Spectrum) -> ImageSample
+      sSmp f (x, y, s) = (x, y, WS (f * wt) s)
+      
       (szx, szy) = jobImageSize job
       nPixels = szx * szy
       wt = 1 / mpp
@@ -224,7 +226,7 @@ jitter v vmin vmax
    | otherwise = go `liftM` R.rnd2D
    where
       a = 1 / 1024
-      b = 1 / 64
+      b = 1 / 256 -- 64
       logRat = -log (b / a)
       go (u1, u2)
          | u2 < 0.5 = wrapAround $ v + delta
@@ -237,15 +239,16 @@ jitter v vmin vmax
          | x < vmin = vmax - (vmin - x)
          | otherwise = x
 
-evalI :: [ImageSample] -> Float
-evalI smps = sum $ map (\(_, _, WS _ ss) -> sY ss) smps
+evalI :: [(Float, Float, Spectrum)] -> Float
+evalI smps = sum $ map (\(_, _, ss) -> sY ss) smps
 
-evalSample :: Scene -> SurfaceIntegrator -> Sample s -> Rand s [ImageSample]
+evalSample :: Scene -> SurfaceIntegrator -> Sample s -> Rand s [(Float, Float, Spectrum)]
 evalSample scn si smp = {-# SCC "evalSample" #-} do
    smps <- liftR $ newSTRef []
    (flip randToSampled) smp $ do
-      ray <- (fireRay (sceneCam scn))
---      contrib si scn (\is -> modifySTRef smps ((snd is) :)) ray
-      error "evalSample missing"
+      li <- fireRay (sceneCam scn) >>= surfaceLi si scn
+      cs <- cameraSample
+      liftSampled $ modifySTRef smps ((imageX cs, imageY cs, li) :)
+      
    liftR $ readSTRef smps
    

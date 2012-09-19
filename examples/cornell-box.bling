@@ -8,20 +8,20 @@ filter sinc 3 3 3
 renderer {
    sampler
    sampled {
-      sampler { stratified 8 8 }
-      integrator { path maxDepth 25 sampleDepth 3 }
+      sampler { stratified 3 3 }
+      integrator { path maxDepth 1 sampleDepth 1 }
    }
 }
 
 # renderer { sampler sampled { sampler { random samples 3 } integrator { path maxDepth 1 sampleDepth 1 } } }
 # renderer { light passPhotons 100000 }
-# renderer { metropolis maxDepth 10 mpp 1 bootstrap 1000 plarge 0.25 directSamples 4 }
-# renderer { sampler sampled { sampler { stratified 5 5 } integrator { bidir maxDepth 10 sampleDepth 3 } } }
+# renderer { metropolis maxDepth 10 mpp 1 bootstrap 1000 plarge 0.25 directSamples 0 }
+renderer { sampler sampled { sampler { random 9 } integrator { bidir maxDepth 1 sampleDepth 1 } } }
 # renderer { sampler sampled { sampler { random samples 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random 4 } integrator { debug normals } } }
 # renderer { sampler sampled { sampler { random 1 } integrator { debug reference } } }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug kdtree } } }
-renderer { sppm photonCount 100000 maxDepth 10 radius 10 }
+# renderer { sppm photonCount 100000 maxDepth 10 radius 10 }
 # renderer { sampler sampled { sampler { random samples 4 } integrator { debug normals } } }
 
 # imageSize 720 720

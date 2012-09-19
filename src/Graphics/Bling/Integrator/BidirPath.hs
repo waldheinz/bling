@@ -86,7 +86,7 @@ contrib noDirect md scene r = {-# SCC "contrib" #-} do
           
    if (null ep || null lp)
       then return black
-      else return $! l + ld + le
+      else return $! ld -- l + ld + le
       
 --------------------------------------------------------------------------------
 -- Path Evaluation
@@ -121,7 +121,7 @@ connect scene nspec
           nspece = fromIntegral $ bsdfSpecCompCount bsdfe
           fe = sScale (evalBsdf False bsdfe wie w) (1 + nspece)
           nspecl = fromIntegral $ bsdfSpecCompCount bsdfl
-          fl = sScale (evalBsdf True bsdfl (-w) wil) (1 + nspecl)
+          fl = sScale (evalBsdf True bsdfl wil (-w)) (1 + nspecl)
           r = Ray pe w (intEpsilon inte) (wl - intEpsilon intl)
           bsdfe = intBsdf inte
           bsdfl = intBsdf intl
@@ -151,7 +151,7 @@ pairs (x:xs) ys = zip (repeat x) ys ++ pairs xs ys
 -- | generates the eye path
 eyePath :: Scene -> Ray -> Int -> Sampled m Path
 eyePath s r md = nextVertex False s wi int white 0 md (\d -> 2 + 1 + smps1D * d * 3) (\d -> 2 + 2 + smps2D * d * 3) where
-   wi = normalize $ (-(rayDir r))
+   wi = -(rayDir r)
    int = s `intersect` r
 
 -- | generates the light path
@@ -159,9 +159,10 @@ lightPath :: Scene -> Int -> Float -> Rand2D -> Rand2D -> Sampled m Path
 lightPath s md ul ulo uld =
    let
       (li, ray, nl, pdf) = sampleLightRay s ul ulo uld
-      wo = rayDir ray
+      li' = sScale li (absDot nl wo / pdf)
+      wo = -(rayDir ray)
    in do
-      nextVertex True s (-wo) (s `intersect` ray) (sScale li (absDot nl wo / pdf)) 0 md (\d -> 3 + 1 + smps1D * d * 3) (\d -> 3 + 2 + smps2D * d * 3)
+      nextVertex True s wo (s `intersect` ray) li' 0 md (\d -> 3 + 1 + smps1D * d * 3) (\d -> 3 + 2 + smps2D * d * 3)
    
 nextVertex
    :: Bool -- ^ adjoint ?

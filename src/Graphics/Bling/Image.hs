@@ -242,12 +242,6 @@ addSample (MImage !w !h (!ox, !oy) ftbl !p _) sx sy ss
             MV.unsafeWrite p (imgo + 2) $ (ory + smy * fltw)
             MV.unsafeWrite p (imgo + 3) $ (orz + smz * fltw)
             
---addContrib :: PrimMonad m => MImage m -> Contribution -> m ()
--- {-# INLINE addContrib #-}
---addContrib !img (!splat, !is)
---   | splat = {-# SCC "addContrib.splat" #-} splatSample img is
---   | otherwise = {-# SCC "addContrib.sample" #-} addSample img is
-
 -- | extracts the pixel at the specified offset from an Image
 getPixel
    :: Image
