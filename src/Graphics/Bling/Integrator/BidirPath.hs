@@ -5,7 +5,7 @@ module Graphics.Bling.Integrator.BidirPath (
 
 import qualified Data.Vector.Unboxed.Mutable as MV
 import qualified Data.Vector.Unboxed as V
-import Control.Monad (liftM, forM, forM_)
+import Control.Monad (liftM, forM, forM_, when)
 import Control.Monad.ST
 
 import Graphics.Bling.DifferentialGeometry
@@ -18,8 +18,7 @@ import Graphics.Bling.Scene
 
 -- | a path vertex
 data Vertex = Vert
-   { _vpoint   :: {-# UNPACK #-} !Point
-   , _vwi      :: {-# UNPACK #-} !Vector
+   { _vwi      :: {-# UNPACK #-} !Vector
    , _vwo      :: {-# UNPACK #-} !Vector
    , _vint     :: !Intersection
    , _vtype    :: {-# UNPACK #-} !BxdfType
@@ -28,18 +27,18 @@ data Vertex = Vert
 
 type Path = [Vertex]
 
+smps2D :: Int
+smps2D = 3
+
+smps1D :: Int
+smps1D = 4
+
 -- | a bi-directional path integrator which skips the direct lighting
 mkNoDirectBidirIntegrator :: Int -> Int -> SurfaceIntegrator
 mkNoDirectBidirIntegrator md sd = SurfaceIntegrator li s1d s2d where
    s1d = smps1D * sd * 3 + 1
    s2d = smps2D * sd * 3 + 2
    li = contrib True md
-
-smps2D :: Int
-smps2D = 3
-
-smps1D :: Int
-smps1D = 4
 
 mkBidirPathIntegrator :: Int -> Int -> SurfaceIntegrator
 mkBidirPathIntegrator md sd = SurfaceIntegrator li s1d s2d where
@@ -77,16 +76,16 @@ contrib noDirect md scene r = {-# SCC "contrib" #-} do
        -- light sources directly visible, or via specular reflection
        le = if noDirect
                then black
-               else sum $ map (\v -> _valpha v * (intLe (_vint v) (_vwi v)))
-                           $ map fst $ filter snd $ zip ep prevSpec
+               else sum $ map ((\v -> _valpha v * intLe (_vint v) (_vwi v)) . fst)
+                        $ filter snd $ zip ep prevSpec
       
        ei = zip ep [0..]
        li = zip lp [0..]
        l = sum $ map (connect scene nspecBouces) $ pairs ei li
-          
-   if (null ep || null lp)
-      then return black
-      else return $! ld -- l + ld + le
+   
+   if null ep || null lp
+      then return $! ld + le
+      else return $! l + ld + le
       
 --------------------------------------------------------------------------------
 -- Path Evaluation
@@ -96,19 +95,16 @@ contrib noDirect md scene r = {-# SCC "contrib" #-} do
 countSpec :: Path -> Path -> V.Vector Float
 countSpec ep lp = runST $ do
    x <- MV.replicate (length ep + length lp + 2) 0
-   forM_ [0..length ep - 1] $ \i -> do
-      forM_ [0..length lp - 1] $ \j -> do
-         if (_vtype $ ep !! i) `bxdfIs` Specular || (_vtype $ lp !! j) `bxdfIs` Specular
-            then do
-               old <- MV.read x (i+j+2)
-               MV.write x (i+j+2) (old + 1)
-            else return ()
+   forM_ [0..length ep - 1] $ \i ->
+      forM_ [0..length lp - 1] $ \j ->
+         when (_vtype (ep !! i) `bxdfIs` Specular || _vtype (lp !! j) `bxdfIs` Specular) $
+            MV.read x (i+j+2) >>= \old -> MV.write x (i+j+2) (old + 1)
    V.freeze x
-
+   
 connect :: Scene -> V.Vector Float -> ((Vertex, Int),  (Vertex, Int)) -> Spectrum
 connect scene nspec
-   ((Vert pe _ wie inte te alphae, i),  -- eye vertex
-    (Vert pl _ wil intl tl alphal, j))  -- camera vertex
+   ((Vert _ wie inte te alphae, i),  -- eye vertex
+    (Vert _ wil intl tl alphal, j))  -- camera vertex
        | te `bxdfIs` Specular = black
        | tl `bxdfIs` Specular = black
        | isBlack fe || isBlack fl = black
@@ -125,15 +121,18 @@ connect scene nspec
           r = Ray pe w (intEpsilon inte) (wl - intEpsilon intl)
           bsdfe = intBsdf inte
           bsdfl = intBsdf intl
+          pe = bsdfShadingPoint bsdfe
+          pl = bsdfShadingPoint bsdfl
           
 estimateDirect :: Scene -> Vertex -> Int -> Sampled s Spectrum
-estimateDirect scene (Vert p wi _ int _ alpha) depth = do
+estimateDirect scene (Vert wi _ int _ alpha) depth = do
    lNumU <- rnd' $ 0 + 1 + smps1D * depth * 3
    lDirU <- rnd2D' $ 0 + 2 + smps2D * depth * 3
    lBsdfCompU <- rnd' $ 1 + 1 + smps1D * depth * 3
    lBsdfDirU <- rnd2D' $ 1 + 2 + smps2D * depth * 3
    let
       bsdf = intBsdf int
+      p = bsdfShadingPoint bsdf
       n = bsdfShadingNormal bsdf
       lHere = sampleOneLight scene p (intEpsilon int) n wi bsdf $
          RLS lNumU lDirU lBsdfCompU lBsdfDirU
@@ -161,8 +160,7 @@ lightPath s md ul ulo uld =
       (li, ray, nl, pdf) = sampleLightRay s ul ulo uld
       li' = sScale li (absDot nl wo / pdf)
       wo = -(rayDir ray)
-   in do
-      nextVertex True s wo (s `intersect` ray) li' 0 md (\d -> 3 + 1 + smps1D * d * 3) (\d -> 3 + 2 + smps2D * d * 3)
+   in nextVertex True s wo (s `intersect` ray) li' 0 md (\d -> 3 + 1 + smps1D * d * 3) (\d -> 3 + 2 + smps2D * d * 3)
    
 nextVertex
    :: Bool -- ^ adjoint ?
@@ -187,10 +185,11 @@ nextVertex adj sc wi (Just int) alpha depth md f1d f2d
       let (BsdfSample t spdf f wo) = fun bsdf wi ubc ubd
       let int' = intersect sc $ Ray p wo (intEpsilon int) infinity
       let wi' = -wo
-      let vHere = Vert p wi wo int t alpha
+      let vHere = Vert wi wo int t alpha
       let pathScale = f -- sScale f $ absDot wo (bsdfShadingNormal bsdf) / spdf
-      let rrProb = min 1 $ sY pathScale
+      let rrProb = 1 -- min 1 $ sY pathScale
       let alpha' = sScale (pathScale * alpha) (1 / rrProb)
+     
       let rest = if rr > rrProb
                   then return [] -- terminate
                   else nextVertex adj sc wi' int' alpha' (depth + 1) md f1d f2d
@@ -198,8 +197,8 @@ nextVertex adj sc wi (Just int) alpha depth md f1d f2d
       if isBlack f || spdf == 0
          then return [vHere]
          else (liftM . (:)) vHere $! rest
-   
+         
       where
-         bsdf = intBsdf int
          p = bsdfShadingPoint bsdf
+         bsdf = intBsdf int
          

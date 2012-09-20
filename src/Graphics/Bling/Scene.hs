@@ -98,13 +98,13 @@ estimateDirect s l p eps n wo bsdf smp = ls + bs where
    bs = {-# SCC "estimateDirect.bsdf"  #-} sampleBsdfMis s l (sampleBsdf bsdf wo uBC uBD) p eps
    uBC = uBsdfComp smp
    uBD = uBsdfDir smp
-      
+   
 -- | the random values needed to sample a light source in the scene
 data RandLightSample = RLS
-   { ulNum ::  {-# UNPACK #-} ! Float
-   , ulDir :: {-# UNPACK #-} ! R.Rand2D
-   , uBsdfComp :: {-# UNPACK #-} ! Float
-   , uBsdfDir :: {-# UNPACK #-} ! R.Rand2D
+   { ulNum     :: {-# UNPACK #-} !Float
+   , ulDir     :: {-# UNPACK #-} !R.Rand2D
+   , uBsdfComp :: {-# UNPACK #-} !Float
+   , uBsdfDir  :: {-# UNPACK #-} !R.Rand2D
    }
    
 -- | samples one randomly chosen light source
