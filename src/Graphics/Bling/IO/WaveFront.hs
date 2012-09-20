@@ -21,13 +21,12 @@ import qualified Data.Vector.Unboxed.Mutable as MV
 
 type STUGrowVec s a = GrowVec (MV.MVector) s a
 
--- the state consists of a list of vertex positions and faces
 data WFState s = WFState
    { stPoints     :: ! (STUGrowVec s Point)           -- vertex positions
    , stNormals    :: ! (STUGrowVec s Normal)          -- vertex normals
    , stFaces      :: ! (STUGrowVec s (Int, Int, Int)) -- (point index, uv index, normal index)
    , stTexCoords  :: ! (STUGrowVec s Float)           -- the UVs as found in the file
-   , stMtls       :: ! [(String, Int)]             -- material name and first face where to apply it
+   , stMtls       :: ! [(String, Int)]                -- material name and first face where to apply it
    }
    
 initialState :: ST s (WFState s)
@@ -58,15 +57,24 @@ parseWaveFront mmap fname = {-# SCC "parseWaveFront" #-} do
          let
             (pis, uvis, nis) = V.unzip3 fs -- (point indices, uv indices, normal indices)
             
+            
          st <- getState
          forM (matIntervals (V.length pis) (reverse mtls)) $ \(n, s, l) -> do
             let
                pis' = V.slice s l pis
-               mns = V.generate l $ \i -> ns V.! (nis V.! i)
-               muv = V.generate (2 * l) $ \i ->
-                  let (i', o) = divMod i 2 in uvs V.! (2 * (uvis V.! (i' + s)) + o)
+
+               hasNormals = V.all (>=0) $ V.slice s l nis
+               mns = if hasNormals
+                  then Just $ V.generate l $ \i -> ns V.! (nis V.! (i + s))
+                  else Nothing
                   
-            return $! mkTriangleMesh (transform st) (mmap n) ps pis' Nothing (Just muv) -- (Just mns) 
+               hasUvs = V.all (>=0) $ V.slice s l uvis
+               muv = if hasUvs
+                  then Just $ V.generate (2 * l) $ \i ->
+                     let (i', o) = divMod i 2 in uvs V.! (2 * (uvis V.! (i' + s)) + o)
+                  else Nothing
+                  
+            return $! mkTriangleMesh (transform st) (mmap n) ps pis' mns muv
             
 waveFrontParser :: WFParser s (V.Vector Point, V.Vector Normal, V.Vector (Int, Int, Int), V.Vector Float, [(String, Int)])
 waveFrontParser = {-# SCC "waveFrontParser" #-} do
