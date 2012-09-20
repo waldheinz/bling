@@ -76,7 +76,7 @@ contrib noDirect md scene r = {-# SCC "contrib" #-} do
        -- light sources directly visible, or via specular reflection
        le = if noDirect
                then black
-               else sum $ map ((\v -> _valpha v * intLe (_vint v) (_vwi v)) . fst)
+               else sum $ map ((\v -> _valpha v * intLe (_vint v) (_vwo v)) . fst)
                         $ filter snd $ zip ep prevSpec
       
        ei = zip ep [0..]
@@ -85,7 +85,7 @@ contrib noDirect md scene r = {-# SCC "contrib" #-} do
    
    if null ep || null lp
       then return $! ld + le
-      else return $! l + ld + le
+      else return $! ld + le + l
       
 --------------------------------------------------------------------------------
 -- Path Evaluation
