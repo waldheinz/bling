@@ -13,9 +13,9 @@ renderer {
 }
 
 # renderer { sampler sampled { sampler { stratified xSamples 8 ySamples 8 } integrator { path maxDepth 7 sampleDepth 4 } } }
-# renderer { sampler sampled { sampler { stratified 2 2 } integrator { bidir maxDepth 10 sampleDepth 3 } } }
+renderer { sampler sampled { sampler { stratified 2 2 } integrator { bidir maxDepth 10 sampleDepth 3 } } }
 # renderer { metropolis maxDepth 7 mpp 1 bootstrap 1000 plarge 0.25 directSamples 0 }
-renderer { sppm photonCount 100000 maxDepth 15 radius 10 alpha 0.95 }
+# renderer { sppm photonCount 100000 maxDepth 15 radius 10 alpha 0.95 }
 # renderer { sampler sampled { sampler { random samples 32 } integrator { debug reference } } }
 # renderer { light passPhotons 100000 }
 

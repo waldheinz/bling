@@ -292,7 +292,7 @@ sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
       cntm = V.length bsm
       cntf = fromIntegral cntm
       invCnt = 1 / cntf
-      sNum = max 0 $ min (cntm-1) (floor (uComp * cntf)) -- index to sample
+      sNum = max 0 $ min (cntm - 1) (floor (uComp * cntf)) -- index to sample
       bxdf = V.unsafeIndex bsm sNum
       
       -- sample chosen BxDF

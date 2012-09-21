@@ -111,7 +111,7 @@ connect scene nspec
        | scene `intersects` r = black
        | otherwise = sScale (alphae * fe * alphal * fl) (g * pathWt)
        where
-          pathWt = 1 / (fromIntegral (i + j + 2) - nspec V.! (i+j+2))
+          pathWt = 1 -- 1 / (fromIntegral (i + j + 2) + nspec V.! (i+j+2))
           g = 1 / sqLen (pl - pe)
           (w, wl) = normLen $ pl - pe
           nspece = fromIntegral $ bsdfSpecCompCount bsdfe
