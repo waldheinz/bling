@@ -72,6 +72,25 @@ data CamState s = CS
    , csPxStats :: ! (PixelStats s)
    }
 
+followCam :: BxdfProp -> Intersection -> Vector -> CamState s -> Sampled s (CamState s)
+followCam prop int wo cs = do
+   -- determine outgoing ray
+   bsdfC <- rnd
+   bsdfD <- rnd2D
+   
+   let
+      bsdf = intBsdf int
+      t = csT cs
+      (BsdfSample _ pdf f wi) = sampleBsdf' (mkBxdfType [prop, Specular]) bsdf wo bsdfC bsdfD
+      ray' = Ray p wi (intEpsilon int) infinity
+      p = bsdfShadingPoint bsdf
+      t' = f * t
+      ls' = csLs cs + t * intLe int wo
+              
+   if pdf == 0 || isBlack f
+      then return $ cs { csLs = ls' }
+      else traceCam cs { csDepth = 1 + csDepth cs, csT = t', csLs = ls', csRay = ray' }
+         
 traceCam :: CamState s -> Sampled s (CamState s)
 traceCam cs
    | csDepth cs == csMaxDep cs = return cs
@@ -95,22 +114,12 @@ traceCam cs
             when (bsdfHasNonSpecular (intBsdf int)) $ do
                px <- cameraSample >>= \c -> return (imageX c, imageY c)
                let h = (Hit bsdf px (sIdx pxs px) wo (sScale t (1 / absDot wo (bsdfShadingNormal bsdf)))) in seq h (liftSampled $ gvAdd (csHps cs) h)
-               
-            -- determine outgoing ray
-            bsdfC <- rnd
-            bsdfD <- rnd2D
             
-            let
-               (BsdfSample _ pdf f wi) = sampleBsdf' (mkBxdfType [Specular, Reflection, Transmission]) bsdf wo bsdfC bsdfD
-               ray' = Ray p wi (intEpsilon int) infinity
-               p = bsdfShadingPoint bsdf
-               t' = f * t
-               ls' = csLs cs + t * intLe int wo
-               
-            if pdf == 0 || isBlack f
-               then return $ cs { csLs = ls' }
-               else traceCam cs { csDepth = 1 + csDepth cs, csT = t', csLs = ls', csRay = ray' }
-               
+            csr <- followCam Reflection int wo cs
+            cst <- followCam Transmission int wo cs   
+            
+            return $! cs { csLs = csLs cs + csLs csr + csLs cst }
+            
 mkHitPoints :: RenderM (V.Vector HitPoint)
 mkHitPoints = do
    sc <- asks envScene
