@@ -79,7 +79,7 @@ material {
    kd {
       gradient
       f { cellNoise euclidian map { identity { scale 2 2 2 } } }
-      steps { 0 rgbR 0.1 0.1 0.1, 1 rgbR 0.9 0.9 0.9 }
+      steps { 0 rgbR 0.1 0.1 0.1 , 1 rgbR %B439B4 }
    }
    
    ks { constant rgbR 0.8 0.8 0.8 }
@@ -98,7 +98,7 @@ material {
    kd {
       gradient
       f { cellNoise euclidian2 map { identity { scale 2 2 2 } } }
-      steps { 0 rgbR 0.1 0.1 0.1, 1 rgbR 0.9 0.9 0.9 }
+      steps { 0 rgbR 0.1 0.1 0.1, 1 rgbR %C89B3F }
    }
 
    ks { constant rgbR 0.8 0.8 0.8 }
@@ -116,7 +116,7 @@ material {
    kd {
       gradient
       f { cellNoise manhattan map { identity { scale 2 2 2 } } }
-      steps { 0 rgbR 0.1 0.1 0.1, 1 rgbR 0.9 0.9 0.9 }
+      steps { 0 rgbR 0.1 0.1 0.1, 1 rgbR %38B1B1 }
    }
    
    ks { constant rgbR 0.8 0.8 0.8 }
@@ -135,7 +135,7 @@ material {
    kd {
       gradient
       f { cellNoise chebyshev map { identity { scale 2 2 2 } } }
-      steps { 0 rgbR 0.1 0.1 0.1, 1 rgbR 0.9 0.9 0.9 }
+      steps { 0 rgbR 0.1 0.1 0.1, 1 rgbR %AFC63F }
    }
 
    ks { constant rgbR 0.8 0.8 0.8 }

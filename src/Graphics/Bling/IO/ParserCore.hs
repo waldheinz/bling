@@ -24,6 +24,7 @@ import Control.Monad (liftM, liftM3)
 import Control.Monad.IO.Class (liftIO)
 import qualified Data.ByteString as BSS
 import qualified Data.ByteString.Lazy as BS
+import Numeric (readHex)
 import System.FilePath as FP
 import Text.Parsec.Prim as PS
 import Text.Parsec.Combinator as PS
@@ -134,14 +135,26 @@ namedVector n = do string n >> ws; pVec <?> ("vector " ++ n)
 
 pSpectrum :: JobParser Spectrum
 pSpectrum = pString >>= \t -> case t of
-   "rgbR" -> liftM3 (\r g b -> rgbToSpectrumRefl (r,g,b))  flt flt flt
-   "rgbI" -> liftM3 (\r g b -> rgbToSpectrumIllum (r,g,b)) flt flt flt
+   "rgbR" -> liftM rgbToSpectrumRefl rgbValue
+   "rgbI" -> liftM rgbToSpectrumIllum rgbValue
    "spd" -> pSpectrumSpd
    "temp" -> do
       temp <- flt
       return (sBlackBody temp)
    _ -> fail ("unknown spectrum type " ++ t)
 
+
+rgbValue :: JobParser (Float, Float, Float)
+rgbValue = hex <|> floats <?> "RGB value" where
+   floats = liftM3 (,,) flt flt flt
+   hex = char '%' >> (liftM3 (,,) hex' hex' hex')
+   hex' = do
+      a <- hexDigit <?> "hex digit"
+      b <- hexDigit <?> "hex digit"
+      optional ws
+      let ((d, _):_) = readHex [a, b]
+      return $! fromIntegral (d :: Int) / 255
+   
 namedSpectrum :: String -> JobParser Spectrum
 namedSpectrum n = string n >> ws >> pSpectrum
       
