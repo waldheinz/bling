@@ -318,10 +318,12 @@ sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
 evalBsdf :: Bool -> Bsdf -> Vector -> Vector -> Spectrum
 evalBsdf adj (Bsdf bxdfs cs _ ng) woW wiW
    | sideTest == 0 = black
+   | abs cosWo < 1e-5 = black -- filter NaN / Infinite results
    | adj = sScale f $ abs sideTest -- correct throughput for shading normals
    | otherwise = f
    where
-      sideTest = wiW `dot` ng / woW `dot` ng
+      cosWo = woW `dot` ng
+      sideTest = wiW `dot` ng / cosWo
       flt = if sideTest < 0 then isTransmission else isReflection
       f = V.sum $ V.map (\b -> eval b wo wi) $ V.filter flt bxdfs
       eval b = if adj then bxdfEval b else flip (bxdfEval b)
