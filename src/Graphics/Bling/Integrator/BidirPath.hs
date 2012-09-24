@@ -4,8 +4,9 @@ module Graphics.Bling.Integrator.BidirPath (
    ) where
 
 import qualified Data.Vector.Unboxed.Mutable as MV
-import qualified Data.Vector.Unboxed as V
-import Control.Monad (liftM, forM, forM_, when)
+import qualified Data.Vector.Unboxed as UV
+import qualified Data.Vector as V
+import Control.Monad (liftM, when)
 import Control.Monad.ST
 
 import Graphics.Bling.DifferentialGeometry
@@ -52,38 +53,45 @@ contrib noDirect md scene r = {-# SCC "contrib" #-} do
    ulo <- rnd2D' 0
    uld <- rnd2D' 1
       
-   lp <- lightPath scene md ul ulo uld
-   ep <- eyePath scene r md
-      
+   lp <- liftM V.fromList $ lightPath scene md ul ulo uld
+   ep <- liftM V.fromList $ eyePath scene r md
+   
    let
       -- precompute sum of specular bounces in eye or light path
-      nspecBouces = countSpec ep lp
+      nspecBounces = countSpec ep lp
          
       -- if we do separate DL, we must drop the specular bounces at the
       -- beginning of the eye path to avoid double-counting
       ep' = if noDirect
-               then dropWhile (\v -> _vtype v `bxdfIs` Specular) $ tail ep
+               then undefined -- dropWhile (\v -> _vtype v `bxdfIs` Specular) $ tail ep
                else ep
-      
+   
    -- direct illumination, aka "one light" or S1 subpaths
-   ld <- liftM sum $ forM (zip ep' [0..]) $ \(v, i) -> do
+   ld <- liftM V.sum $ V.forM (V.indexed ep') $ \(i, v) -> do
       d <- estimateDirect scene v i
-      return $ sScale d (1 / (1 + fromIntegral i - nspecBouces V.! i))
+      return $ sScale d (1 / (1 + fromIntegral i - nspecBounces UV.! (i + 1)))
       
    let
-       prevSpec = True : map (\v -> _vtype v `bxdfIs` Specular) ep
+      prevSpec = V.fromList $ True : V.toList (V.map (\v -> _vtype v `bxdfIs` Specular) ep)
 
        -- light sources directly visible, or via specular reflection
-       le = if noDirect
-               then black
-               else sum $ map ((\v -> _valpha v * intLe (_vint v) (_vwo v)) . fst)
-                        $ filter snd $ zip ep prevSpec
+       -- (S0 subpaths)
+      le = if noDirect
+         then black
+         else V.sum $ V.map ((\v -> _valpha v * intLe (_vint v) (_vwo v)) . fst)
+                  $ V.filter snd $ V.zip ep prevSpec
       
-       ei = zip ep [0..]
-       li = zip lp [0..]
-       l = sum $ map (connect scene nspecBouces) $ pairs ei li
-   
-   if null ep || null lp
+      ei = V.indexed ep
+      li = V.indexed lp
+      {-
+      l = sum $ map (connect scene nspecBouces) $ pairs ei li
+      -}
+      
+   l <- liftM V.sum $ V.forM li $ \(s, vl) -> do
+         liftM V.sum $ V.forM ei $ \(t, ve) -> do
+            return $! connect scene nspecBounces ((vl, s), (ve, t))
+                  
+   if V.null ep || V.null lp
       then return $! ld + le
       else return $! ld + le + l
       
@@ -92,32 +100,39 @@ contrib noDirect md scene r = {-# SCC "contrib" #-} do
 --------------------------------------------------------------------------------
 
 -- compute number of specular vertices for each path length
-countSpec :: Path -> Path -> V.Vector Float
+countSpec :: V.Vector Vertex -> V.Vector Vertex -> UV.Vector Float
 countSpec ep lp = runST $ do
-   x <- MV.replicate (length ep + length lp + 2) 0
-   forM_ [0..length ep - 1] $ \i ->
-      forM_ [0..length lp - 1] $ \j ->
-         when (_vtype (ep !! i) `bxdfIs` Specular || _vtype (lp !! j) `bxdfIs` Specular) $
-            MV.read x (i+j+2) >>= \old -> MV.write x (i+j+2) (old + 1)
-   V.freeze x
+   x <- MV.replicate (V.length ep + V.length lp + 2) 0
    
-connect :: Scene -> V.Vector Float -> ((Vertex, Int),  (Vertex, Int)) -> Spectrum
+   V.forM_ (V.indexed ep) $ \(i, ve) ->
+      V.forM_ (V.indexed lp) $ \(j, vl) ->
+         when (_vtype ve `bxdfIs` Specular || _vtype vl `bxdfIs` Specular) $
+            MV.read x (i+j+2) >>= \old -> MV.write x (i+j+2) (old + 1)
+            
+   UV.freeze x
+   
+connect :: Scene -> UV.Vector Float -> ((Vertex, Int),  (Vertex, Int)) -> Spectrum
 connect scene nspec
    ((Vert _ wie inte te alphae, i),  -- eye vertex
-    (Vert _ wil intl tl alphal, j))  -- camera vertex
+    (Vert _ wil intl tl alphal, j))  -- light vertex
        | te `bxdfIs` Specular = black
        | tl `bxdfIs` Specular = black
        | isBlack fe || isBlack fl = black
        | scene `intersects` r = black
        | otherwise = sScale (alphae * fe * alphal * fl) (g * pathWt)
        where
-          pathWt = 1 -- 1 / (fromIntegral (i + j + 2) + nspec V.! (i+j+2))
+          pathWt = 1 / (fromIntegral (i + j + 2) - nspec UV.! (i + j + 2))
           g = 1 / sqLen (pl - pe)
           (w, wl) = normLen $ pl - pe
-          nspece = fromIntegral $ bsdfSpecCompCount bsdfe
-          fe = sScale (evalBsdf False bsdfe wie w) (1 + nspece)
-          nspecl = fromIntegral $ bsdfSpecCompCount bsdfl
-          fl = sScale (evalBsdf True bsdfl wil (-w)) (1 + nspecl)
+          
+          --nspece = fromIntegral $ bsdfSpecCompCount bsdfe
+          --fe = sScale (evalBsdf False bsdfe wie w) (1 + nspece)
+          fe = evalBsdf False bsdfe wie w
+          
+          --nspecl = fromIntegral $ bsdfSpecCompCount bsdfl
+          -- fl = sScale (evalBsdf True bsdfl wil (-w)) (1 + nspecl)
+          fl = evalBsdf True bsdfl wil (-w)
+          
           r = Ray pe w (intEpsilon inte) (wl - intEpsilon intl)
           bsdfe = intBsdf inte
           bsdfl = intBsdf intl
@@ -137,11 +152,6 @@ estimateDirect scene (Vert wi _ int _ alpha) depth = do
       lHere = sampleOneLight scene p (intEpsilon int) n wi bsdf $
          RLS lNumU lDirU lBsdfCompU lBsdfDirU
    return $! lHere * alpha
-   
-pairs :: [a] -> [a] -> [(a, a)]
-pairs [] _ = []
-pairs _ [] = []
-pairs (x:xs) ys = zip (repeat x) ys ++ pairs xs ys
 
 --------------------------------------------------------------------------------
 -- Path Generation

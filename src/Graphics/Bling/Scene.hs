@@ -129,9 +129,8 @@ sampleLightRay
 sampleLightRay sc@(Scene _ _ ls _) uL uO uD
    | V.null ls = (black, undefined, undefined, 0)
    | lc == 1 = sample' (V.head ls) (worldBounds sc) uO uD
-   | otherwise = (s, ray, n, pd')
+   | otherwise = (s, ray, n, pd / fromIntegral lc)
    where
       (s, ray, n, pd) = sample' (V.unsafeIndex ls ln) (worldBounds sc) uO uD
-      pd' = pd * fromIntegral lc
       lc = V.length ls
       ln = min (floor $ uL * fromIntegral lc) (lc - 1)

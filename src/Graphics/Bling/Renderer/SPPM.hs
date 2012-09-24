@@ -86,11 +86,11 @@ followCam prop int wo cs = do
       p = bsdfShadingPoint bsdf
       t' = f * t
       ls' = csLs cs + t * intLe int wo
-              
+      
    if pdf == 0 || isBlack f
       then return $ cs { csLs = ls' }
       else traceCam cs { csDepth = 1 + csDepth cs, csT = t', csLs = ls', csRay = ray' }
-         
+      
 traceCam :: CamState s -> Sampled s (CamState s)
 traceCam cs
    | csDepth cs == csMaxDep cs = return cs
@@ -113,7 +113,8 @@ traceCam cs
             -- record a hitpoint here
             when (bsdfHasNonSpecular (intBsdf int)) $ do
                px <- cameraSample >>= \c -> return (imageX c, imageY c)
-               let h = (Hit bsdf px (sIdx pxs px) wo (sScale t (1 / absDot wo (bsdfShadingNormal bsdf)))) in seq h (liftSampled $ gvAdd (csHps cs) h)
+               let t' = sScale t (1 / absDot wo (bsdfNg bsdf))
+               let h = (Hit bsdf px (sIdx pxs px) wo t) in seq h (liftSampled $ gvAdd (csHps cs) h)
             
             csr <- followCam Reflection int wo cs
             cst <- followCam Transmission int wo cs   
@@ -166,17 +167,18 @@ nextVertex scene alpha sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} d
    let
       bsdf = intBsdf int
       p = bsdfShadingPoint bsdf
-
+      ng = bsdfNg bsdf
+   
    when (bsdfHasNonSpecular bsdf) $ liftSampled $ hashLookup sh p ps $ \hit -> {-# SCC "contrib" #-} do
       stats <- slup ps hit
       let
          nn = lsN stats
          ratio = (nn + alpha) / (nn + 1)
          r2 = lsR2 stats
-         f = evalBsdf True (hpBsdf hit) wi (hpW hit)
+         f = evalBsdf True (hpBsdf hit) (hpW hit) wi
          (px, py) = hpPixel hit
-
-      splatSample img (px, py, WS (1 / (r2 * pi)) (hpF hit * f * li))
+      
+      splatSample img (px, py, WS (1 / (absDot wi ng * r2 * pi)) (hpF hit * f * li))
       sUpdate ps hit (r2 * ratio, nn + alpha)
       
    -- follow the path

@@ -2,7 +2,7 @@
 filter sinc 3 3 3
 # filter triangle 2 2
 # filter mitchell 2 2 0.333333 0.333333
-# filter box
+filter box
 # filter gauss 3 3 2
 
 renderer {
@@ -16,12 +16,12 @@ renderer {
 # renderer { sampler sampled { sampler { random 16 } integrator { path maxDepth 1 sampleDepth 1 } } }
 # renderer { light passPhotons 100000 }
 # renderer { metropolis maxDepth 10 mpp 1 bootstrap 1000 plarge 0.25 directSamples 0 }
-# renderer { sampler sampled { sampler { stratified 4 4 } integrator { bidir maxDepth 15 sampleDepth 3 } } }
+# renderer { sampler sampled { sampler { stratified 4 4 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
 # renderer { sampler sampled { sampler { random 4 } integrator { debug normals } } }
 # renderer { sampler sampled { sampler { random 1 } integrator { debug reference } } }
 # renderer { sampler sampled { sampler { random 4 } integrator { debug kdtree } } }
-# renderer { sppm photonCount 100000 maxDepth 10 radius 10 }
+renderer { sppm photonCount 20000 maxDepth 10 radius 25 }
 # renderer { sampler sampled { sampler { random 4 } integrator { debug normals } } }
 
 # imageSize 720 720

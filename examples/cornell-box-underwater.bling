@@ -18,7 +18,7 @@ renderer {
 # renderer { light passPhotons 100000 }
 # renderer { metropolis maxDepth 8 mpp 1 bootstrap 1000 plarge 0.25 directSamples 1 }
 # renderer { sampler sampled { sampler { random 16 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
-renderer { sppm photonCount 25000 maxDepth 15 radius 6 alpha 0.98 }
+renderer { sppm photonCount 25000 maxDepth 15 radius 15 alpha 0.98 }
 # renderer { sampler sampled { sampler { random 1024 } integrator { debug reference } } }
 
 imageSize 480 480
@@ -93,8 +93,8 @@ prim {
    faceCount 1
    v 549.6   0 559.2
    v   0.0   0 559.2
-   v   0.0 1000 559.2
-   v 556.0 1000 559.2
+   v   0.0 560 559.2
+   v 556.0 560 559.2
    f 3 2 1 0
 }
 
@@ -114,8 +114,8 @@ material {
    bumpMap
    bump {
       scale 5 5 tex {
-         fbm octaves 4 omega 0.5 map {
-            identity { scale 0.01 0.01 0.01 }
+         fbm octaves 3 omega 0.3 map {
+            identity { scale 0.05 0.05 0.05 }
          }
       }
    }
@@ -177,8 +177,8 @@ prim {
    faceCount 1
    v 0.0    0 559.2
    v 0.0    0   0.0
-   v 0.0 1000   0.0
-   v 0.0 1000 559.2
+   v 0.0 560   0.0
+   v 0.0 560 559.2
    f 3 2 1 0
 }
 
@@ -212,8 +212,8 @@ prim {
    faceCount 1
    v 552.8    0   0.0
    v 549.6    0 559.2
-   v 556.0 1000 559.2
-   v 556.0 1000   0.0
+   v 556.0 560 559.2
+   v 556.0 560   0.0
    f 3 2 1 0
 }
 
@@ -228,11 +228,21 @@ material {
 }
 
 emission {
-    spd { 400 0, 500 160, 600 312, 700 386 }
+#   spd { 400 0, 500 160, 600 312, 700 386 }
 #   rgb 4 4 4
-#   temp 2400
+   temp 4000
 }
 
-newTransform { rotateX -90 translate 278 850 279.5  }
-prim { shape { quad 25 25 } }
+newTransform { rotateX -90 translate 278 950 279.5  }
+# prim { shape { quad 5 5 } }
+
+
+light { infinite { rotateX -90 }
+   l {
+      sunSky
+      east 0 0 1
+      sunDir 0 1 0
+      turbidity 2
+   }
+}
 

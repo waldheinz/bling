@@ -117,7 +117,7 @@ face = do
    indices <- many1 $ try $ do
       space
       vidx <- int
-      uvidx <- option 0 $ char '/' >> int -- uv index
+      uvidx <- option 0 $ char '/' >> option 0 int -- uv index
       nidx <- option 0 $ char '/' >> int -- normal index
       return (vidx, uvidx, nidx)
    
