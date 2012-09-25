@@ -13,6 +13,8 @@ import Control.Monad.Primitive
 import Control.Monad.Reader
 import Control.Monad.ST
 import Data.Bits
+import Data.Function (on)
+import qualified Data.Vector.Algorithms.Intro as I
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import qualified Data.Vector as V
@@ -28,6 +30,8 @@ import Graphics.Bling.Rendering
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Utils
+
+import Debug.Trace
 
 -- | the Stochastic Progressive Photon Mapping Renderer
 data SPPM = SPPM {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Float {-# UNPACK #-} !Float 
@@ -53,6 +57,9 @@ data HitPoint = Hit
    , hpW       :: {-# UNPACK #-} ! Vector
    , hpF       :: ! Spectrum
    }
+
+hitPosition :: HitPoint -> Point
+hitPosition = bsdfShadingPoint . hpBsdf
 
 --------------------------------------------------------------------------------
 -- Tracing Camera Rays for Hitpoint Creation
@@ -113,7 +120,6 @@ traceCam cs
             -- record a hitpoint here
             when (bsdfHasNonSpecular (intBsdf int)) $ do
                px <- cameraSample >>= \c -> return (imageX c, imageY c)
-               let t' = sScale t (1 / absDot wo (bsdfNg bsdf))
                let h = (Hit bsdf px (sIdx pxs px) wo t) in seq h (liftSampled $ gvAdd (csHps cs) h)
             
             csr <- followCam Reflection int wo cs
@@ -225,6 +231,10 @@ slup :: PixelStats s -> HitPoint -> ST s Stats
 {-# INLINE slup #-}
 slup (PS v _) hit = UMV.unsafeRead v (hpStatIdx hit)
 
+sr2 :: PixelStats s -> HitPoint -> ST s Float
+{-# INLINE sr2 #-}
+sr2 pxs hp = lsR2 <$> slup pxs hp
+
 sUpdate :: PixelStats s -> HitPoint -> Stats -> ST s ()
 {-# INLINE sUpdate #-}
 sUpdate (PS v _) hit = UMV.unsafeWrite v (hpStatIdx hit)
@@ -235,7 +245,7 @@ sUpdate (PS v _) hit = UMV.unsafeWrite v (hpStatIdx hit)
 
 data SpatialHash = SH
    { shBounds  :: {-# UNPACK #-} ! AABB
-   , shEntries :: ! (V.Vector (V.Vector HitPoint))
+   , shEntries :: ! (V.Vector KdTree)
    , shScale   :: {-# UNPACK #-} ! Float -- ^ 1 / bucket size
    }
 
@@ -248,13 +258,15 @@ hashLookup sh p ps fun = {-# SCC "hashLookup" #-}
    let
       Vector x y z = abs $ (p - aabbMin (shBounds sh)) * vpromote (shScale sh)
       idx = hash (floor x, floor y, floor z) `rem` V.length (shEntries sh)
-      hits = V.unsafeIndex (shEntries sh) idx
-   in V.forM_ hits $ \hit -> do
+      tree = V.unsafeIndex (shEntries sh) idx
+   in treeLookup 0 tree p ps fun
+{-   in V.forM_ hits $ \hit -> do
       stats <- slup ps hit
       
       let
          v = bsdfShadingPoint (hpBsdf hit) - p
       when (sqLen v <= lsR2 stats) $ {-# SCC "hlFun" #-} fun hit
+      -}
       
 mkHash :: V.Vector HitPoint -> PixelStats s -> ST s SpatialHash
 mkHash hits ps = {-# SCC "mkHash" #-} do
@@ -272,9 +284,9 @@ mkHash hits ps = {-# SCC "mkHash" #-} do
    
    v' <- MV.replicate cnt []
    V.forM_ hits $ \hp -> do
-      stats <- slup ps hp
+      r2p <- sr2 ps hp
+      
       let
-         r2p = lsR2 stats
          rp = sqrt r2p
          pmin = aabbMin bounds
          
@@ -290,9 +302,58 @@ mkHash hits ps = {-# SCC "mkHash" #-} do
          in MV.read v' idx >>= \o -> MV.write v' idx (hp : o)
 
    -- convert to an (non-mutable) array of arrays
-   v <- V.generateM (MV.length v') $ \i -> fmap V.fromList (MV.read v' i)
+   v <- V.generateM (MV.length v') $ \i -> do
+      hps <- MV.read v' i
+      x <- V.thaw $ V.fromList hps
+      t <- mkKdTree 0 ps x
+      return $! fst t
 
    return $ SH bounds v invSize
+
+--------------------------------------------------------------------------------
+-- KdTree for hitpoint lookup inside hash cells
+--------------------------------------------------------------------------------
+
+data KdTree
+   = Node {-# UNPACK #-} !Float !HitPoint !KdTree !KdTree
+      -- max. radius² in subtree, hit, left, right
+   | Empty
+   
+mkKdTree :: Int -> PixelStats s -> (MV.MVector (PrimState (ST s)) HitPoint) -> ST s (KdTree, Float)
+mkKdTree depth pxs v
+   | MV.null v = return (Empty, 0)
+   | MV.length v == 1 = MV.unsafeRead v 0 >>= \e -> sr2 pxs e >>= \r2 -> let r = sqrt r2 in return $ (Node r e Empty Empty, r)
+   | otherwise = do
+      let
+         median = MV.length v `div` 2
+         axis = depth `rem` 3
+      
+      I.partialSortBy (compare `on` (\x -> (hitPosition x) .! axis)) v median
+      
+      pivot <- MV.read v median
+      (left, lr)  <- mkKdTree (depth + 1) pxs $ MV.take median v
+      (right, rr) <- mkKdTree (depth + 1) pxs $ MV.drop (median+1) v
+      r <- sqrt <$> sr2 pxs pivot
+      
+      let mr = max r $ max lr rr in
+         return $! (Node mr pivot left right, mr)
+      
+treeLookup :: Int -> KdTree -> Point -> PixelStats s -> (HitPoint -> ST s ()) -> ST s ()
+treeLookup _ Empty _ _ _ = return ()
+treeLookup depth (Node mr hp l r) p pxs fun = do
+   let
+      axis = depth `rem` 3
+      split = hitPosition hp .! axis
+      pos = p .! axis
+   
+   r2 <- sr2 pxs hp
+   when (sqLen (hitPosition hp - p) <= r2) $ {-# SCC "hlFun" #-} fun hp
+   when (pos - mr <= split) $ treeLookup (depth + 1) l p pxs fun
+   when (pos + mr >= split) $ treeLookup (depth + 1) r p pxs fun
+   
+--------------------------------------------------------------------------------
+-- Main Rendering Loop
+--------------------------------------------------------------------------------
 
 data RenderState s = RS
    { envImg    :: ! (MImage s)
@@ -330,10 +391,6 @@ onePass passNum = do
 sq :: Monad m => [m Bool] -> m ()
 sq [] = return ()
 sq (x:xs) = x >>= \c -> when c $ sq xs
-
---------------------------------------------------------------------------------
--- Main Rendering Loop
---------------------------------------------------------------------------------
 
 instance Renderer SPPM where
    render (SPPM n md r alpha) job rep = {-# SCC "render" #-} do

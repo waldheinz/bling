@@ -45,7 +45,6 @@ Library
       Graphics.Bling.Gui,
       Graphics.Bling.Image,
       Graphics.Bling.Integrator,
-      Graphics.Bling.KdTree,
       Graphics.Bling.Light,
       Graphics.Bling.Math,
       Graphics.Bling.Montecarlo,
