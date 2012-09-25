@@ -149,17 +149,22 @@ intersect (Disk h rad irad phimax) ray@(Ray ro rd tmin tmax)
       d2 = px * px + py * py
       phi = atan2' py px
       n = mkV (0, 0, -1)
-
+      
 intersect (Quad sx sy) ray@(Ray ro rd tmin tmax)
    | abs (vz rd) < 1e-7 = Nothing -- ray parallel to quad
    | t < tmin || t > tmax = Nothing -- ray parametric distance
    | abs (vx p) > sx || abs (vy p) > sy = Nothing -- not inside extent
-   | otherwise = Just (t, e, mkDg' p (mkV (0, 0, -1)))
+   | otherwise = Just (t, e, mkDg p u v dpdu dpdv dn dn)
    where
       t = -(vz ro) / vz rd
       e = 5e-4 * t
       p = rayAt ray t
-
+      u = vx p / sx
+      v = vy p / sy
+      dpdu = mkV (sx, 0, 0)
+      dpdv = mkV (0, sy, 0)
+      dn = mkV (0, 0, 0)
+      
 intersect (Sphere r) ray@(Ray ro rd tmin tmax)
    | isNothing times = Nothing
    | t1 > tmax = Nothing

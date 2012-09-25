@@ -166,12 +166,17 @@ scaleTexture a s t dg = a + s * t dg
 addTexture :: (Num a) => Texture a -> Texture a -> Texture a
 addTexture t1 t2 dg = t1 dg + t2 dg
 
-graphPaper :: Float -> SpectrumTexture -> SpectrumTexture -> SpectrumTexture
-graphPaper lw p l dg
+graphPaper
+   :: Float
+   -> TextureMapping2d
+   -> SpectrumTexture
+   -> SpectrumTexture
+   -> SpectrumTexture
+graphPaper lw m p l dg
    | x' < lo || z' < lo || x' > hi || z' > hi = l dg
    | otherwise = p dg
    where
-         (x, z) = (vx $ dgP dg, vz $ dgP dg)
+         (x, z) = unCartesian $ m dg
          x' = abs x''
          z' = abs z''
          (_, x'') = properFraction x :: (Int, Float)

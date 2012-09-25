@@ -215,8 +215,12 @@ pSpectrumTexture = namedBlock $
             
          return $! gradient (mkGradient steps) f
          
-      "graphPaper" -> graphPaper <$> flt <*> pSpectrumTexture "tex1" <*> pSpectrumTexture "tex2"
-      
+      "graphPaper" -> graphPaper
+         <$> flt
+         <*> pTextureMapping2d "map"
+         <*> pSpectrumTexture "tex1"
+         <*> pSpectrumTexture "tex2"
+         
       _ -> fail ("unknown texture type " ++ tp)
 
 --------------------------------------------------------------------------------

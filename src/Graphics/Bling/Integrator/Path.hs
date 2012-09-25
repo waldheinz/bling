@@ -59,7 +59,7 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) md t l
       lBsdfDirU <- rnd2D' $ 2 + smp2doff depth
       
       let
-         intl = if spec then intLe int wo else black 
+         intl = if spec then intLe int rd else black 
          wo = -rd
          bsdf = intBsdf int
          n = bsdfShadingNormal bsdf
