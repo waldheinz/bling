@@ -172,25 +172,20 @@ addTile (MImage w h (ox, oy) _ px ps) (Img tw th _ px' ps', (dx, dy)) = {-# SCC 
 spAdd :: SplatPixel -> SplatPixel -> SplatPixel
 spAdd (r1, g1, b1) (r2, g2, b2) = (r1 + r2, g1 + g2, b1 + b2)
 
-splatSample :: PrimMonad m => MImage m -> ImageSample -> m ()
+splatSample :: PrimMonad m => MImage m -> Float -> Float -> Spectrum -> m ()
 {-# INLINE splatSample #-}
-splatSample (MImage w h (iox, ioy) _ _ p) (sx, sy, WS sw ss)
+splatSample (MImage w h (iox, ioy) _ _ p) sx sy ss
    | floor sx >= w || floor sy >= h || sx < 0 || sy < 0 = return ()
    | sNaN ss = trace ("not splatting NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | sInfinite ss = trace ("not splatting infinite sample at ("
-      ++ show sx ++ ", " ++ show sy ++ ")") (return () )
-   | isNaN sw = trace ("not splatting NaN weight sample at ("
-      ++ show sx ++ ", " ++ show sy ++ ")") (return () )
-   | isInfinite sw = trace ("not splatting infinite weight sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | otherwise = {-# SCC "splatSample" #-} do
       (ox, oy, oz) <- MV.unsafeRead p o
       MV.unsafeWrite p o (ox + dx, oy + dy, oz + dz)
       where
          o = ((floor sx - iox) + (floor sy - ioy) * w)
-         (dx, dy, dz) = (\(x, y, z) -> (x * sw, y * sw, z * sw)) $ spectrumToXYZ ss
-
+         (dx, dy, dz) = spectrumToXYZ ss
 
 -- | adds a sample to the specified image
 addSample :: PrimMonad m => MImage m -> Float -> Float -> Spectrum -> m ()

@@ -20,7 +20,6 @@ import Graphics.Bling.Image
 import Graphics.Bling.Integrator
 import Graphics.Bling.Integrator.BidirPath
 import Graphics.Bling.Integrator.DirectLighting
-import Graphics.Bling.Integrator.Path
 import Graphics.Bling.Montecarlo
 import Graphics.Bling.Random as R
 import Graphics.Bling.Reflection
@@ -50,7 +49,7 @@ mkMLT md mpp nboot pl dspp = MLT integ md mpp nboot pl dspp where
               else mkBidirPathIntegrator md md
 
 instance Printable Metropolis where
-   prettyPrint (MLT integ md mpp _ _ dspp) = PP.vcat [
+   prettyPrint (MLT _ md mpp _ _ dspp) = PP.vcat [
       PP.text "metropolis light transport",
 --      PP.text "integrator" PP.<+> prettyPrint integ,
       PP.text "max. Depth" PP.<+> PP.int md,
@@ -66,8 +65,8 @@ instance Renderer Metropolis where
       where
       scene = jobScene job
       
-      sSmp :: Float -> (Float, Float, Spectrum) -> ImageSample
-      sSmp f (x, y, s) = (x, y, WS (f * wt) s)
+      splat :: MImage (ST s) -> Float -> (Float, Float, Spectrum) -> ST s ()
+      splat i f (x, y, s) = splatSample i x y $ sScale s (f * wt)
       
       (szx, szy) = jobImageSize job
       nPixels = szx * szy
@@ -97,11 +96,11 @@ instance Renderer Metropolis where
                      if iCurr > 0 && not (isInfinite (1 / iCurr))
                         then do
                            lcs <- readRandRef lCurr
-                           liftR $ mapM_ (\lc -> splatSample mimg $ sSmp ((1 - a) / iCurr) lc) lcs
+                           liftR $ mapM_ (\lc -> splat mimg ((1 - a) / iCurr) lc) lcs
                         else return ()
                         
                      if iProp > 0 && not (isInfinite (1 / iProp))
-                        then liftR $ mapM_ (\l -> splatSample mimg $ sSmp (a / iProp) l) lProp
+                        then liftR $ mapM_ (\l -> splat mimg (a / iProp) l) lProp
                         else return ()
    
                      R.rnd >>= \r -> if r < a

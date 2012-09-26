@@ -25,9 +25,9 @@ renderer { sppm photonCount 50000 maxDepth 10 radius 10 }
 # renderer { sampler sampled { sampler { random 4 } integrator { debug normals } } }
 
 # imageSize 720 720
-imageSize 480 480
+# imageSize 480 480
 # imageSize 128 128
- imageSize 240 240
+imageSize 240 240
 
 #
 # camera

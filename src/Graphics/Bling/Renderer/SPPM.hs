@@ -116,7 +116,7 @@ traceCam cs
                bsdf = intBsdf int
                
             -- record a hitpoint here
-            when (bsdfHasNonSpecular (intBsdf int)) $ do
+            when (bsdfHasNonSpecular bsdf) $ do
                px <- cameraSample >>= \c -> return (imageX c, imageY c)
                let h = (Hit bsdf px (sIdx pxs px) wo t) in seq h (liftSampled $ gvAdd (csHps cs) h)
             
@@ -173,16 +173,18 @@ nextVertex scene alpha sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} d
       p = bsdfShadingPoint bsdf
       ng = bsdfNg bsdf
    
-   when (bsdfHasNonSpecular bsdf) $ liftSampled $ hashLookup sh p ps $ \hit -> {-# SCC "contrib" #-} do
+   when (bsdfHasNonSpecular bsdf) $
+         liftSampled $ hashLookup sh p ps $ \hit -> do
+         
       stats <- slup ps hit
       let
          nn = lsN stats
          ratio = (nn + alpha) / (nn + 1)
          r2 = lsR2 stats
-         f = evalBsdf True (hpBsdf hit) (hpW hit) wi
+         f = {-# SCC "contrib.bsdf" #-} evalBsdf True (hpBsdf hit) (hpW hit) wi
          (px, py) = hpPixel hit
       
-      splatSample img (px, py, WS (1 / (absDot wi ng * r2 * pi)) (hpF hit * f * li))
+      splatSample img px py $ sScale (hpF hit * f * li) (1 / (absDot wi ng * r2 * pi))
       sUpdate ps hit (r2 * ratio, nn + alpha)
       
    -- follow the path
@@ -257,7 +259,7 @@ hashLookup sh p ps fun = {-# SCC "hashLookup" #-}
       Vector x y z = abs $ (p - aabbMin (shBounds sh)) * vpromote (shScale sh)
       idx = hash (floor x, floor y, floor z) `rem` V.length (shEntries sh)
       tree = V.unsafeIndex (shEntries sh) idx
-   in treeLookup 0 tree p ps fun
+   in treeLookup tree p ps fun
       
 mkHash :: V.Vector HitPoint -> PixelStats s -> ST s SpatialHash
 mkHash hits ps = {-# SCC "mkHash" #-} do
@@ -294,7 +296,7 @@ mkHash hits ps = {-# SCC "mkHash" #-} do
          let idx = max 0 $ min (cnt - 1) $ hash i `rem` cnt
          in gvAdd (V.unsafeIndex v' idx) hp
          
-   v <- V.mapM (\i -> liftM fst (gvVec i >>= mkKdTree 0 ps)) v'
+   v <- V.mapM (\i -> gvVec i >>= mkKdTree ps) v'
    
    return $! SH bounds v invSize
 
@@ -307,39 +309,41 @@ data KdTree
       -- max. radius² in subtree, hit, left, right
    | Empty
    
-mkKdTree :: Int -> PixelStats s -> MV.MVector (PrimState (ST s)) HitPoint -> ST s (KdTree, Float)
-mkKdTree depth pxs v
-   | MV.null v = return (Empty, 0)
-   | MV.length v == 1 = MV.unsafeRead v 0 >>= \e -> sr2 pxs e >>= \r2 ->
-      let r = sqrt r2 in return (Node r e Empty Empty, r)
-   | otherwise = do
+mkKdTree :: PixelStats s -> MV.MVector (PrimState (ST s)) HitPoint -> ST s KdTree
+mkKdTree pxs hits = {-# SCC "mkKdTree" #-} liftM fst $ go 0 hits where
+   go depth v
+      | MV.null v = return (Empty, 0)
+      | MV.length v == 1 = MV.unsafeRead v 0 >>= \e -> sr2 pxs e >>= \r2 ->
+         let r = sqrt r2 in return (Node r e Empty Empty, r)
+      | otherwise = do
+         let
+            median = MV.length v `div` 2
+            axis = depth `rem` 3
+      
+         I.partialSortBy (compare `on` (\x -> hitPosition x .! axis)) v median
+      
+         pivot <- MV.read v median
+         (left, lr)  <- go (depth + 1) $ MV.take median v
+         (right, rr) <- go (depth + 1) $ MV.drop (median+1) v
+         r <- sqrt <$> sr2 pxs pivot
+         
+         let mr = max r $ max lr rr in
+            return (Node mr pivot left right, mr)
+      
+treeLookup :: KdTree -> Point -> PixelStats s -> (HitPoint -> ST s ()) -> ST s ()
+treeLookup t p pxs fun = {-# SCC "treeLookup" #-} go 0 t where
+   go _ Empty = return ()
+   go depth (Node mr hp l r) = do
       let
-         median = MV.length v `div` 2
          axis = depth `rem` 3
-      
-      I.partialSortBy (compare `on` (\x -> hitPosition x .! axis)) v median
-      
-      pivot <- MV.read v median
-      (left, lr)  <- mkKdTree (depth + 1) pxs $ MV.take median v
-      (right, rr) <- mkKdTree (depth + 1) pxs $ MV.drop (median+1) v
-      r <- sqrt <$> sr2 pxs pivot
-      
-      let mr = max r $ max lr rr in
-         return (Node mr pivot left right, mr)
-      
-treeLookup :: Int -> KdTree -> Point -> PixelStats s -> (HitPoint -> ST s ()) -> ST s ()
-treeLookup _ Empty _ _ _ = return ()
-treeLookup depth (Node mr hp l r) p pxs fun = do
-   let
-      axis = depth `rem` 3
-      split = hitPosition hp .! axis
-      pos = p .! axis
+         split = hitPosition hp .! axis
+         pos = p .! axis
    
-   r2 <- sr2 pxs hp
-   when (sqLen (hitPosition hp - p) <= r2) $ {-# SCC "hlFun" #-} fun hp
-   when (pos - mr <= split) $ treeLookup (depth + 1) l p pxs fun
-   when (pos + mr >= split) $ treeLookup (depth + 1) r p pxs fun
-   
+      r2 <- sr2 pxs hp
+      when (sqLen (hitPosition hp - p) <= r2) $ {-# SCC "treeLookup.fun" #-} fun hp
+      when (pos - mr <= split) $ go (depth + 1) l
+      when (pos + mr >= split) $ go (depth + 1) r
+      
 --------------------------------------------------------------------------------
 -- Main Rendering Loop
 --------------------------------------------------------------------------------

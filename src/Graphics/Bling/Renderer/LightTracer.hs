@@ -27,6 +27,8 @@ mkLightTracer
    -> LightTracer
 mkLightTracer = LightT
 
+type SplatFunc m = Float -> Float -> Spectrum -> Rand m ()
+
 instance Printable LightTracer where
    prettyPrint (LightT ppp) = PP.vcat [
       PP.text "light tracer",
@@ -41,13 +43,13 @@ instance Renderer LightTracer where
 
             (img', _) <- stToIO $ do
                mimg <- thaw i
-               runWithSeed seed $ replicateM_ ppp $ oneRay sc (liftR . splatSample mimg)
+               runWithSeed seed $ replicateM_ ppp $ oneRay sc (\x y s -> liftR $ splatSample mimg x y s)
                freeze mimg
 
             cont <- report $ PassDone n img' (1 / fromIntegral (n * ppp))
             when cont $ pass (n + 1) img'
       
-oneRay :: Scene -> (ImageSample -> Rand m ()) -> Rand m ()
+oneRay :: Scene -> SplatFunc m -> Rand m ()
 oneRay scene splat = do
    ul <- rnd
    ulo <- rnd2D
@@ -59,17 +61,17 @@ oneRay scene splat = do
    when ((pdf > 0) && not (isBlack li)) $
       nextVertex scene (-wo) (scene `scIntersect` ray) li 0 splat
       
-connectCam :: Scene -> (ImageSample -> Rand s ()) -> Spectrum -> Bsdf -> Vector -> Float -> Rand s ()
+connectCam :: Scene -> SplatFunc s -> Spectrum -> Bsdf -> Vector -> Float -> Rand s ()
 connectCam sc splat li bsdf wi eps
    | isBlack f || isBlack csf || cPdf == 0 = return ()
    | sc `occluded` cray = return ()
-   | otherwise = 
-      splat (px, py, WS (1 / (cPdf * dCam2)) (f * li))
+   | otherwise = splat px py lr
    where
       (CameraSampleResult csf pCam px py cPdf) = sampleCam (sceneCam sc) p
       dCam = pCam - p
       we = normalize dCam
       f = evalBsdf True bsdf wi we
+      lr = sScale (li * f) (1 / (cPdf * dCam2))
       dCam2 = sqLen dCam
       cray = Ray p we eps (sqrt dCam2)
       p = bsdfShadingPoint bsdf
@@ -80,7 +82,7 @@ nextVertex
    -> Maybe Intersection
    -> Spectrum
    -> Int -- ^ depth
-   -> (ImageSample -> Rand m ())
+   -> SplatFunc m
    -> Rand m ()
 -- nothing hit, terminate path
 nextVertex _ _ Nothing _ _ _ = return ()

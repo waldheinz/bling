@@ -39,12 +39,11 @@ mkTriangleMesh
    -> Maybe (V.Vector Float)        -- ^ uv coordinates for parametrization
    -> Primitive
 mkTriangleMesh o2w mat p i n uv
-   | o2w `seq` mat `seq` p `seq` i `seq` n `seq` uv `seq` False = undefined
    | V.length i `rem` 3 /= 0 = error "mkTriangleMesh: number of indices must be multiple of 3"
    | V.any (>= V.length p) i = error "mkTriangleMesh: contains out of bounds indices"
 --   | maybe False (\uv' -> V.length uv' /= V.length p) uv = error "mkTriangleMesh: # of UVs and # of points mismatch"
    | V.any (< 0) i = error "mkTriangleMesh: contains negative indices"
-   | otherwise = Primitive inter inters wb flat Nothing sg
+   | otherwise = {-# SCC "mkTriangleMesh" #-} Primitive inter inters wb flat Nothing sg
    where
       p' = V.map (transPoint o2w) p
       n' = n >>= \ns -> return $ V.map (transNormal o2w) ns

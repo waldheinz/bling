@@ -67,9 +67,8 @@ maxDepth t = maxDepth' t (0, 0, 0) where
       (mr, sr, elr) = maxDepth' r (m + 1, s + 1, el)
 
 leafCount :: KdTreeNode -> Int
-leafCount t = leafCount' t where
-   leafCount' (Leaf _) = 1
-   leafCount' (Interior l r _ _) = leafCount' l + leafCount' r
+leafCount (Leaf _) = 1
+leafCount (Interior l r _ _) = leafCount l + leafCount r
 
 --------------------------------------------------------------------------------
 -- Construction
@@ -83,9 +82,15 @@ cT = 1
 cI :: Float
 cI = 80
 
+data BP = BP
+   { bpPrim    :: ! Primitive
+   , bpBounds  :: {-# UNPACK #-} ! AABB
+   }
+
 data Edge = Edge {-# UNPACK #-} !BP {-# UNPACK #-} !Float !Bool
 
-instance Eq Edge where (Edge _ t1 s1) == (Edge _ t2 s2) = t1 == t2 && s1 == s2
+instance Eq Edge where
+   (Edge _ t1 s1) == (Edge _ t2 s2) = t1 == t2 && s1 == s2
 
 instance Ord Edge where
    (Edge _ t1 s1) <= (Edge _ t2 s2)
@@ -96,11 +101,6 @@ instance Show Edge where
    show (Edge _ t s)
       | s = "S " ++ show t
       | otherwise = "E " ++ show t
-
-data BP = BP
-   { bpPrim    :: ! Primitive
-   , bpBounds  :: {-# UNPACK #-} ! AABB
-   }
 
 mkKdTree :: [Primitive] -> KdTree
 mkKdTree ps = {-# SCC "mkKdTree" #-} KdTree bounds root where
@@ -118,7 +118,7 @@ buildTree bounds bps depth
       
 trySplit :: AABB -> V.Vector BP -> Int -> Maybe KdTreeNode
 trySplit bounds bps depth = {-# SCC "trySplit" #-} go Nothing axii where
-   axii = [a `mod` 3 | a <- take 3 [(maximumExtent bounds)..]]
+   axii = [a `rem` 3 | a <- take 3 [(maximumExtent bounds)..]]
    oldCost = cI * fromIntegral (V.length bps)
    
    go :: Maybe KdTreeNode -> [Int] -> Maybe KdTreeNode
@@ -261,14 +261,14 @@ dbgTraverse :: KdTree -> Ray -> TraversalStats
 dbgTraverse (KdTree b t) r@(Ray _ d _ _) = maybe stats t' (intersectAABB b r) where
    t' ts = let (_, _, x) = trav ts
           in x
-   trav ts = dbgTraverse' (r, Nothing, stats) invDir t ts
+   trav = dbgTraverse' (r, Nothing, stats) invDir t
    invDir = mkV (1 / d .! 0, 1 / d .! 1, 1 / d .! 2)
    stats = TraversalStats 0 0
 
 -- | traversal function for @Primitive.intersect@
 dbgTraverse' :: (Ray, Maybe Intersection, TraversalStats) -> Vector -> KdTreeNode -> (Float, Float) -> (Ray, Maybe Intersection, TraversalStats)
 dbgTraverse' (r, mi, ts) _ (Leaf ps) _ = let (r', mi') = nearest' ps (r, mi)
-                                         in (r', mi', deeper $ ts { intersections = (intersections ts + V.length ps) })
+                                         in (r', mi', deeper $ ts { intersections = intersections ts + V.length ps })
 dbgTraverse' ri@(r, mi, ts) inv (Interior left right sp axis) mima@(tmin, tmax)
    | rayMax r < tmin = ri
    | tp > tmax || tp <= 0 = dbgTraverse' (r, mi, deeper ts) inv fc mima
