@@ -307,14 +307,16 @@ mkHash hits ps = {-# SCC "mkHash" #-} do
 data KdTree
    = Node {-# UNPACK #-} !Float !HitPoint !KdTree !KdTree
       -- max. radius² in subtree, hit, left, right
-   | Empty
-   
+   | Leaf !(V.Vector HitPoint)
+      
 mkKdTree :: PixelStats s -> MV.MVector (PrimState (ST s)) HitPoint -> ST s KdTree
 mkKdTree pxs hits = {-# SCC "mkKdTree" #-} liftM fst $ go 0 hits where
    go depth v
-      | MV.null v = return (Empty, 0)
-      | MV.length v == 1 = MV.unsafeRead v 0 >>= \e -> sr2 pxs e >>= \r2 ->
-         let r = sqrt r2 in return (Node r e Empty Empty, r)
+      | MV.length v <= 5 = do
+         v' <- V.freeze v
+         mr2 <- V.foldM' (\m hp -> max m <$> sr2 pxs hp) 0 v'
+         return $! (Leaf v', sqrt mr2)
+         
       | otherwise = do
          let
             median = MV.length v `div` 2
@@ -332,7 +334,10 @@ mkKdTree pxs hits = {-# SCC "mkKdTree" #-} liftM fst $ go 0 hits where
       
 treeLookup :: KdTree -> Point -> PixelStats s -> (HitPoint -> ST s ()) -> ST s ()
 treeLookup t p pxs fun = {-# SCC "treeLookup" #-} go 0 t where
-   go _ Empty = return ()
+   go _ (Leaf hps) = V.forM_ hps $ \hp -> do
+      r2 <- sr2 pxs hp
+      when (sqLen (hitPosition hp - p) <= r2) $ {-# SCC "leaf.fun" #-} fun hp
+      
    go depth (Node mr hp l r) = do
       let
          axis = depth `rem` 3
@@ -340,7 +345,7 @@ treeLookup t p pxs fun = {-# SCC "treeLookup" #-} go 0 t where
          pos = p .! axis
    
       r2 <- sr2 pxs hp
-      when (sqLen (hitPosition hp - p) <= r2) $ {-# SCC "treeLookup.fun" #-} fun hp
+      when (sqLen (hitPosition hp - p) <= r2) $ {-# SCC "node.fun" #-} fun hp
       when (pos - mr <= split) $ go (depth + 1) l
       when (pos + mr >= split) $ go (depth + 1) r
       

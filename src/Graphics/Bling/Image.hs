@@ -214,11 +214,13 @@ addSample (MImage !w !h (!ox, !oy) ftbl !p _) sx sy ss
       unless ((x1 - x0) < 0 || (y1 - y0) < 0) $ do
          let 
             ifx = V.generate (x1 - x0 + 1) $
-               \x -> let x' = x + x0 in let fx = abs $ (fromIntegral x' - dx) * ifw * fromIntegral filterTableSize
+               \x -> let x' = x + x0
+                     in let fx = abs $ (fromIntegral x' - dx) * ifw * fromIntegral filterTableSize
                      in min (floor fx) (filterTableSize - 1)
             
             ify = V.generate (y1 - y0 + 1) $
-               \y -> let y' = y + y0 in let fy = abs $ (fromIntegral y' - dy) * ifh * fromIntegral filterTableSize
+               \y -> let y' = y + y0
+                     in let fy = abs $ (fromIntegral y' - dy) * ifh * fromIntegral filterTableSize
                      in min (floor fy) (filterTableSize - 1)
             
          forM_ [(x, y) | y <- [y0..y1], x <- [x0..x1]] $ \(x, y) -> do

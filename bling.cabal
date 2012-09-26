@@ -95,7 +95,6 @@ Executable bling
    Main-is:          Main.hs
    Build-Depends:    bling, base, pretty, random, mwc-random
    ghc-options:      -Wall -O2 -fexcess-precision -rtsopts -threaded
-   ghc-prof-options: -prof 
 
 Executable bling-gui
    if flag(Gui)
