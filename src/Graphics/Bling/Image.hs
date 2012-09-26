@@ -200,7 +200,7 @@ addSample (MImage !w !h (!ox, !oy) ftbl !p _) sx sy ss
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | sInfinite ss = trace ("skipping infinite sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
-   | otherwise = do
+   | otherwise = {-# SCC "addSample" #-} do
    
       let
          (smx, smy, smz) = spectrumToXYZ ss

@@ -6,6 +6,7 @@ module Graphics.Bling.IO.WaveFront (
 import Graphics.Bling.Material
 import Graphics.Bling.Reflection
 import Graphics.Bling.IO.ParserCore hiding (space)
+import Graphics.Bling.Primitive
 import Graphics.Bling.Primitive.TriangleMesh
 import Graphics.Bling.Utils
 
@@ -47,7 +48,7 @@ matIntervals cnt mi = filt intervals where
    intervals = zipWith (\(n, s) e -> (n, s, e - s)) starts ends
       
 -- | parses a WaveFront .obj file into triangle meshes
-parseWaveFront :: MaterialMap -> FilePath -> JobParser [TriangleMesh]
+parseWaveFront :: MaterialMap -> FilePath -> JobParser [Primitive]
 parseWaveFront mmap fname = {-# SCC "parseWaveFront" #-} do
    inp <- readFileBS fname
    

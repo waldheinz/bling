@@ -3,70 +3,39 @@ module Graphics.Bling.Primitive.Fractal (
    
    -- * Fractals
    
-   Fractal, mkJuliaQuat, Quaternion(..),
-   
-   -- * The Fractal Primitive
-   
-   FractalPrim, mkFractalPrim, mkMengerSponge
+   mkJuliaQuat, Quaternion(..),
    
 ) where
 
-import Data.Monoid
 import qualified Data.Vector as V
 
 import Graphics.Bling.AABB
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Primitive
-import Graphics.Bling.Primitive.Geometry
 import Graphics.Bling.Reflection
-import Graphics.Bling.Shape
 
 --
 -- Julia Fractal
 --
 
-data Fractal = Julia {-# UNPACK #-} !Quaternion {-# UNPACK #-} !Float {-# UNPACK #-} !Int
+-- data Fractal = Julia {-# UNPACK #-} !Quaternion {-# UNPACK #-} !Float {-# UNPACK #-} !Int
    
-mkJuliaQuat :: Quaternion -> Float -> Int -> Fractal
-mkJuliaQuat = Julia
-
-data FractalPrim
-   = FP
-      { _fractal  :: ! Fractal
-      , _material :: ! Material
-      }
-   | Menger
-      { _base     :: ! Shape
-      , _mMat     :: ! Material
-      , _level    :: ! Int
-      , _trans    :: ! Transform
-      }
-
-mkFractalPrim :: Fractal -> Material -> FractalPrim
-mkFractalPrim = FP
-
-mkMengerSponge :: Shape -> Material -> Int -> Transform -> FractalPrim
-mkMengerSponge = Menger
-
-instance Primitive FractalPrim where
-   flatten (Menger g m l t) = buildMenger g m l t
-   flatten fp = [mkAnyPrim fp]
-   
-   worldBounds _ = AABB (mkPoint' n n n) $ mkPoint' p p p where
+mkJuliaQuat :: Material -> Quaternion -> Float -> Int -> Primitive
+mkJuliaQuat mat q e mi = prim where
+   prim = Primitive inter inters wb flat Nothing sg
+   flat = [prim]
+   wb = AABB (mkPoint' n n n) $ mkPoint' p p p where
       (n, p) = (-juliaRadius, juliaRadius)
       
-   intersects (FP (Julia q e mi) _) r = maybe False (const True) t where
+   inters r = maybe False (const True) t where
       t = traverseJulia r q mi e
    
-   intersects (Menger _ _ _ _) _ = error "Menger : unimplemented intersects"
-   
-   
-   intersect p@(FP (Julia q e mi) m) r =
+   inter r =
       traverseJulia r q mi e >>= \(d, o) ->
-         Just $ mkIntersection d (e * 2) (mkDg' o $ normalJulia o q mi e) (mkAnyPrim p) m
+         Just $ mkIntersection d (e * 2) (mkDg' o $ normalJulia o q mi e) prim mat
    
-   intersect (Menger _ _ _ _) _ = error "Menger : unimplemented intersects"
-
+   sg _ dg = dg
+   
 prepare :: Ray -> Maybe Float
 prepare (Ray ro rd rmin rmax)
    | c <= 0 = Just rmin -- start inside sphere
@@ -191,17 +160,3 @@ qsq (Quaternion r i) = Quaternion r' i' where
    r' = r * r - i `dot` i
    i' = vpromote (2 * r) * i
 
---------------------------------------------------------------------------------
--- Menger Sponge
---------------------------------------------------------------------------------
-
-buildMenger :: Shape -> Material -> Int -> Transform -> [AnyPrim]
-buildMenger s m level trans = go level mempty where
-   putAt t = mkAnyPrim $ mkGeom t False m Nothing s (-1)
-   go 0 t = [putAt ((scale $ mkV (2.2, 2.2, 2.2)) <> t <> trans) ]
-   go l t = concatMap (go (l-1)) ts where
-      ts = map (\v -> foldl (<>) t [sc, translate v]) vs
-      sc = scale $ mkV (1/3, 1/3, 1/3)
-      vs = map (mkV) coords
-      coords = filter vm [(x, y, z) | x <- [-1..1], y <- [-1..1], z <- [-1..1]]
-      vm (a, b, c) = (length $ filter (/=0) [a, b, c]) > 1 -- valid coord?

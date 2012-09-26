@@ -2,7 +2,7 @@
 module Graphics.Bling.Primitive.KdTree (
    
    -- * Kd - Trees
-   KdTree, mkKdTree,
+   KdTree, mkKdTree, kdTreePrimitive,
 
    -- * Debugging 
 
@@ -26,7 +26,7 @@ data KdTree = KdTree {-# UNPACK #-} ! AABB ! KdTreeNode deriving (Show)
 
 data KdTreeNode
    = Interior !KdTreeNode !KdTreeNode {-# UNPACK #-} !Float {-# UNPACK #-} !Dimension
-   | Leaf {-# UNPACK #-} !(V.Vector AnyPrim)
+   | Leaf {-# UNPACK #-} !(V.Vector Primitive)
    
 instance Show KdTreeNode where
    show (Interior l r t a) = "I t=" ++ show t ++ ", a=" ++ show a ++ "("
@@ -98,11 +98,11 @@ instance Show Edge where
       | otherwise = "E " ++ show t
 
 data BP = BP
-   { bpPrim    :: ! AnyPrim
+   { bpPrim    :: ! Primitive
    , bpBounds  :: {-# UNPACK #-} ! AABB
    }
 
-mkKdTree :: [AnyPrim] -> KdTree
+mkKdTree :: [Primitive] -> KdTree
 mkKdTree ps = {-# SCC "mkKdTree" #-} KdTree bounds root where
    root = buildTree bounds bps md
    bps = V.map (\p -> BP p (worldBounds p)) (V.fromList ps)
@@ -219,7 +219,7 @@ traverse' r inv (Interior left right sp axis) mima@(tmin, tmax)
 
 -- | traversal function for @Primitive.intersect@
 traverse :: (Ray, Maybe Intersection) -> Vector -> KdTreeNode -> (Float, Float) -> (Ray, Maybe Intersection)
-traverse ri _ (Leaf ps) _ = {-# SCC "traverse.leaf" #-} nearest' ps ri
+traverse ri _ (Leaf ps) _ = nearest' ps ri
 traverse ri@(r, _) inv (Interior left right sp axis) mima@(tmin, tmax)
    | rayMax r < tmin = ri
    | tp > tmax || tp <= 0 = traverse ri inv fc mima
@@ -231,17 +231,17 @@ traverse ri@(r, _) inv (Interior left right sp axis) mima@(tmin, tmax)
          (fc, sc) = if lf then (left, right) else (right, left)
          lf = (ro .! axis < sp) || (ro .! axis == sp && rd .! axis <= 0)
 
-instance Primitive KdTree where
-   flatten t = [MkAnyPrim t]
-   
-   worldBounds (KdTree b _) = b
-   
-   intersect (KdTree b t) r@(Ray _ d _ _) = {-# SCC "intersect" #-} intersectAABB b r >>= trav where
+kdTreePrimitive :: KdTree -> Primitive
+kdTreePrimitive (KdTree b t) = prim where
+   prim = Primitive inter inters b flat Nothing (\_ dg -> dg)
+
+   flat = [prim]
+      
+   inter r@(Ray _ d _ _) = {-# SCC "intersect" #-} intersectAABB b r >>= trav where
       trav ts = snd $ traverse (r, Nothing) invDir t ts
       invDir = mkV (1 / d .! 0, 1 / d .! 1, 1 / d .! 2)
       
-      
-   intersects (KdTree b t) r@(Ray _ d _ _) = {-# SCC "intersects" #-} maybe False tr (intersectAABB b r) where
+   inters r@(Ray _ d _ _) = {-# SCC "intersects" #-} maybe False tr (intersectAABB b r) where
       tr = traverse' r invDir t
       invDir = mkV (1 / d .! 0, 1 / d .! 1, 1 / d .! 2)
       

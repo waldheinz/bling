@@ -29,7 +29,7 @@ mkDirectLightingIntegrator md = SurfaceIntegrator li s1d s2d where
    
 directLighting :: Int -> Int -> Scene -> Ray -> Sampled m Spectrum
 directLighting d md s r@(Ray _ rd _ _) =
-   maybe (return $! black) ls (s `intersect` r) where
+   maybe (return $! black) ls (s `scIntersect` r) where
       ls int = do
          uln <- rnd' $ 0 + (2 * d)
          uld <- rnd2D' $ 0 + (2 * d)

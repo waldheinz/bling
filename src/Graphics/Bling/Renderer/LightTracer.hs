@@ -57,12 +57,12 @@ oneRay scene splat = do
        li = sScale li' (absDot nl wo / pdf)
        
    when ((pdf > 0) && not (isBlack li)) $
-      nextVertex scene (-wo) (scene `intersect` ray) li 0 splat
+      nextVertex scene (-wo) (scene `scIntersect` ray) li 0 splat
       
 connectCam :: Scene -> (ImageSample -> Rand s ()) -> Spectrum -> Bsdf -> Vector -> Float -> Rand s ()
 connectCam sc splat li bsdf wi eps
    | isBlack f || isBlack csf || cPdf == 0 = return ()
-   | sc `intersects` cray = return ()
+   | sc `occluded` cray = return ()
    | otherwise = 
       splat (px, py, WS (1 / (cPdf * dCam2)) (f * li))
    where
@@ -97,7 +97,7 @@ nextVertex sc wi (Just int) li depth splat
          p = bsdfShadingPoint bsdf
          (BsdfSample _ spdf bf wo) = sampleAdjBsdf bsdf wi ubc ubd
          li' = sScale (li * bf) (1  / pcont)
-         int' = intersect sc $ Ray p wo (intEpsilon int) infinity
+         int' = scIntersect sc $ Ray p wo (intEpsilon int) infinity
          wi' = -wo
       
       connectCam sc splat li bsdf wi $ intEpsilon int

@@ -107,7 +107,7 @@ traceCam cs
          t = csT cs
          pxs = csPxStats cs
          
-      case scene `intersect` ray of
+      case scene `scIntersect` ray of
          Nothing  -> return $! cs { csLs = csLs cs + t * escaped ray scene }
          Just int -> do
             
@@ -158,7 +158,7 @@ tracePhoton scene alpha sh img ps = {-# SCC "tracePhoton" #-} do
       ls = sScale li (absDot nl wi / pdf)
       
    when ((pdf > 0) && not (isBlack li)) $
-      nextVertex scene alpha sh wi (scene `intersect` ray) ls 0 img ps
+      nextVertex scene alpha sh wi (scene `scIntersect` ray) ls 0 img ps
 
 nextVertex :: Scene -> Float -> SpatialHash -> Vector ->
    Maybe Intersection -> Spectrum -> Int ->
@@ -196,7 +196,7 @@ nextVertex scene alpha sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} d
 
    unless (spdf == 0 || isBlack li') $
       rnd' (2 + d * 2) >>= \x -> unless (x > pcont) $
-         nextVertex scene alpha sh (-wo) (scene `intersect` ray) li' (d+1) img ps
+         nextVertex scene alpha sh (-wo) (scene `scIntersect` ray) li' (d+1) img ps
 
 --------------------------------------------------------------------------------
 -- Per-Pixel Accumulation Stats

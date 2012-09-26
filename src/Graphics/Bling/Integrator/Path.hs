@@ -39,7 +39,7 @@ mkPathIntegrator md sd = SurfaceIntegrator li s1d s2d where
    s2d = smps2D * sd
    
    li s r = {-# SCC "contrib" #-}
-      nextVertex s 0 True r (s `intersect` r) md white black
+      nextVertex s 0 True r (s `scIntersect` r) md white black
       
 nextVertex :: Scene -> Int -> Bool -> Ray -> Maybe Intersection -> Int -> Spectrum -> Spectrum -> Sampled m Spectrum
 
@@ -85,5 +85,5 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) md t l
                   
                if spdf == 0 || isBlack f
                   then return $! l'
-                  else nextVertex scene depth' spec' ray' (scene `intersect` ray') md t' l'
+                  else nextVertex scene depth' spec' ray' (scene `scIntersect` ray') md t' l'
                   

@@ -77,7 +77,6 @@ Library
       Graphics.Bling.IO.WaveFront,
       Graphics.Bling.Material,
       Graphics.Bling.Primitive.Bezier,
-      Graphics.Bling.Primitive.Bvh,
       Graphics.Bling.Primitive.Fractal,
       Graphics.Bling.Primitive.Geometry,
       Graphics.Bling.Primitive.KdTree,

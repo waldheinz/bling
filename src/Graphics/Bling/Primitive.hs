@@ -1,4 +1,3 @@
-{-# LANGUAGE ExistentialQuantification #-}
 
 module Graphics.Bling.Primitive (
 
@@ -9,75 +8,37 @@ module Graphics.Bling.Primitive (
 
    -- * Primitives
 
-   Primitive(..), nearest, nearest',
-   AnyPrim(..), mkAnyPrim
+   Primitive(..), nearest, nearest'
    
    ) where
 
 import Data.Monoid
-import qualified Data.Vector.Generic as V
+import qualified Data.Vector as V
 
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Light as L
 import Graphics.Bling.Reflection
 
-class Primitive a where
-   intersect :: a -> Ray -> Maybe Intersection
-   intersects :: a -> Ray -> Bool
-   worldBounds :: a -> AABB
-   flatten :: a -> [AnyPrim]
-   
-   light :: a -> Maybe Light
-   
-   -- | The default implementation returns @Nothing@.
-   light _ = Nothing
-   
-   -- | returns the geometry that should be used for shading computations
-   shadingGeometry :: a -> Transform -> DifferentialGeometry -> DifferentialGeometry
-   
-   -- | the default implementation just returns the provided DG, so the
-   --   geometry used for shading is the same as for reflection calculations
-   shadingGeometry _ _ dgg = dgg
+data Primitive = Primitive
+   {  intersect         :: Ray -> Maybe Intersection
+   ,  intersects        :: Ray -> Bool
+   ,  worldBounds       :: AABB
+   ,  flatten           :: [Primitive]
+   ,  light             :: Maybe Light
+   ,  shadingGeometry   :: Transform -> DifferentialGeometry -> DifferentialGeometry
+   }
 
---
--- the existential primitive
---
-
-data AnyPrim = forall a . Primitive a => MkAnyPrim a
-
-instance Primitive AnyPrim where
-   intersect (MkAnyPrim p) = intersect p
-   {-# INLINE intersect #-}
-   
-   intersects (MkAnyPrim p) = intersects p
-   {-# INLINE intersects #-}
-   
-   worldBounds (MkAnyPrim p) = worldBounds p
-   {-# INLINE worldBounds #-}
-   
-   flatten (MkAnyPrim p) = flatten p
-   {-# INLINE flatten #-}
-   
-   light (MkAnyPrim p) = light p
-   {-# INLINE light #-}
-
-   shadingGeometry (MkAnyPrim p) = shadingGeometry p
-   {-# INLINE shadingGeometry #-}
-   
-mkAnyPrim :: (Primitive a) => a -> AnyPrim
-mkAnyPrim = MkAnyPrim
- 
-near :: (Primitive a) => (Ray, Maybe Intersection) -> a -> (Ray, Maybe Intersection)
+near :: (Ray, Maybe Intersection) -> Primitive -> (Ray, Maybe Intersection)
 {-# INLINE near #-}
 near o@(r, _) p = maybe o go $ intersect p r where
    go i = (r { rayMax = intDist i }, Just i)
 
-nearest :: (Primitive a, V.Vector v a) => v a -> Ray -> Maybe Intersection
+nearest :: V.Vector Primitive -> Ray -> Maybe Intersection
 {-# INLINE nearest #-}
 nearest ps r = snd $ nearest' ps (r, Nothing)
-   
-nearest' :: (Primitive a, V.Vector v a)
-   => v a
+
+nearest'
+   :: V.Vector Primitive
    -> (Ray, Maybe Intersection)
    -> (Ray, Maybe Intersection)
 {-# INLINE nearest' #-}
@@ -91,11 +52,11 @@ data Intersection = Intersection
    { intDist      :: {-# UNPACK #-} ! Float
    , intEpsilon   :: {-# UNPACK #-} ! Float
    , intGeometry  :: DifferentialGeometry -- ^ true geometry at intersection point
-   , intPrimitive :: ! AnyPrim
+   , intPrimitive :: ! Primitive
    , intBsdf      :: Bsdf
    }
 
-mkIntersection :: Float -> Float -> DifferentialGeometry -> AnyPrim -> Material -> Intersection
+mkIntersection :: Float -> Float -> DifferentialGeometry -> Primitive -> Material -> Intersection
 mkIntersection d e dg p mat = Intersection d e dg p bsdf where
    bsdf = mat dg (shadingGeometry p mempty dg)
 
@@ -105,10 +66,10 @@ intLe
    -> Vector       -- ^ outgoing direction (must be normalized)
    -> Spectrum     -- ^ emitted spectrum
 {-# INLINE intLe #-}
-intLe (Intersection _ _ dg prim bsdf) wo =
+intLe (Intersection _ _ dg prim _) wo =
    maybe black (\l -> L.lEmit l p n wo) (light prim) where
-      p = bsdfShadingPoint bsdf -- dgP dg
-      n = bsdfShadingNormal bsdf -- dgN dg
+      p = dgP dg
+      n = dgN dg
       
 intLight :: Intersection -> Maybe Light
 {-# INLINE intLight #-}

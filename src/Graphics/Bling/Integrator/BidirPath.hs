@@ -118,7 +118,7 @@ connect scene nspec
        | te `bxdfIs` Specular = black
        | tl `bxdfIs` Specular = black
        | isBlack fe || isBlack fl = black
-       | scene `intersects` r = black
+       | scene `occluded` r = black
        | otherwise = sScale (alphae * fe * alphal * fl) (g * pathWt)
        where
           pathWt = 1 / (fromIntegral (i + j + 2) - nspec UV.! (i + j + 2))
@@ -161,7 +161,7 @@ estimateDirect scene (Vert wi _ int _ alpha) depth = do
 eyePath :: Scene -> Ray -> Int -> Sampled m Path
 eyePath s r md = nextVertex False s wi int white 0 md (\d -> 2 + 1 + smps1D * d * 3) (\d -> 2 + 2 + smps2D * d * 3) where
    wi = -(rayDir r)
-   int = s `intersect` r
+   int = s `scIntersect` r
 
 -- | generates the light path
 lightPath :: Scene -> Int -> Float -> Rand2D -> Rand2D -> Sampled m Path
@@ -170,7 +170,7 @@ lightPath s md ul ulo uld =
       (li, ray, nl, pdf) = sampleLightRay s ul ulo uld
       li' = sScale li (absDot nl wo / pdf)
       wo = -(rayDir ray)
-   in nextVertex True s wo (s `intersect` ray) li' 0 md (\d -> 3 + 1 + smps1D * d * 3) (\d -> 3 + 2 + smps2D * d * 3)
+   in nextVertex True s wo (s `scIntersect` ray) li' 0 md (\d -> 3 + 1 + smps1D * d * 3) (\d -> 3 + 2 + smps2D * d * 3)
    
 nextVertex
    :: Bool -- ^ adjoint ?
@@ -193,7 +193,7 @@ nextVertex adj sc wi (Just int) alpha depth md f1d f2d
       rr <- rnd' $ 1 + f1d depth -- russian roulette
       let fun = if adj then sampleAdjBsdf else sampleBsdf
       let (BsdfSample t spdf f wo) = fun bsdf wi ubc ubd
-      let int' = intersect sc $ Ray p wo (intEpsilon int) infinity
+      let int' = scIntersect sc $ Ray p wo (intEpsilon int) infinity
       let wi' = -wo
       let vHere = Vert wi wo int t alpha
       let pathScale = f -- sScale f $ absDot wo (bsdfShadingNormal bsdf) / spdf

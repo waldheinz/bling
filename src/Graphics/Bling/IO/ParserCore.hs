@@ -52,7 +52,7 @@ data PState = PState {
    material :: Material,
    emit :: Maybe Spectrum, -- ^ the emission for the next primitives
    lights :: [Light],
-   prims :: [AnyPrim],
+   prims :: [Primitive],
    currId :: Int,
    basePath :: FilePath
    }

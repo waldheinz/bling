@@ -15,6 +15,8 @@ module Graphics.Bling.DifferentialGeometry (
 
    ) where
 
+import Control.DeepSeq
+
 import Graphics.Bling.Transform
 
 --
@@ -32,6 +34,9 @@ data DifferentialGeometry = DG {
    dgDNDV   :: {-# UNPACK #-} ! Vector,
    dgtriB   :: ! (Maybe (Float, Float)) -- barycentric coordinates for triangle hits
    } deriving (Show)
+
+instance NFData DifferentialGeometry where
+   -- default implementation should suffice as all fields are strict
 
 mkDg
    :: Point -- ^ intersection point

@@ -1,6 +1,6 @@
 module Graphics.Bling.Scene (
    Scene, mkScene, scenePrim, sceneLights, sceneCam, sampleOneLight,
-   sampleLightRay, lightPower,
+   sampleLightRay, lightPower, scIntersect, occluded,
       RandLightSample(..)
    ) where
 
@@ -18,31 +18,40 @@ import Graphics.Bling.Reflection
 import Graphics.Bling.Primitive.KdTree
 
 data Scene = Scene
-   { _scenePrimCount   :: ! Int     -- just for reference
-   , scenePrim         :: ! KdTree
-   , sceneLights       :: ! (V.Vector Light)
-   , sceneCam          :: ! Camera
+   { _scenePrimCount :: ! Int     -- just for reference
+   , _sceneAccel     :: ! KdTree
+   , scenePrim       :: ! Primitive
+   , sceneLights     :: ! (V.Vector Light)
+   , sceneCam        :: ! Camera
    }
    
 instance Printable Scene where
-   prettyPrint (Scene cnt p ls cam) = vcat [
+   prettyPrint (Scene cnt a p ls cam) = vcat [
       text "camera" <+> prettyPrint cam,
       text "bounds" <+> text (show (worldBounds p)),
       text "number of lights" <+> int (V.length ls),
       text "number of primitives" <+> int cnt,
-      text "stats" $$ nest 3 (ppKdTree p)
+      text "stats" $$ nest 3 (ppKdTree a)
       ]
 
-mkScene :: (Primitive a) => [Light] -> [a] -> Camera -> Scene
-mkScene l prims cam = Scene cnt (mkKdTree ps) (V.fromList lights) cam where
+mkScene :: [Light] -> [Primitive] -> Camera -> Scene
+mkScene l prims cam = Scene cnt accel prim (V.fromList lights) cam where
    lights = l ++ gl
+   prim = kdTreePrimitive accel
+   accel = mkKdTree ps
    gl = mapMaybe light ps -- collect the geometric lights
    ps = Prelude.concatMap flatten prims
    cnt = length ps
    
 occluded :: Scene -> Ray -> Bool
-occluded (Scene _ p _ _) = intersects p
+{-# INLINE occluded #-}
+occluded (Scene _ _ p _ _) = intersects p
 
+scIntersect :: Scene -> Ray -> Maybe Intersection
+{-# INLINE scIntersect #-}
+scIntersect (Scene _ _ p _ _) = intersect p
+
+{-
 instance Primitive Scene where
    intersect = intersect.scenePrim
    intersects = intersects.scenePrim
@@ -51,9 +60,11 @@ instance Primitive Scene where
    light = light.scenePrim
    shadingGeometry = shadingGeometry.scenePrim
 
+-}
+
 -- | total power of all light sources in the scene in [Watt]
 lightPower :: Scene -> Spectrum
-lightPower s = V.sum $ V.map (\l -> L.power l (worldBounds s)) (sceneLights s)
+lightPower s = V.sum $ V.map (\l -> L.power l (worldBounds $ scenePrim s)) (sceneLights s)
 
 --------------------------------------------------------------------------------
 -- Sampling Scene Light Sources
@@ -71,7 +82,7 @@ sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo
 
 sampleBsdfMis :: Scene -> Light -> BsdfSample -> Point -> Float -> Spectrum
 {-# INLINE sampleBsdfMis #-}
-sampleBsdfMis (Scene _ sp _ _) l (BsdfSample _ bPdf f wi) p epsilon
+sampleBsdfMis (Scene _ _ sp _ _) l (BsdfSample _ bPdf f wi) p epsilon
    | bPdf == 0  || isBlack f = black
    | isJust lint = maybe black ff $ intLight (fromJust lint)
    | otherwise = sc (le l ray)
@@ -109,7 +120,7 @@ data RandLightSample = RLS
    
 -- | samples one randomly chosen light source
 sampleOneLight :: Scene -> Point -> Float -> Normal -> Vector -> Bsdf -> RandLightSample -> Spectrum
-sampleOneLight scene@(Scene _ _ lights _) p eps n wo bsdf smp
+sampleOneLight scene@(Scene _ _ _ lights _) p eps n wo bsdf smp
    | lc == 0 = black
    | lc == 1 = {-# SCC "sampleOneLight.single" #-} ed (V.head lights)
    | otherwise = {-# SCC "sampleOneLight.many" #-} sScale ld (fromIntegral lc) where     
@@ -126,11 +137,12 @@ sampleLightRay
    -> R.Rand2D
    -> (Spectrum, Ray, Normal, Float)
 
-sampleLightRay sc@(Scene _ _ ls _) uL uO uD
+sampleLightRay (Scene _ _ p ls _) uL uO uD
    | V.null ls = (black, undefined, undefined, 0)
-   | lc == 1 = sample' (V.head ls) (worldBounds sc) uO uD
+   | lc == 1 = sample' (V.head ls) (worldBounds p) uO uD
    | otherwise = (s, ray, n, pd / fromIntegral lc)
    where
-      (s, ray, n, pd) = sample' (V.unsafeIndex ls ln) (worldBounds sc) uO uD
+      (s, ray, n, pd) = sample' (V.unsafeIndex ls ln) (worldBounds p) uO uD
       lc = V.length ls
       ln = min (floor $ uL * fromIntegral lc) (lc - 1)
+      

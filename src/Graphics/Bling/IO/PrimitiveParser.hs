@@ -23,7 +23,7 @@ import Graphics.Bling.Primitive.Geometry
 -- Primitives
 --------------------------------------------------------------------------------
 
-pPrimitive :: JobParser [AnyPrim]
+pPrimitive :: JobParser [Primitive]
 pPrimitive = pBlock $ do
    t <- pString
    p <- case t of
@@ -32,34 +32,27 @@ pPrimitive = pBlock $ do
          patches <- many1 (try pBezierPatch)
          optional ws
          s <- getState
-         return $ [mkAnyPrim $ tesselateBezier subdivs patches (transform s) (material s)]
+         return $ [tesselateBezier subdivs patches (transform s) (material s)]
                 
       "julia" -> do
          c <- pNamedQuat "c"
          e <- namedFloat "epsilon"
          i <- namedInt "iterations"
          s <- getState
-         return $ [mkAnyPrim $ mkFractalPrim (mkJuliaQuat c e i) (material s)]
-                
-      "menger" -> do
-         shape <- pShape
-         level <- namedInt "level"
-         s <- getState
-         return $ [mkAnyPrim $ mkMengerSponge shape (material s) level (transform s)]
-         
-      "mesh" -> pMesh >>= \m -> return $! [mkAnyPrim m]
+         return $ [mkJuliaQuat (material s) c e i]
+      
+      "mesh" -> pMesh >>= \m -> return $! [m]
          
       "shape" -> do
          shp <- pShape
          s <- getState
          sid <- nextId
-         return $ [mkAnyPrim $ mkGeom (transform s) False (material s) (emit s) shp sid]
+         return $ [mkGeom (transform s) False (material s) (emit s) shp sid]
          
       "waveFront" -> do
          fname <- pQString
          mmap <- pNamedMaterialMap "materials"
-         tms <- parseWaveFront mmap fname
-         return $ map mkAnyPrim tms
+         parseWaveFront mmap fname
       
       _ -> fail $ "unknown primitive type " ++ t
 
@@ -117,7 +110,7 @@ pBezierPatch = (flip namedBlock) "p" $ do
         (Right p) -> return p
         (Left err) -> fail $ "error parsing bezier patch: " ++ err
 
-pMesh :: JobParser TriangleMesh
+pMesh :: JobParser Primitive
 pMesh = do
    vc <- namedInt "vertexCount" <?> "vertexCount missing"
    fc <- namedInt "faceCount"  <?> "faceCount missing"

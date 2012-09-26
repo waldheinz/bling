@@ -12,6 +12,7 @@ module Graphics.Bling.Shape (
    objectBounds, worldBounds, intersect, intersects
    ) where
 
+import Control.DeepSeq (force)
 import Data.Maybe
 
 import Graphics.Bling.DifferentialGeometry
@@ -82,11 +83,10 @@ intersect
    -> Ray -- ^ the ray to intersect the shape with
    -> Maybe (Float, Float, DifferentialGeometry)
       -- ^ maybe (ray parametric distance to hit, ray epsilon, local geometry at hit point)
-
 intersect (Box pmin pmax) ray@(Ray o d tmin tmax) =
       testSlabs allDimensions tmin tmax 0 >>= go where
    
-   go (t, axis) = Just (t, e, mkDg' p n) where
+   go (t, axis) = force $ Just (t, e, mkDg' p n) where
       p = rayAt ray t
       e = 5e-4 * t
       n = setComponent axis dir $ mkV (0, 0, 0)
@@ -96,18 +96,18 @@ intersect (Box pmin pmax) ray@(Ray o d tmin tmax) =
    testSlabs :: [Dimension] -> Float -> Float -> Dimension -> Maybe (Float, Dimension)
    testSlabs [] n f dd
       | n > f = Nothing
-      | otherwise = Just (n, dd)
+      | otherwise = force $ Just (n, dd)
    testSlabs (dim:ds) near far dd
       | near > far = Nothing
       | otherwise = testSlabs ds (max near near') (min far far') (if near < near' then dim else dd) where
-    (near', far') = if tNear > tFar then (tFar, tNear) else (tNear, tFar)
-    tFar = (pmax .! dim - oc) * dInv
-    tNear = (pmin .! dim - oc) * dInv
-    oc = o .! dim
-    dInv = 1 / d .! dim
+         (near', far') = if tNear > tFar then (tFar, tNear) else (tNear, tFar)
+          tFar = (pmax .! dim - oc) * dInv
+          tNear = (pmin .! dim - oc) * dInv
+          oc = o .! dim
+          dInv = 1 / d .! dim
     
 intersect (Cylinder r zmin zmax phimax) ray@(Ray ro rd tmin tmax) =
-   solveQuadric a b c >>= intersectCylinder >>= \hp -> Just (params hp) where
+   solveQuadric a b c >>= intersectCylinder >>= \hp -> force $ Just (params hp) where
    
       a = (vx rd) * (vx rd) + (vy rd) * (vy rd)
       b = 2 * ((vx rd) * (vx ro) + (vy rd) * (vy ro))
@@ -140,7 +140,7 @@ intersect (Disk h rad irad phimax) ray@(Ray ro rd tmin tmax)
    | t < tmin || t > tmax = Nothing -- distance in ray parameters ?
    | d2 > rad * rad || d2 < irad * irad = Nothing -- p inside disk radii ?
    | phi > phimax = Nothing
-   | otherwise = Just (t, e, mkDg' p n)
+   | otherwise = force $ Just (t, e, mkDg' p n)
    where
       t = (h - vz ro) / vz rd
       e = 5e-4 * t
@@ -154,7 +154,7 @@ intersect (Quad sx sy) ray@(Ray ro rd tmin tmax)
    | abs (vz rd) < 1e-7 = Nothing -- ray parallel to quad
    | t < tmin || t > tmax = Nothing -- ray parametric distance
    | abs (vx p) > sx || abs (vy p) > sy = Nothing -- not inside extent
-   | otherwise = Just (t, e, mkDg p u v dpdu dpdv dn dn)
+   | otherwise = force $ Just $ (t, e, dg)
    where
       t = -(vz ro) / vz rd
       e = 5e-4 * t
@@ -164,12 +164,13 @@ intersect (Quad sx sy) ray@(Ray ro rd tmin tmax)
       dpdu = mkV (sx, 0, 0)
       dpdv = mkV (0, sy, 0)
       dn = mkV (0, 0, 0)
+      dg = mkDg p u v dpdu dpdv dn dn
       
 intersect (Sphere r) ray@(Ray ro rd tmin tmax)
    | isNothing times = Nothing
    | t1 > tmax = Nothing
    | t2 < tmin = Nothing
-   | otherwise = Just (t, eps, dg)
+   | otherwise = force $ Just (t, eps, dg)
    where
       -- find hit point
       a = sqLen rd

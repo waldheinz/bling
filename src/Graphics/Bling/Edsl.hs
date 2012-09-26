@@ -49,7 +49,7 @@ import Graphics.Bling.SunSky
 import Graphics.Bling.Texture
 
 data MyState = MyState
-   { prims     :: [AnyPrim]
+   { prims     :: [Primitive]
    , lights    :: [Light]
    , imgSize   :: PixelSize
    , pfilter   :: Filter
@@ -72,7 +72,7 @@ class CanAdd a where
    add :: a -> DslState ()
 
 -- | Geometry without id
-newtype Geometry' = G' { unG' :: (Int -> Geometry) }
+newtype Geometry' = G' { unG' :: (Int -> Primitive) }
 
 nextId :: DslState Int
 nextId = get >>= \s -> let i' = geomId s + 1 in do
@@ -84,13 +84,10 @@ shape s = let f = (\t m e -> mkGeom t False m e s)
               in G' <$>(f <$> (gets transform) <*> (gets material) <*> (gets emission))
 
 instance CanAdd Geometry' where
-   add g = unG' g <$> nextId >>= \g' -> modify (\s -> s { prims = (mkAnyPrim g') : (prims s) })
+   add g = unG' g <$> nextId >>= \g' -> modify (\s -> s { prims = g' : (prims s) })
 
 instance CanAdd Light where
    add l = modify $ \s -> s { lights = l : (lights s) }
-
-instance CanAdd AnyPrim where
-   add p = modify $ \s -> s { prims = p : prims s }
 
 emit :: Spectrum -> DslState ()
 emit s = let s' = if isBlack s then Nothing else Just s in modify (\st -> st { emission = s' })

@@ -1,7 +1,7 @@
 
 module Graphics.Bling.Primitive.TriangleMesh (
 
-   TriangleMesh, mkTriangleMesh, triangulate
+   mkTriangleMesh, triangulate
    
    ) where
 
@@ -13,7 +13,16 @@ import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 
-data TriangleMesh = Mesh
+
+triangulate :: [[a]] -> [a]
+triangulate = concatMap go where
+   go [] = []
+   go (f0:fs) = concatMap (f0:) $
+                        map (take 2) $
+                        takeWhile (\x -> length x >= 2) $
+                        tails fs
+
+data Mesh = Mesh
    { mvidx  :: ! (V.Vector Int)
    , mps    :: ! (V.Vector Point)
    , mns    :: ! (Maybe (V.Vector Normal))
@@ -28,114 +37,97 @@ mkTriangleMesh
    -> V.Vector Int                  -- ^ vertex indices for triangles
    -> Maybe (V.Vector Normal)       -- ^ shading normals
    -> Maybe (V.Vector Float)        -- ^ uv coordinates for parametrization
-   -> TriangleMesh
+   -> Primitive
 mkTriangleMesh o2w mat p i n uv
    | o2w `seq` mat `seq` p `seq` i `seq` n `seq` uv `seq` False = undefined
    | V.length i `rem` 3 /= 0 = error "mkTriangleMesh: number of indices must be multiple of 3"
    | V.any (>= V.length p) i = error "mkTriangleMesh: contains out of bounds indices"
 --   | maybe False (\uv' -> V.length uv' /= V.length p) uv = error "mkTriangleMesh: # of UVs and # of points mismatch"
    | V.any (< 0) i = error "mkTriangleMesh: contains negative indices"
-   | otherwise = Mesh i p' n' uv mat
+   | otherwise = Primitive inter inters wb flat Nothing sg
    where
       p' = V.map (transPoint o2w) p
       n' = n >>= \ns -> return $ V.map (transNormal o2w) ns
-
-triangulate :: [[a]] -> [a]
-triangulate = concatMap go where
-   go [] = []
-   go (f0:fs) = concatMap (f0:) $
-                        map (take 2) $
-                        takeWhile (\x -> length x >= 2) $
-                        tails fs
-
-instance Primitive TriangleMesh where
-   flatten mesh = map (mkAnyPrim . mkTri mesh) is where
-      is = [0..(V.length (mvidx mesh) `div` 3 - 1)]
-
-   worldBounds mesh = V.foldl' extendAABBP emptyAABB $ mps mesh
-
-   intersect _ _ = error "TriangleMesh : unimplemented intersects"
-   intersects _ _ = error "TriangleMesh : unimplemented intersects"
-   
+      mesh = Mesh i p' n' uv mat
+      flat = map (mkTri mesh) [0..(V.length (mvidx mesh) `div` 3 - 1)]
+      wb = V.foldl' extendAABBP emptyAABB $ mps mesh
+      inter _ = error "TriangleMesh : unimplemented intersects"
+      inters _ = error "TriangleMesh : unimplemented intersects"
+      sg = error "TriangleMesh : unimplemented shadingGeometry"
 --------------------------------------------------------------------------------
 -- Triangles
 --------------------------------------------------------------------------------
 
-data Triangle = Tri {-# UNPACK #-} !Int ! TriangleMesh
+-- data Triangle = Tri {-# UNPACK #-} ! Int ! TriangleMesh
 
-mkTri :: TriangleMesh -> Int -> Triangle
-mkTri mesh n
-   | V.length (mvidx mesh) <= (n*3+2) = error "this triangle does not exist"
-   | otherwise = Tri (n*3) mesh
-
-triOffsets :: Triangle -> (Int, Int, Int)
+triOffsets :: Int -> Mesh -> (Int, Int, Int)
 {-# INLINE triOffsets #-}
-triOffsets (Tri idx m) = (o1, o2, o3) where
+triOffsets idx m = (o1, o2, o3) where
    o1 = mvidx m V.! (idx + 0)
    o2 = mvidx m V.! (idx + 1)
    o3 = mvidx m V.! (idx + 2)
 
-triPoints :: Triangle -> (Point, Point, Point)
+triPoints :: Int -> Mesh -> (Point, Point, Point)
 {-# INLINE triPoints #-}
-triPoints t@(Tri _ m) = (p1, p2, p3) where
-   (o1, o2, o3) = triOffsets t
+triPoints idx m = (p1, p2, p3) where
+   (o1, o2, o3) = triOffsets idx m
    p1 = mps m V.! o1
    p2 = mps m V.! o2
    p3 = mps m V.! o3
 
 -- | assumes that the mesh actually *has* normals
-triNormals :: Triangle -> (Normal, Normal, Normal)
+triNormals :: Int -> Mesh -> (Normal, Normal, Normal)
 {-# INLINE triNormals #-}
-triNormals (Tri i m) = (ns V.! i, ns V.! (i+1), ns V.! (i+2)) where
+triNormals i m = (ns V.! i, ns V.! (i+1), ns V.! (i+2)) where
    ns = fromJust (mns m)
  --  (o1, o2, o3) = triOffsets t
 
-triMaterial :: Triangle -> Material
-{-# INLINE triMaterial #-}
-triMaterial (Tri _ m) = mmat m
-
-triUVs :: Triangle -> (Float, Float, Float, Float, Float, Float)
+triUVs :: Int -> Mesh -> (Float, Float, Float, Float, Float, Float)
 {-# INLINE triUVs #-}
-triUVs (Tri idx m) = maybe (0, 0, 1, 0, 1, 1) go (muvs m) where
+triUVs idx m = maybe (0, 0, 1, 0, 1, 1) go (muvs m) where
    (o1, o2, o3) = (idx, idx+1, idx+2) -- triOffsets t
    muv x i = x V.! i
    go uvs = (muv uvs (2 * o1), muv uvs (2 * o1 + 1),
              muv uvs (2 * o2), muv uvs (2 * o2 + 1),
              muv uvs (2 * o3), muv uvs (2 * o3 + 1))
-   
-instance Primitive Triangle where
-   flatten tri = [mkAnyPrim tri]
-   
-   worldBounds tri = foldl' extendAABBP emptyAABB [p1, p2, p3] where
-      (p1, p2, p3) = triPoints tri
 
-   intersect t r = {-# SCC "intersect" #-} intersectTri t r
-   intersects t r = {-# SCC "intersects" #-} intersectsTri t r
-   
-   shadingGeometry tri@(Tri _ mesh) o2w dgg
-      | isNothing $ mns mesh = dgg
-      | otherwise = dgg { dgN = ns, dgDPDU = ss, dgDPDV = ts }
-      where
-         (b1, b2) = fromJust $ dgtriB dgg
-         b0 = 1 - b1 - b2
-         (n0, n1, n2) = triNormals tri
-         ns = normalize $ transNormal o2w ns'
-         ns' = (b0 *# n0) + (b1 *# n1) + (b2 *# n2)
-         ss' = normalize $ dgDPDU dgg
-         ts' = ss' `cross` ns
-         (ss, ts) = if sqLen ts' > 0
-                       then (normalize ts' `cross` ns, normalize ts')
-                       else coordinateSystem'' ns
+mkTri :: Mesh -> Int -> Primitive
+mkTri mesh n
+   | V.length (mvidx mesh) <= (n * 3 + 2) = error "out of bounds triangle"
+   | otherwise = prim where
+      prim = Primitive inter inters wb flat Nothing sg
+      idx = 3 * n
+      inter ray = {-# SCC "intersect" #-} intersectTri prim idx mesh ray
+      inters ray = {-# SCC "intersects" #-} intersectsTri idx mesh ray
+      flat = [prim]
+      
+      wb = foldl' extendAABBP emptyAABB [p1, p2, p3] where
+         (p1, p2, p3) = triPoints idx mesh
 
-intersectsTri :: Triangle -> Ray -> Bool
-intersectsTri tri (Ray ro rd tmin tmax)
+      sg o2w dgg
+         | isNothing $ mns mesh = dgg
+         | otherwise = dgg { dgN = ns, dgDPDU = ss, dgDPDV = ts }
+         where
+            (b1, b2) = fromJust $ dgtriB dgg
+            b0 = 1 - b1 - b2
+            (n0, n1, n2) = triNormals idx mesh
+            ns = normalize $ transNormal o2w ns'
+            ns' = (b0 *# n0) + (b1 *# n1) + (b2 *# n2)
+            ss' = normalize $ dgDPDU dgg
+            ts' = ss' `cross` ns
+            (ss, ts) = if sqLen ts' > 0
+                          then (normalize ts' `cross` ns, normalize ts')
+                          else coordinateSystem'' ns
+
+intersectsTri :: Int -> Mesh -> Ray -> Bool
+intersectsTri idx mesh (Ray ro rd tmin tmax)
    | divisor == 0 = False
    | b1 < 0 || b1 > 1 = False
    | b2 < 0 || b1 + b2 > 1 = False
    | t < tmin || t > tmax = False
    | otherwise = True
    where
-      (p1, p2, p3) = triPoints tri
+      (p1, p2, p3) = triPoints idx mesh
       t = dot e2 s2 * invDiv
       b2 = dot rd s2 * invDiv -- second barycentric
       s2 = cross d e1
@@ -147,15 +139,15 @@ intersectsTri tri (Ray ro rd tmin tmax)
       e1 = p2 - p1
       e2 = p3 - p1
 
-intersectTri :: Triangle -> Ray -> Maybe Intersection
-intersectTri tri r@(Ray ro rd tmin tmax)
+intersectTri :: Primitive -> Int -> Mesh -> Ray -> Maybe Intersection
+intersectTri tri idx mesh r@(Ray ro rd tmin tmax)
    | divisor == 0 = Nothing
    | b1 < 0 || b1 > 1 = Nothing
    | b2 < 0 || b1 + b2 > 1 = Nothing
    | t < tmin || t > tmax = Nothing
    | otherwise = Just int
    where
-      (p1, p2, p3) = triPoints tri
+      (p1, p2, p3) = triPoints idx mesh
       (e1, e2) = (p2 - p1, p3 - p1)
       s1 = rd `cross` e2
       divisor = dot s1 e1
@@ -172,7 +164,7 @@ intersectTri tri r@(Ray ro rd tmin tmax)
       n = normalize $ cross e1 e2
 
       -- compute partial derivatives
-      (uv00, uv01, uv10, uv11, uv20, uv21) = triUVs tri
+      (uv00, uv01, uv10, uv11, uv20, uv21) = triUVs idx mesh
       du1 = uv00 - uv20
       du2 = uv10 - uv20
       dv1 = uv01 - uv21
@@ -195,5 +187,5 @@ intersectTri tri r@(Ray ro rd tmin tmax)
       -- create intersection
       dg = mkDgTri (rayAt r t) tu tv dpdu dpdv (mkV (0, 0, 0)) (mkV (0,0, 0)) (b1, b2)
       e = 1e-3 * t
-      int = mkIntersection t e dg (mkAnyPrim tri) (triMaterial tri)
-         
+      int = mkIntersection t e dg tri (mmat mesh)
+      
