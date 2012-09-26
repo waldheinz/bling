@@ -101,10 +101,10 @@ intersect (Box pmin pmax) ray@(Ray o d tmin tmax) =
       | near > far = Nothing
       | otherwise = testSlabs ds (max near near') (min far far') (if near < near' then dim else dd) where
          (near', far') = if tNear > tFar then (tFar, tNear) else (tNear, tFar)
-          tFar = (pmax .! dim - oc) * dInv
-          tNear = (pmin .! dim - oc) * dInv
-          oc = o .! dim
-          dInv = 1 / d .! dim
+         tFar = (pmax .! dim - oc) * dInv
+         tNear = (pmin .! dim - oc) * dInv
+         oc = o .! dim
+         dInv = 1 / d .! dim
     
 intersect (Cylinder r zmin zmax phimax) ray@(Ray ro rd tmin tmax) =
    solveQuadric a b c >>= intersectCylinder >>= \hp -> force $ Just (params hp) where
