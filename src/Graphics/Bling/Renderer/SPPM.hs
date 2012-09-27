@@ -31,8 +31,6 @@ import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Utils
 
-import Debug.Trace
-
 -- | the Stochastic Progressive Photon Mapping Renderer
 data SPPM = SPPM {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Float {-# UNPACK #-} !Float 
    -- #photons, max depth, initial radius and alpha
@@ -321,15 +319,17 @@ mkKdTree pxs hits = {-# SCC "mkKdTree" #-} liftM fst $ go 0 hits where
       | MV.length v <= 5 = do
          v' <- V.freeze v
          mr2 <- V.foldM' (\m hp -> max m <$> sr2 pxs hp) 0 v'
-         return $! (Leaf v', sqrt mr2)
+         return $! ( Leaf v', sqrt mr2 )
          
       | otherwise = do
          let
-            median = MV.length v `div` 2
+            median = MV.length v `quot` 2
             axis = depth `rem` 3
-
-         I.partialSortBy (compare `on` (\x -> hitPosition x .! axis)) v median
-      
+            comp = compare `on` (\x -> hitPosition x .! axis)
+         
+         I.selectBy comp v median
+         I.selectByBounds comp v 1 median (MV.length v)
+         
          pivot <- MV.unsafeRead v median
          (left, lr)  <- go (depth + 1) $ MV.take median v
          (right, rr) <- go (depth + 1) $ MV.drop (median+1) v
