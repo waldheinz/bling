@@ -31,6 +31,8 @@ import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Utils
 
+import Debug.Trace
+
 -- | the Stochastic Progressive Photon Mapping Renderer
 data SPPM = SPPM {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Float {-# UNPACK #-} !Float 
    -- #photons, max depth, initial radius and alpha
@@ -277,30 +279,32 @@ mkHash hits ps = {-# SCC "mkHash" #-} do
          go b h = let p = bsdfShadingPoint $ hpBsdf h
                   in extendAABB b $ mkAABB (p - vpromote r) (p + vpromote r)
    
-   v' <- V.replicateM cnt gvNew
-   
+   v' <- MV.replicate cnt []
    V.forM_ hits $ \hp -> do
       r2p <- sr2 ps hp
       
       let
          rp = sqrt r2p
          pmin = aabbMin bounds
-         p = hitPosition hp
          
+         p = bsdfShadingPoint $ hpBsdf hp
          Vector x0 y0 z0 = abs $ (p - vpromote rp - pmin) * vpromote invSize
          Vector x1 y1 z1 = abs $ (p + vpromote rp - pmin) * vpromote invSize
-         
          xs = [floor x0 .. floor x1]
          ys = [floor y0 .. floor y1]
          zs = [floor z0 .. floor z1]
          
       unless (r2p == 0) $ forM_ [(x, y, z) | x <- xs, y <- ys, z <- zs] $ \i ->
          let idx = max 0 $ min (cnt - 1) $ hash i `rem` cnt
-         in gvAdd (V.unsafeIndex v' idx) hp
-         
-   v <- V.mapM (\i -> gvVec i >>= mkKdTree ps) v'
-   
-   return $! SH bounds v invSize
+         in MV.read v' idx >>= \o -> MV.write v' idx (hp : o)
+
+   -- convert to an (non-mutable) array of arrays
+   v <- V.generateM (MV.length v') $ \i -> do
+      hps <- MV.read v' i
+      x <- V.thaw $ V.fromList hps
+      mkKdTree ps x
+
+   return $ SH bounds v invSize
 
 --------------------------------------------------------------------------------
 -- KdTree for hitpoint lookup inside hash cells
@@ -323,16 +327,16 @@ mkKdTree pxs hits = {-# SCC "mkKdTree" #-} liftM fst $ go 0 hits where
          let
             median = MV.length v `div` 2
             axis = depth `rem` 3
-      
+
          I.partialSortBy (compare `on` (\x -> hitPosition x .! axis)) v median
       
          pivot <- MV.unsafeRead v median
          (left, lr)  <- go (depth + 1) $ MV.take median v
          (right, rr) <- go (depth + 1) $ MV.drop (median+1) v
          r <- sqrt <$> sr2 pxs pivot
-         
+      
          let mr = max r $ max lr rr in
-            return (Node mr pivot left right, mr)
+            return $! (Node mr pivot left right, mr)
       
 treeLookup :: KdTree -> Point -> PixelStats s -> (HitPoint -> ST s ()) -> ST s ()
 treeLookup t p pxs fun = {-# SCC "treeLookup" #-} go 0 t where
