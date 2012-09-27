@@ -32,13 +32,6 @@ import Graphics.Bling.Sampling
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Types
 
--- | an image pixel, which consists of the sample weight, the sample RGB value
---   and the RGB value of the splatted samples
-type SplatPixel = (Float, Float, Float)
-
-emptySplat :: SplatPixel
-emptySplat = (0, 0, 0)
-
 -- | size of the precomputed pixel filter table
 filterTableSize :: Int
 filterTableSize = 16
@@ -70,9 +63,9 @@ data MImage m = MImage
    , _imageOffset    :: {-# UNPACK #-} ! (Int, Int)
    , _imageFilter    :: {-# UNPACK #-} ! TableFilter
    , _imagePixels    :: ! (MV.MVector (PrimState m) Float)
-   , _mSplatPixels   :: ! (MV.MVector (PrimState m) SplatPixel)
+   , _mSplatPixels   :: ! (MV.MVector (PrimState m) Float)
    }
-
+   
 -- | creates a new image where all pixels are initialized to black
 mkMImage :: (PrimMonad m)
    => Filter -- ^ the pixel filter function to use when adding samples
@@ -81,10 +74,11 @@ mkMImage :: (PrimMonad m)
    -> m (MImage m)
 mkMImage flt w h = do
    p <- MV.replicate (w * h * 4) 0
-   s <- MV.replicate (w * h) emptySplat
+   s <- MV.replicate (w * h * 3) 0
    return $! MImage w h (0, 0) (mkTableFilter flt) p s
    
 mkImageTile :: (PrimMonad m) => Image -> SampleWindow -> m (MImage m)
+{-# INLINE mkImageTile #-}
 mkImageTile img wnd = do
    let
       w = xEnd wnd - px + floor (0.5 + fw)
@@ -94,7 +88,7 @@ mkImageTile img wnd = do
       (fw, fh) = tblFltSize $ imgFilter img
       
    p <- MV.replicate (w * h * 4) 0
-   s <- MV.replicate (w * h) emptySplat
+   s <- MV.replicate (w * h * 3) 0
    return $! MImage w h (px, py) (imgFilter img) p s
    
 -- | an immutable image
@@ -103,7 +97,7 @@ data Image = Img
    , imgH         :: {-# UNPACK #-} ! Int
    , imgFilter    :: {-# UNPACK #-} ! TableFilter
    , _imgP        :: ! (V.Vector Float)
-   , _imgS        :: ! (V.Vector SplatPixel)
+   , _imgS        :: ! (V.Vector Float)
    }
 
 instance NFData Image where
@@ -119,10 +113,11 @@ mkImage
    -> Image
 mkImage flt (w, h) = Img w h (mkTableFilter flt) p s where
    p = V.replicate (w * h * 4) 0
-   s = V.replicate (w * h) emptySplat
+   s = V.replicate (w * h * 3) 0
    
 -- | converts an image to a mutable image 
 thaw :: (PrimMonad m) => Image -> m (MImage m)
+{-# INLINE thaw #-}
 thaw (Img w h f p s) = {-# SCC "thaw" #-} do
    p' <- GV.thaw p
    s' <- GV.thaw s
@@ -130,6 +125,7 @@ thaw (Img w h f p s) = {-# SCC "thaw" #-} do
 
 -- | converts a mutable image to an image (and the offsets)
 freeze :: (PrimMonad m) => MImage m -> m (Image, (Int, Int))
+{-# INLINE freeze #-}
 freeze (MImage w h o f p s) = {-# SCC "freeze" #-} do
    p' <- GV.freeze p
    s' <- GV.freeze s
@@ -152,45 +148,54 @@ imageWindow' (Img w h flt _ _) = SampleWindow x0 x1 y0 y1 where
    (fw, fh) = tblFltSize flt
    
 addTile :: PrimMonad m => MImage m -> (Image, (Int, Int)) -> m ()
+{-# INLINE addTile #-}
 addTile (MImage w h (ox, oy) _ px ps) (Img tw th _ px' ps', (dx, dy)) = {-# SCC addTile #-} do
    forM_ [(x, y) | y <- [0 .. (th-1)], x <- [0 .. (tw-1)]] $ \(x, y) -> do
       let
          od    = w * (y - oy + dy) + (x - ox + dx)
          od'   = 4 * od
+         ods'  = 3 * od
          os    = tw * y + x
          os'   = 4 * os
+         oss'  = 3 * os
          
       unless ((y - oy + dy) >= h || (x - ox + dx) >= w) $ do
          -- the splats
-         MV.unsafeRead ps od >>= \old -> MV.unsafeWrite ps od $ spAdd old (V.unsafeIndex ps' os)
-         
+         forM_ [0..2] $ \o -> do      
+            old <- MV.unsafeRead ps (ods' + o)
+            MV.unsafeWrite ps (ods' + o) (old + V.unsafeIndex ps' (oss' + o))
+            
          -- the pixels
          forM_ [0..3] $ \o -> do
             old <- MV.unsafeRead px (od' + o)
             MV.unsafeWrite px (od' + o) (old + V.unsafeIndex px' (os' + o))
             
-spAdd :: SplatPixel -> SplatPixel -> SplatPixel
-spAdd (r1, g1, b1) (r2, g2, b2) = (r1 + r2, g1 + g2, b1 + b2)
-
 splatSample :: PrimMonad m => MImage m -> Float -> Float -> Spectrum -> m ()
 {-# INLINE splatSample #-}
-splatSample (MImage w h (iox, ioy) _ _ p) sx sy ss
-   | floor sx >= w || floor sy >= h || sx < 0 || sy < 0 = return ()
+splatSample !(MImage !w !h (!iox, !ioy) _ _ !p) !sx !sy !ss
+   | px >= w || py >= h || px < 0 || py < 0 = return ()
    | sNaN ss = trace ("not splatting NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | sInfinite ss = trace ("not splatting infinite sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | otherwise = {-# SCC "splatSample" #-} do
-      (ox, oy, oz) <- MV.unsafeRead p o
-      MV.unsafeWrite p o (ox + dx, oy + dy, oz + dz)
+      ox <- MV.unsafeRead p $ o + 0
+      oy <- MV.unsafeRead p $ o + 1
+      oz <- MV.unsafeRead p $ o + 2
+      
+      MV.unsafeWrite p (o + 0) $ ox + dx
+      MV.unsafeWrite p (o + 1) $ oy + dy
+      MV.unsafeWrite p (o + 2) $ oz + dz
       where
-         o = ((floor sx - iox) + (floor sy - ioy) * w)
+         px = floor sx - iox
+         py = floor sy - ioy
+         o = 3 * (px + py * w)
          (dx, dy, dz) = spectrumToXYZ ss
 
 -- | adds a sample to the specified image
 addSample :: PrimMonad m => MImage m -> Float -> Float -> Spectrum -> m ()
 {-# INLINE addSample #-}
-addSample (MImage !w !h (!ox, !oy) ftbl !p _) sx sy ss
+addSample (MImage !w !h (!ox, !oy) !ftbl !p _) !sx !sy !ss
    | sNaN ss = trace ("skipping NaN sample at ("
       ++ show sx ++ ", " ++ show sy ++ ")") (return () )
    | sInfinite ss = trace ("skipping infinite sample at ("
@@ -251,7 +256,8 @@ getPixel (Img _ _ _ p s) sw o
    where
       o' = 4 * o
       (w, r, g, b) = (p V.! o', p V.! (o' + 1), p V.! (o' + 2), p V.! (o' + 3))
-      (sr, sg, sb) = s V.! o
+      os' = 3 * o
+      (sr, sg, sb) = (s V.! os', s V.! (os' + 1), s V.! (os' + 2))
       
 -- | writes an image in ppm format
 writePpm

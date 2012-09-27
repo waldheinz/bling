@@ -316,7 +316,8 @@ sampleBsdf'' adj flags (Bsdf bs cs _ ng) woW uComp uDir
       fAdj ff = if adj then sScale ff (abs sideTest) else ff
 
 evalBsdf :: Bool -> Bsdf -> Vector -> Vector -> Spectrum
-evalBsdf adj (Bsdf bxdfs cs _ ng) woW wiW
+evalBsdf adj bsdf@(Bsdf bxdfs cs _ ng) woW wiW
+   | adj `seq` bsdf `seq` woW `seq` wiW `seq` False = undefined
    | sideTest == 0 = black
    | abs cosWo < 1e-5 = black -- filter NaN / Infinite results
    | adj = sScale f $ abs sideTest -- correct throughput for shading normals

@@ -1,5 +1,5 @@
 
-{-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE BangPatterns #-}
 
 module Graphics.Bling.Renderer.SPPM (
 
@@ -52,7 +52,7 @@ data HitPoint = Hit
    { hpBsdf    :: ! Bsdf
    , hpPixel   :: {-# UNPACK #-} ! (Float, Float)
    , hpStatIdx :: {-# UNPACK #-} ! Int -- index into the PixelStats
-   , hpW       :: {-# UNPACK #-} ! Vector
+   , hpW       :: ! Vector
    , hpF       :: ! Spectrum
    }
 
@@ -69,12 +69,12 @@ escaped ray s = V.sum $ V.map (`le` ray) (sceneLights s)
 data CamState s = CS
    { csRay     :: ! Ray
    , csDepth   :: ! Int
-   , csMaxDep  :: ! Int
-   , csScene   :: ! Scene
+   , csMaxDep  :: {-# UNPACK #-} ! Int
+   , csScene   :: {-# UNPACK #-} ! Scene
    , csT       :: ! Spectrum -- throughput
    , csLs      :: ! Spectrum  -- accumulated flux towards camera
    , csHps     :: ! (GrowVec MV.MVector s HitPoint)
-   , csPxStats :: ! (PixelStats s)
+   , csPxStats :: {-# UNPACK #-} ! (PixelStats s)
    }
 
 followCam :: BxdfProp -> Intersection -> Vector -> CamState s -> Sampled s (CamState s)
@@ -90,7 +90,7 @@ followCam prop int wo cs = do
       ray' = Ray p wi (intEpsilon int) infinity
       p = bsdfShadingPoint bsdf
       t' = f * t
-      ls' = csLs cs + t * intLe int wo
+      ls' = csLs cs + t * intLe int (-wo)
       
    if pdf == 0 || isBlack f
       then return $ cs { csLs = ls' }
@@ -165,7 +165,7 @@ nextVertex :: Scene -> Float -> SpatialHash -> Vector ->
    MImage (ST s) -> PixelStats s -> Sampled s ()
 
 nextVertex _ _ _ _ Nothing _ _ _ _ = return ()
-nextVertex scene alpha sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} do
+nextVertex !scene !alpha !sh !wi (Just !int) !li !d !img !ps = {-# SCC "nextVertex" #-} do
 
    -- add contribution for this photon hit
    let
@@ -181,10 +181,11 @@ nextVertex scene alpha sh wi (Just int) li d img ps = {-# SCC "nextVertex" #-} d
          nn = lsN stats
          ratio = (nn + alpha) / (nn + 1)
          r2 = lsR2 stats
-         f = {-# SCC "contrib.bsdf" #-} evalBsdf True (hpBsdf hit) (hpW hit) wi
+         f = evalBsdf True (hpBsdf hit) (hpW hit) wi
          (px, py) = hpPixel hit
-      
-      splatSample img px py $ sScale (hpF hit * f * li) (1 / (absDot wi ng * r2 * pi))
+         l = sScale (hpF hit * f * li) (1 / (absDot wi ng * r2 * pi))
+         
+      splatSample img px py l
       sUpdate ps hit (r2 * ratio, nn + alpha)
       
    -- follow the path
@@ -257,7 +258,8 @@ hashLookup :: SpatialHash -> Point -> PixelStats s -> (HitPoint -> ST s ()) -> S
 hashLookup sh p ps fun = {-# SCC "hashLookup" #-}
    let
       Vector x y z = abs $ (p - aabbMin (shBounds sh)) * vpromote (shScale sh)
-      idx = hash (floor x, floor y, floor z) `rem` V.length (shEntries sh)
+      cnt = V.length (shEntries sh)
+      idx =  max 0 $ min (cnt - 1) $ hash (floor x, floor y, floor z) `rem` cnt
       tree = V.unsafeIndex (shEntries sh) idx
    in treeLookup tree p ps fun
       
@@ -324,7 +326,7 @@ mkKdTree pxs hits = {-# SCC "mkKdTree" #-} liftM fst $ go 0 hits where
       
          I.partialSortBy (compare `on` (\x -> hitPosition x .! axis)) v median
       
-         pivot <- MV.read v median
+         pivot <- MV.unsafeRead v median
          (left, lr)  <- go (depth + 1) $ MV.take median v
          (right, rr) <- go (depth + 1) $ MV.drop (median+1) v
          r <- sqrt <$> sr2 pxs pivot

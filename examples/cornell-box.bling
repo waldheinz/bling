@@ -1,8 +1,8 @@
 
-filter sinc 3 3 3
+# filter sinc 3 3 3
 # filter triangle 2 2
-# filter mitchell 2 2 0.333333 0.333333
-filter box
+filter mitchell 2 2 0.333333 0.333333
+# filter box
 # filter gauss 3 3 2
 
 renderer {
