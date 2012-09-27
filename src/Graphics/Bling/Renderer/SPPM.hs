@@ -79,22 +79,19 @@ data CamState s = CS
 
 followCam :: BxdfProp -> Intersection -> Vector -> CamState s -> Sampled s (CamState s)
 followCam prop int wo cs = do
-   -- determine outgoing ray
    bsdfC <- rnd
    bsdfD <- rnd2D
    
    let
       bsdf = intBsdf int
-      t = csT cs
       (BsdfSample _ pdf f wi) = sampleBsdf' (mkBxdfType [prop, Specular]) bsdf wo bsdfC bsdfD
       ray' = Ray p wi (intEpsilon int) infinity
       p = bsdfShadingPoint bsdf
-      t' = f * t
-      ls' = csLs cs + t * intLe int (-wo)
+      t' = f * csT cs
       
    if pdf == 0 || isBlack f
-      then return $ cs { csLs = ls' }
-      else traceCam cs { csDepth = 1 + csDepth cs, csT = t', csLs = ls', csRay = ray' }
+      then return $ cs
+      else traceCam cs { csDepth = 1 + csDepth cs, csT = t', csRay = ray' }
       
 traceCam :: CamState s -> Sampled s (CamState s)
 traceCam cs
@@ -114,6 +111,7 @@ traceCam cs
             let
                wo = -(rayDir ray)
                bsdf = intBsdf int
+               ls = csT cs * intLe int (-wo)
                
             -- record a hitpoint here
             when (bsdfHasNonSpecular bsdf) $ do
@@ -123,7 +121,7 @@ traceCam cs
             csr <- followCam Reflection int wo cs
             cst <- followCam Transmission int wo cs   
             
-            return $! cs { csLs = csLs cs + csLs csr + csLs cst }
+            return $! cs { csLs = csLs cs + csLs csr + csLs cst + ls }
             
 mkHitPoints :: RenderM (V.Vector HitPoint)
 mkHitPoints = do
@@ -146,6 +144,17 @@ mkHitPoints = do
 -- Tracing Photons from the Light Sources and adding Image Contribution
 --------------------------------------------------------------------------------
 
+data LightState s = LS
+   {  lsScene     :: ! Scene
+   ,  lsAlpha     :: ! Float
+   ,  lsHash      :: ! SpatialHash
+   ,  lsImage     :: ! (MImage (ST s))
+   ,  lsStats     :: ! (PixelStats s)
+   ,  lsLi        :: ! Spectrum
+   ,  lsDepth     :: ! Int
+   ,  lsRay       :: ! Ray
+   }
+
 tracePhoton :: Scene -> Float -> SpatialHash -> MImage (ST s) -> PixelStats s -> Sampled s ()
 tracePhoton scene alpha sh img ps = {-# SCC "tracePhoton" #-} do
    ul <- rnd' 0
@@ -156,51 +165,61 @@ tracePhoton scene alpha sh img ps = {-# SCC "tracePhoton" #-} do
       (li, ray, nl, pdf) = sampleLightRay scene ul ulo uld
       wi = -(rayDir ray)
       ls = sScale li (absDot nl wi / pdf)
+      st = LS scene alpha sh img ps ls 0 ray
       
    when ((pdf > 0) && not (isBlack li)) $
-      nextVertex scene alpha sh wi (scene `scIntersect` ray) ls 0 img ps
+      followPhoton st
+      --nextVertex scene alpha sh wi (scene `scIntersect` ray) ls 0 img ps
 
-nextVertex :: Scene -> Float -> SpatialHash -> Vector ->
-   Maybe Intersection -> Spectrum -> Int ->
-   MImage (ST s) -> PixelStats s -> Sampled s ()
-
-nextVertex _ _ _ _ Nothing _ _ _ _ = return ()
-nextVertex !scene !alpha !sh !wi (Just !int) !li !d !img !ps = {-# SCC "nextVertex" #-} do
-
-   -- add contribution for this photon hit
+followPhoton :: LightState s -> Sampled s ()
+followPhoton s = do
    let
-      bsdf = intBsdf int
-      p = bsdfShadingPoint bsdf
-      ng = bsdfNg bsdf
-   
-   when (bsdfHasNonSpecular bsdf) $
-         liftSampled $ hashLookup sh p ps $ \hit -> do
-         
-      stats <- slup ps hit
-      let
-         nn = lsN stats
-         ratio = (nn + alpha) / (nn + 1)
-         r2 = lsR2 stats
-         f = evalBsdf True (hpBsdf hit) (hpW hit) wi
-         (px, py) = hpPixel hit
-         l = sScale (hpF hit * f * li) (1 / (absDot wi ng * r2 * pi))
-         
-      splatSample img px py l
-      sUpdate ps hit (r2 * ratio, nn + alpha)
+      ray = lsRay s
+      wi = - (rayDir ray)
+      scene = lsScene s
+      d = lsDepth s
+      li = lsLi s
+      alpha = lsAlpha s
       
-   -- follow the path
-   ubc <- rnd' $ 1 + d * 2
-   ubd <- rnd2D' $ 2 + d
-   let
-      (BsdfSample _ spdf f wo) = sampleAdjBsdf bsdf wi ubc ubd
-      pcont = if d > 7 then 0.8 else 1
-      li' = sScale (f * li) (1 / pcont) -- (absDot wo n / (spdf * pcont))
-      ray = Ray p wo (intEpsilon int) infinity
+   case scene `scIntersect` ray of
+      Nothing  -> return ()
+      Just int -> do
+         let
+            bsdf = intBsdf int
+            p = bsdfShadingPoint bsdf
+            ng = bsdfNg bsdf
+            ps = lsStats s
+            sh = lsHash s
+            
+         -- add contribution for this photon hit
+         when (bsdfHasNonSpecular bsdf) $ liftSampled $ hashLookup sh p ps $ \hit -> do
+            stats <- slup ps hit
+            let
+               nn = lsN stats
+               ratio = (nn + alpha) / (nn + 1)
+               r2 = lsR2 stats
+               f = evalBsdf True (hpBsdf hit) (hpW hit) wi
+               (px, py) = hpPixel hit
+               l = sScale (hpF hit * f * li) (1 / (absDot wi ng * r2 * pi))
+               img = lsImage s
+               
+            splatSample img px py l
+            sUpdate ps hit (r2 * ratio, nn + alpha)
+            
+         -- follow the path
+         ubc <- rnd' $ 1 + d * 2
+         ubd <- rnd2D' $ 2 + d
+         let
 
-   unless (spdf == 0 || isBlack li') $
-      rnd' (2 + d * 2) >>= \x -> unless (x > pcont) $
-         nextVertex scene alpha sh (-wo) (scene `scIntersect` ray) li' (d+1) img ps
+            (BsdfSample _ spdf f wo) = sampleAdjBsdf bsdf wi ubc ubd
+            pcont = if d > 7 then 0.8 else 1
+            li' = sScale (f * li) (1 / pcont) -- (absDot wo n / (spdf * pcont))
+            ray' = Ray p wo (intEpsilon int) infinity
 
+         unless (spdf == 0 || isBlack li') $
+            rnd' (2 + d * 2) >>= \x -> unless (x > pcont) $
+               followPhoton s { lsRay = ray', lsLi = li', lsDepth = d + 1 }
+               
 --------------------------------------------------------------------------------
 -- Per-Pixel Accumulation Stats
 --------------------------------------------------------------------------------
