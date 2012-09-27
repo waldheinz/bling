@@ -5,7 +5,7 @@ module Graphics.Bling.Sampling (
 
    -- * Sampling Types
    SampleWindow(..), Sampler, Sampled, mkRandomSampler, mkStratifiedSampler,
-   mkStratifiedSampler',
+   windowPixels, mkStratifiedSampler',
    
    -- * Sampling
    Sample(..), STVector, mkPrecompSample,
@@ -56,6 +56,10 @@ splitWindow :: SampleWindow -> [SampleWindow]
 splitWindow (SampleWindow x0 x1 y0 y1) = ws where
    ws = Prelude.map mkWnd [(x, y) | y <- [y0, y0+16 .. y1], x <- [x0, x0+16 .. x1]]
    mkWnd (x, y) = SampleWindow x (min (x+15) x1) y (min (y+15) y1)
+
+windowPixels :: SampleWindow -> Int
+windowPixels wnd = w * h where
+   (w, h) = (xEnd wnd - xStart wnd + 1, yEnd wnd - yStart wnd + 1)
 
 shiftToPixel
    :: Int -- ^ pixel x ordinate
