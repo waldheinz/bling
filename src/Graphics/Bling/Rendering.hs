@@ -115,7 +115,6 @@ prender (SR sampler integ) job report = do
    
    let
       scene = jobScene job
---      flt = imageFilter image
       wnds = splitWindow $ sampleExtent image
       pm f = withStrategy (parBuffer (numCapabilities) rdeepseq) . map f
       

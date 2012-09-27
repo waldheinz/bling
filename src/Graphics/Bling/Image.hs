@@ -9,7 +9,8 @@ module Graphics.Bling.Image (
    
    MImage, 
       
-   mkMImage, mkImageTile, addSample, splatSample, addTile,
+   mkMImage, mkImageTile, addSample, splatSample, addTile, splitMImage,
+   scaleSplats,
    
    imageWidth, imageHeight, sampleExtent, writePpm, 
    
@@ -76,6 +77,32 @@ mkMImage flt w h = do
    p <- MV.replicate (w * h * 4) 0
    s <- MV.replicate (w * h * 3) 0
    return $! MImage w h (0, 0) (mkTableFilter flt) p s
+   
+splitMImage :: (PrimMonad m)
+   => MImage m1
+   -> m (MImage m)
+{-# INLINE splitMImage #-}
+splitMImage (MImage w h o f px spx) = do
+   p <- MV.replicate (MV.length px) 0
+   s <- MV.replicate (MV.length spx) 0
+   return $! MImage w h o f p s
+   
+scaleSplats :: (PrimMonad m)
+   => MImage m
+   -> (Int -> m Float)
+   -> m ()
+{-# INLINE scaleSplats #-}
+scaleSplats (MImage w h _ _ _ spx) sf = do
+   forM_ [0 .. (w * h -1)] $ \i -> do
+      ox <- MV.unsafeRead spx (i * 3 + 0)
+      oy <- MV.unsafeRead spx (i * 3 + 1)
+      oz <- MV.unsafeRead spx (i * 3 + 2)
+      s <- sf i
+      MV.unsafeWrite spx (i * 3 + 0) (ox * s)
+      MV.unsafeWrite spx (i * 3 + 1) (oy * s)
+      MV.unsafeWrite spx (i * 3 + 2) (oz * s)
+   
+   
    
 mkImageTile :: (PrimMonad m) => Image -> SampleWindow -> m (MImage m)
 {-# INLINE mkImageTile #-}

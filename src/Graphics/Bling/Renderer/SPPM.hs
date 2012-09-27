@@ -12,12 +12,15 @@ import Control.Monad
 import Control.Monad.Primitive
 import Control.Monad.Reader
 import Control.Monad.ST
+import Control.Parallel.Strategies
 import Data.Bits
 import Data.Function (on)
 import qualified Data.Vector.Algorithms.Intro as I
 import qualified Data.Vector.Mutable as MV
+import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
 import qualified Data.Vector as V
+import qualified System.Random.MWC as MWC
 import qualified Text.PrettyPrint as PP
 
 import Graphics.Bling.Camera
@@ -30,6 +33,8 @@ import Graphics.Bling.Rendering
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Utils
+
+import Debug.Trace
 
 -- | the Stochastic Progressive Photon Mapping Renderer
 data SPPM = SPPM {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Float {-# UNPACK #-} !Float 
@@ -146,7 +151,6 @@ mkHitPoints = do
 
 data LightState s = LS
    {  lsScene     :: ! Scene
-   ,  lsAlpha     :: ! Float
    ,  lsHash      :: ! SpatialHash
    ,  lsImage     :: ! (MImage (ST s))
    ,  lsStats     :: ! (PixelStats s)
@@ -155,8 +159,8 @@ data LightState s = LS
    ,  lsRay       :: ! Ray
    }
 
-tracePhoton :: Scene -> Float -> SpatialHash -> MImage (ST s) -> PixelStats s -> Sampled s ()
-tracePhoton scene alpha sh img ps = {-# SCC "tracePhoton" #-} do
+tracePhoton :: Scene -> SpatialHash -> MImage (ST s) -> PixelStats s -> Sampled s ()
+tracePhoton scene sh img ps = {-# SCC "tracePhoton" #-} do
    ul <- rnd' 0
    ulo <- rnd2D' 0
    uld <- rnd2D' 1
@@ -165,11 +169,9 @@ tracePhoton scene alpha sh img ps = {-# SCC "tracePhoton" #-} do
       (li, ray, nl, pdf) = sampleLightRay scene ul ulo uld
       wi = -(rayDir ray)
       ls = sScale li (absDot nl wi / pdf)
-      st = LS scene alpha sh img ps ls 0 ray
+      st = LS scene sh img ps ls 0 ray
       
-   when ((pdf > 0) && not (isBlack li)) $
-      followPhoton st
-      --nextVertex scene alpha sh wi (scene `scIntersect` ray) ls 0 img ps
+   when ((pdf > 0) && not (isBlack ls)) $ followPhoton st
 
 followPhoton :: LightState s -> Sampled s ()
 followPhoton s = do
@@ -179,7 +181,6 @@ followPhoton s = do
       scene = lsScene s
       d = lsDepth s
       li = lsLi s
-      alpha = lsAlpha s
       
    case scene `scIntersect` ray of
       Nothing  -> return ()
@@ -193,18 +194,19 @@ followPhoton s = do
             
          -- add contribution for this photon hit
          when (bsdfHasNonSpecular bsdf) $ liftSampled $ hashLookup sh p ps $ \hit -> do
-            stats <- slup ps hit
+--            stats <- slup ps hit
+            r2 <- sr2 ps hit
             let
-               nn = lsN stats
-               ratio = (nn + alpha) / (nn + 1)
-               r2 = lsR2 stats
+--               nn = lsN stats
+--               ratio = (nn + alpha) / (nn + 1)
+--               r2 = sr2 ps hit
                f = evalBsdf True (hpBsdf hit) (hpW hit) wi
                (px, py) = hpPixel hit
                l = sScale (hpF hit * f * li) (1 / (absDot wi ng * r2 * pi))
                img = lsImage s
                
             splatSample img px py l
-            sUpdate ps hit (r2 * ratio, nn + alpha)
+            sRecordHit ps hit -- (r2 * ratio, nn + alpha)
             
          -- follow the path
          ubc <- rnd' $ 1 + d * 2
@@ -224,41 +226,84 @@ followPhoton s = do
 -- Per-Pixel Accumulation Stats
 --------------------------------------------------------------------------------
 
--- | the per-pixel accumulation statistics
-type Stats = (Float, Float) -- (radius², #photons)
-
--- | extracts the number of collected photons from the @Stats@
-lsN :: Stats -> Float
-lsN = snd
-
--- | extracts the current search radius from the @Stats@
-lsR2 :: Stats -> Float
-lsR2 = fst
-
-data PixelStats s = PS !(UMV.MVector s Stats) {-# UNPACK #-} !SampleWindow
+data PixelStats s = PS
+   {  psR2  :: ! (UMV.MVector s Float)
+   ,  psN   :: ! (UMV.MVector s Float)
+   ,  psM   :: ! (UMV.MVector s Int)
+   ,  psWnd :: {-# UNPACK #-} ! SampleWindow
+   }
 
 mkPixelStats :: SampleWindow -> Float -> ST s (PixelStats s)
-mkPixelStats wnd r2 = UMV.replicate (w * h) (r2, 0) >>= \ v-> return $! PS v wnd
-   where (w, h) = (xEnd wnd - xStart wnd + 1, yEnd wnd - yStart wnd + 1)
+mkPixelStats wnd r2 = do
+   r2v <- UMV.replicate (w * h) r2
+   nv <- UMV.replicate (w * h) 0
+   mv <- UMV.replicate (w * h) 0
+   return $! PS r2v nv mv wnd
+   where (w, h) = (xEnd wnd - xStart wnd, yEnd wnd - yStart wnd)
+   
+type FrozenStats = (UV.Vector Float, UV.Vector Float, UV.Vector Int, SampleWindow)
+   
+freezeStats :: PixelStats s -> ST s FrozenStats
+freezeStats (PS r2 n m w) = do
+   r2' <- UV.freeze r2
+   n' <- UV.freeze n
+   m' <- UV.freeze m
+   return $! (r2', n', m', w)
+   
+thawStats :: FrozenStats -> ST s (PixelStats s)
+thawStats (r2, n, m, w) = do
+   r2' <- UV.thaw r2
+   n' <- UV.thaw n
+   m' <- UV.thaw m
+   return $! PS r2' n' m' w
+   
+mergeStats :: PixelStats s -> UV.Vector Int -> ST s ()
+mergeStats (PS _ _ m _) m' = forM_ [0 .. UMV.length m - 1] $ \i -> do
+   x' <- UMV.unsafeRead m i
+   UMV.unsafeWrite m i (m' UV.! i + x')
    
 sIdx :: PixelStats s -> (Float, Float) -> Int
 {-# INLINE sIdx #-}
-sIdx (PS _ wnd) (px, py) = w * (iy - yStart wnd) + (ix - xStart wnd) where
+sIdx (PS _ _ _ wnd) (px, py) = w * (iy - yStart wnd) + (ix - xStart wnd) where
    (w, h) = (xEnd wnd - xStart wnd, yEnd wnd - yStart wnd)
    (ix, iy) = (min (w-1) (floor px), min (h-1) (floor py))
 
-slup :: PixelStats s -> HitPoint -> ST s Stats
-{-# INLINE slup #-}
-slup (PS v _) hit = UMV.unsafeRead v (hpStatIdx hit)
-
 sr2 :: PixelStats s -> HitPoint -> ST s Float
 {-# INLINE sr2 #-}
-sr2 pxs hp = lsR2 <$> slup pxs hp
+sr2 (PS r2 _ _ _) hp = UMV.unsafeRead r2 (hpStatIdx hp)
 
-sUpdate :: PixelStats s -> HitPoint -> Stats -> ST s ()
-{-# INLINE sUpdate #-}
-sUpdate (PS v _) hit = UMV.unsafeWrite v (hpStatIdx hit)
+sRecordHit :: PixelStats s -> HitPoint -> ST s ()
+{-# INLINE sRecordHit #-}
+sRecordHit (PS _ _ m _) hit = do
+   old <- UMV.unsafeRead m (hpStatIdx hit)
+   UMV.unsafeWrite m (hpStatIdx hit) (old + 1)
 
+statsUpdate
+   :: PixelStats s
+   -> Float                -- ^ alpha
+   -> ST s ()
+statsUpdate (PS r2v nv mv _) a = do
+--   UV.generateM (UMV.length r2v) $ \i -> do
+   forM_ [0 .. (UMV.length r2v)] $ \i -> do
+      m <- UMV.unsafeRead mv i
+      
+      if (m > 0)
+         then do
+            r2 <- UMV.unsafeRead r2v i
+            n <- UMV.unsafeRead nv i
+         
+            let
+               n' = n + a * fromIntegral m
+               ratio = n' / (n + fromIntegral m)
+               r2' = r2 * ratio
+         
+            UMV.unsafeWrite r2v i r2'
+            UMV.unsafeWrite nv i n'
+            UMV.unsafeWrite mv i 0
+            return $ r2' / r2
+            
+         else return 1
+      
 --------------------------------------------------------------------------------
 -- Spatial Hashing for the Hitpoints
 --------------------------------------------------------------------------------
@@ -285,7 +330,7 @@ hashLookup sh p ps fun = {-# SCC "hashLookup" #-}
 mkHash :: V.Vector HitPoint -> PixelStats s -> ST s SpatialHash
 mkHash hits ps = {-# SCC "mkHash" #-} do
    r2 <- let
-            go m hp = slup ps hp >>= \stats -> return $! max (lsR2 stats) m
+            go m hp = sr2 ps hp >>= \r2 -> return $! max r2 m
          in V.foldM' go 0 hits
    
    let
@@ -392,24 +437,54 @@ data RenderState s = RS
 
 type RenderM a = ReaderT (RenderState (ST RealWorld)) IO a
 
+npar :: Int
+npar = 4
+
+instance NFData (UV.Vector a) where
+
 onePass :: Int -> RenderM Bool
 onePass passNum = do
    sc <- asks envScene
    i <- asks envImg
    hitPoints <- mkHitPoints
    ps <- asks pxStats
+   alpha <- asks rsAlpha
    hitMap <- lift $ stToIO $ mkHash hitPoints ps
-   pseed <- lift R.ioSeed
    n1d' <- asks n1d
    n2d' <- asks n2d
    sn' <- asks sn
-   alpha <- asks rsAlpha
-   _ <- lift $ stToIO $ R.runWithSeed pseed $
-      runSample (mkStratifiedSampler sn' sn') (SampleWindow 0 0 0 0) n1d' n2d' $ tracePhoton sc alpha hitMap i ps
+   
+   let
+      pm f = withStrategy (parBuffer npar rdeepseq) . map f
+   
+      eval :: (MWC.Seed, FrozenStats) -> (FrozenStats, (Image, (Int, Int)))
+      eval (seed, fs) = runST $ do
+         eimg <- splitMImage i
+         eps <- thawStats fs
+         R.runWithSeed seed $
+            runSample (mkStratifiedSampler sn' sn') (SampleWindow 0 0 0 0) n1d' n2d' $
+            tracePhoton sc hitMap eimg eps
+   
+         fs' <- freezeStats eps
+         eimg' <- freeze eimg
+         return $! (fs', eimg')
+
+   seeds <- lift $ sequence $ (replicate npar) R.ioSeed
+   fs <- lift $ stToIO $ freezeStats ps
+
+   forM_ (pm eval $ zip seeds (repeat fs)) $ \((_, _, ms, _), img) -> do
+      lift $ stToIO $ addTile i img
+      lift $ stToIO $ mergeStats ps ms
+      
+--   lift $ stToIO $ R.runWithSeed pseed $
+--      runSample (mkStratifiedSampler sn' sn') (SampleWindow 0 0 0 0) n1d' n2d' $ tracePhoton sc hitMap i ps
+   
+   lift $ stToIO $ statsUpdate ps alpha
    
    img' <- lift $ stToIO $ fst <$> freeze i
    rep <- asks report
-   lift $ rep $ PassDone passNum img' (1 / fromIntegral (passNum * (sn' * sn')))
+
+   lift $ rep $ PassDone passNum img' (1 / fromIntegral (npar * passNum * (sn' * sn')))
    
 sq :: Monad m => [m Bool] -> m ()
 sq [] = return ()
