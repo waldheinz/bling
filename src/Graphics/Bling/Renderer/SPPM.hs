@@ -348,13 +348,10 @@ mkHash hitlist = {-# SCC "mkHash" #-} do
       unless (r2p == 0) $ forM_ [(x, y, z) | x <- xs, y <- ys, z <- zs] $ \i ->
          let idx = max 0 $ min (cnt - 1) $ hash i `rem` cnt
          in MV.read v' idx >>= \o -> MV.write v' idx (hp : o)
-
-   -- convert to an (non-mutable) array of arrays
-   v <- V.generateM (MV.length v') $ \i -> do
-      hps <- MV.read v' i
-      x <- V.thaw $ V.fromList hps
-      mkKdTree x
-
+   
+   v'' <- V.freeze v'
+   let v = V.fromList $ parMap rdeepseq (\hpl -> mkKdTree (V.fromList hpl)) $ V.toList v''
+   
    return $ SH bounds v invSize
 
 --------------------------------------------------------------------------------
@@ -366,8 +363,13 @@ data KdTree
       -- max. radius² in subtree, hit, left, right
    | Leaf !(V.Vector HitPoint)
       
-mkKdTree :: MV.MVector (PrimState (ST s)) HitPoint -> ST s KdTree
-mkKdTree hits = {-# SCC "mkKdTree" #-} liftM fst $ go 0 hits where
+instance NFData KdTree where
+   
+      
+mkKdTree :: V.Vector HitPoint -> KdTree
+mkKdTree hits = {-# SCC "mkKdTree" #-}
+      runST $ V.thaw hits >>= \hits' -> liftM fst $ go 0 hits' where
+      
    go depth v
       | MV.length v <= 5 = do
          v' <- V.freeze v
@@ -431,7 +433,6 @@ onePass passNum = do
    i <- asks envImg
    hitPoints <- mkHitPoints
    ps <- asks rsPxStats
---   ps <- asks rsR2 >>= \ as -> lift $ stToIO $ mkPixelStats (sampleExtent i) as
    alpha <- asks rsAlpha
    hitMap <- lift $ stToIO $ mkHash hitPoints
    n1d' <- asks n1d
