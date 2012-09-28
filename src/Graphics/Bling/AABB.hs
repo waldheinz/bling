@@ -9,10 +9,10 @@ import Graphics.Bling.Math
 
 -- | an axis-aligned bounding box
 data AABB = AABB {
-   aabbMin :: Point, -- ^ the box' minimum
-   aabbMax :: Point  -- ^ the box' maximum
+   aabbMin :: {-# UNPACK #-} !Point, -- ^ the box' minimum
+   aabbMax :: {-# UNPACK #-} !Point  -- ^ the box' maximum
    }
-
+   
 instance Show AABB where
    show b = "AABB [min=" ++ show (aabbMin b) ++ ", max="
       ++ show (aabbMax b) ++ "]"

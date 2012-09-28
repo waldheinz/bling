@@ -161,16 +161,6 @@ mkHitPoints = do
       lift $ stToIO $ addTile img tile
       return hps
    
-      
-  {-    
-   lift $ R.runRandIO $ forM_ (splitWindow $ sampleExtent img) $ \w ->
-      runSample (mkRandomSampler 1) w 0 0 $ do
-         ray <- fireRay $ sceneCam sc
-         p@(px, py) <- cameraSample >>= \c -> return (imageX c, imageY c)
-         cs <- traceCam $ CS ray 0 md sc white black result (rlup p) p
-         liftSampled $ addSample img px py (csLs cs)
-   -}
-   
 --------------------------------------------------------------------------------
 -- Tracing Photons from the Light Sources and adding Image Contribution
 --------------------------------------------------------------------------------
