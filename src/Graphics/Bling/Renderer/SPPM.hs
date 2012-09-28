@@ -215,7 +215,7 @@ followPhoton s = do
          when (bsdfHasNonSpecular bsdf) $ liftSampled $ hashLookup sh p $ \hit -> do
             let
                r2 = hpR2 hit
-               f = evalBsdf True (hpBsdf hit) (hpW hit) wi
+               f = evalBsdf False (hpBsdf hit) (hpW hit) wi
                (px, py) = hpPixel hit
                l = sScale (hpF hit * f * li) (1 / (absDot wi ng * r2 * pi))
                img = lsImage s
@@ -258,7 +258,7 @@ mkPixelStats wnd r2v = do
 mergeStats :: PixelStats s -> UV.Vector Int -> ST s ()
 mergeStats (PS _ _ m _) m' = forM_ [0 .. UMV.length m - 1] $ \i -> do
    x' <- UMV.unsafeRead m i
-   UMV.unsafeWrite m i (m' UV.! i + x')
+   UMV.unsafeWrite m i (UV.unsafeIndex m' $ i + x')
    
 type StatsIndex = (Float, Float) -> Int
 
@@ -266,7 +266,7 @@ sIdx :: SampleWindow -> StatsIndex
 {-# INLINE sIdx #-}
 sIdx wnd (px, py) = w * (iy - yStart wnd) + (ix - xStart wnd) where
    (w, h) = (xEnd wnd - xStart wnd, yEnd wnd - yStart wnd)
-   (ix, iy) = (min w (floor px), min h (floor py))
+   (ix, iy) = (min w (truncate px), min h (truncate py))
 
 statsUpdate
    :: PixelStats s
@@ -308,7 +308,7 @@ hashLookup sh p fun = {-# SCC "hashLookup" #-}
    let
       Vector x y z = abs $ (p - aabbMin (shBounds sh)) * vpromote (shScale sh)
       cnt = V.length (shEntries sh)
-      idx =  max 0 $ min (cnt - 1) $ hash (floor x, floor y, floor z) `rem` cnt
+      idx =  max 0 $ min (cnt - 1) $ hash (truncate x, truncate y, truncate z) `rem` cnt
       tree = V.unsafeIndex (shEntries sh) idx
    in treeLookup tree p fun
       
@@ -334,14 +334,14 @@ mkHash hitlist = {-# SCC "mkHash" #-} do
          p = bsdfShadingPoint $ hpBsdf hp
          Vector x0 y0 z0 = invSize *# (abs $ p - vpromote rp - pmin)
          Vector x1 y1 z1 = invSize *# (abs $ p + vpromote rp - pmin)
-         xs = [floor x0 .. floor x1]
-         ys = [floor y0 .. floor y1]
-         zs = [floor z0 .. floor z1]
+         xs = [truncate x0 .. truncate x1]
+         ys = [truncate y0 .. truncate y1]
+         zs = [truncate z0 .. truncate z1]
          
       unless (r2p == 0) $ forM_ [(x, y, z) | x <- xs, y <- ys, z <- zs] $ \i ->
          let idx = max 0 $ min (cnt - 1) $ hash i `rem` cnt
-         in MV.read v' idx >>= \o -> MV.write v' idx (hp : o)
-   
+         in MV.unsafeRead v' idx >>= \o -> MV.unsafeWrite v' idx (hp : o)
+         
    v'' <- V.freeze v'
    let v = V.fromList $ pm (\hpl -> mkKdTree (V.fromList hpl)) $ V.toList v''
    
