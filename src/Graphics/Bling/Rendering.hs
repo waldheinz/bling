@@ -110,8 +110,7 @@ instance Renderer SamplerRenderer where
 
 prender :: SamplerRenderer -> RenderJob -> ProgressReporter -> IO ()
 prender (SR sampler integ) job report = do
-   let image' = mkJobImage job
-   image <- thaw image'
+   image <- thaw $ mkJobImage job
    
    let
       scene = jobScene job
@@ -120,7 +119,7 @@ prender (SR sampler integ) job report = do
       
       eval :: (MWC.Seed, SampleWindow) -> ((Image, (Int, Int)), SampleWindow)
       eval (s, w) = runST $ do
-         i <- mkImageTile image' w 
+         i <- mkImageTile image w 
          runWithSeed s $ tile scene sampler integ i w
          i' <- freeze i
          return (i', w)

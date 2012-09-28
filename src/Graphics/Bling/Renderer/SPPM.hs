@@ -57,11 +57,13 @@ data HitPoint = Hit
    , hpPixel   :: {-# UNPACK #-} ! (Float, Float)
    , hpR2      :: {-# UNPACK #-} ! Float
    , hpW       :: ! Vector
-   , hpF       :: {-# UNPACK #-} ! Spectrum
+   , hpF       :: ! Spectrum
    }
 
 hitPosition :: HitPoint -> Point
 hitPosition = bsdfShadingPoint . hpBsdf
+
+pm f = withStrategy (parBuffer numCapabilities rdeepseq) . map f
 
 --------------------------------------------------------------------------------
 -- Tracing Camera Rays for Hitpoint Creation
@@ -119,7 +121,6 @@ traceCam cs
                
             -- record a hitpoint here
             when (bsdfHasNonSpecular bsdf) $ do
---               px <- cameraSample >>= \c -> return (imageX c, imageY c)
                let h = (Hit bsdf (csPixel cs) (csR2 cs) wo t) in seq h (liftSampled $ gvAdd (csHps cs) h)
             
             csr <- followCam Reflection int wo cs
@@ -127,25 +128,48 @@ traceCam cs
             
             return $! cs { csLs = csLs cs + csLs csr + csLs cst + ls }
             
-mkHitPoints :: RenderM (V.Vector HitPoint)
+mkHitPoints :: RenderM ([V.Vector HitPoint])
 mkHitPoints = do
    sc <- asks envScene
    img <- asks envImg
    md <- asks envMaxD
    r2s' <- psR2 <$> asks rsPxStats
    r2s <- lift $ stToIO $ UV.freeze r2s'
-   result <- lift gvNew
    
-   let rlup = (\p -> r2s UV.! sIdx (sampleExtent img) p)
+   let
+      rlup = (\p -> r2s UV.! sIdx (sampleExtent img) p)
+      wnds = splitWindow $ sampleExtent img
+      
+      eval :: (MWC.Seed, SampleWindow) -> (V.Vector HitPoint, (Image, (Int, Int)))
+      eval (seed, wnd) = runST $ R.runWithSeed seed $ do
+         hps <- R.liftR gvNew
+         i <- R.liftR $ mkImageTile img wnd
+         
+         runSample (mkRandomSampler 1) wnd 0 0 $ do
+            ray <- fireRay $ sceneCam sc
+            p@(px, py) <- cameraSample >>= \c -> return (imageX c, imageY c)
+            cs <- traceCam $ CS ray 0 md sc white black hps (rlup p) p
+            liftSampled $ addSample i px py (csLs cs)
+            
+         hps' <- R.liftR $ gvFreeze hps
+         i' <- R.liftR $ freeze i
+         return $! (hps', i')
    
+   seeds <- lift $ sequence $ (replicate $ length wnds) R.ioSeed
+   
+   forM (pm eval $ zip seeds wnds) $ \(hps, tile) -> do
+      lift $ stToIO $ addTile img tile
+      return hps
+   
+      
+  {-    
    lift $ R.runRandIO $ forM_ (splitWindow $ sampleExtent img) $ \w ->
       runSample (mkRandomSampler 1) w 0 0 $ do
          ray <- fireRay $ sceneCam sc
          p@(px, py) <- cameraSample >>= \c -> return (imageX c, imageY c)
          cs <- traceCam $ CS ray 0 md sc white black result (rlup p) p
          liftSampled $ addSample img px py (csLs cs)
-         
-   lift $ gvFreeze result
+   -}
    
 --------------------------------------------------------------------------------
 -- Tracing Photons from the Light Sources and adding Image Contribution
@@ -306,19 +330,19 @@ hashLookup sh p fun = {-# SCC "hashLookup" #-}
       tree = V.unsafeIndex (shEntries sh) idx
    in treeLookup tree p fun
       
-mkHash :: V.Vector HitPoint -> ST s SpatialHash
-mkHash hits = {-# SCC "mkHash" #-} do
+mkHash :: [V.Vector HitPoint] -> ST s SpatialHash
+mkHash hitlist = {-# SCC "mkHash" #-} do
    let
-      r2 = V.foldl' (\m hp -> max (hpR2 hp) m) 0 hits
+      r2 = maximum $ map (\hits -> V.foldl' (\m hp -> max (hpR2 hp) m) 0 hits) hitlist
       r = sqrt r2
-      cnt = V.length hits
+      cnt = sum $ map (\hits -> V.length hits) hitlist
       invSize = 1 / (2 * r)
-      bounds = V.foldl' go emptyAABB hits where
+      bounds = foldl extendAABB emptyAABB $ map (\hits -> V.foldl' go emptyAABB hits) hitlist where
          go b h = let p = bsdfShadingPoint $ hpBsdf h
                   in extendAABB b $ mkAABB (p - vpromote r) (p + vpromote r)
    
    v' <- MV.replicate cnt []
-   V.forM_ hits $ \hp -> do      
+   forM_ hitlist $ \hits -> V.forM_ hits $ \hp -> do      
       let
          r2p = hpR2 hp
          rp = sqrt r2p
@@ -409,6 +433,7 @@ data RenderState s = RS
 type RenderM a = ReaderT (RenderState (ST RealWorld)) IO a
 
 instance NFData (UV.Vector a) where
+instance NFData (V.Vector a) where
 
 onePass :: Int -> RenderM Bool
 onePass passNum = do
@@ -424,8 +449,6 @@ onePass passNum = do
    sn' <- asks sn
    
    let
-      pm f = withStrategy (parBuffer numCapabilities rdeepseq) . map f
-   
       eval :: MWC.Seed -> (UV.Vector Int, (Image, (Int, Int)))
       eval seed = runST $ do
          eimg <- splitMImage i

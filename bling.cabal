@@ -34,7 +34,8 @@ Library
       
    Ghc-Options:
       -Wall -O2 -fexcess-precision -fllvm
-
+--      -eventlog
+   
    Exposed-Modules:
       Graphics.Bling.AABB,
       Graphics.Bling.Camera,
@@ -95,7 +96,7 @@ Executable bling
    Main-is:          Main.hs
    Build-Depends:    bling, base, pretty, random, mwc-random
    ghc-options:      -Wall -O2 -fexcess-precision -rtsopts -threaded
-
+   
 Executable bling-gui
    if flag(Gui)
       Buildable:     True
@@ -107,5 +108,4 @@ Executable bling-gui
    Main-is:          GuiMain.hs
    
    ghc-options:      -Wall -O2 -fexcess-precision -rtsopts -threaded
-   ghc-prof-options: -prof
 

@@ -102,9 +102,7 @@ scaleSplats (MImage w h _ _ _ spx) sf = do
       MV.unsafeWrite spx (i * 3 + 1) (oy * s)
       MV.unsafeWrite spx (i * 3 + 2) (oz * s)
    
-   
-   
-mkImageTile :: (PrimMonad m) => Image -> SampleWindow -> m (MImage m)
+mkImageTile :: (PrimMonad m) => MImage m1 -> SampleWindow -> m (MImage m)
 {-# INLINE mkImageTile #-}
 mkImageTile img wnd = do
    let
@@ -112,17 +110,17 @@ mkImageTile img wnd = do
       h = yEnd wnd - py + floor (0.5 + fh)
       px = max 0 $ xStart wnd -- + floor (0.5 - fw)
       py = max 0 $ yStart wnd -- + floor (0.5 - fh)
-      (fw, fh) = tblFltSize $ imgFilter img
+      (fw, fh) = tblFltSize $ _imageFilter img
       
    p <- MV.replicate (w * h * 4) 0
    s <- MV.replicate (w * h * 3) 0
-   return $! MImage w h (px, py) (imgFilter img) p s
+   return $! MImage w h (px, py) (_imageFilter img) p s
    
 -- | an immutable image
 data Image = Img
    { imgW         :: {-# UNPACK #-} ! Int
    , imgH         :: {-# UNPACK #-} ! Int
-   , imgFilter    :: {-# UNPACK #-} ! TableFilter
+   , _imgFilter   :: {-# UNPACK #-} ! TableFilter
    , _imgP        :: ! (V.Vector Float)
    , _imgS        :: ! (V.Vector Float)
    }
