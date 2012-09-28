@@ -1,0 +1,88 @@
+
+# filter sinc 3 3 3
+# filter triangle 2 2
+filter mitchell 2 2 0.333333 0.333333
+# filter box
+# filter gauss 3 3 2
+
+renderer {
+   sampler
+   sampled {
+      sampler { stratified 2 2 }
+      integrator { path maxDepth 15 sampleDepth 3 }
+   }
+}
+
+# renderer { sampler sampled { sampler { random 16 } integrator { path maxDepth 1 sampleDepth 1 } } }
+# renderer { light passPhotons 100000 }
+# renderer { metropolis maxDepth 10 mpp 1 bootstrap 1000 plarge 0.25 directSamples 0 }
+# renderer { sampler sampled { sampler { stratified 4 4 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
+# renderer { sampler sampled { sampler { random 16 } integrator { path maxDepth 5 sampleDepth 3 } } }
+# renderer { sampler sampled { sampler { random 4 } integrator { debug normals } } }
+# renderer { sampler sampled { sampler { random 1 } integrator { debug reference } } }
+# renderer { sampler sampled { sampler { random 4 } integrator { debug kdtree } } }
+# renderer { sppm photonCount 200000 maxDepth 10 radius 15 alpha 0.9 }
+# renderer { sampler sampled { sampler { random 4 } integrator { debug normals } } }
+
+# imageSize 720 720
+imageSize 640 360
+# imageSize 128 128
+# imageSize 240 240
+
+#
+# camera
+#
+
+transform {
+   lookAt {
+      pos -3 5 -10
+      look 0 2 0
+      up 0 1 0
+   }
+}
+
+camera {
+   perspective
+   fov 37.5
+   lensRadius 0
+   focalDistance 10
+}
+
+# ground plane
+
+material {
+   matte
+   kd { constant rgbR 0.8 0.8 0.8 }
+   sigma { constant 0 }
+}
+
+newTransform { rotateX -90 }
+
+prim { shape { quad 30 30 } }
+
+# glass
+
+material { glass
+   ior { constant 1.5 }
+   kr { constant rgbR 1 1 1 }
+   kt { constant rgbR 1 1 1 }
+}
+
+newTransform { translate 0 3 0 }
+prim { shape { box pmin -2 -2 -2 pmax 2 2 2 } }
+
+material {
+   matte
+   kd { constant spd { 1 0.78 } }
+   sigma { constant 0 }
+}
+
+emission {
+   spd { 400.0 0.0, 500.0 8.0, 600.0 15.6, 700.0 18.4 }
+}
+
+newTransform { rotateX -90 translate 0 20 0 } prim { shape { quad 2 2 } }
+
+emission { none }
+
+
