@@ -18,12 +18,12 @@ renderer {
 # renderer { light passPhotons 100000 }
 # renderer { metropolis maxDepth 8 mpp 1 bootstrap 1000 plarge 0.25 directSamples 1 }
 # renderer { sampler sampled { sampler { random 16 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
-renderer { sppm photonCount 25000 maxDepth 15 radius 15 alpha 0.7 }
+renderer { sppm photonCount 100000 maxDepth 15 radius 10 alpha 0.8 }
 # renderer { sampler sampled { sampler { random 1024 } integrator { debug reference } } }
 
 imageSize 480 480
 # imageSize 240 240
-# imageSize 720 720
+imageSize 720 720
 
 #
 # camera

@@ -60,10 +60,11 @@ data HitPoint = Hit
    , hpF       :: ! Spectrum
    }
 
+instance NFData HitPoint where
+   -- default implementation is ok, everything is strict
+
 hitPosition :: HitPoint -> Point
 hitPosition = bsdfShadingPoint . hpBsdf
-
-pm f = withStrategy (parBuffer numCapabilities rdeepseq) . map f
 
 --------------------------------------------------------------------------------
 -- Tracing Camera Rays for Hitpoint Creation
@@ -140,7 +141,7 @@ mkHitPoints = do
       rlup = (\p -> r2s UV.! sIdx (sampleExtent img) p)
       wnds = splitWindow $ sampleExtent img
       
-      eval :: (MWC.Seed, SampleWindow) -> (V.Vector HitPoint, (Image, (Int, Int)))
+      eval :: (MWC.Seed, SampleWindow) -> (NFBVector HitPoint, (Image, (Int, Int)))
       eval (seed, wnd) = runST $ R.runWithSeed seed $ do
          hps <- R.liftR gvNew
          i <- R.liftR $ mkImageTile img wnd
@@ -153,13 +154,13 @@ mkHitPoints = do
             
          hps' <- R.liftR $ gvFreeze hps
          i' <- R.liftR $ freeze i
-         return $! (hps', i')
+         return $! (mkNFBVector hps', i')
    
    seeds <- lift $ sequence $ (replicate $ length wnds) R.ioSeed
    
-   forM (pm eval $ zip seeds wnds) $ \(hps, tile) -> do
+   forM (parMap rdeepseq eval $ zip seeds wnds) $ \(hps, tile) -> do
       lift $ stToIO $ addTile img tile
-      return hps
+      return $! unNFBVector hps
    
 --------------------------------------------------------------------------------
 -- Tracing Photons from the Light Sources and adding Image Contribution
@@ -190,11 +191,6 @@ tracePhoton scene sh img cnt = {-# SCC "tracePhoton" #-} do
       
    when ((pdf > 0) && not (isBlack ls)) $ followPhoton st
 
---increment :: (PrimMonad m) => UMV.MVector m Int -> Int -> m ()
-increment v s = do
-   old <- UMV.read v s
-   UMV.write v s (old + 1)
-
 followPhoton :: LightState s -> Sampled s ()
 followPhoton s = do
    let
@@ -208,6 +204,7 @@ followPhoton s = do
       Nothing  -> return ()
       Just int -> do
          let
+            inc i = UMV.read cnt i >>= \old -> UMV.write cnt i (old + 1)
             bsdf = intBsdf int
             p = bsdfShadingPoint bsdf
             ng = bsdfNg bsdf
@@ -224,13 +221,13 @@ followPhoton s = do
                img = lsImage s
                
             splatSample img px py l
-            increment cnt (lsSidx s $ (px, py))
+            inc (lsSidx s $ (px, py))
             
          -- follow the path
          ubc <- rnd' $ 1 + d * 2
          ubd <- rnd2D' $ 2 + d
+         
          let
-
             (BsdfSample _ spdf f wo) = sampleAdjBsdf bsdf wi ubc ubd
             pcont = if d > 7 then 0.8 else 1
             li' = sScale (f * li) (1 / pcont) -- (absDot wo n / (spdf * pcont))
@@ -276,27 +273,22 @@ statsUpdate
    -> Float                -- ^ alpha
    -> ST s ()
 statsUpdate (PS r2v nv mv _) a = do
---   UV.generateM (UMV.length r2v) $ \i -> do
    forM_ [0 .. (UMV.length r2v)] $ \i -> do
       m <- UMV.unsafeRead mv i
       
-      if (m > 0)
-         then do
-            r2 <- UMV.unsafeRead r2v i
-            n <- UMV.unsafeRead nv i
+      when (m > 0) $ do
+         r2 <- UMV.unsafeRead r2v i
+         n <- UMV.unsafeRead nv i
          
-            let
-               n' = n + a * fromIntegral m
-               ratio = n' / (n + fromIntegral m)
-               r2' = r2 * ratio
+         let
+            n' = n + a * fromIntegral m
+            ratio = n' / (n + fromIntegral m)
+            r2' = r2 * ratio
          
-            UMV.unsafeWrite r2v i r2'
-            UMV.unsafeWrite nv i n'
-            UMV.unsafeWrite mv i 0
-            return $ r2' / r2
-            
-         else return 1
-      
+         UMV.unsafeWrite r2v i r2'
+         UMV.unsafeWrite nv i n'
+         UMV.unsafeWrite mv i 0
+         
 --------------------------------------------------------------------------------
 -- Spatial Hashing for the Hitpoints
 --------------------------------------------------------------------------------
@@ -325,6 +317,7 @@ mkHash hitlist = {-# SCC "mkHash" #-} do
    let
       r2 = maximum $ map (\hits -> V.foldl' (\m hp -> max (hpR2 hp) m) 0 hits) hitlist
       r = sqrt r2
+      pm f = withStrategy (parBuffer numCapabilities rdeepseq) . map f
       cnt = sum $ map (\hits -> V.length hits) hitlist
       invSize = 1 / (2 * r)
       bounds = foldl extendAABB emptyAABB $ map (\hits -> V.foldl' go emptyAABB hits) hitlist where
@@ -339,8 +332,8 @@ mkHash hitlist = {-# SCC "mkHash" #-} do
          pmin = aabbMin bounds
          
          p = bsdfShadingPoint $ hpBsdf hp
-         Vector x0 y0 z0 = abs $ (p - vpromote rp - pmin) * vpromote invSize
-         Vector x1 y1 z1 = abs $ (p + vpromote rp - pmin) * vpromote invSize
+         Vector x0 y0 z0 = invSize *# (abs $ p - vpromote rp - pmin)
+         Vector x1 y1 z1 = invSize *# (abs $ p + vpromote rp - pmin)
          xs = [floor x0 .. floor x1]
          ys = [floor y0 .. floor y1]
          zs = [floor z0 .. floor z1]
@@ -350,7 +343,7 @@ mkHash hitlist = {-# SCC "mkHash" #-} do
          in MV.read v' idx >>= \o -> MV.write v' idx (hp : o)
    
    v'' <- V.freeze v'
-   let v = V.fromList $ parMap rdeepseq (\hpl -> mkKdTree (V.fromList hpl)) $ V.toList v''
+   let v = V.fromList $ pm (\hpl -> mkKdTree (V.fromList hpl)) $ V.toList v''
    
    return $ SH bounds v invSize
 
@@ -361,11 +354,11 @@ mkHash hitlist = {-# SCC "mkHash" #-} do
 data KdTree
    = Node {-# UNPACK #-} !Float !HitPoint !KdTree !KdTree
       -- max. radius² in subtree, hit, left, right
-   | Leaf !(V.Vector HitPoint)
+   | Leaf {-# UNPACK #-} !(NFBVector HitPoint)
       
 instance NFData KdTree where
+   -- default implementation is fine
    
-      
 mkKdTree :: V.Vector HitPoint -> KdTree
 mkKdTree hits = {-# SCC "mkKdTree" #-}
       runST $ V.thaw hits >>= \hits' -> liftM fst $ go 0 hits' where
@@ -373,7 +366,10 @@ mkKdTree hits = {-# SCC "mkKdTree" #-}
    go depth v
       | MV.length v <= 5 = do
          v' <- V.freeze v
-         return $! (Leaf v', sqrt $ V.foldl' (\m hp -> max m $ hpR2 hp) 0 v')
+         
+         return $! (
+            Leaf $ mkNFBVector v',
+            sqrt $ V.foldl' (\m hp -> max m $ hpR2 hp) 0 v')
          
       | otherwise = do
          let
@@ -393,7 +389,7 @@ mkKdTree hits = {-# SCC "mkKdTree" #-}
       
 treeLookup :: KdTree -> Point -> (HitPoint -> ST s ()) -> ST s ()
 treeLookup t p fun = {-# SCC "treeLookup" #-} go 0 t where
-   go _ (Leaf hps) = V.forM_ hps $ \hp -> 
+   go _ (Leaf hps) = V.forM_ (unNFBVector hps) $ \hp -> 
       when (sqLen (hitPosition hp - p) <= hpR2 hp) $ {-# SCC "leaf.fun" #-} fun hp
       
    go depth (Node mr hp l r) = do
@@ -424,9 +420,6 @@ data RenderState s = RS
 
 type RenderM a = ReaderT (RenderState (ST RealWorld)) IO a
 
-instance NFData (UV.Vector a) where
-instance NFData (V.Vector a) where
-
 onePass :: Int -> RenderM Bool
 onePass passNum = do
    sc <- asks envScene
@@ -440,7 +433,7 @@ onePass passNum = do
    sn' <- asks sn
    
    let
-      eval :: MWC.Seed -> (UV.Vector Int, (Image, (Int, Int)))
+      eval :: MWC.Seed -> (NFUVector Int, (Image, (Int, Int)))
       eval seed = runST $ do
          eimg <- splitMImage i
          eps <- UMV.replicate (windowPixels $ sampleExtent i) 0
@@ -448,15 +441,15 @@ onePass passNum = do
             runSample (mkStratifiedSampler sn' sn') (SampleWindow 0 0 0 0) n1d' n2d' $
             tracePhoton sc hitMap eimg eps
    
-         fs' <- UV.freeze eps
+         fs' <- mkNFUVector <$> UV.freeze eps
          eimg' <- freeze eimg
          return $! (fs', eimg')
 
    seeds <- lift $ sequence $ (replicate numCapabilities) R.ioSeed
    
-   forM_ (pm eval seeds) $ \(ms, img) -> do
+   forM_ (parMap rdeepseq eval seeds) $ \(ms, img) -> do
       lift $ stToIO $ addTile i img
-      lift $ stToIO $ mergeStats ps ms
+      lift $ stToIO $ mergeStats ps (unNFUVector ms)
    
    lift $ stToIO $ statsUpdate ps alpha
    
@@ -477,7 +470,7 @@ instance Renderer SPPM where
          d = 3 -- sample depth
          n1 = 2 * d + 1
          n2 = d + 2
-         sn' = max 1 $ ceiling $ sqrt (fromIntegral n :: Float)
+         sn' = max 1 $ ceiling $ sqrt ((fromIntegral n :: Float) / fromIntegral numCapabilities)
 
       img <- stToIO $ thaw $ mkJobImage job
       r2s <- stToIO $ UMV.replicate (windowPixels (sampleExtent img)) (r * r)

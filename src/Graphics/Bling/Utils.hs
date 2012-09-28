@@ -1,12 +1,51 @@
 
 module Graphics.Bling.Utils (
+
+   -- * NFData Wrappers for Vectors
+
+   NFUVector, unNFUVector, mkNFUVector,
+   NFBVector, unNFBVector, mkNFBVector,
+   
+   -- * Growing Vectors
+   
    GrowVec, gvAdd, gvNew, gvLength, gvFreeze
+   
    ) where
 
+import Control.DeepSeq
 import Control.Monad.Primitive
 import Data.Primitive.MutVar
+import qualified Data.Vector as BV
 import qualified Data.Vector.Generic as V
 import qualified Data.Vector.Generic.Mutable as MV
+import qualified Data.Vector.Unboxed as UV
+
+--------------------------------------------------------------------------------
+-- NFData wrappers for Vectors
+--------------------------------------------------------------------------------
+
+newtype NFUVector a = NFUVector { unNFUVector :: UV.Vector a }
+
+mkNFUVector :: UV.Vector a -> NFUVector a
+mkNFUVector = NFUVector
+
+instance (NFData a, UV.Unbox a) => NFData (NFUVector a) where
+   rnf (NFUVector v) = rnf $ UV.toList v
+   {-# INLINE rnf #-}
+   
+
+newtype NFBVector a = NFBVector { unNFBVector :: BV.Vector a }
+
+mkNFBVector :: BV.Vector a -> NFBVector a
+mkNFBVector = NFBVector
+
+instance (NFData a) => NFData (NFBVector a) where
+   rnf (NFBVector v) = rnf $ BV.toList v
+   {-# INLINE rnf #-}
+
+--------------------------------------------------------------------------------
+-- GrowVec
+--------------------------------------------------------------------------------
 
 data GrowVec v s a = GV ! (MutVar s (v s a)) ! (MutVar s Int)
 
