@@ -170,13 +170,14 @@ intersect (Sphere r) ray@(Ray ro rd tmin tmax)
    | isNothing times = Nothing
    | t1 > tmax = Nothing
    | t2 < tmin = Nothing
+   | t > tmax = Nothing
    | otherwise = force $ Just (t, eps, dg)
    where
       -- find hit point
       a = sqLen rd
       b = 2 * (ro `dot` rd)
       c = sqLen ro - (r * r)
-      t = if t1 > tmin then t1 else t2
+      t = if t1 < tmin then t2 else t1
       eps = 5e-4 * t
       (t1, t2) = fromJust times
       times = solveQuadric a b c
