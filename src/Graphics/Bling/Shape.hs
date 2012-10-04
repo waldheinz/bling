@@ -84,25 +84,29 @@ intersect
    -> Maybe (Float, Float, DifferentialGeometry)
       -- ^ maybe (ray parametric distance to hit, ray epsilon, local geometry at hit point)
 intersect (Box pmin pmax) ray@(Ray o d tmin tmax) =
-      testSlabs allDimensions tmin tmax 0 >>= go where
+      testSlabs allDimensions (-infinity) infinity 0 >>= go where
    
-   go (t, axis) = force $ Just (t, e, mkDg' p n) where
-      p = rayAt ray t
-      e = 5e-4 * t
-      n = setComponent axis dir $ mkV (0, 0, 0)
-      dir = if (p .! axis) > half then 1 else -1
-      half = (pmin .! axis + pmax .! axis) / 2
+   go (t0, t1, axis)
+      | t0 > tmax || t0 < tmin = Nothing
+      | t > tmax = Nothing
+      | otherwise = force $ Just (t, e, mkDg' p n) where
+         t = if t0 < tmin then t1 else t0
+         p = rayAt ray t
+         e = 5e-4 * t
+         n = normalize $ setComponent axis dir $ mkV (0, 0, 0)
+         dir = if (p .! axis) > half then 1 else -1
+         half = (pmin .! axis + pmax .! axis) / 2
 
-   testSlabs :: [Dimension] -> Float -> Float -> Dimension -> Maybe (Float, Dimension)
+   testSlabs :: [Dimension] -> Float -> Float -> Dimension -> Maybe (Float, Float, Dimension)
    testSlabs [] n f dd
       | n > f = Nothing
-      | otherwise = force $ Just (n, dd)
+      | otherwise = force $ Just (min n f, max n f, dd)
    testSlabs (dim:ds) near far dd
       | near > far = Nothing
-      | otherwise = testSlabs ds (max near near') (min far far') (if near < near' then dim else dd) where
-         (near', far') = if tNear > tFar then (tFar, tNear) else (tNear, tFar)
-         tFar = (pmax .! dim - oc) * dInv
-         tNear = (pmin .! dim - oc) * dInv
+      | otherwise = testSlabs ds (max near t1) (min far t2) (if near < t1 then dim else dd) where
+         (t1, t2) = if t1' > t2' then (t2', t1') else (t1', t2')
+         t1' = (pmax .! dim - oc) * dInv
+         t2' = (pmin .! dim - oc) * dInv
          oc = o .! dim
          dInv = 1 / d .! dim
     

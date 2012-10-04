@@ -8,7 +8,7 @@ filter mitchell 2 2 0.333333 0.333333
 renderer {
    sampler
    sampled {
-      sampler { stratified 1 1 }
+      sampler { stratified 3 3 }
       integrator { path maxDepth 15 sampleDepth 3 }
    }
 }
@@ -26,7 +26,7 @@ renderer {
 
 # imageSize 720 720
 imageSize 640 360
-# imageSize 128 128
+# imageSize 16 16
 # imageSize 240 240
 
 #
@@ -35,7 +35,7 @@ imageSize 640 360
 
 transform {
    lookAt {
-      pos -5 7 -10
+      pos -5 6 -10
       look 0 2 0
       up 0 1 0
    }
@@ -44,6 +44,7 @@ transform {
 camera {
    perspective
    fov 37.5
+#  fov 10
    lensRadius 0
    focalDistance 10
 }
@@ -52,14 +53,20 @@ camera {
 
 material {
    matte
-   kd { constant rgbR 0.8 0.8 0.8 }
+   kd {
+      graphPaper 0.05
+      map { uv 15 15 0 0 } 
+      tex1 { constant rgbR 0.6 0.6 0.6 }
+      tex2 { constant rgbR 0.02 0.02 0.02 }
+
+   }
    sigma { constant 0 }
 }
 
 newTransform { rotateX -90 }
 prim { shape { quad 30 30 } }
 newTransform { translate 0 0 10 }
-prim { shape { quad 30 30 } }
+# prim { shape { quad 30 30 } }
 
 
 # glass
@@ -72,7 +79,16 @@ material { glass
 
 newTransform { translate 0 3 0 }
 prim { shape { box pmin -2 -2 -2 pmax 2 2 2 } }
+# prim { shape { box pmin -1 -1 -1 pmax 1 1 1 } }
 # prim { shape { sphere radius 2 } }
+
+material {
+   matte
+   kd { constant rgbR 0.1 0.1 0.8 }
+   sigma { constant 0 }
+}
+
+prim { shape { sphere radius 1.5 } }
 
 material {
    matte

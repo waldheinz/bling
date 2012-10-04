@@ -1,40 +1,41 @@
 
 
 module Graphics.Bling.Integrator.Debug (
-   DebugIntegrator, mkKdVision, mkNormalMap, mkReference
+   mkKdVision, mkNormalMap, mkReference
    ) where
 
 
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Integrator
-import Graphics.Bling.Montecarlo
+--import Graphics.Bling.Montecarlo
 import Graphics.Bling.Reflection
-import Graphics.Bling.Sampling
+--import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
 import Graphics.Bling.Primitive
 import Graphics.Bling.Primitive.KdTree
 
-import Control.Monad (liftM)
-import Data.Maybe
-import qualified Text.PrettyPrint as PP
 
 --------------------------------------------------------------------------------
 -- kd-tree vision integrator
 --------------------------------------------------------------------------------
 
-data DebugIntegrator
-   = KdTreeVis
-   | NormalMap
-   | Reference 
-
 mkKdVision :: SurfaceIntegrator
 mkKdVision = undefined -- KdTreeVis
 
 mkNormalMap :: SurfaceIntegrator
-mkNormalMap = undefined --NormalMap
-
+mkNormalMap = SurfaceIntegrator li 0 0 where
+   li s r = case s `scIntersect` r of
+      Just int -> return $ intToSpectrum int
+      Nothing  -> return black
+      
+   intToSpectrum :: Intersection -> Spectrum
+   intToSpectrum int = rgbToSpectrumRefl (r, g, b) where
+      Vector r g b = (vpromote 1 + n) / 2
+      n = bsdfShadingNormal $ intBsdf int
+      
 mkReference :: SurfaceIntegrator
 mkReference = undefined --Reference
+
 {-
 instance Printable DebugIntegrator where
    prettyPrint KdTreeVis = PP.text "kd tree vision"
@@ -81,8 +82,5 @@ instance SurfaceIntegrator DebugIntegrator where
                                  (_, rest) <- go $ Ray p wi (intEpsilon int) infinity
                                  return $ (1, (le + sScale (f * rest) (4 * pi)))
          
-intToSpectrum :: Intersection -> WeightedSpectrum
-intToSpectrum int = WS 1 (rgbToSpectrumRefl (r, g, b)) where
-   Vector r g b = (vpromote 1 + n) / 2
-   n = bsdfShadingNormal $ intBsdf int
+
    -}

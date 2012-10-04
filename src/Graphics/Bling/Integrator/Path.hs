@@ -14,9 +14,9 @@ import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
+import Graphics.Bling.Utils
 
--- data PathIntegrator = PathIntegrator {-# UNPACK #-} !Int {-# UNPACK #-} !Int  
-
+import Debug.Trace
 
 smps2D :: Int
 smps2D = 3
@@ -49,7 +49,8 @@ nextVertex s _ True ray Nothing _ t l = {-# SCC "nothingSpec" #-} return $! l + 
 -- nothing hit, non-specular bounce
 nextVertex _ _ False _ Nothing _ _ l = return $! l
 
-nextVertex scene depth spec (Ray _ rd _ _) (Just int) md t l
+nextVertex scene depth spec r@(Ray _ rd _ _) (Just int) md t l
+--   | debugRay 2 r False = undefined
    | depth == md = return $! l
    | otherwise = do
       -- for light sampling
@@ -78,6 +79,7 @@ nextVertex scene depth spec (Ray _ rd _ _) (Just int) md t l
                
                let
                   (BsdfSample smpType spdf f wi) = sampleBsdf bsdf wo uc ud
+                  
                   ray' = Ray p wi eps infinity
                   spec' = smpType `bxdfIs` Specular
                   t' = sScale (f * t) (1 / pc)

@@ -8,18 +8,34 @@ module Graphics.Bling.Utils (
    
    -- * Growing Vectors
    
-   GrowVec, gvAdd, gvNew, gvLength, gvFreeze
+   GrowVec, gvAdd, gvNew, gvLength, gvFreeze,
+   
+   -- * Debugging Tools
+   
+   debugRay
    
    ) where
 
+import Graphics.Bling.Math
+
 import Control.DeepSeq
 import Control.Monad.Primitive
+import Data.List (intersperse)
 import Data.Primitive.MutVar
 import qualified Data.Vector as BV
 import qualified Data.Vector.Generic as V
 import qualified Data.Vector.Generic.Mutable as MV
 import qualified Data.Vector.Unboxed as UV
+import Debug.Trace
 
+--------------------------------------------------------------------------------
+-- Debugging Tools
+--------------------------------------------------------------------------------
+
+debugRay :: Float -> Ray -> a -> a
+debugRay sc (Ray o d _ _) a = (flip trace) a (str o 1 ++ " " ++ str d sc) where
+   str v sc' = concat $ (intersperse " ") $ map (\ve -> show $ sc' * ve v) [vx, vy, vz]
+   
 --------------------------------------------------------------------------------
 -- NFData wrappers for Vectors
 --------------------------------------------------------------------------------

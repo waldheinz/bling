@@ -239,21 +239,21 @@ kdTreePrimitive (KdTree b t) = prim where
       
    inter r@(Ray _ d _ _) = {-# SCC "intersect" #-} intersectAABB b r >>= trav where
       trav ts = snd $ traverse (r, Nothing) invDir t ts
-      invDir = mkV (1 / d .! 0, 1 / d .! 1, 1 / d .! 2)
+      invDir = mkV (1 / vx d, 1 / vy d, 1 / vz d)
       
    inters r@(Ray _ d _ _) = {-# SCC "intersects" #-} maybe False tr (intersectAABB b r) where
       tr = traverse' r invDir t
-      invDir = mkV (1 / d .! 0, 1 / d .! 1, 1 / d .! 2)
+      invDir = mkV (1 / vx d, 1 / vy d, 1 / vz d)
       
 --------------------------------------------------------------------------------
 -- Kd - Tree Vision
 --------------------------------------------------------------------------------
 
 data TraversalStats = TraversalStats
-   { nodesTraversed :: Int
-   , intersections :: Int
+   { nodesTraversed  :: !Int
+   , intersections   :: !Int
    }
-
+   
 deeper :: TraversalStats -> TraversalStats
 deeper ts = ts { nodesTraversed = nodesTraversed ts + 1 }
 
@@ -279,3 +279,4 @@ dbgTraverse' ri@(r, mi, ts) inv (Interior left right sp axis) mima@(tmin, tmax)
          tp = (sp - ro .! axis) * inv .! axis
          (fc, sc) = if lf then (left, right) else (right, left)
          lf = (ro .! axis < sp) || (ro .! axis == sp && rd .! axis <= 0)
+         
