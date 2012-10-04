@@ -80,6 +80,7 @@ Library
       Graphics.Bling.Primitive.Bezier,
       Graphics.Bling.Primitive.Fractal,
       Graphics.Bling.Primitive.Geometry,
+      Graphics.Bling.Primitive.Heightmap,
       Graphics.Bling.Primitive.KdTree,
       Graphics.Bling.Primitive.TriangleMesh,
       Graphics.Bling.Reflection,

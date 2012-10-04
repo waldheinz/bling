@@ -4,7 +4,7 @@ module Graphics.Bling.Texture (
    -- * Texture Types
    
    Texture, SpectrumTexture, ScalarTexture, TextureMapping3d, TextureMapping2d,
-   TextureMap(..), SpectrumMap, constSpectrumMap, mkTextureMap,
+   TextureMap(..), SpectrumMap, ScalarMap, constSpectrumMap, mkTextureMap,
    
    -- * Texture Mappings
 
