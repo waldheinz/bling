@@ -20,6 +20,7 @@ renderer {
 # renderer { sampler sampled { sampler { random 16 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
 # renderer { sppm photonCount 250000 maxDepth 15 radius 10 alpha 0.8 }
 # renderer { sampler sampled { sampler { random 1024 } integrator { debug reference } } }
+renderer { sampler sampled { sampler { random 4 } integrator { debug normals } } }
 
 imageSize 640 360
 # imageSize 240 240
@@ -56,14 +57,14 @@ material {
 material { plastic
    kd { constant rgbR 0.1 0.2 0.4 }
    ks { constant rgbR 0.5 0.5 0.5 }
-   rough { constant 0.0003125 }
+   rough { constant 0.001 }
 }
 
 newTransform { rotateX -90 translate 280 450 280 }
 
-prim { heightMap 50 50
-   { fbm 0 octaves 6 omega 0.5 }
-   { scale 10 2 10 translate -5 0 -5 }
+prim { heightMap 30 30
+   { fbm 0 octaves 4 omega 0.5 }
+   { scale 8 3 8 translate -4 0 -4 }
 }
 
 #

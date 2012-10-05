@@ -23,7 +23,7 @@ renderer { sppm photonCount 250000 maxDepth 15 radius 10 alpha 0.8 }
 
 imageSize 480 480
 # imageSize 240 240
-# imageSize 720 720
+imageSize 720 720
 
 #
 # camera
@@ -117,7 +117,7 @@ material {
    kt { constant rgbR 1 1 1 }
 }
 
-prim { heightMap 200 200
+prim { heightMap 100 100
    { fbm 0 octaves 5 omega 0.5 }
    { scale 600 100 600 translate -10 500 -10 }
 }

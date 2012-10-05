@@ -77,9 +77,10 @@ triPoints idx m = (p1, p2, p3) where
 -- | assumes that the mesh actually *has* normals
 triNormals :: Int -> Mesh -> (Normal, Normal, Normal)
 {-# INLINE triNormals #-}
-triNormals i m = (ns V.! i, ns V.! (i+1), ns V.! (i+2)) where
+--triNormals i m = (ns V.! i, ns V.! (i+1), ns V.! (i+2)) where
+triNormals i m = (ns V.! o1, ns V.! o2, ns V.! o3) where
    ns = fromJust (mns m)
- --  (o1, o2, o3) = triOffsets t
+   (o1, o2, o3) = triOffsets i m
 
 triUVs :: Int -> Mesh -> (Float, Float, Float, Float, Float, Float)
 {-# INLINE triUVs #-}
