@@ -1,6 +1,10 @@
 
 module Graphics.Bling.IO.MaterialParser (
-   defaultMaterial, pMaterial, pMaterial', pSpectrumMap, namedSpectrumMap
+   defaultMaterial, pMaterial, pMaterial',
+   
+   pDiscSpectrumMap2d, namedDiscSpectrumMap2d,
+   pScalarMap2d
+   
    ) where
 
 import Control.Applicative
@@ -16,10 +20,6 @@ import Graphics.Bling.Material
 
 defaultMaterial :: Material
 defaultMaterial = mkMatte (constant $ rgbToSpectrumRefl (0.9, 0.9, 0.9)) (constant 0)
-
---
--- parsing materials
---
 
 pMaterial :: JobParser ()
 pMaterial = pBlock $ do
@@ -133,10 +133,9 @@ pScalarTexture = namedBlock $
          return $! cellNoise d m
 
       "fbm" -> do
-         oct <- namedInt "octaves"
-         omg <- namedFloat "omega"
+         f <- pFbmMap
          m <- pTextureMapping3d "map"
-         return $! fbmTexture oct omg m
+         return $! texMap3dToTexture f m
       
       "perlin" -> do
          m <- pTextureMapping3d "map"
@@ -154,6 +153,9 @@ pScalarTexture = namedBlock $
          return $! scaleTexture a s t
       
       _ -> fail ("unknown texture type " ++ tp)
+
+pFbmMap :: JobParser ScalarMap3d
+pFbmMap = fbm <$> namedInt "octaves" <*> namedFloat "omega"
 
 pTextureMapping2d :: String -> JobParser TextureMapping2d
 pTextureMapping2d = namedBlock $ do
@@ -227,16 +229,26 @@ pSpectrumTexture = namedBlock $
 -- Texture Maps
 --------------------------------------------------------------------------------
 
-namedSpectrumMap :: String -> JobParser SpectrumMap
-namedSpectrumMap n = string n >> ws >> pSpectrumMap
+pScalarMap2d :: JobParser ScalarMap2d
+pScalarMap2d = pBlock $ do
+   pString >>= \tp -> case tp of
+      "fbm" -> do
+         z <- flt
+         m <- pFbmMap
+         return $! texMap3dTo2d m z
+      
+      x -> fail $ "unknown scalar map type" ++ x
+      
+namedDiscSpectrumMap2d :: String -> JobParser DiscreteSpectrumMap2d
+namedDiscSpectrumMap2d n = string n >> ws >> pDiscSpectrumMap2d
 
-pSpectrumMap :: JobParser SpectrumMap
-pSpectrumMap = pBlock $ do
+pDiscSpectrumMap2d :: JobParser DiscreteSpectrumMap2d
+pDiscSpectrumMap2d = pBlock $ do
    tp <- pString
    case tp of
       "constant" -> do
          s <- pSpectrum
-         return $ constSpectrumMap s
+         return $ constSpectrumMap2d s
 
       "rgbeFile" -> do
          rgbe <- pQString >>= readFileBS

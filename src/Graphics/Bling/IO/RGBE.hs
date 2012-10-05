@@ -30,8 +30,8 @@ data RGBEImage = RGBE
 instance Show RGBEImage where
    show (RGBE size px) = "RGBE Image (size=" ++ (show size) ++ (show px) ++ ")"
 
-rgbeToTextureMap :: RGBEImage -> SpectrumMap
-rgbeToTextureMap (RGBE size@(w, h) px) = {-# SCC "rgbeToTextureMap" #-} mkTextureMap size eval where
+rgbeToTextureMap :: RGBEImage -> DiscreteSpectrumMap2d
+rgbeToTextureMap (RGBE size@(w, h) px) = mkDiscreteTextureMap2d size eval where
    eval cs = eval' $ unCartesian cs
    eval' (u, v) = px UV.! o where
       o = max 0 $ min (UV.length px - 1) $ y * w + x

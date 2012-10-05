@@ -29,7 +29,7 @@ pLight = pBlock $ do
 pInfiniteArea :: JobParser Light
 pInfiniteArea = do
    t <- pTransform
-   l <- namedSpectrumMap "l"
+   l <- namedDiscSpectrumMap2d "l"
    return $ mkInfiniteAreaLight l t
    
 pPointLight :: JobParser Light

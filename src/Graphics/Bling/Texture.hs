@@ -3,21 +3,28 @@ module Graphics.Bling.Texture (
 
    -- * Texture Types
    
-   Texture, SpectrumTexture, ScalarTexture, TextureMapping3d, TextureMapping2d,
-   TextureMap(..), SpectrumMap, ScalarMap, constSpectrumMap, mkTextureMap,
+   Texture, SpectrumTexture, ScalarTexture,
+   DiscreteTextureMap2d(..),
+   DiscreteSpectrumMap2d, mkDiscreteTextureMap2d,
+   ScalarMap2d, ScalarMap3d,
+   
+   -- * Texture Maps
+   
+   constSpectrumMap2d, texMap3dToTexture, texMap3dTo2d,
    
    -- * Texture Mappings
-
+   
+   TextureMapping3d, TextureMapping2d,
    identityMapping3d, uvMapping, planarMapping,
    
    -- * Textures
    
    constant, scaleTexture, addTexture, graphPaper, checkerBoard, noiseTexture,
-   fbmTexture, quasiCrystal, spectrumBlend, imageTexture, readImageTextureMap,
+   fbm, quasiCrystal, spectrumBlend, imageTexture, readImageTextureMap,
    readImageScalarMap,
    
    -- ** Gradients
-
+   
    Gradient, mkGradient, gradient,
    
    -- ** Worley's Cell Noise
@@ -42,7 +49,13 @@ import Graphics.Bling.Spectrum
 -- textures and texture maps
 --------------------------------------------------------------------------------
 
--- | A @Texture@ transforms a @DifferentialGeomerty@ to some value
+type TextureMap2d a = CartesianCoords -> a
+type TextureMap3d a = Point -> a
+
+type ScalarMap2d = TextureMap2d Float
+type ScalarMap3d = TextureMap3d Float
+
+-- | A @Texture@ maps a @DifferentialGeomerty@ to some value
 type Texture a = DifferentialGeometry -> a
 
 type SpectrumTexture = Texture Spectrum
@@ -51,16 +64,25 @@ type ScalarTexture = Texture Float
 type TextureMapping3d = DifferentialGeometry -> (Float, Float, Float)
 type TextureMapping2d = DifferentialGeometry -> CartesianCoords
 
-data TextureMap a = TexMap
-   { texMapEval   :: CartesianCoords -> a
+data DiscreteTextureMap2d a = TexMap
+   { texMapEval   :: TextureMap2d a
    , texSize      :: !PixelSize
    }
 
-type SpectrumMap = TextureMap Spectrum
-type ScalarMap = TextureMap Float
+type DiscreteSpectrumMap2d = DiscreteTextureMap2d Spectrum
+type DiscreteScalarMap2d = DiscreteTextureMap2d Float
 
-mkTextureMap :: PixelSize -> (CartesianCoords -> a) -> TextureMap a
-mkTextureMap size eval = TexMap eval size
+mkDiscreteTextureMap2d :: PixelSize -> TextureMap2d a -> DiscreteTextureMap2d a
+mkDiscreteTextureMap2d size eval = TexMap eval size
+
+texMap3dToTexture :: TextureMap3d a -> TextureMapping3d -> Texture a
+texMap3dToTexture tm m dg = tm $ mkPoint (m dg)
+
+texMap3dTo2d
+   :: TextureMap3d a    -- ^ the 3d texture map to evaluate
+   -> Float             -- ^ the fixed z value
+   -> TextureMap2d a
+texMap3dTo2d m z p = let (x, y) = unCartesian p in m $ mkPoint (x, y, z)
 
 pixelSpectrum :: PixelRGB8 -> Spectrum
 pixelSpectrum (PixelRGB8 r g b) = (rgbToSpectrumRefl . unGamma) (f r, f g, f b) where
@@ -75,39 +97,39 @@ getPixel :: Image PixelRGB8 -> CartesianCoords -> Spectrum
 getPixel i c =  pixelSpectrum $ pixelAt i px py where
    (u, v) = unCartesian c
    (w, h) = (imageWidth i, imageHeight i)
-   px = mod' (floor $ u * (fromIntegral w)) w
-   py = mod' (floor $ (-v) * (fromIntegral h)) h
+   px = mod' (floor $ u * fromIntegral w) w
+   py = mod' (floor $ (-v) * fromIntegral h) h
 
 getPixelScalar :: Image Pixel8 -> CartesianCoords -> Float
 getPixelScalar i c = (\x -> fromIntegral x / 255) $ pixelAt i px py where
    (u, v) = unCartesian c
    (w, h) = (imageWidth i, imageHeight i)
-   px = mod' (floor $ u * (fromIntegral w)) w
-   py = mod' (floor $ v * (fromIntegral h)) h
+   px = mod' (floor $ u * fromIntegral w) w
+   py = mod' (floor $ (-v) * fromIntegral h) h
 
-readImageTextureMap :: BS.ByteString -> Either String SpectrumMap
+readImageTextureMap :: BS.ByteString -> Either String DiscreteSpectrumMap2d
 readImageTextureMap bs = case decodeImage bs of
    Left err -> Left err
-   Right di -> Right $ mkTextureMap size eval where
+   Right di -> Right $ mkDiscreteTextureMap2d size eval where
       (size, eval) = case di of
          (ImageRGB8 i)     -> ((imageWidth i, imageHeight i), getPixel i)
          (ImageRGBA8 i)    -> ((imageWidth i, imageHeight i), getPixel (pixelMap dropTransparency i))
          (ImageYCbCr8 i)   -> ((imageWidth i, imageHeight i), getPixel (convertImage i))
          _ -> error "unsupported image type"
 
-readImageScalarMap :: BS.ByteString -> Either String ScalarMap
+readImageScalarMap :: BS.ByteString -> Either String DiscreteScalarMap2d
 readImageScalarMap bs = case decodeImage bs of
    Left err -> Left err
-   Right di -> Right $ mkTextureMap size eval where
+   Right di -> Right $ mkDiscreteTextureMap2d size eval where
       (size, eval) = case di of
          (ImageY8 i) -> ((imageWidth i, imageHeight i), getPixelScalar i)
          _ -> error "unsupported image type"
 
-imageTexture :: TextureMap a -> TextureMapping2d -> Texture a
+imageTexture :: DiscreteTextureMap2d a -> TextureMapping2d -> Texture a
 imageTexture tm mapping dg = texMapEval tm (mapping dg)
 
-constSpectrumMap :: Spectrum -> SpectrumMap
-constSpectrumMap x = TexMap (const x) (1, 1)
+constSpectrumMap2d :: Spectrum -> DiscreteSpectrumMap2d
+constSpectrumMap2d x = TexMap (const x) (1, 1)
 
 -- | Blends between two spectrum textures using a scalar to specify ratio.
 spectrumBlend
@@ -315,17 +337,17 @@ quasiCrystal o t dg = {-# SCC "quasiCrystal" #-} combine (map wave (angles o)) (
       (cth, sth) = (cos th, sin th)
       f (x, y) = (cos (cth * x + sth * y) + 1) / 2
 
--- | A Fractal Brownian Motion (FBM) texture.
-fbmTexture
+
+-- | Fractal Brownian Motion (FBM)
+fbm
    :: Int               -- ^ number of octaves (higher -> more detail)
-   -> Float               -- ^ lambda (roughness)
-   -> TextureMapping3d  -- ^ the texture mapping to use
-   -> ScalarTexture
-fbmTexture octaves omega t dg = sum $ take octaves go where
+   -> Float             -- ^ lambda (roughness)
+   -> ScalarMap3d
+fbm octaves omega p = sum $ take octaves go where
    go = map (\(l, o) -> o * perlin3d (px * l, py * l, pz * l)) $ zip ls os
    ls = iterate (1.99 *) 1
    os = iterate (omega *) 1
-   (px, py, pz) = t dg
+   (px, py, pz) = (vx p, vy p, vz p)
    
 -- | A simple Perlin noise in 3D using the specified texture mapping.
 noiseTexture

@@ -14,10 +14,12 @@ import Graphics.Bling.Primitive.TriangleMesh
 import Graphics.Bling.Shape
 import Graphics.Bling.IO.MaterialParser
 import Graphics.Bling.IO.ParserCore
+import Graphics.Bling.IO.TransformParser
 import Graphics.Bling.IO.WaveFront
 import Graphics.Bling.Primitive.Bezier
 import Graphics.Bling.Primitive.Fractal
 import Graphics.Bling.Primitive.Geometry
+import Graphics.Bling.Primitive.Heightmap
 
 --------------------------------------------------------------------------------
 -- Primitives
@@ -33,7 +35,15 @@ pPrimitive = pBlock $ do
          optional ws
          s <- getState
          return $ [tesselateBezier subdivs patches (transform s) (material s)]
-                
+      
+      "heightMap" -> do
+         ns <- integ
+         nt <- integ
+         elev <- pScalarMap2d
+         tr <- pTransform
+         s <- getState
+         return $! [heightMap elev (ns, nt) (material s) tr]
+         
       "julia" -> do
          c <- pNamedQuat "c"
          e <- namedFloat "epsilon"

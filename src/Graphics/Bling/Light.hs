@@ -28,10 +28,10 @@ data LightSample = LightSample {
 
 data Light
    = Infinite
-      { _infRadiance :: SpectrumMap
-      , _infAvg      :: Spectrum
-      , _infDis      :: Dist2D
-      , _infw2l      :: Transform }
+      { _infRadiance :: !DiscreteSpectrumMap2d
+      , _infAvg      :: !Spectrum
+      , _infDis      :: !Dist2D
+      , _infw2l      :: !Transform }
    | Directional !Spectrum !Normal
    | PointLight !Spectrum !Point
    | AreaLight {
@@ -68,7 +68,7 @@ mkAreaLight
 mkAreaLight s r t lid = AreaLight lid s r t (inverse t)
 
 mkInfiniteAreaLight
-   :: SpectrumMap
+   :: DiscreteSpectrumMap2d
    -> Transform
    -> Light
 mkInfiniteAreaLight rmap t = Infinite rmap avg dist t where
