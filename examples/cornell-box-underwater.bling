@@ -117,8 +117,8 @@ material {
    kt { constant rgbR 1 1 1 }
 }
 
-prim { heightMap 100 100
-   { fbm 0 octaves 5 omega 0.5 }
+prim { heightMap 200 200
+   { fbm 0 octaves 4 omega 0.5 }
    { scale 600 100 600 translate -10 500 -10 }
 }
 

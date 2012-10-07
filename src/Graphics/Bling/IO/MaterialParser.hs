@@ -237,6 +237,11 @@ pScalarMap2d = pBlock $ do
          m <- pFbmMap
          return $! texMap3dTo2d m z
       
+      "scale" -> do
+         f <- flt
+         m <- pScalarMap2d
+         return $! (\x -> f * m x)
+      
       x -> fail $ "unknown scalar map type" ++ x
       
 namedDiscSpectrumMap2d :: String -> JobParser DiscreteSpectrumMap2d

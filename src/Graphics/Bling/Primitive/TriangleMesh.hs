@@ -13,7 +13,6 @@ import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 
-
 triangulate :: [[a]] -> [a]
 triangulate = concatMap go where
    go [] = []
@@ -41,7 +40,7 @@ mkTriangleMesh
 mkTriangleMesh o2w mat p i n uv
    | V.length i `rem` 3 /= 0 = error "mkTriangleMesh: number of indices must be multiple of 3"
    | V.any (>= V.length p) i = error "mkTriangleMesh: contains out of bounds indices"
---   | maybe False (\uv' -> V.length uv' /= V.length p) uv = error "mkTriangleMesh: # of UVs and # of points mismatch"
+   | maybe False (\uv' -> V.length uv' /= 2 * V.length p) uv = error "mkTriangleMesh: # of UVs and # of points mismatch"
    | V.any (< 0) i = error "mkTriangleMesh: contains negative indices"
    | otherwise = {-# SCC "mkTriangleMesh" #-} Primitive inter inters wb flat Nothing sg
    where
@@ -62,34 +61,38 @@ mkTriangleMesh o2w mat p i n uv
 triOffsets :: Int -> Mesh -> (Int, Int, Int)
 {-# INLINE triOffsets #-}
 triOffsets idx m = (o1, o2, o3) where
-   o1 = mvidx m V.! (idx + 0)
-   o2 = mvidx m V.! (idx + 1)
-   o3 = mvidx m V.! (idx + 2)
+   o1 = V.unsafeIndex (mvidx m) (idx + 0)
+   o2 = V.unsafeIndex (mvidx m) (idx + 1)
+   o3 = V.unsafeIndex (mvidx m) (idx + 2)
 
 triPoints :: Int -> Mesh -> (Point, Point, Point)
 {-# INLINE triPoints #-}
 triPoints idx m = (p1, p2, p3) where
    (o1, o2, o3) = triOffsets idx m
-   p1 = mps m V.! o1
-   p2 = mps m V.! o2
-   p3 = mps m V.! o3
+   p1 = V.unsafeIndex (mps m) o1
+   p2 = V.unsafeIndex (mps m) o2
+   p3 = V.unsafeIndex (mps m) o3
 
 -- | assumes that the mesh actually *has* normals
 triNormals :: Int -> Mesh -> (Normal, Normal, Normal)
 {-# INLINE triNormals #-}
 --triNormals i m = (ns V.! i, ns V.! (i+1), ns V.! (i+2)) where
-triNormals i m = (ns V.! o1, ns V.! o2, ns V.! o3) where
-   ns = fromJust (mns m)
-   (o1, o2, o3) = triOffsets i m
+triNormals i m =
+   let ns = fromJust (mns m)
+       (o1, o2, o3) = triOffsets i m
+   in
+      (V.unsafeIndex ns o1, V.unsafeIndex ns o2, V.unsafeIndex ns o3)
 
 triUVs :: Int -> Mesh -> (Float, Float, Float, Float, Float, Float)
 {-# INLINE triUVs #-}
 triUVs idx m = maybe (0, 0, 1, 0, 1, 1) go (muvs m) where
-   (o1, o2, o3) = (idx, idx+1, idx+2) -- triOffsets t
-   muv x i = x V.! i
-   go uvs = (muv uvs (2 * o1), muv uvs (2 * o1 + 1),
-             muv uvs (2 * o2), muv uvs (2 * o2 + 1),
-             muv uvs (2 * o3), muv uvs (2 * o3 + 1))
+   (o1, o2, o3) = triOffsets idx m
+
+   go uvs = (muv (2 * o1), muv (2 * o1 + 1),
+             muv (2 * o2), muv (2 * o2 + 1),
+             muv (2 * o3), muv (2 * o3 + 1)) where
+             
+         muv i = V.unsafeIndex uvs i             
 
 mkTri :: Mesh -> Int -> Primitive
 mkTri mesh n
@@ -183,7 +186,7 @@ intersectTri tri idx mesh r@(Ray ro rd tmin tmax)
       b0 = 1 - b1 - b2
       tu = b0 * uv00 + b1 * uv10 + b2 * uv20
       tv = b0 * uv01 + b1 * uv11 + b2 * uv21
-         
+      
       -- create intersection
       dg = mkDgTri (rayAt r t) tu tv dpdu dpdv (mkV (0, 0, 0)) (mkV (0,0, 0)) (b1, b2)
       e = 1e-3 * t

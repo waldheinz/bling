@@ -1,7 +1,13 @@
 
-module Graphics.Bling.Utils (
+{-# LANGUAGE FlexibleContexts #-}
 
-   -- * NFData Wrappers for Vectors
+module Graphics.Bling.Utils (
+   
+   -- * Vector Utils
+   
+   flatTuple,
+   
+   -- ** NFData Wrappers for Vectors
 
    NFUVector, unNFUVector, mkNFUVector,
    NFBVector, unNFBVector, mkNFBVector,
@@ -37,7 +43,7 @@ debugRay sc (Ray o d _ _) a = (flip trace) a (str o 1 ++ " " ++ str d sc) where
    str v sc' = concat $ (intersperse " ") $ map (\ve -> show $ sc' * ve v) [vx, vy, vz]
    
 --------------------------------------------------------------------------------
--- NFData wrappers for Vectors
+-- Vector utils
 --------------------------------------------------------------------------------
 
 newtype NFUVector a = NFUVector { unNFUVector :: UV.Vector a }
@@ -58,6 +64,11 @@ mkNFBVector = NFBVector
 instance (NFData a) => NFData (NFBVector a) where
    rnf (NFBVector v) = rnf $ BV.toList v
    {-# INLINE rnf #-}
+
+flatTuple :: (V.Vector v a, V.Vector v (a, a)) => v (a, a) -> v a
+{-# INLINE flatTuple #-}
+flatTuple v = V.generate (2 * V.length v) $
+   \i -> (if even i then fst else snd) $ V.unsafeIndex v (i `quot` 2)
 
 --------------------------------------------------------------------------------
 -- GrowVec

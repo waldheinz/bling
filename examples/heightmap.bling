@@ -63,7 +63,7 @@ material { plastic
 newTransform { rotateX -90 translate 280 450 280 }
 
 prim { heightMap 30 30
-   { fbm 0 octaves 4 omega 0.5 }
+   { fbm 0 octaves 2 omega 0.5 }
    { scale 8 3 8 translate -4 0 -4 }
 }
 
