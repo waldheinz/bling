@@ -12,6 +12,9 @@ import qualified Data.Vector.Unboxed as V
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
+import Graphics.Bling.Utils
+
+import Debug.Trace
 
 triangulate :: [[a]] -> [a]
 triangulate = concatMap go where
@@ -30,28 +33,33 @@ data Mesh = Mesh
    }
 
 mkTriangleMesh
-   :: Transform                     -- ^ object-to-world transform
-   -> Material                      -- ^ material for all triangles
-   -> V.Vector Point                -- ^ vertex positions
-   -> V.Vector Int                  -- ^ vertex indices for triangles
-   -> Maybe (V.Vector Normal)       -- ^ shading normals
-   -> Maybe (V.Vector Float)        -- ^ uv coordinates for parametrization
+   :: Transform                        -- ^ object-to-world transform
+   -> Material                         -- ^ material for all triangles
+   -> V.Vector Point                   -- ^ vertex positions
+   -> V.Vector Int                     -- ^ vertex indices for triangles
+   -> Maybe (V.Vector Normal)          -- ^ shading normals
+   -> Maybe (V.Vector (Float, Float))  -- ^ uv coordinates for parametrization
    -> Primitive
 mkTriangleMesh o2w mat p i n uv
-   | V.length i `rem` 3 /= 0 = error "mkTriangleMesh: number of indices must be multiple of 3"
-   | V.any (>= V.length p) i = error "mkTriangleMesh: contains out of bounds indices"
-   | maybe False (\uv' -> V.length uv' /= 2 * V.length p) uv = error "mkTriangleMesh: # of UVs and # of points mismatch"
-   | V.any (< 0) i = error "mkTriangleMesh: contains negative indices"
+   | V.any (< 0) i = error
+         "mkTriangleMesh: contains negative indices"
+   | V.length i `rem` 3 /= 0 = error
+         "mkTriangleMesh: number of indices must be multiple of 3"
+   | V.any (>= V.length p) i = error
+         "mkTriangleMesh: contains out of bounds indices"
+   | maybe False (\uv' -> V.any (>= V.length uv') i) uv = error $
+         "mkTriangleMesh: # of UVs and # of points mismatch (" ++ (show (V.length $ fromJust uv)) ++ ")"
    | otherwise = {-# SCC "mkTriangleMesh" #-} Primitive inter inters wb flat Nothing sg
    where
       p' = V.map (transPoint o2w) p
       n' = n >>= \ns -> return $ V.map (transNormal o2w) ns
-      mesh = Mesh i p' n' uv mat
-      flat = map (mkTri mesh) [0..(V.length (mvidx mesh) `div` 3 - 1)]
-      wb = V.foldl' extendAABBP emptyAABB $ mps mesh
+      mesh = Mesh i p' n' (fmap flatTuple uv) mat
+      flat = map (mkTri mesh) [0..(V.length i `quot` 3 - 1)]
+      wb = V.foldl' extendAABBP emptyAABB p'
       inter _ = error "TriangleMesh : unimplemented intersects"
       inters _ = error "TriangleMesh : unimplemented intersects"
       sg = error "TriangleMesh : unimplemented shadingGeometry"
+      
 --------------------------------------------------------------------------------
 -- Triangles
 --------------------------------------------------------------------------------
@@ -76,7 +84,6 @@ triPoints idx m = (p1, p2, p3) where
 -- | assumes that the mesh actually *has* normals
 triNormals :: Int -> Mesh -> (Normal, Normal, Normal)
 {-# INLINE triNormals #-}
---triNormals i m = (ns V.! i, ns V.! (i+1), ns V.! (i+2)) where
 triNormals i m =
    let ns = fromJust (mns m)
        (o1, o2, o3) = triOffsets i m

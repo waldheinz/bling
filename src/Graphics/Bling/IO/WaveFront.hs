@@ -20,13 +20,15 @@ import Control.Monad.Trans.Class (lift)
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as MV
 
+import Debug.Trace
+
 type STUGrowVec s a = GrowVec (MV.MVector) s a
 
 data WFState s = WFState
    { stPoints     :: ! (STUGrowVec s Point)           -- vertex positions
    , stNormals    :: ! (STUGrowVec s Normal)          -- vertex normals
    , stFaces      :: ! (STUGrowVec s (Int, Int, Int)) -- (point index, uv index, normal index)
-   , stTexCoords  :: ! (STUGrowVec s Float)           -- the UVs as found in the file
+   , stTexCoords  :: ! (STUGrowVec s (Float, Float))  -- the UVs as found in the file
    , stMtls       :: ! [(String, Int)]                -- material name and first face where to apply it
    }
    
@@ -41,8 +43,7 @@ initialState = do
 type WFParser s a = ParsecT BS.ByteString (WFState s) (ST s) a
 
 matIntervals :: Int -> [(String, Int)] -> [(String, Int, Int)]
-matIntervals cnt mi = filt intervals where
-   filt = filter (\(_, _, l) -> l > 0)
+matIntervals cnt mi = filter (\(_, _, l) -> l > 0) intervals where
    starts = ("default", 0) : mi
    ends = map snd mi ++ [cnt]
    intervals = zipWith (\(n, s) e -> (n, s, e - s)) starts ends
@@ -59,25 +60,26 @@ parseWaveFront mmap fname = {-# SCC "parseWaveFront" #-} do
             (pis, uvis, nis) = V.unzip3 fs -- (point indices, uv indices, normal indices)
             
             
-         st <- getState
+         st <- traceShow("uvis", uvis, "uvs", uvs) $ getState
          forM (matIntervals (V.length pis) (reverse mtls)) $ \(n, s, l) -> do
             let
                pis' = V.slice s l pis
-
-               hasNormals = V.all (>=0) $ V.slice s l nis
-               mns = if hasNormals
-                  then Just $ V.generate l $ \i -> ns V.! (nis V.! (i + s))
+               
+               mns = if V.all (>=0) $ V.slice s l nis
+                  then Nothing -- Just $ V.generate l $ \i -> ns V.! (nis V.! (i + s))
                   else Nothing
                   
-               hasUvs = V.all (>=0) $ V.slice s l uvis
-               muv = if hasUvs
-                  then Just $ V.generate (2 * l) $ \i ->
-                     let (i', o) = divMod i 2 in uvs V.! (2 * (uvis V.! (i' + s)) + o)
+               uvb = V.backpermute uvs uvis
+               
+               muv = if V.all (>=0) $ V.slice s l uvis
+                  then traceShow("pis'", pis', uvis) $ let muv' = V.generate (V.maximum pis' + 1) $ \i -> uvs V.! (uvis V.! i) -- (uvis V.! i))
+                     in Just $ muv' -- V.backpermute muv' pis
+                     
                   else Nothing
                   
-            return $! mkTriangleMesh (transform st) (mmap n) ps pis' mns muv
+            return $! traceShow (pis', ps) $ mkTriangleMesh (transform st) (mmap n) ps pis' mns muv
             
-waveFrontParser :: WFParser s (V.Vector Point, V.Vector Normal, V.Vector (Int, Int, Int), V.Vector Float, [(String, Int)])
+waveFrontParser :: WFParser s (V.Vector Point, V.Vector Normal, V.Vector (Int, Int, Int), V.Vector (Float, Float), [(String, Int)])
 waveFrontParser = {-# SCC "waveFrontParser" #-} do
    skipMany $ pNormal <|> pUV <|> vertex <|> face <|> mtlspec <|> ignore
    
@@ -106,7 +108,7 @@ pUV = do
    _ <- optional $ space >> float -- w
    
    st <- getState
-   lift $ mapM_ (gvAdd $ stTexCoords st) [u, v]
+   lift $ gvAdd (stTexCoords st) (u, v)
    
 ignore :: WFParser s ()
 ignore = skipMany (noneOf "\n") >> eol

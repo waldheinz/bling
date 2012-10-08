@@ -9,7 +9,6 @@ import Graphics.Bling.Primitive
 import Graphics.Bling.Primitive.TriangleMesh
 import Graphics.Bling.Reflection
 import Graphics.Bling.Texture
-import Graphics.Bling.Utils
 
 import qualified Data.Vector.Unboxed as UV
 
@@ -46,6 +45,6 @@ heightMap elev (ns, nt) mat t = mkTriangleMesh t mat ps is norms uvs where
       dz = elev (Cartesian (x, z - ez)) - elev (Cartesian (x, z + ez))
       
    -- uv
-   uvs = Just $ flatTuple $ UV.fromList $ map uv coords
+   uvs = Just $ UV.fromList $ map uv coords
    uv (x, z) = (x / (fns - 1), z / (fns - 1))
    
