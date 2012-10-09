@@ -171,9 +171,9 @@ sample'
 
 sample' (AreaLight _ s r t _) _ uo ud = (r, ray, ns, pd) where
    (org', ns') = sampleShape' s uo
-   (org, ns) = (transPoint t org', transNormal t ns')
-   pd = invTwoPi * shapePdf' s org
-   wi = let d = uniformSampleSphere ud in if ns `dot` d < 0 then -d else d
+   (org, ns) = (transPoint t org', normalize $ transNormal t ns')
+   pd = invPi * shapePdf' s org * ns `absDot` wi
+   wi = cosineSampleHemisphere' ns ud
    ray = Ray org wi 1e-3 infinity
 
 sample' (Directional r n) bounds uo _ = (r, ray, ns, pd) where
