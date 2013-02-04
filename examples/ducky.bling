@@ -9,7 +9,7 @@ imageSize 640 360
 renderer {
    sampler
    sampled {
-      sampler { stratified 6 6 }
+      sampler { stratified 2 2 }
       integrator { path maxDepth 5 sampleDepth 3 }
    }
 }
@@ -20,6 +20,14 @@ transform {
    lookAt {
       pos 0 235 -500
       look 0 30 0
+      up 0 1 0
+   }
+}
+
+newTransform {
+   lookAt {
+      pos 0 3 -3
+      look 0 0 0
       up 0 1 0
    }
 }
@@ -44,9 +52,18 @@ prim { shape { quad 1000 1000 } }
 
 newTransform { rotateY 140 }
 
+newTransform { }
 prim {
-   waveFront "meshes/ducky.obj"
+#   waveFront "meshes/ducky.obj"
+   waveFront "meshes/plane.obj"
    materials {
+      "default" {
+         plastic
+         kd { constant rgbR 0.7 0.7 0.3 }
+         ks { constant rgbR 0.5 0.5 0.5 }
+         rough { constant 0.0005 }
+      }
+      
       "DBody" {
          plastic
          kd { constant rgbR 0.7 0.7 0.3 }
@@ -79,8 +96,8 @@ prim {
 }
 
 light { infinite { rotateX -90 }
-   l { rgbeFile "envmaps/studio015.hdr" }
+#   l { rgbeFile "envmaps/studio015.hdr" }
 #   l { rgbeFile "/home/trem/Downloads/garage4_hd.hdr" }
 #   l { rgbeFile "/home/trem/Downloads/ennis.hdr" }
-#   l { constant rgbI 1 1 1 }
+   l { constant rgbI 1 1 1 }
 }

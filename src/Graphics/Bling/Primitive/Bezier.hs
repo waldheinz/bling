@@ -85,7 +85,7 @@ tesselateBezier subs patches t mat = {-# SCC "tesselateBezier" #-} mesh where
       iv <- MV.new (subs * subs * length patches * 3 * 2)
       pv <- MV.new (stride * length patches)
       nv <- MV.new (stride * length patches)
-      uvv <- MV.new (stride * length patches * 2)
+      uvv <- MV.new (stride * length patches)
       
       forM_ (zip patches [0..]) $ \(p, pn) -> do
          let (pis, pps, uv) = onePatch subs p
@@ -93,11 +93,10 @@ tesselateBezier subs patches t mat = {-# SCC "tesselateBezier" #-} mesh where
          forM_ (zip pis [0..]) $ \(vi, o) -> -- indices
             MV.write iv (pn * subs * subs * 3 * 2 + o) (vi + pn * stride)
             
-         forM_ (zip3 pps uv [0..]) $ \((vp, dpdu, dpdv), (u, v), o) -> do
+         forM_ (zip3 pps uv [0..]) $ \((vp, dpdu, dpdv), uvp, o) -> do
             MV.write pv (pn * stride + o) vp -- points
             MV.write nv (pn * stride + o) (dpdu `cross` dpdv) -- normals
-            MV.write uvv ((pn * stride + o) * 2 + 0) u
-            MV.write uvv ((pn * stride + o) * 2 + 1) v
+            MV.write uvv (pn * stride + o) uvp
             
       pv' <- V.freeze pv
       iv' <- V.freeze iv

@@ -22,7 +22,7 @@ renderer {
 
 imageSize 480 480
 # imageSize 240 240
-# imageSize 720 720
+imageSize 720 720
 
 #
 # camera
@@ -110,29 +110,18 @@ prim { shape { sphere radius 130 } }
 #
 
 material {
-   bumpMap
-   bump {
-      scale 15 15 tex {
-         fbm octaves 2 omega 0.3 map {
-            identity { scale 0.01 0.01 0.01 }
-         }
-      }
-   }
-   
    glass
    ior { constant 1.33 }
    kr { constant rgbR 1 1 1 }
    kt { constant rgbR 1 1 1 }
 }
 
+prim { heightMap 200 200
+   { fbm 0 octaves 4 omega 0.5 }
+   { scale 600 100 600 translate -10 500 -10 }
+}
 
-# material { transMatte kr { constant rgbR 0.3 0.3 0.3 } kt { constant rgbR 0.7 0.7 0.7 } ks { constant 0 } }
-
-newTransform { rotateX -90 translate 280 450 280 }
-
-# prim { mesh vertexCount 4 faceCount 1 v 570 550 -10 v -10 550 -10 v -10 550 570 v 570 550 570 f 3 2 1 0 }
-
-prim { shape { quad 360 360 } }
+# prim { shape { quad 360 360 } }
 
 #
 # mirror sphere
@@ -229,10 +218,10 @@ material {
 emission {
 #   spd { 400 0, 500 160, 600 312, 700 386 }
 #   rgbI 14 14 14
-   temp 3000
+   temp 3500
 }
 
-newTransform { rotateX -90 translate 278 600 279.5  }
+newTransform { rotateX -90 translate 278 800 279.5  }
 prim { shape { quad 15 15 } }
 
 # light { directional intensity rgbI 1 1 1 normal 0 1 0 }

@@ -13,8 +13,8 @@ mkSunSkyLight
    :: Vector -- ^ the east vector
    -> Vector -- ^ the sun direction in world coordinates
    -> Float -- ^ the sky's turbidity
-   -> SpectrumMap
-mkSunSkyLight east sdw turb = mkTextureMap (640, 480) eval where
+   -> DiscreteSpectrumMap2d
+mkSunSkyLight east sdw turb = mkDiscreteTextureMap2d (640, 480) eval where
    eval cc = {-# SCC "eval" #-}
       (skySpectrum ssd $ (sphToDir $ cartToSph cc)) +
       (sunSpectrum (normalize $ worldToLocal basis sdw) sunR (sphToDir $ cartToSph cc))

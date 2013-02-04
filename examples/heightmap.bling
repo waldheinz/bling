@@ -1,0 +1,94 @@
+
+#filter sinc 4.0 4.0 3.0
+#filter triangle 2.0 2.0
+#filter mitchell 3.0 3.0 0.333333 0.333333
+filter box
+# filter triangle 2 2
+
+renderer {
+   sampler
+   sampled {
+      sampler { stratified 2 2 }
+      integrator { path maxDepth 15 sampleDepth 3 }
+   }
+}
+
+# renderer { sampler sampled { sampler { random samples 64 } integrator { path maxDepth 5 sampleDepth 3 } } }
+# renderer { sampler sampled { sampler { stratified xSamples 8 ySamples 8 } integrator { path maxDepth 7 sampleDepth 5 } } }
+# renderer { light passPhotons 100000 }
+# renderer { metropolis maxDepth 8 mpp 1 bootstrap 1000 plarge 0.25 directSamples 1 }
+# renderer { sampler sampled { sampler { random 16 } integrator { bidir maxDepth 5 sampleDepth 3 } } }
+# renderer { sppm photonCount 250000 maxDepth 15 radius 10 alpha 0.8 }
+# renderer { sampler sampled { sampler { random 1024 } integrator { debug reference } } }
+renderer { sampler sampled { sampler { random 4 } integrator { debug normals } } }
+
+imageSize 640 360
+# imageSize 240 240
+# imageSize 720 720
+
+#
+# camera
+#
+
+transform {
+   lookAt {
+      pos   0 5 -5
+      look  0 0 0
+      up    0 1 0
+   }
+}
+
+camera {
+   perspective
+   fov 37.5
+   lensRadius 0
+   focalDistance 10
+}
+
+newTransform { }
+
+material {
+   matte
+   kd { constant rgbR 0.8 0.8 0.8 }
+   sigma { constant 0 }
+}
+
+
+material { plastic
+   kd { constant rgbR 0.1 0.2 0.4 }
+   ks { constant rgbR 0.5 0.5 0.5 }
+   rough { constant 0.001 }
+}
+
+newTransform { rotateX -90 translate 280 450 280 }
+
+prim { heightMap 30 30
+   { fbm 0 octaves 2 omega 0.5 }
+   { scale 8 3 8 translate -4 0 -4 }
+}
+
+#
+# light source
+#
+
+material {
+   matte
+   kd { constant spd { 1 0.78 } }
+   sigma { constant 0 }
+}
+
+emission {
+#   spd { 400 0, 500 160, 600 312, 700 386 }
+#   rgbI 14 14 14
+   temp 3500
+}
+
+newTransform { rotateX -90 translate 0 10 0  }
+prim { shape { quad 0.25 0.25 } }
+
+# light { directional intensity rgbI 1 1 1 normal 0 1 0 }
+
+# light { infinite { rotateX -90 }
+#   l { sunSky east 0 0 1 sunDir 0 1 0 turbidity 2 }
+# }
+

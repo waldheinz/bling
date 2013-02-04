@@ -14,7 +14,8 @@ module Graphics.Bling.Montecarlo (
    
    uniformSampleCone, uniformConePdf, cosineSampleHemisphere,
    concentricSampleDisk, concentricSampleDisk', uniformSampleSphere,
-   uniformSpherePdf, uniformSampleHemisphere, uniformSampleTriangle
+   uniformSpherePdf, uniformSampleHemisphere, uniformSampleTriangle,
+   cosineSampleHemisphere'
    ) where
 
 import qualified Data.Vector.Unboxed as V
@@ -141,6 +142,15 @@ uniformSampleCone (LocalCoordinates x y z) cosThetaMax (u1, u2) = let
 cosineSampleHemisphere :: Rand2D -> Vector
 {-# INLINE cosineSampleHemisphere #-}
 cosineSampleHemisphere u = Vector x y (sqrt (max 0 (1 - x*x - y*y))) where
+   (x, y) = concentricSampleDisk u
+   
+-- cosine - sample the hemisphere around a vector
+cosineSampleHemisphere'
+   :: Vector   -- ^ the normal defining the hemisphere to sample
+   -> Rand2D   -- ^ the random value determining the sampled vector
+   -> Vector
+cosineSampleHemisphere' n u = localToWorld (coordinateSystem n) v where
+   v = Vector x y (sqrt (max 0 (1 - x*x - y*y)))
    (x, y) = concentricSampleDisk u
    
 concentricSampleDisk :: Rand2D -> (Float, Float)
