@@ -65,8 +65,8 @@ type TextureMapping3d = DifferentialGeometry -> (Float, Float, Float)
 type TextureMapping2d = DifferentialGeometry -> CartesianCoords
 
 data DiscreteTextureMap2d a = TexMap
-   { texMapEval   :: TextureMap2d a
-   , texSize      :: !PixelSize
+   { texMapEval   :: ! (TextureMap2d a)
+   , texSize      :: {-# UNPACK #-} ! PixelSize
    }
 
 type DiscreteSpectrumMap2d = DiscreteTextureMap2d Spectrum

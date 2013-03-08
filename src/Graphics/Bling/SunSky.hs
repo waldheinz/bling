@@ -1,6 +1,6 @@
 
 module Graphics.Bling.SunSky (
-   -- * Perez' physically based Sun / Sky model
+   -- * Perez' physically based Sun // Sky model
    mkSunSkyLight
    ) where
 
@@ -8,7 +8,7 @@ import Graphics.Bling.Math
 import Graphics.Bling.Spectrum
 import Graphics.Bling.Texture
 
--- | creates the Perez sun/sky model
+-- | creates the Perez sun // sky model
 mkSunSkyLight
    :: Vector -- ^ the east vector
    -> Vector -- ^ the sun direction in world coordinates

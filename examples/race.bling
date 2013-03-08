@@ -9,20 +9,20 @@ filter mitchell 3 3 0.333333 0.333333
 # filter gauss 2 2 2
 
 # imageSize 960 640
-# imageSize 480 320
+imageSize 480 320
 # imageSize 640 480
 
-imageSize 1280 720
+# imageSize 1280 720
 
 renderer {
    sampler
    sampled {
-      sampler { stratified 6 6 }
+      sampler { stratified 3 3 }
       integrator { path maxDepth 5 sampleDepth 3 }
    }
 }
 
-# renderer { metropolis  passCount 10 mutations 100000 bootstrap 10000}
+renderer { metropolis maxDepth 5 mpp 100 bootstrap 10000 plarge 0.5 directSamples 4 }
 
 transform {
    lookAt {
@@ -45,12 +45,7 @@ camera {
 
 
 light { infinite { rotateX -90 }
-   l {
-      sunSky
-      east 1 0 0
-      sunDir 1 0.2 0
-      turbidity 5
-   }
+  l { sunSky east 1 0 0 sunDir 1 0.2 0 turbidity 5 }
 }
 
 #

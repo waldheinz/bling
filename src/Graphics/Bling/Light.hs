@@ -9,6 +9,8 @@ module Graphics.Bling.Light (
    LightSample(..), sample, sample', le, lEmit, pdf, power
    ) where
 
+import Data.List (foldl')
+
 import Graphics.Bling.AABB
 import Graphics.Bling.Math
 import Graphics.Bling.Montecarlo
@@ -28,10 +30,10 @@ data LightSample = LightSample {
 
 data Light
    = Infinite
-      { _infRadiance :: !DiscreteSpectrumMap2d
-      , _infAvg      :: !Spectrum
-      , _infDis      :: !Dist2D
-      , _infw2l      :: !Transform }
+      { _infRadiance :: ! DiscreteSpectrumMap2d
+      , _infAvg      :: ! Spectrum
+      , _infDis      :: ! Dist2D
+      , _infw2l      :: ! Transform }
    | Directional !Spectrum !Normal
    | PointLight !Spectrum !Point
    | AreaLight {
@@ -75,7 +77,7 @@ mkInfiniteAreaLight rmap t = Infinite rmap avg dist t where
    dist = mkDist2D (texSize rmap) (sY . eval)
    (sx, sy) = (\(ix, iy) -> (fromIntegral ix, fromIntegral iy)) $ texSize rmap
    (mx, my) = texSize rmap
-   avg = sScale (sum $ map eval [(x, y) | y <- [0..my], x <- [0..mx]]) (1 / sx * sy)
+   avg = sScale (foldl' (+) black $ map eval [(x, y) | y <- [0..my], x <- [0..mx]]) (1 / sx * sy)
    eval (x, y) = texMapEval rmap p where
       p = Cartesian (fromIntegral x / sx, fromIntegral y / sy)
       
