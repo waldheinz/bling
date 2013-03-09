@@ -14,9 +14,6 @@ import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
-import Graphics.Bling.Utils
-
-import Debug.Trace
 
 smps2D :: Int
 smps2D = 3

@@ -34,7 +34,7 @@ pPrimitive = pBlock $ do
          patches <- many1 (try pBezierPatch)
          optional ws
          s <- getState
-         return $ [tesselateBezier subdivs patches (transform s) (material s)]
+         return $ tesselateBezier subdivs patches (transform s) (material s)
       
       "heightMap" -> do
          ns <- integ
@@ -42,7 +42,7 @@ pPrimitive = pBlock $ do
          elev <- pScalarMap2d
          tr <- pTransform
          s <- getState
-         return $! [heightMap elev (ns, nt) (material s) tr]
+         return $! heightMap elev (ns, nt) (material s) tr
          
       "julia" -> do
          c <- pNamedQuat "c"
@@ -51,7 +51,7 @@ pPrimitive = pBlock $ do
          s <- getState
          return $ [mkJuliaQuat (material s) c e i]
       
-      "mesh" -> pMesh >>= \m -> return $! [m]
+      "mesh" -> pMesh >>= \m -> return $! m
          
       "shape" -> do
          shp <- pShape
@@ -120,7 +120,7 @@ pBezierPatch = (flip namedBlock) "p" $ do
         (Right p) -> return p
         (Left err) -> fail $ "error parsing bezier patch: " ++ err
 
-pMesh :: JobParser Primitive
+pMesh :: JobParser [Primitive]
 pMesh = do
    vc <- namedInt "vertexCount" <?> "vertexCount missing"
    fc <- namedInt "faceCount"  <?> "faceCount missing"

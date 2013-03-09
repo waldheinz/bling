@@ -19,11 +19,10 @@ import Graphics.Bling.Reflection
 --
 
 -- data Fractal = Julia {-# UNPACK #-} !Quaternion {-# UNPACK #-} !Float {-# UNPACK #-} !Int
-   
+
 mkJuliaQuat :: Material -> Quaternion -> Float -> Int -> Primitive
 mkJuliaQuat mat q e mi = prim where
-   prim = Primitive inter inters wb flat Nothing sg
-   flat = [prim]
+   prim = Primitive inter inters wb Nothing sg
    wb = AABB (mkPoint' n n n) $ mkPoint' p p p where
       (n, p) = (-juliaRadius, juliaRadius)
       

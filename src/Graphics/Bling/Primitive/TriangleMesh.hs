@@ -14,8 +14,6 @@ import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 import Graphics.Bling.Utils
 
-import Debug.Trace
-
 triangulate :: [[a]] -> [a]
 triangulate = concatMap go where
    go [] = []
@@ -39,7 +37,7 @@ mkTriangleMesh
    -> V.Vector Int                     -- ^ vertex indices for triangles
    -> Maybe (V.Vector Normal)          -- ^ shading normals
    -> Maybe (V.Vector (Float, Float))  -- ^ uv coordinates for parametrization
-   -> Primitive
+   -> [Primitive]
 mkTriangleMesh o2w mat p i n uv
    | V.any (< 0) i = error
          "mkTriangleMesh: contains negative indices"
@@ -49,16 +47,11 @@ mkTriangleMesh o2w mat p i n uv
          "mkTriangleMesh: contains out of bounds indices"
    | maybe False (\uv' -> V.any (>= V.length uv') i) uv = error $
          "mkTriangleMesh: # of UVs and # of points mismatch (" ++ (show (V.length $ fromJust uv)) ++ ")"
-   | otherwise = {-# SCC "mkTriangleMesh" #-} Primitive inter inters wb flat Nothing sg
+   | otherwise = {-# SCC "mkTriangleMesh" #-} map (mkTri mesh) [0..(V.length i `quot` 3 - 1)]
    where
       p' = V.map (transPoint o2w) p
       n' = n >>= \ns -> return $ V.map (transNormal o2w) ns
       mesh = Mesh i p' n' (fmap flatTuple uv) mat
-      flat = map (mkTri mesh) [0..(V.length i `quot` 3 - 1)]
-      wb = V.foldl' extendAABBP emptyAABB p'
-      inter _ = error "TriangleMesh : unimplemented intersects"
-      inters _ = error "TriangleMesh : unimplemented intersects"
-      sg = error "TriangleMesh : unimplemented shadingGeometry"
       
 --------------------------------------------------------------------------------
 -- Triangles
@@ -105,11 +98,10 @@ mkTri :: Mesh -> Int -> Primitive
 mkTri mesh n
    | V.length (mvidx mesh) <= (n * 3 + 2) = error "out of bounds triangle"
    | otherwise = prim where
-      prim = Primitive inter inters wb flat Nothing sg
+      prim = Primitive inter inters wb Nothing sg
       idx = 3 * n
       inter ray = {-# SCC "intersect" #-} intersectTri prim idx mesh ray
       inters ray = {-# SCC "intersects" #-} intersectsTri idx mesh ray
-      flat = [prim]
       
       wb = foldl' extendAABBP emptyAABB [p1, p2, p3] where
          (p1, p2, p3) = triPoints idx mesh

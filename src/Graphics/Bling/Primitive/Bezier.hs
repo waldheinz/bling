@@ -77,7 +77,7 @@ onePatch subdivs p = {-# SCC "onePatch" #-} (is, ps, uvs) where
    ps = concat [evalv (bernstein (fromIntegral i * step)) (bernsteinDeriv (fromIntegral i * step)) | i <- [0 .. subdivs]]
    evalv bu bdu = [evalPatch p bu bdu (bernstein (fromIntegral j * step)) (bernsteinDeriv  (fromIntegral j * step)) | j <- [0 .. subdivs]]
    
-tesselateBezier :: Int -> [Patch] -> Transform -> Material -> Primitive
+tesselateBezier :: Int -> [Patch] -> Transform -> Material -> [Primitive]
 tesselateBezier subs patches t mat = {-# SCC "tesselateBezier" #-} mesh where
    mesh = mkTriangleMesh t mat ps is (Just ns) (Just uvs)
    (ps, is, ns, uvs) = runST $ do

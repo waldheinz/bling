@@ -38,10 +38,9 @@ mkScene :: [Light] -> [Primitive] -> Camera -> Scene
 mkScene l prims cam = Scene cnt accel prim (V.fromList lights) cam where
    lights = l ++ gl
    prim = kdTreePrimitive accel
-   accel = mkKdTree ps
-   gl = mapMaybe light ps -- collect the geometric lights
-   ps = Prelude.concatMap flatten prims
-   cnt = length ps
+   accel = mkKdTree prims
+   gl = mapMaybe light prims -- collect the geometric lights
+   cnt = length prims
    
 occluded :: Scene -> Ray -> Bool
 {-# INLINE occluded #-}

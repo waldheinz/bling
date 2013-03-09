@@ -17,7 +17,7 @@ heightMap
    -> PixelSize
    -> Material
    -> Transform
-   -> Primitive
+   -> [Primitive]
    
 heightMap elev (ns, nt) mat t = mkTriangleMesh t mat ps is norms uvs where   
    (fns, fnt) = (fromIntegral ns, fromIntegral nt)

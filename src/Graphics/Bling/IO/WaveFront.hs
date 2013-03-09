@@ -14,13 +14,13 @@ import qualified Data.ByteString.Lazy as BS
 import qualified Data.ByteString.Lazy.Char8 as BSC
 import qualified Data.ByteString.Lex.Lazy.Double as BSLD
 import Data.Functor
-import Control.Monad (forM, forM_)
+import Control.Monad (forM, forM_, liftM)
 import Control.Monad.ST
 import Control.Monad.Trans.Class (lift)
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as MV
 
-import Debug.Trace
+-- import Debug.Trace
 
 type STUGrowVec s a = GrowVec (MV.MVector) s a
 
@@ -60,8 +60,8 @@ parseWaveFront mmap fname = {-# SCC "parseWaveFront" #-} do
             (pis, uvis, nis) = V.unzip3 fs -- (point indices, uv indices, normal indices)
             
             
-         st <- traceShow("uvis", uvis, "uvs", uvs) $ getState
-         forM (matIntervals (V.length pis) (reverse mtls)) $ \(n, s, l) -> do
+         st <- getState
+         liftM concat $ forM (matIntervals (V.length pis) (reverse mtls)) $ \(n, s, l) -> do
             let
                pis' = V.slice s l pis
                
@@ -72,12 +72,12 @@ parseWaveFront mmap fname = {-# SCC "parseWaveFront" #-} do
                uvb = V.backpermute uvs uvis
                
                muv = if V.all (>=0) $ V.slice s l uvis
-                  then traceShow("pis'", pis', uvis) $ let muv' = V.generate (V.maximum pis' + 1) $ \i -> uvs V.! (uvis V.! i) -- (uvis V.! i))
+                  then let muv' = V.generate (V.maximum pis' + 1) $ \i -> uvs V.! (uvis V.! i) -- (uvis V.! i))
                      in Just $ muv' -- V.backpermute muv' pis
                      
                   else Nothing
                   
-            return $! traceShow (pis', ps) $ mkTriangleMesh (transform st) (mmap n) ps pis' mns muv
+            return $! mkTriangleMesh (transform st) (mmap n) ps pis' mns muv
             
 waveFrontParser :: WFParser s (V.Vector Point, V.Vector Normal, V.Vector (Int, Int, Int), V.Vector (Float, Float), [(String, Int)])
 waveFrontParser = {-# SCC "waveFrontParser" #-} do

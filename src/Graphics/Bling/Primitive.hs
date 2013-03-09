@@ -23,7 +23,6 @@ data Primitive = Primitive
    {  intersect         :: Ray -> Maybe Intersection
    ,  intersects        :: Ray -> Bool
    ,  worldBounds       :: AABB
-   ,  flatten           :: [Primitive]
    ,  light             :: Maybe Light
    ,  shadingGeometry   :: Transform -> DifferentialGeometry -> DifferentialGeometry
    }

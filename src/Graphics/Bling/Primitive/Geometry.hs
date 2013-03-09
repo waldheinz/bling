@@ -20,9 +20,8 @@ mkGeom
    -> Int
    -> Primitive
 mkGeom o2w _ m e s gid = prim where
+   prim = Primitive inter inters wb lig sg
    w2o = inverse o2w
-   prim = Primitive inter inters wb flat lig sg
-   flat = [prim]
    wb = S.worldBounds s o2w
    sg _ dg = dg
    inters rw = {-# SCC "intersects" #-}
