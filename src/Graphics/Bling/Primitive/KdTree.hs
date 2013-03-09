@@ -1,4 +1,6 @@
 
+{-# LANGUAGE BangPatterns #-}
+
 module Graphics.Bling.Primitive.KdTree (
    
    -- * Kd - Trees
@@ -148,8 +150,8 @@ type Split = (Int, Float, Int, Int)
 
 bestSplit :: AABB -> Dimension -> [Split] -> (Float, Split)
 bestSplit bounds axis fs = {-# SCC "bestSplit" #-} go fs (infinity, undefined) where
-   go [] s = s
-   go (s@(_, t, nl, nr):xs) x@(c, _)
+   go [] !s = s
+   go (!s@(_, !t, !nl, !nr):xs) !x@(!c, _)
       | c' < c = go xs (c', s)
       | otherwise = go xs x where
          c' = cost bounds axis t nl nr

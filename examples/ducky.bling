@@ -24,13 +24,7 @@ transform {
    }
 }
 
-newTransform {
-   lookAt {
-      pos 0 3 -3
-      look 0 0 0
-      up 0 1 0
-   }
-}
+# newTransform { lookAt { pos 0 30 -30 look 0 0 0 up 0 1 0 } }
 
 camera {
    perspective
@@ -52,10 +46,10 @@ prim { shape { quad 1000 1000 } }
 
 newTransform { rotateY 140 }
 
-newTransform { }
+# newTransform { }
 prim {
-#   waveFront "meshes/ducky.obj"
-   waveFront "meshes/plane.obj"
+   waveFront "meshes/ducky.obj"
+#   waveFront "meshes/plane.obj"
    materials {
       "default" {
          plastic

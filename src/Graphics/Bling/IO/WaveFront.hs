@@ -25,10 +25,36 @@ type STUGrowVec s a = GrowVec (MV.MVector) s a
 data WFState s = WFState
    { stPoints     :: ! (STUGrowVec s Point)           -- vertex positions
    , stNormals    :: ! (STUGrowVec s Normal)          -- vertex normals
-   , stFaces      :: ! (STUGrowVec s (Int, Int, Int)) -- (point index, uv index, normal index)
    , stTexCoords  :: ! (STUGrowVec s (Float, Float))  -- the UVs as found in the file
+   , stFaces      :: ! (STUGrowVec s (Int, Int, Int)) -- (point index, uv index, normal index)
    , stMtls       :: ! [(String, Int)]                -- material name and first face where to apply it
    }
+   
+data WFData = WFData
+   { wfPoints     :: ! (V.Vector Point)
+   , wfNormals    :: ! (V.Vector Normal)
+   , wfTexCoords  :: ! (V.Vector (Float, Float))
+   , wfFaces      :: ! (V.Vector (Int, Int, Int))
+   }
+   
+wfTriVerts :: WFData -> Int -> TriVerts
+wfTriVerts d i = (p1, p2, p3) where
+   p1 = (wfPoints d) V.! (let (i', _, _) = (wfFaces d) V.! i in i')
+   p2 = (wfPoints d) V.! (let (i', _, _) = (wfFaces d) V.! (i+1) in i')
+   p3 = (wfPoints d) V.! (let (i', _, _) = (wfFaces d) V.! (i+2) in i')
+   
+wfTriUVs :: WFData -> Int -> TriUVs
+wfTriUVs d i = triangleNoUVs where -- (u1, v1, u2, v2, u3, v3) where
+   (u1, v1) = (wfTexCoords d) V.! (let (_, i', _) = (wfFaces d) V.! i in i')
+   (u2, v2) = (wfTexCoords d) V.! (let (_, i', _) = (wfFaces d) V.! (i+1) in i')
+   (u3, v3) = (wfTexCoords d) V.! (let (_, i', _) = (wfFaces d) V.! (i+2) in i')
+   
+mkWFTri :: Material -> WFData -> Int -> Primitive
+mkWFTri mat d i = prim where
+   prim = Primitive tint ints bounds Nothing (flip const)
+   tint = triangleIntersect mat prim (wfTriVerts d i) (wfTriUVs d i)
+   ints = triangleIntersects (wfTriVerts d i)
+   bounds = triangleBounds (wfTriVerts d i)
    
 initialState :: ST s (WFState s)
 initialState = do
@@ -45,17 +71,27 @@ matIntervals cnt mi = filter (\(_, _, l) -> l > 0) intervals where
    starts = ("default", 0) : mi
    ends = map snd mi ++ [cnt]
    intervals = zipWith (\(n, s) e -> (n, s, e - s)) starts ends
-      
+   
 -- | parses a WaveFront .obj file into triangle meshes
 parseWaveFront :: MaterialMap -> FilePath -> JobParser [Primitive]
 parseWaveFront mmap fname = {-# SCC "parseWaveFront" #-} do
    inp <- readFileBS fname
    
+   trans <- transform <$> getState
+   
    case runST $ initialState >>= \st -> runPT waveFrontParser st fname inp of
       (Left e) -> fail $ show e
       (Right (ps, ns, fs, uvs, mtls)) -> do
          let
-            (pis, uvis, nis) = V.unzip3 fs -- (point indices, uv indices, normal indices)
+            pst = V.map (transPoint trans) ps
+            wfd = WFData pst ns uvs fs
+            matInts = matIntervals (V.length fs `quot` 3) (reverse mtls)
+            
+         liftM concat $ forM matInts $ \(n, s, l) -> do
+            forM [s, s+3 .. (s + l - 1)] $ \i -> do
+               return $! mkWFTri (mmap n) wfd i
+            
+{-            
             
             
          st <- getState
@@ -76,6 +112,7 @@ parseWaveFront mmap fname = {-# SCC "parseWaveFront" #-} do
                   else Nothing
                   
             return $! mkTriangleMesh (transform st) (mmap n) ps pis' mns muv
+-}
             
 waveFrontParser :: WFParser s (V.Vector Point, V.Vector Normal, V.Vector (Int, Int, Int), V.Vector (Float, Float), [(String, Int)])
 waveFrontParser = {-# SCC "waveFrontParser" #-} do
@@ -88,7 +125,7 @@ waveFrontParser = {-# SCC "waveFrontParser" #-} do
    vs' <- lift $ gvFreeze fs
    uvs' <- lift $ gvFreeze uvs
    
-   return $! (ps', ns', vs', uvs', mtls)
+   return $! (ps', ns', uvs', vs', mtls)
 
 mtlspec :: WFParser s ()
 mtlspec = do
@@ -123,9 +160,9 @@ face = do
       return (vidx, uvidx, nidx)
    
    optional space >> eol
-   
+   faces <- stFaces <$> getState
    forM_ (triangulate [map (\(a, b, c) -> (pred a, pred b, pred c)) indices]) $ \f ->
-      getState >>= \st -> lift $ gvAdd (stFaces st) f
+      lift $ gvAdd faces f
       
 vertex :: WFParser s ()
 vertex = do

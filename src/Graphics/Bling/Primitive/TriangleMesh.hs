@@ -2,7 +2,8 @@
 module Graphics.Bling.Primitive.TriangleMesh (
    
    -- * Triangle
-   TriVerts, triangleIntersects, triangleIntersect,
+   TriVerts, TriUVs, triangleIntersects, triangleIntersect, triangleBounds,
+   triangleNoUVs,
    
    -- * Triangle Mesh
    
@@ -88,7 +89,7 @@ triNormals i m =
 
 triUVs :: Int -> Mesh -> (Float, Float, Float, Float, Float, Float)
 {-# INLINE triUVs #-}
-triUVs idx m = maybe (0, 0, 1, 0, 1, 1) go (muvs m) where
+triUVs idx m = maybe triangleNoUVs go (muvs m) where
    (o1, o2, o3) = triOffsets idx m
 
    go uvs = (muv (2 * o1), muv (2 * o1 + 1),
@@ -105,9 +106,7 @@ mkTri mesh n
       idx = 3 * n
       inter = {-# SCC "intersect" #-} triangleIntersect (mmat mesh) prim (triPoints idx mesh) (triUVs idx mesh)
       inters = {-# SCC "intersects" #-} triangleIntersects (triPoints idx mesh)
-      
-      wb = foldl' extendAABBP emptyAABB [p1, p2, p3] where
-         (p1, p2, p3) = triPoints idx mesh
+      wb = triangleBounds $ triPoints idx mesh
 
       sg o2w dgg
          | isNothing $ mns mesh = dgg
@@ -126,6 +125,13 @@ mkTri mesh n
 
 type TriVerts = (Point, Point, Point)
 type TriUVs = (Float, Float, Float, Float, Float, Float)
+
+triangleNoUVs :: TriUVs
+triangleNoUVs = (0, 0, 1, 0, 1, 1)
+
+triangleBounds :: TriVerts -> AABB
+{-# INLINE triangleBounds #-}
+triangleBounds (p1, p2, p3) = foldl' extendAABBP emptyAABB [p1, p2, p3]
 
 triangleIntersects :: TriVerts -> Ray -> Bool
 {-# INLINE triangleIntersects #-}
