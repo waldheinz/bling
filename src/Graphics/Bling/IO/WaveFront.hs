@@ -20,8 +20,6 @@ import Control.Monad.Trans.Class (lift)
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as MV
 
--- import Debug.Trace
-
 type STUGrowVec s a = GrowVec (MV.MVector) s a
 
 data WFState s = WFState

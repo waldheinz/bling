@@ -1,6 +1,11 @@
 
 module Graphics.Bling.Primitive.TriangleMesh (
-
+   
+   -- * Triangle
+   TriVerts, triangleIntersects, triangleIntersect,
+   
+   -- * Triangle Mesh
+   
    mkTriangleMesh, triangulate
    
    ) where
@@ -57,8 +62,6 @@ mkTriangleMesh o2w mat p i n uv
 -- Triangles
 --------------------------------------------------------------------------------
 
--- data Triangle = Tri {-# UNPACK #-} ! Int ! TriangleMesh
-
 triOffsets :: Int -> Mesh -> (Int, Int, Int)
 {-# INLINE triOffsets #-}
 triOffsets idx m = (o1, o2, o3) where
@@ -100,8 +103,8 @@ mkTri mesh n
    | otherwise = prim where
       prim = Primitive inter inters wb Nothing sg
       idx = 3 * n
-      inter ray = {-# SCC "intersect" #-} intersectTri prim idx mesh ray
-      inters ray = {-# SCC "intersects" #-} intersectsTri idx mesh ray
+      inter = {-# SCC "intersect" #-} triangleIntersect (mmat mesh) prim (triPoints idx mesh) (triUVs idx mesh)
+      inters = {-# SCC "intersects" #-} triangleIntersects (triPoints idx mesh)
       
       wb = foldl' extendAABBP emptyAABB [p1, p2, p3] where
          (p1, p2, p3) = triPoints idx mesh
@@ -121,15 +124,18 @@ mkTri mesh n
                           then (normalize ts' `cross` ns, normalize ts')
                           else coordinateSystem'' ns
 
-intersectsTri :: Int -> Mesh -> Ray -> Bool
-intersectsTri idx mesh (Ray ro rd tmin tmax)
+type TriVerts = (Point, Point, Point)
+type TriUVs = (Float, Float, Float, Float, Float, Float)
+
+triangleIntersects :: TriVerts -> Ray -> Bool
+{-# INLINE triangleIntersects #-}
+triangleIntersects (p1, p2, p3) (Ray ro rd tmin tmax)
    | divisor == 0 = False
    | b1 < 0 || b1 > 1 = False
    | b2 < 0 || b1 + b2 > 1 = False
    | t < tmin || t > tmax = False
    | otherwise = True
    where
-      (p1, p2, p3) = triPoints idx mesh
       t = dot e2 s2 * invDiv
       b2 = dot rd s2 * invDiv -- second barycentric
       s2 = cross d e1
@@ -141,15 +147,15 @@ intersectsTri idx mesh (Ray ro rd tmin tmax)
       e1 = p2 - p1
       e2 = p3 - p1
 
-intersectTri :: Primitive -> Int -> Mesh -> Ray -> Maybe Intersection
-intersectTri tri idx mesh r@(Ray ro rd tmin tmax)
+triangleIntersect :: Material -> Primitive -> TriVerts -> TriUVs -> Ray -> Maybe Intersection
+{-# INLINE triangleIntersect #-}
+triangleIntersect mat tri (p1, p2, p3) (uv00, uv01, uv10, uv11, uv20, uv21) r@(Ray ro rd tmin tmax)
    | divisor == 0 = Nothing
    | b1 < 0 || b1 > 1 = Nothing
    | b2 < 0 || b1 + b2 > 1 = Nothing
    | t < tmin || t > tmax = Nothing
    | otherwise = Just int
    where
-      (p1, p2, p3) = triPoints idx mesh
       (e1, e2) = (p2 - p1, p3 - p1)
       s1 = rd `cross` e2
       divisor = dot s1 e1
@@ -166,7 +172,6 @@ intersectTri tri idx mesh r@(Ray ro rd tmin tmax)
       n = normalize $ cross e1 e2
 
       -- compute partial derivatives
-      (uv00, uv01, uv10, uv11, uv20, uv21) = triUVs idx mesh
       du1 = uv00 - uv20
       du2 = uv10 - uv20
       dv1 = uv01 - uv21
@@ -189,5 +194,5 @@ intersectTri tri idx mesh r@(Ray ro rd tmin tmax)
       -- create intersection
       dg = mkDgTri (rayAt r t) tu tv dpdu dpdv (mkV (0, 0, 0)) (mkV (0,0, 0)) (b1, b2)
       e = 1e-3 * t
-      int = mkIntersection t e dg tri (mmat mesh)
-      
+      int = mkIntersection t e dg tri mat
+
