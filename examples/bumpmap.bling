@@ -5,14 +5,14 @@
 
 filter mitchell 3 3 0.333333 0.333333
 
-imageSize 640 480
-imageSize 200 150
+imageSize 1280 720
+imageSize 640 360
 
 renderer {
    sampler
    sampled {
-      sampler { stratified 2 2 }
-      integrator { path maxDepth 5 sampleDepth 3 }
+      sampler { stratified 4 4 }
+      integrator { path maxDepth 5 sampleDepth 2 }
    }
 }
 
@@ -29,8 +29,8 @@ transform {
 camera {
    perspective
    fov 60
-   lensRadius 0.2
-   focalDistance 6.4
+   lensRadius 0.1
+   focalDistance 5.6
 }
 
 newTransform { }
@@ -51,7 +51,7 @@ light {
 
 material {
    bumpMap
-   bump { scale 0.1 tex { fbm octaves 5 omega 0.5 map {
+   bump { scale 0.1 0.1 tex { fbm octaves 5 omega 0.5 map {
       identity { scale 2 2 2 }
    }}}
    
@@ -127,3 +127,4 @@ material {
 
 newTransform { translate 0 1.5 0 }
 prim { shape { sphere radius 1.5 } }
+
