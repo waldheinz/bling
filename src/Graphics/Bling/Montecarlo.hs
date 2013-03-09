@@ -124,7 +124,9 @@ balanceHeuristic (nf, fPdf) (ng, gPdf) = (fnf * fPdf) / (fnf * fPdf + fng * gPdf
 
 uniformConePdf :: Float -> Float
 {-# INLINE uniformConePdf #-}
-uniformConePdf cosThetaMax = 1 / (twoPi * (1 - cosThetaMax))
+uniformConePdf cosThetaMax
+   | cosThetaMax >= 1 = 0
+   | otherwise = 1 / (twoPi * (1 - cosThetaMax))
 
 uniformSampleCone :: LocalCoordinates -> Float -> Rand2D -> Vector
 {-# INLINE uniformSampleCone #-}

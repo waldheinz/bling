@@ -51,17 +51,6 @@ scIntersect :: Scene -> Ray -> Maybe Intersection
 {-# INLINE scIntersect #-}
 scIntersect (Scene _ _ p _ _) = intersect p
 
-{-
-instance Primitive Scene where
-   intersect = intersect.scenePrim
-   intersects = intersects.scenePrim
-   worldBounds = worldBounds.scenePrim
-   flatten = flatten.scenePrim
-   light = light.scenePrim
-   shadingGeometry = shadingGeometry.scenePrim
-
--}
-
 -- | total power of all light sources in the scene in [Watt]
 lightPower :: Scene -> Spectrum
 lightPower s = V.sum $ V.map (\l -> L.power l (worldBounds $ scenePrim s)) (sceneLights s)
@@ -83,7 +72,7 @@ sampleLightMis scene (LightSample li wi ray lpdf delta) bsdf wo
 sampleBsdfMis :: Scene -> Light -> BsdfSample -> Point -> Float -> Spectrum
 {-# INLINE sampleBsdfMis #-}
 sampleBsdfMis (Scene _ _ sp _ _) l (BsdfSample _ bPdf f wi) p epsilon
-   | bPdf == 0  || isBlack f = black
+   | bPdf == 0 || isBlack f = black
    | isJust lint = maybe black ff $ intLight (fromJust lint)
    | otherwise = sc (le l ray)
    where

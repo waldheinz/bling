@@ -3,17 +3,19 @@
 
 
 filter triangle 2 2
-#filter box
+filter box
 #filter mitchell 3.0 3.0 0.333333 0.333333
 imageSize 640 400
 
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 3 ySamples 3 }
+      sampler { stratified 3 3 }
       integrator { directLighting maxDepth 5 }
    }
 }
+
+# renderer { sampler sampled { sampler { stratified 3 3 } integrator { path maxDepth 15 sampleDepth 3 } } }
 
 transform {
    lookAt {
@@ -41,6 +43,8 @@ material { plastic
    ks { constant rgbR 0.005 0.005 0.005 }
    rough { constant 0.00078125 }
 }
+
+material { matte kd { constant rgbR 0.9 0.9 0.9 } sigma { constant 0.2 } }
 
 prim { shape { quad 50 50 } }
 

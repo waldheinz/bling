@@ -3,19 +3,12 @@ module Graphics.Bling.Integrator.DirectLighting (
    mkDirectLightingIntegrator
    ) where
 
-import qualified Text.PrettyPrint as PP
-
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Integrator
 import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 import Graphics.Bling.Sampling
 import Graphics.Bling.Scene
-
---data DirectLighting = DL { _maxDepth  :: {-# UNPACK #-} ! Int }
-
---instance Printable DirectLighting where
---   prettyPrint _ = PP.text "Direct Lighting" 
 
 -- | creates an instance of @DirectLighting@
 mkDirectLightingIntegrator
