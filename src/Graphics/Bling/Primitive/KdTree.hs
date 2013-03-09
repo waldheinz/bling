@@ -82,13 +82,11 @@ cT = 1
 cI :: Float
 cI = 80
 
-data BP = BP
-   { bpPrim    :: ! Primitive
-   , bpBounds  :: {-# UNPACK #-} ! AABB
-   }
-
-data Edge = Edge {-# UNPACK #-} !BP {-# UNPACK #-} !Float !Bool
-
+data Edge = Edge
+   ! Primitive
+   {-# UNPACK #-} ! Float
+   ! Bool
+   
 instance Eq Edge where
    (Edge _ t1 s1) == (Edge _ t2 s2) = t1 == t2 && s1 == s2
 
@@ -103,20 +101,18 @@ instance Show Edge where
       | otherwise = "E " ++ show t
 
 mkKdTree :: [Primitive] -> KdTree
-mkKdTree ps = {-# SCC "mkKdTree" #-} KdTree bounds root where
-   root = buildTree bounds bps md
-   bps = V.map (\p -> BP p (worldBounds p)) (V.fromList ps)
-   bounds = V.foldl' extendAABB emptyAABB $ V.map bpBounds bps
-   md = round (8 + 3 * log (fromIntegral $ V.length bps :: Float))
+mkKdTree psl = {-# SCC "mkKdTree" #-} KdTree bounds root where
+   root = buildTree bounds ps md
+   ps = V.fromList psl
+   bounds = V.foldl' extendAABB emptyAABB $ V.map worldBounds ps
+   md = round (8 + 3 * log (fromIntegral $ V.length ps :: Float))
    
-buildTree :: AABB -> V.Vector BP -> Int -> KdTreeNode
-buildTree bounds bps depth
-   | depth == 0 || V.length bps <= 1 = {-# SCC "buildTree.leaf" #-} leaf
-   | otherwise = fromMaybe leaf $ trySplit bounds bps depth
-   where
-      leaf = Leaf $ V.map bpPrim bps
+buildTree :: AABB -> V.Vector Primitive -> Int -> KdTreeNode
+buildTree bounds ps depth
+   | depth == 0 || V.length ps <= 1 = {-# SCC "buildTree.leaf" #-} Leaf ps
+   | otherwise = fromMaybe (Leaf ps) $ trySplit bounds ps depth
       
-trySplit :: AABB -> V.Vector BP -> Int -> Maybe KdTreeNode
+trySplit :: AABB -> V.Vector Primitive -> Int -> Maybe KdTreeNode
 trySplit bounds bps depth = {-# SCC "trySplit" #-} go Nothing axii where
    axii = [a `rem` 3 | a <- take 3 [(maximumExtent bounds)..]]
    oldCost = cI * fromIntegral (V.length bps)
@@ -141,7 +137,7 @@ filterSplits axis b = filter (\(_, t, _, _) -> (t > tmin) && (t < tmax)) where
    tmin = aabbMin b .! axis
    tmax = aabbMax b .! axis
 
-partition :: V.Vector Edge -> Int -> (V.Vector BP, V.Vector BP)
+partition :: V.Vector Edge -> Int -> (V.Vector Primitive, V.Vector Primitive)
 partition es i = {-# SCC "partition" #-} (lp, rp) where
    lp = V.map (\(Edge p _ _) -> p) $ V.filter (\(Edge _ _ st) -> st) le
    rp = V.map (\(Edge p _ _) -> p) $ V.filter (\(Edge _ _ st) -> not st) re
@@ -164,16 +160,16 @@ allSplits es = {-# SCC "allSplits" #-} go 0 (V.toList es) 0 (V.length es `div` 2
    go i (Edge _ t True  : es') l r = (i, t, l, r  ):go (i+1) es' (l+1) r
    go _ [] _ _ = []
 
-edges :: V.Vector BP -> Dimension -> V.Vector Edge
-edges bps axis = {-# SCC "edges" #-} runST $ do
-   v <- MV.new (2 * V.length bps)
+edges :: V.Vector Primitive -> Dimension -> V.Vector Edge
+edges ps axis = {-# SCC "edges" #-} runST $ do
+   v <- MV.new (2 * V.length ps)
    
-   forM_ [0..V.length bps-1] $ \idx -> do
+   forM_ [0..V.length ps-1] $ \idx -> do
       let
-         bp = bps V.! idx
-         (AABB pmin pmax) = bpBounds bp
-         e1 = Edge bp (pmin .! axis) True
-         e2 = Edge bp (pmax .! axis) False
+         p = ps V.! idx
+         (AABB pmin pmax) = worldBounds p
+         e1 = Edge p (pmin .! axis) True
+         e2 = Edge p (pmax .! axis) False
          
       MV.write v (2 * idx + 0) e1
       MV.write v (2 * idx + 1) e2

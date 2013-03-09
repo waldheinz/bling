@@ -22,7 +22,7 @@ import Graphics.Bling.Reflection
 data Primitive = Primitive
    {  intersect         :: Ray -> Maybe Intersection
    ,  intersects        :: Ray -> Bool
-   ,  worldBounds       :: AABB
+   ,  worldBounds       :: {-# UNPACK #-} ! AABB
    ,  light             :: Maybe Light
    ,  shadingGeometry   :: Transform -> DifferentialGeometry -> DifferentialGeometry
    }
