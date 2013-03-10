@@ -1,4 +1,6 @@
 
+{-# LANGUAGE BangPatterns #-}
+
 module Graphics.Bling.IO.WaveFront (
    parseWaveFront
    ) where
@@ -19,6 +21,8 @@ import Control.Monad.ST
 import Control.Monad.Trans.Class (lift)
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as MV
+
+import Debug.Trace
 
 type STUGrowVec s a = GrowVec (MV.MVector) s a
 
@@ -50,7 +54,7 @@ wfTriUVs d i = triangleNoUVs where -- (u1, v1, u2, v2, u3, v3) where
    (u3, v3) = (wfTexCoords d) V.! (let (_, i', _) = (wfFaces d) V.! (i+2) in i')
    
 mkWFTri :: Material -> WFData -> Int -> Primitive
-mkWFTri mat d i = prim where
+mkWFTri !mat !d !i = prim where
    prim = Primitive tint ints bounds Nothing (flip const)
    tint = triangleIntersect mat prim (wfTriVerts d i) (wfTriUVs d i)
    ints = triangleIntersects (wfTriVerts d i)
@@ -90,29 +94,6 @@ parseWaveFront mmap fname = {-# SCC "parseWaveFront" #-} do
          liftM concat $ forM matInts $ \(n, s, l) -> do
             forM [s, s+3 .. (s + l - 1)] $ \i -> do
                return $! mkWFTri (mmap n) wfd i
-            
-{-            
-            
-            
-         st <- getState
-         liftM concat $ forM (matIntervals (V.length pis) (reverse mtls)) $ \(n, s, l) -> do
-            let
-               pis' = V.slice s l pis
-               
-               mns = if V.all (>=0) $ V.slice s l nis
-                  then Nothing -- Just $ V.generate l $ \i -> ns V.! (nis V.! (i + s))
-                  else Nothing
-                  
-               uvb = V.backpermute uvs uvis
-               
-               muv = if V.all (>=0) $ V.slice s l uvis
-                  then let muv' = V.generate (V.maximum pis' + 1) $ \i -> uvs V.! (uvis V.! i) -- (uvis V.! i))
-                     in Just $ muv' -- V.backpermute muv' pis
-                     
-                  else Nothing
-                  
-            return $! mkTriangleMesh (transform st) (mmap n) ps pis' mns muv
--}
             
 waveFrontParser :: WFParser s (V.Vector Point, V.Vector Normal, V.Vector (Int, Int, Int), V.Vector (Float, Float), [(String, Int)])
 waveFrontParser = {-# SCC "waveFrontParser" #-} do

@@ -158,10 +158,10 @@ bestSplit bounds axis fs = {-# SCC "bestSplit" #-} go fs (infinity, undefined) w
 
 allSplits :: V.Vector Edge -> [Split]
 allSplits es = {-# SCC "allSplits" #-} go 0 (V.toList es) 0 (V.length es `div` 2) where
-   go i (Edge _ t False : es') l r = (i, t, l, r-1):go (i+1) es' l (r-1)
-   go i (Edge _ t True  : es') l r = (i, t, l, r  ):go (i+1) es' (l+1) r
+   go !i (Edge _ t False : es') !l !r = (i, t, l, r-1) : go (i+1) es' l (r-1)
+   go !i (Edge _ t True  : es') !l !r = (i, t, l, r  ) : go (i+1) es' (l+1) r
    go _ [] _ _ = []
-
+   
 edges :: V.Vector Primitive -> Dimension -> V.Vector Edge
 edges ps axis = {-# SCC "edges" #-} runST $ do
    v <- MV.new (2 * V.length ps)
