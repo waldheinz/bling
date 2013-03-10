@@ -2,9 +2,9 @@
 module Graphics.Bling.Primitive.TriangleMesh (
    
    -- * Triangle
-   TriVerts, TriUVs, triangleIntersects, triangleIntersect, triangleBounds,
-   triangleNoUVs,
-   
+   TriVerts, TriNorms, TriUVs, triangleIntersects, triangleIntersect,
+   triangleShadingGeometry, triangleBounds, triangleDefaultUVs,
+     
    -- * Triangle Mesh
    
    mkTriangleMesh, triangulate
@@ -89,7 +89,7 @@ triNormals i m =
 
 triUVs :: Int -> Mesh -> (Float, Float, Float, Float, Float, Float)
 {-# INLINE triUVs #-}
-triUVs idx m = maybe triangleNoUVs go (muvs m) where
+triUVs idx m = maybe triangleDefaultUVs go (muvs m) where
    (o1, o2, o3) = triOffsets idx m
 
    go uvs = (muv (2 * o1), muv (2 * o1 + 1),
@@ -110,25 +110,29 @@ mkTri mesh n
 
       sg o2w dgg
          | isNothing $ mns mesh = dgg
-         | otherwise = dgg { dgN = ns, dgDPDU = ss, dgDPDV = ts }
-         where
-            (b1, b2) = fromJust $ dgtriB dgg
-            b0 = 1 - b1 - b2
-            (n0, n1, n2) = triNormals idx mesh
-            ns = normalize $ transNormal o2w ns'
-            ns' = (b0 *# n0) + (b1 *# n1) + (b2 *# n2)
-            ss' = normalize $ dgDPDU dgg
-            ts' = ss' `cross` ns
-            (ss, ts) = if sqLen ts' > 0
-                          then (normalize ts' `cross` ns, normalize ts')
-                          else coordinateSystem'' ns
+         | otherwise = triangleShadingGeometry (triNormals idx mesh) o2w dgg
 
 type TriVerts = (Point, Point, Point)
+type TriNorms = (Normal, Normal, Normal)
 type TriUVs = (Float, Float, Float, Float, Float, Float)
 
-triangleNoUVs :: TriUVs
-triangleNoUVs = (0, 0, 1, 0, 1, 1)
+triangleDefaultUVs :: TriUVs
+triangleDefaultUVs = (0, 0, 1, 0, 1, 1)
 
+triangleShadingGeometry :: TriNorms -> Transform -> DifferentialGeometry -> DifferentialGeometry
+{-# INLINE triangleShadingGeometry #-}
+triangleShadingGeometry (n0, n1, n2) o2w dgg = dgg { dgN = ns, dgDPDU = ss, dgDPDV = ts }
+   where
+      (b1, b2) = fromJust $ dgtriB dgg
+      b0 = 1 - b1 - b2
+      ns = normalize $ transNormal o2w ns'
+      ns' = (b0 *# n0) + (b1 *# n1) + (b2 *# n2)
+      ss' = normalize $ dgDPDU dgg
+      ts' = ss' `cross` ns
+      (ss, ts) = if sqLen ts' > 0
+                    then (normalize ts' `cross` ns, normalize ts')
+                    else coordinateSystem'' ns
+                    
 triangleBounds :: TriVerts -> AABB
 {-# INLINE triangleBounds #-}
 triangleBounds (p1, p2, p3) = foldl' extendAABBP emptyAABB [p1, p2, p3]

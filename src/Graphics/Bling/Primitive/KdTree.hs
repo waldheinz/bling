@@ -111,8 +111,10 @@ mkKdTree psl = {-# SCC "mkKdTree" #-} KdTree bounds root where
    
 buildTree :: AABB -> V.Vector Primitive -> Int -> KdTreeNode
 buildTree bounds ps depth
-   | depth == 0 || V.length ps <= 1 = {-# SCC "buildTree.leaf" #-} Leaf ps
-   | otherwise = fromMaybe (Leaf ps) $ trySplit bounds ps depth
+   | depth == 0 || V.length ps <= 1 = {-# SCC "buildTree.leaf" #-} leaf
+   | otherwise = fromMaybe leaf $ trySplit bounds ps depth
+   where
+      leaf = Leaf $ V.force ps
       
 trySplit :: AABB -> V.Vector Primitive -> Int -> Maybe KdTreeNode
 trySplit bounds bps depth = {-# SCC "trySplit" #-} go Nothing axii where

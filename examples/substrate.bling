@@ -5,12 +5,12 @@ filter mitchell 3 3 0.333333 0.333333
 filter box
 
 imageSize 1280 720
-# imageSize 640 360
+imageSize 640 360
 
 renderer {
    sampler
    sampled {
-      sampler { stratified 8 8 }
+      sampler { stratified 2 2 }
       integrator { path maxDepth 7 sampleDepth 3 }
    }
 }
@@ -43,6 +43,7 @@ material {
    matte
    kd {
       graphPaper 0.1
+      map { uv 0 0 1 1 }
       tex1 { constant rgbR 0.8 0.8 0.8 }
       tex2 { constant rgbR 0.05 0.05 0.05 }
    }

@@ -22,8 +22,6 @@ import Control.Monad.Trans.Class (lift)
 import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as MV
 
-import Debug.Trace
-
 type STUGrowVec s a = GrowVec (MV.MVector) s a
 
 data WFState s = WFState
@@ -48,17 +46,38 @@ wfTriVerts d i = (p1, p2, p3) where
    p3 = (wfPoints d) V.! (let (i', _, _) = (wfFaces d) V.! (i+2) in i')
    
 wfTriUVs :: WFData -> Int -> TriUVs
-wfTriUVs d i = triangleNoUVs where -- (u1, v1, u2, v2, u3, v3) where
-   (u1, v1) = (wfTexCoords d) V.! (let (_, i', _) = (wfFaces d) V.! i in i')
-   (u2, v2) = (wfTexCoords d) V.! (let (_, i', _) = (wfFaces d) V.! (i+1) in i')
-   (u3, v3) = (wfTexCoords d) V.! (let (_, i', _) = (wfFaces d) V.! (i+2) in i')
+wfTriUVs d i
+   | i1 >= 0 && i2 >= 0 && i3 >= 0 = (u1, v1, u2, v2, u3, v3)
+   | otherwise = triangleDefaultUVs
+   where
+      (u1, v1) = (wfTexCoords d) V.! i1
+      (u2, v2) = (wfTexCoords d) V.! i2
+      (u3, v3) = (wfTexCoords d) V.! i3
+   
+      i1 = let (_, i', _) = (wfFaces d) V.! (i+0) in i'
+      i2 = let (_, i', _) = (wfFaces d) V.! (i+1) in i'
+      i3 = let (_, i', _) = (wfFaces d) V.! (i+1) in i'
+   
+wfTriNormals :: WFData -> Int -> Maybe TriNorms
+wfTriNormals d i
+   | i1 < 0 && i2 < 0 && i3 < 0 = Nothing
+   | otherwise = Just (n1, n2, n3)
+   where
+      n1 = (wfNormals d) V.! i1
+      n2 = (wfNormals d) V.! i2
+      n3 = (wfNormals d) V.! i3
+      
+      i1 = let (_, _, i') = (wfFaces d) V.! (i+0) in i'
+      i2 = let (_, _, i') = (wfFaces d) V.! (i+1) in i'
+      i3 = let (_, _, i') = (wfFaces d) V.! (i+1) in i'
    
 mkWFTri :: Material -> WFData -> Int -> Primitive
 mkWFTri !mat !d !i = prim where
-   prim = Primitive tint ints bounds Nothing (flip const)
+   prim = Primitive tint ints bounds Nothing shade
    tint = triangleIntersect mat prim (wfTriVerts d i) (wfTriUVs d i)
    ints = triangleIntersects (wfTriVerts d i)
    bounds = triangleBounds (wfTriVerts d i)
+   shade = maybe (flip const) triangleShadingGeometry (wfTriNormals d i)
    
 initialState :: ST s (WFState s)
 initialState = do

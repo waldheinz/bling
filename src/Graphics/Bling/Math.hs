@@ -128,7 +128,7 @@ solveQuadric
    -> Maybe (Float, Float)
 {-# INLINE solveQuadric #-}
 solveQuadric a b c
-   | discrim <= 0 = Nothing
+   | discrim < 0 = Nothing
    | otherwise = Just (min t0 t1, max t0 t1)
    where
          (t0, t1) = (q / a, c / q)
