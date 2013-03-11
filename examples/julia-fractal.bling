@@ -6,7 +6,7 @@
 filter mitchell 3 3 0.333333 0.333333
 
 imageSize 1280 720
-# imageSize 640 360
+imageSize 640 360
 
 renderer {
    sampler
@@ -38,22 +38,15 @@ camera {
 newTransform { rotateX 90 translate 0 -1 0 }
 
 material {
-   plastic
+   matte
    kd {
-      graphPaper 0.04
-      tex1 { constant rgbR 0.6 0.6 0.6 }
-      tex2 { constant rgbR 0.02 0.02 0.02 }
-
-   }
-
-   ks  {
-      graphPaper 0.04
-      tex1 { constant rgbR 0.85 0.85 0.85 }
-      tex2 { constant rgbR 0.00 0.00 0.00 }
-
+      graphPaper 0.02
+      map { uv 150 150 0 0 }
+      tex1 { constant rgbR 0.8 0.8 0.8 }
+      tex2 { constant rgbR 0.05 0.05 0.05 }
    }
    
-   rough { constant 0.0005 }
+   sigma { constant 0 }
 }
 
 prim { shape { quad 50 50 } }

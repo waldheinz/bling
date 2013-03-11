@@ -1,12 +1,15 @@
 
+{-# LANGUAGE BangPatterns #-}
+
 module Graphics.Bling.Primitive.Fractal (
    
    -- * Fractals
    
-   mkJuliaQuat, Quaternion(..),
+   Quaternion(..), mkMandelBulb, mkJuliaQuat, 
    
 ) where
 
+import Data.Maybe (isJust)
 import qualified Data.Vector as V
 
 import Graphics.Bling.AABB
@@ -14,11 +17,54 @@ import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Primitive
 import Graphics.Bling.Reflection
 
---
--- Julia Fractal
---
+--------------------------------------------------------------------------------
+-- Mandelbulb
+--------------------------------------------------------------------------------
 
--- data Fractal = Julia {-# UNPACK #-} !Quaternion {-# UNPACK #-} !Float {-# UNPACK #-} !Int
+mkMandelBulb
+   :: Material
+   -> Float    -- ^ the order, try 8 for a start
+   -> Int      -- ^ iterations, try something like 10
+   -> Float    -- ^ epsilon
+mkMandelBulb mat order iters epsilon = prim where
+   prim = Primitive inter inters bounds Nothing const
+   bounds = AABB (mkPoint' n n n) (mkPoint' p p p) where
+      (n, p) = (-2, 2)
+   inters = isJust . inter
+   inter ray = undefined
+   
+mandelDist :: Float -> Point -> (Float, Vector)
+mandelDist eps p
+   | r2 < mandelBailout2 = (0, mkPoint' 0 1 0)
+   | otherwise = 0.5 * r / length gradient
+   where
+      r2 = mandelEscLen2 p
+      r = sqrt r
+      gradient = mkV (
+         (mandelEscLen $ p + mkV (1, 0, 0) * eps) - r,
+         (mandelEscLen $ p + mkV (1, 0, 0) * eps) - r,
+         (mandelEscLen $ p + mkV (1, 0, 0) * eps) - r) * vpromote (1 / eps)
+      
+mandelEscLen
+   :: Point    -- ^ point we're evaluating
+   -> Int      -- ^ number of iterations (fixed)
+   -> Float
+mandelEscLen p i = undefined
+   
+
+   
+mandelBailout2 :: Float
+mandelBailout2 = 5
+
+bulbPower :: Point -> Float -> Point
+bulbPower p n = mkPoint (
+   sin (theta * n) * cos (phi * n),
+   sin (theta * n) * sin (phi * n),
+   cos (theta * n)) * vpromote (r ** n)
+   
+--------------------------------------------------------------------------------
+-- Julia Fractal
+--------------------------------------------------------------------------------
 
 mkJuliaQuat :: Material -> Quaternion -> Float -> Int -> Primitive
 mkJuliaQuat mat q e mi = prim where
@@ -60,10 +106,9 @@ traverseJulia
    -> Int
    -> Float
    -> Maybe (Float, Point)
-   
 traverseJulia r' c mi e = {-# SCC "traverseJulia" #-} prepare r >>= go where
    r = normalizeRay r'
-   go d
+   go !d
       | sqLen o > juliaRadius2 + e = Nothing
       | dist < e = if onRay r d then Just (d, o) else Nothing
       | otherwise = go (d + dist)
@@ -92,11 +137,10 @@ normalJulia p c mi e = {-# SCC "normalJulia" #-} normalize v where
    
 -- | iterates several @Quaternion@s together
 iter'
-   :: V.Vector Quaternion -- ^ the quaternions to iterate
-   -> Quaternion -- ^ the c value
-   -> Int -- ^ the number of iterations
+   :: V.Vector Quaternion  -- ^ the quaternions to iterate
+   -> Quaternion           -- ^ the c value
+   -> Int                  -- ^ the number of iterations
    -> V.Vector Quaternion
-   
 iter' qs c n = iterate (V.map $ qadd c . qsq) qs !! n
 
 -- | if the magnitude of the quaternion exceeds this value it is considered
@@ -105,13 +149,12 @@ escapeThreashold :: Float
 escapeThreashold = 4
 
 iter
-   :: Quaternion -- ^ the quaternion to iterate
-   -> Quaternion -- ^ the @c@ value to add in each step
-   -> Int -- ^ the maximum number of iterations
-   -> (Quaternion, Quaternion) -- ^ the result and it's derivate
-
+   :: Quaternion                 -- ^ the quaternion to iterate
+   -> Quaternion                 -- ^ the @c@ value to add in each step
+   -> Int                        -- ^ the maximum number of iterations
+   -> (Quaternion, Quaternion)   -- ^ the result and it's derivate
 iter qi c mi = go qi qzero mi where
-   go q qp i
+   go !q !qp !i
       | i == 0 = (q', qp')
       | qlen q > escapeThreashold = (q', qp')
       | otherwise = go q' qp' (i-1) where
