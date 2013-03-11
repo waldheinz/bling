@@ -73,7 +73,8 @@ mkFresnelBlend rd rs ra dist depth = mkBxDF [Reflection, Glossy] e s p where
             else white
          
          -- diffuse
-         diff = sScale (a * rd * (white - rs)) $ (28 / 23 * pi) *
+         diff = sScale (a * rd * (white - rs)) $
+               (costo * 28 / 23 * pi) *
                (1 - ((1 - 0.5 * costi) ** 5)) *
                (1 - ((1 - 0.5 * costo) ** 5))
             
