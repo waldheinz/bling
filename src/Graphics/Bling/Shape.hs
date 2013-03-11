@@ -163,8 +163,8 @@ intersect (Quad sx sy) ray@(Ray ro rd tmin tmax)
       t = -(vz ro) / vz rd
       e = 5e-4 * t
       p = rayAt ray t
-      u = vx p / sx
-      v = vy p / sy
+      u = (sx + vx p) / (2 * sx)
+      v = (sy + vy p) / (2 * sy)
       dpdu = mkV (sx, 0, 0)
       dpdv = mkV (0, sy, 0)
       dn = mkV (0, 0, 0)

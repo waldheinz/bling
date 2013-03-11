@@ -49,17 +49,17 @@ bernsteinDeriv u x
 
 -- | evaluates a patch using the specified Bernstein factors
 evalPatch
-   :: Patch -- ^ the patch to evaluate
-   -> Bernstein -- ^ bernstein in u
-   -> BernsteinDeriv -- ^ bernstein derivative in u
-   -> Bernstein -- ^ bernstein in v
-   -> BernsteinDeriv -- ^ bernstein derivative in v
+   :: Patch                   -- ^ the patch to evaluate
+   -> Bernstein               -- ^ bernstein in u
+   -> BernsteinDeriv          -- ^ bernstein derivative in u
+   -> Bernstein               -- ^ bernstein in v
+   -> BernsteinDeriv          -- ^ bernstein derivative in v
    -> (Point, Vector, Vector) -- ^ (p, dpdu, dpdv)
 evalPatch (Patch ctrl) bu bdu bv bdv = (p, dpdu, dpdv) where
    p = ev bu bv
    dpdu = ev bdu bv
    dpdv = ev bu bdv
-   c = (V.!) ctrl -- V.unsafeIndex ctrl
+   c = V.unsafeIndex ctrl
    ev bj bi = mkV (s 0, s 1, s 2) where
       s o = sum [c (i * 12 + j * 3 + o) * bj j * bi i | i <- [0..3], j <- [0..3]]
 

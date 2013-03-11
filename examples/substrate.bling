@@ -1,16 +1,16 @@
 
 # substrate
 
-filter mitchell 3 3 0.333333 0.333333
-filter box
+filter mitchell 2 2 0.333333 0.333333
+# filter box
 
 imageSize 1280 720
-imageSize 640 360
+# imageSize 640 360
 
 renderer {
    sampler
    sampled {
-      sampler { stratified 2 2 }
+      sampler { stratified 8 8 }
       integrator { path maxDepth 7 sampleDepth 3 }
    }
 }
@@ -42,24 +42,27 @@ newTransform { }
 material {
    matte
    kd {
-      graphPaper 0.1
-      map { uv 0 0 1 1 }
+      graphPaper 0.02
+      map { uv 15 15 0 0 }
       tex1 { constant rgbR 0.8 0.8 0.8 }
       tex2 { constant rgbR 0.05 0.05 0.05 }
    }
    sigma { constant 0.005 }
 }
 
-prim {
-   mesh
-   vertexCount 4
-   faceCount 1
-   v  50.0 0.0 -50.0
-   v -50.0 0.0 -50.0
-   v -50.0 0.0  50.0
-   v  50.0 0.0  50.0
-   f 3 2 1 0
-}
+newTransform { rotateX 90 }
+prim { shape { quad 50 50 } }
+
+#prim {
+#   mesh
+#   vertexCount 4
+#   faceCount 1
+#   v  50.0 0.0 -50.0
+#   v -50.0 0.0 -50.0
+#   v -50.0 0.0  50.0#
+#   v  50.0 0.0  50.0
+#   f 3 2 1 0
+#}
 
 #
 # light source
@@ -114,7 +117,7 @@ material { substrate
    ka { constant rgbR 0.7 0.7 0.7 }
    urough { constant 0.005 }
    vrough { constant 0.0002 }
-   depth { constant 0.1 }
+   depth { constant 0 }
 }
 
 prim { shape { sphere radius 2 } }
@@ -143,7 +146,7 @@ material { substrate
    ka { constant rgbR 0.7 0.7 0.7 }
    urough { constant 0.0002 }
    vrough { constant 0.005 }
-   depth { constant 0.2 }
+   depth { constant 0.05 }
 }
 
 prim { shape { sphere radius 2 } }
@@ -175,7 +178,7 @@ material {
    urough { constant 0.005  }
    vrough { constant 0.005  }
       
-   depth { scale 0.6 0.6 tex {
+   depth { scale 0.03 0.03 tex {
          fbm octaves 3 omega 0.5 map {
             identity { scale 1 1 1 }
          }
