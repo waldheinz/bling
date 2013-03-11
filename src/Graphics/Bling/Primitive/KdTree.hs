@@ -233,7 +233,7 @@ traverse ri@(r, _) inv (Interior left right sp axis) mima@(tmin, tmax)
 
 kdTreePrimitive :: KdTree -> Primitive
 kdTreePrimitive (KdTree b t) = prim where
-   prim = Primitive inter inters b Nothing (flip const)
+   prim = Primitive inter inters b Nothing const
    
    inter r@(Ray _ d _ _) = {-# SCC "intersect" #-} intersectAABB b r >>= trav where
       trav ts = snd $ traverse (r, Nothing) invDir t ts

@@ -77,7 +77,7 @@ mkWFTri !mat !d !i = prim where
    tint = triangleIntersect mat prim (wfTriVerts d i) (wfTriUVs d i)
    ints = triangleIntersects (wfTriVerts d i)
    bounds = triangleBounds (wfTriVerts d i)
-   shade = maybe (flip const) triangleShadingGeometry (wfTriNormals d i)
+   shade = maybe const triangleShadingGeometry (wfTriNormals d i)
    
 initialState :: ST s (WFState s)
 initialState = do

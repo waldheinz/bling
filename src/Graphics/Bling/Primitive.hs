@@ -24,7 +24,7 @@ data Primitive = Primitive
    ,  intersects        :: Ray -> Bool
    ,  worldBounds       :: {-# UNPACK #-} ! AABB
    ,  light             :: Maybe Light
-   ,  shadingGeometry   :: Transform -> DifferentialGeometry -> DifferentialGeometry
+   ,  shadingGeometry   :: DifferentialGeometry -> Transform  -> DifferentialGeometry
    }
 
 near :: (Ray, Maybe Intersection) -> Primitive -> (Ray, Maybe Intersection)
@@ -57,7 +57,7 @@ data Intersection = Intersection
 
 mkIntersection :: Float -> Float -> DifferentialGeometry -> Primitive -> Material -> Intersection
 mkIntersection d e dg p mat = Intersection d e dg p bsdf where
-   bsdf = mat dg (shadingGeometry p mempty dg)
+   bsdf = mat dg (shadingGeometry p dg mempty)
 
 -- | the light emitted at an @Intersection@
 intLe

@@ -20,10 +20,9 @@ mkGeom
    -> Int
    -> Primitive
 mkGeom o2w _ m e s gid = prim where
-   prim = Primitive inter inters wb lig sg
+   prim = Primitive inter inters wb lig const
    w2o = inverse o2w
    wb = S.worldBounds s o2w
-   sg _ dg = dg
    inters rw = {-# SCC "intersects" #-}
       s `S.intersects` (transRay w2o rw)
    

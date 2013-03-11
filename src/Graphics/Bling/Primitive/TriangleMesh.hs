@@ -108,9 +108,9 @@ mkTri mesh n
       inters = {-# SCC "intersects" #-} triangleIntersects (triPoints idx mesh)
       wb = triangleBounds $ triPoints idx mesh
 
-      sg o2w dgg
-         | isNothing $ mns mesh = dgg
-         | otherwise = triangleShadingGeometry (triNormals idx mesh) o2w dgg
+      sg
+         | isNothing $ mns mesh = const
+         | otherwise = triangleShadingGeometry (triNormals idx mesh)
 
 type TriVerts = (Point, Point, Point)
 type TriNorms = (Normal, Normal, Normal)
@@ -119,9 +119,9 @@ type TriUVs = (Float, Float, Float, Float, Float, Float)
 triangleDefaultUVs :: TriUVs
 triangleDefaultUVs = (0, 0, 1, 0, 1, 1)
 
-triangleShadingGeometry :: TriNorms -> Transform -> DifferentialGeometry -> DifferentialGeometry
+triangleShadingGeometry :: TriNorms -> DifferentialGeometry -> Transform -> DifferentialGeometry
 {-# INLINE triangleShadingGeometry #-}
-triangleShadingGeometry (n0, n1, n2) o2w dgg = dgg { dgN = ns, dgDPDU = ss, dgDPDV = ts }
+triangleShadingGeometry (n0, n1, n2) dgg o2w = dgg { dgN = ns, dgDPDU = ss, dgDPDV = ts }
    where
       (b1, b2) = fromJust $ dgtriB dgg
       b0 = 1 - b1 - b2

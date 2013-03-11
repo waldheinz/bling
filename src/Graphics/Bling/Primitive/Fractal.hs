@@ -22,7 +22,7 @@ import Graphics.Bling.Reflection
 
 mkJuliaQuat :: Material -> Quaternion -> Float -> Int -> Primitive
 mkJuliaQuat mat q e mi = prim where
-   prim = Primitive inter inters wb Nothing sg
+   prim = Primitive inter inters wb Nothing const
    wb = AABB (mkPoint' n n n) $ mkPoint' p p p where
       (n, p) = (-juliaRadius, juliaRadius)
       
@@ -32,8 +32,6 @@ mkJuliaQuat mat q e mi = prim where
    inter r =
       traverseJulia r q mi e >>= \(d, o) ->
          Just $ mkIntersection d (e * 2) (mkDg' o $ normalJulia o q mi e) prim mat
-   
-   sg _ dg = dg
    
 prepare :: Ray -> Maybe Float
 prepare (Ray ro rd rmin rmax)
