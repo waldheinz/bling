@@ -26,42 +26,64 @@ mkMandelBulb
    -> Float    -- ^ the order, try 8 for a start
    -> Int      -- ^ iterations, try something like 10
    -> Float    -- ^ epsilon
+   -> Primitive
 mkMandelBulb mat order iters epsilon = prim where
    prim = Primitive inter inters bounds Nothing const
    bounds = AABB (mkPoint' n n n) (mkPoint' p p p) where
       (n, p) = (-2, 2)
    inters = isJust . inter
    inter ray = undefined
-   
-mandelDist :: Float -> Point -> (Float, Vector)
+
+
+
+-- | the distance estimator for the Mandelbulb fractal
+mandelDist
+   :: Float             -- ^ epsilon
+   -> Point             -- ^ point to estimate distance from
+   -> (Float, Vector)   -- ^ (distance to bulb, gradient)
 mandelDist eps p
    | r2 < mandelBailout2 = (0, mkPoint' 0 1 0)
-   | otherwise = 0.5 * r / length gradient
+   | otherwise = (0.5 * r / len gradient, gradient)
    where
-      r2 = mandelEscLen2 p
+      (r2, its) = mandelEscLen2 10 p
       r = sqrt r
+      ve = vpromote eps
       gradient = mkV (
-         (mandelEscLen $ p + mkV (1, 0, 0) * eps) - r,
-         (mandelEscLen $ p + mkV (1, 0, 0) * eps) - r,
-         (mandelEscLen $ p + mkV (1, 0, 0) * eps) - r) * vpromote (1 / eps)
+         (mandelEscLen its $ p + mkV (1, 0, 0) * ve) - r,
+         (mandelEscLen its $ p + mkV (1, 0, 0) * ve) - r,
+         (mandelEscLen its $ p + mkV (1, 0, 0) * ve) - r) * vpromote (1 / eps)
       
 mandelEscLen
-   :: Point    -- ^ point we're evaluating
-   -> Int      -- ^ number of iterations (fixed)
+   :: Int      -- ^ number of iterations (fixed)
+   -> Point    -- ^ point we're evaluating
    -> Float
-mandelEscLen p i = undefined
-   
+mandelEscLen i p = len $ (iterate (\z -> bulbPower z 8 + p) p) !! i
 
-   
+mandelEscLen2
+   :: Int            -- ^ maximum number of iterations
+   -> Point          -- ^ point to avaluate
+   -> (Float, Int)   -- ^ (length ^ 2, number of iterations)
+mandelEscLen2 its pos = go its pos where
+   go n z
+      | n == 0 || (sqLen z') > mandelBailout2 = (sqLen z, its - n)
+      | otherwise = go (n-1) z'
+      where
+         z' = bulbPower z 8 + pos
+
 mandelBailout2 :: Float
-mandelBailout2 = 5
+mandelBailout2 = 0.005
 
 bulbPower :: Point -> Float -> Point
 bulbPower p n = mkPoint (
    sin (theta * n) * cos (phi * n),
    sin (theta * n) * sin (phi * n),
    cos (theta * n)) * vpromote (r ** n)
-   
+   where
+      (x, y, z) = (vx p, vy p, vz p)
+      theta = atan2 (sqrt $ x ** 2 + y ** 2) (z)
+      phi = atan2 y x
+      r = len p
+      
 --------------------------------------------------------------------------------
 -- Julia Fractal
 --------------------------------------------------------------------------------
