@@ -52,7 +52,7 @@ pPrimitive = pBlock $ do
          return $! [mkJuliaQuat (material s) c e i]
       
       "mandelbulb" -> do
-         order <- namedFloat "order"
+         order <- namedInt "order"
          e <- namedFloat "epsilon"
          i <- namedInt "iterations"
          s <- getState

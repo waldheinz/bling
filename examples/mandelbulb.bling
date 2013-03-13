@@ -3,7 +3,7 @@
 # Julia Fractal Test
 #
 
-filter mitchell 3 3 0.333333 0.333333
+filter mitchell 2 2 0.333333 0.333333
 
 imageSize 1280 720
 imageSize 640 360
@@ -11,7 +11,7 @@ imageSize 640 360
 renderer {
    sampler
    sampled {
-      sampler { stratified 3 3  }
+      sampler { stratified 2 2 }
       integrator { path maxDepth 5 sampleDepth 2 }
    }
 }
@@ -37,7 +37,7 @@ camera {
 # ground plane
 #
 
-newTransform { rotateX 90 translate 0 -1 0 }
+newTransform { rotateX 90 translate 0 -2.5 0 }
 
 material {
    matte
@@ -58,7 +58,7 @@ prim { shape { quad 50 50 } }
 #
 
 light { infinite { rotateX -90 }
-   l { sunSky east 0 0 1 sunDir 1 1 -0.5 turbidity 6 }
+   l { sunSky east 0 0 1 sunDir 0 0.5 -1 turbidity 6 }
 #    l { rgbeFile "/home/trem/Dropbox/bling-scenes/envmaps/ennis.hdr" }
 }
 
@@ -118,10 +118,9 @@ material {
 
 # material { matte kd { constant rgbR 0.9 0.9 0.9 } sigma { constant 0 } }
 
-
 prim {
       mandelbulb
       order 8
-      epsilon 0.00001
-      iterations 15
+      epsilon 0.0001
+      iterations 10
 }

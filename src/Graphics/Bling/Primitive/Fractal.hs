@@ -9,10 +9,7 @@ module Graphics.Bling.Primitive.Fractal (
    
 ) where
 
-import Data.Maybe (isJust)
 import qualified Data.Vector as V
-
-import Debug.Trace
 
 import Graphics.Bling.AABB
 import Graphics.Bling.DifferentialGeometry
@@ -25,20 +22,20 @@ import Graphics.Bling.Reflection
 
 mkMandelBulb
    :: Material
-   -> Float    -- ^ the order, try 8 for a start
+   -> Int      -- ^ the order, try 8 for a start
    -> Int      -- ^ iterations, try something like 10
    -> Float    -- ^ epsilon
    -> Primitive
 mkMandelBulb mat order its epsilon = prim where
    prim = Primitive inter inters bounds Nothing const
    bounds = AABB (mkPoint' n n n) (mkPoint' p p p) where
-      (n, p) = (-2, 2)
-   inters = mandelInters its epsilon
-   inter ray = mandelInter its epsilon ray >>= \(d, p, n) ->
+      (n, p) = (-mandelBailout, mandelBailout)
+   inters = mandelInters order its epsilon
+   inter ray = mandelInter order its epsilon ray >>= \(d, p, n) ->
       Just $ mkIntersection d (epsilon * 2) (mkDg' p n) prim mat 
       
-mandelInters :: Int -> Float -> Ray -> Bool
-mandelInters its eps r = maybe False go (intSphere 2 r) where
+mandelInters :: Int -> Int -> Float -> Ray -> Bool
+mandelInters order its eps r = maybe False go (intSphere 2 r) where
    rn = normalizeRay r
    go !d
       | sqLen p > mandelBailout = False
@@ -46,10 +43,10 @@ mandelInters its eps r = maybe False go (intSphere 2 r) where
       | otherwise = go (d + dist)
       where
          p = rayAt rn d
-         (dist, _) = mandelDist its eps p
+         (dist, _) = mandelDist order its eps p
       
-mandelInter :: Int -> Float -> Ray -> Maybe (Float, Point, Normal)
-mandelInter its eps r = intSphere 2 r >>= go where
+mandelInter :: Int -> Int -> Float -> Ray -> Maybe (Float, Point, Normal)
+mandelInter order its eps r = intSphere 2 r >>= go where
    rn = normalizeRay r
    go !d
       | sqLen p > mandelBailout = Nothing
@@ -57,7 +54,7 @@ mandelInter its eps r = intSphere 2 r >>= go where
       | otherwise = go (d + dist)
       where
          p = rayAt rn d
-         (dist, g) = mandelDist its eps p
+         (dist, g) = mandelDist order its eps p
 
 intSphere :: Float -> Ray -> Maybe Float
 intSphere r2 (Ray ro rd rmin rmax)
@@ -74,64 +71,73 @@ intSphere r2 (Ray ro rd rmin rmax)
 
 -- | distance estimator for the Mandelbulb fractal
 mandelDist
-   :: Int               -- ^ max. number of iterations
+   :: Int               -- ^ order
+   -> Int               -- ^ max. number of iterations
    -> Float             -- ^ epsilon
    -> Point             -- ^ point to estimate distance from
    -> (Float, Vector)   -- ^ (distance to bulb, gradient)
-mandelDist mi eps p
+mandelDist order mi eps p
    | pot == 0 = (0, mkPoint' 0 1 0)
    | otherwise = ((0.5 / exp pot) * (sinh pot) / len gradient, gradient)
    where
-      pot = mandelPotential mi p
+      pot = mandelPotential order mi p
       gradient = (mkV (
-         (mandelPotential mi $ p + mkV (eps, 0, 0)),
-         (mandelPotential mi $ p + mkV (0, eps, 0)),
-         (mandelPotential mi $ p + mkV (0, 0, eps))) - vpromote pot) * vpromote (1 / eps)
+         (mandelPotential order mi $ p + mkV (eps, 0, 0)),
+         (mandelPotential order mi $ p + mkV (0, eps, 0)),
+         (mandelPotential order mi $ p + mkV (0, 0, eps))) - vpromote pot) * vpromote (1 / eps)
 
-mandelPotential :: Int -> Point -> Float
-mandelPotential its pos = go (its+1) pos where
+mandelPotential :: Int -> Int -> Point -> Float
+mandelPotential order its pos = go (its+1) pos where
    go n z
       | n == 1 = 0
-      | sqLen z' > mandelBailout = log (len z') / (8 ** fromIntegral (its - n))
+      | sqLen z' > mandelBailout = log (len z') / fromIntegral (order ^ (1+ its - n))
       | otherwise = go (n-1) z'
       where
-         z' = bulbPower z 8 + pos
-      
-{-      
-
-mandelEscLen
-   :: Int      -- ^ number of iterations (fixed)
-   -> Point    -- ^ point we're evaluating
-   -> Float
-mandelEscLen i p = len $ (iterate (\z -> bulbPower z 8 + p) p) !! i
-
-mandelEscLen2
-   :: Int            -- ^ maximum number of iterations
-   -> Point          -- ^ point to avaluate
-   -> (Float, Int)   -- ^ (length ^ 2, number of iterations)
-mandelEscLen2 its pos = go its pos where
-   go n z
-      | n == 0 || (len z') > mandelBailout = (sqLen z', its - n)
-      | otherwise = traceShow n $ go (n-1) z'
-      where
-         z' = bulbPower z 8 + pos
--}
+         z' = bulbPower z order + pos
 
 mandelBailout :: Float
 mandelBailout = 2.5
 
-bulbPower :: Point -> Float -> Point
-bulbPower p n = mkPoint (
-   sin (theta * n) * cos (phi * n),
-   sin (theta * n) * sin (phi * n),
-   cos (theta * n)) * vpromote (r ** n)
+bulbPower :: Point -> Int -> Point
+bulbPower p 8
+   | k2' <= 0 = mkPoint (0, 0, 0)
+   | otherwise = mkPoint (wx, wy, wz)
    where
       (x, y, z) = (vx p, vy p, vz p)
-      theta = atan2 (sqrt ((x ** 2) + (y ** 2))) z
---      theta = acos $ z / r
-      phi = atan $ y / x
-      r = len p
+   
+      (x2, y2, z2) = (x * x, y * y, z * z)
+      (x4, y4, z4) = (x2 * x2, y2 * y2, z2 * z2)
       
+      k3 = x2 + z2
+      k2' = sqrt $ k3 * k3 * k3 * k3 * k3 * k3 * k3
+      k2 = 1 / k2'
+      k1 = x4 + y4 + z4 - 6 * y2*z2 - 6 * x2 * y2 + 2 * z2 * x2
+      k4 = x2 - y2 + z2
+   
+      wx =  64 * x * y * z * (x2 - z2) * k4 * (x4 - 6 * x2 * z2 + z4) * k1 * k2
+      wy = -16 * y2 * k3 * k4 * k4 + k1 * k1
+      wz =  -8 * y*k4*(x4*x4 - 28 * x4*x2*z2 + 70 * x4*z4 - 28 * x2*z2*z4 + z4*z4)*k1*k2
+
+bulbPower p n = mkPoint (
+      sin wo' * sin wi',
+      cos wo',
+      sin wo' * cos wi') * vpromote wr'
+   where
+      wr = len p
+      wo = acos $ (vy p / wr)
+      wi = atan2 (vx p) (vz p)
+      
+      wr' = wr ** fn
+      wo' = wo * fn
+      wi' = wi * fn
+      
+      fn = fromIntegral n
+      
+--      (x, y, z) = (vx p, vy p, vz p)
+--      theta = atan2 (sqrt ((x ** 2) + (y ** 2))) z
+--      phi = atan $ y / x
+--      r = len p
+    
 --------------------------------------------------------------------------------
 -- Julia Fractal
 --------------------------------------------------------------------------------
