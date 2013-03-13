@@ -49,7 +49,14 @@ pPrimitive = pBlock $ do
          e <- namedFloat "epsilon"
          i <- namedInt "iterations"
          s <- getState
-         return $ [mkJuliaQuat (material s) c e i]
+         return $! [mkJuliaQuat (material s) c e i]
+      
+      "mandelbulb" -> do
+         order <- namedFloat "order"
+         e <- namedFloat "epsilon"
+         i <- namedInt "iterations"
+         s <- getState
+         return $ [mkMandelBulb (material s) order i e]
       
       "mesh" -> pMesh >>= \m -> return $! m
          

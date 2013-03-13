@@ -55,7 +55,13 @@ data Intersection = Intersection
    , intBsdf      :: Bsdf
    }
 
-mkIntersection :: Float -> Float -> DifferentialGeometry -> Primitive -> Material -> Intersection
+mkIntersection
+   :: Float
+   -> Float
+   -> DifferentialGeometry
+   -> Primitive
+   -> Material
+   -> Intersection
 mkIntersection d e dg p mat = Intersection d e dg p bsdf where
    bsdf = mat dg (shadingGeometry p dg mempty)
 

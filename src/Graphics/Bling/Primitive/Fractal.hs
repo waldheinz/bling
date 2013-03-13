@@ -12,6 +12,8 @@ module Graphics.Bling.Primitive.Fractal (
 import Data.Maybe (isJust)
 import qualified Data.Vector as V
 
+import Debug.Trace
+
 import Graphics.Bling.AABB
 import Graphics.Bling.DifferentialGeometry
 import Graphics.Bling.Primitive
@@ -27,32 +29,76 @@ mkMandelBulb
    -> Int      -- ^ iterations, try something like 10
    -> Float    -- ^ epsilon
    -> Primitive
-mkMandelBulb mat order iters epsilon = prim where
+mkMandelBulb mat order its epsilon = prim where
    prim = Primitive inter inters bounds Nothing const
    bounds = AABB (mkPoint' n n n) (mkPoint' p p p) where
       (n, p) = (-2, 2)
-   inters = isJust . inter
-   inter ray = undefined
+   inters = mandelInters its epsilon
+   inter ray = mandelInter its epsilon ray >>= \(d, p, n) ->
+      Just $ mkIntersection d (epsilon * 2) (mkDg' p n) prim mat 
+      
+mandelInters :: Int -> Float -> Ray -> Bool
+mandelInters its eps r = maybe False go (intSphere 2 r) where
+   rn = normalizeRay r
+   go !d
+      | sqLen p > mandelBailout = False
+      | dist < eps = True
+      | otherwise = go (d + dist)
+      where
+         p = rayAt rn d
+         (dist, _) = mandelDist its eps p
+      
+mandelInter :: Int -> Float -> Ray -> Maybe (Float, Point, Normal)
+mandelInter its eps r = intSphere 2 r >>= go where
+   rn = normalizeRay r
+   go !d
+      | sqLen p > mandelBailout = Nothing
+      | dist < eps = Just (d, p, normalize g)
+      | otherwise = go (d + dist)
+      where
+         p = rayAt rn d
+         (dist, g) = mandelDist its eps p
 
+intSphere :: Float -> Ray -> Maybe Float
+intSphere r2 (Ray ro rd rmin rmax)
+   | c <= 0 = Just rmin -- start inside sphere
+   | otherwise = solveQuadric a b c >>= cb
+   where
+         cb (t0, t1) -- check with ray bounds
+            | t0 > rmax || t1 < rmin = Nothing
+            | otherwise = Just t0
 
+         c = sqLen ro - r2
+         a = sqLen rd
+         b = 2 * (rd `dot` ro)
 
--- | the distance estimator for the Mandelbulb fractal
+-- | distance estimator for the Mandelbulb fractal
 mandelDist
-   :: Float             -- ^ epsilon
+   :: Int               -- ^ max. number of iterations
+   -> Float             -- ^ epsilon
    -> Point             -- ^ point to estimate distance from
    -> (Float, Vector)   -- ^ (distance to bulb, gradient)
-mandelDist eps p
-   | r2 < mandelBailout2 = (0, mkPoint' 0 1 0)
-   | otherwise = (0.5 * r / len gradient, gradient)
+mandelDist mi eps p
+   | pot == 0 = (0, mkPoint' 0 1 0)
+   | otherwise = ((0.5 / exp pot) * (sinh pot) / len gradient, gradient)
    where
-      (r2, its) = mandelEscLen2 10 p
-      r = sqrt r
-      ve = vpromote eps
-      gradient = mkV (
-         (mandelEscLen its $ p + mkV (1, 0, 0) * ve) - r,
-         (mandelEscLen its $ p + mkV (1, 0, 0) * ve) - r,
-         (mandelEscLen its $ p + mkV (1, 0, 0) * ve) - r) * vpromote (1 / eps)
+      pot = mandelPotential mi p
+      gradient = (mkV (
+         (mandelPotential mi $ p + mkV (eps, 0, 0)),
+         (mandelPotential mi $ p + mkV (0, eps, 0)),
+         (mandelPotential mi $ p + mkV (0, 0, eps))) - vpromote pot) * vpromote (1 / eps)
+
+mandelPotential :: Int -> Point -> Float
+mandelPotential its pos = go (its+1) pos where
+   go n z
+      | n == 1 = 0
+      | sqLen z' > mandelBailout = log (len z') / (8 ** fromIntegral (its - n))
+      | otherwise = go (n-1) z'
+      where
+         z' = bulbPower z 8 + pos
       
+{-      
+
 mandelEscLen
    :: Int      -- ^ number of iterations (fixed)
    -> Point    -- ^ point we're evaluating
@@ -65,13 +111,14 @@ mandelEscLen2
    -> (Float, Int)   -- ^ (length ^ 2, number of iterations)
 mandelEscLen2 its pos = go its pos where
    go n z
-      | n == 0 || (sqLen z') > mandelBailout2 = (sqLen z, its - n)
-      | otherwise = go (n-1) z'
+      | n == 0 || (len z') > mandelBailout = (sqLen z', its - n)
+      | otherwise = traceShow n $ go (n-1) z'
       where
          z' = bulbPower z 8 + pos
+-}
 
-mandelBailout2 :: Float
-mandelBailout2 = 0.005
+mandelBailout :: Float
+mandelBailout = 2.5
 
 bulbPower :: Point -> Float -> Point
 bulbPower p n = mkPoint (
@@ -80,8 +127,9 @@ bulbPower p n = mkPoint (
    cos (theta * n)) * vpromote (r ** n)
    where
       (x, y, z) = (vx p, vy p, vz p)
-      theta = atan2 (sqrt $ x ** 2 + y ** 2) (z)
-      phi = atan2 y x
+      theta = atan2 (sqrt ((x ** 2) + (y ** 2))) z
+--      theta = acos $ z / r
+      phi = atan $ y / x
       r = len p
       
 --------------------------------------------------------------------------------
