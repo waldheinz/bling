@@ -18,7 +18,6 @@ defaultRenderer = mkAnyRenderer r where
    r = mkSamplerRenderer defaultSampler defaultSurfaceIntegrator
    
 defaultSampler :: Sampler
--- defaultSampler = mkAnySampler $ mkRandomSampler 2
 defaultSampler = mkStratifiedSampler 2 2
 
 pRenderer :: JobParser ()

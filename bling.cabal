@@ -33,9 +33,11 @@ Library
       vector-algorithms >= 0.5
       
    Ghc-Options:
-      -Wall -O2 -fexcess-precision -fllvm
---      -eventlog
-   
+      -Wall
+      -O2
+      -fllvm
+      -fexcess-precision
+      
    Exposed-Modules:
       Graphics.Bling.AABB,
       Graphics.Bling.Camera,
@@ -108,5 +110,10 @@ Executable bling-gui
    hs-source-dirs:   src/Graphics/Bling/Main
    Main-is:          GuiMain.hs
    
-   ghc-options:      -Wall -O2 -fexcess-precision -rtsopts -threaded
+   ghc-options:
+     -Wall
+     -O2
+     -fexcess-precision
+     -threaded
+     -with-rtsopts=-N
 
