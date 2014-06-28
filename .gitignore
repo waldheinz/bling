@@ -8,4 +8,6 @@ bling.prof
 **.hp
 **.prof
 **.ps
+.cabal-sandbox
+cabal.sandbox.config
 

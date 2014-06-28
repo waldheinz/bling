@@ -7,12 +7,12 @@ License:             GPL
 Build-Type:          Simple
 Cabal-Version:       >=1.8
 
-Flag Gui
-   Description:      Enable building the SDL based GUI
+Flag gui
+   Description:      enable building the SDL based GUI
    Default:          False
    
 Library
-   Hs-Source-Dirs:   src
+   Hs-Source-Dirs:   src/lib
    Build-Depends:
       base              >= 4.3,
       bytestring        >= 0.9,
@@ -27,7 +27,6 @@ Library
       parallel          >= 3.1,
       pretty            >= 1.0,
       primitive         >= 0.4,
-      SDL               >= 0.6,
       transformers      >= 0.2,
       vector            >= 0.9,
       vector-algorithms >= 0.5
@@ -35,17 +34,14 @@ Library
    Ghc-Options:
       -Wall
       -O2
-      -fllvm
       -fexcess-precision
       
    Exposed-Modules:
       Graphics.Bling.AABB,
       Graphics.Bling.Camera,
       Graphics.Bling.DifferentialGeometry,
-      Graphics.Bling.Edsl,
       Graphics.Bling.Filter,
       Graphics.Bling.Fresnel,
-      Graphics.Bling.Gui,
       Graphics.Bling.Image,
       Graphics.Bling.Integrator,
       Graphics.Bling.Light,
@@ -95,25 +91,28 @@ Library
       Graphics.Bling.Utils
       
 Executable bling
-   hs-source-dirs:   src/Graphics/Bling/Main
+   hs-source-dirs:   src/cmdline
    Main-is:          Main.hs
-   Build-Depends:    bling, base, pretty, random, mwc-random
-   ghc-options:      -Wall -O2 -fexcess-precision -rtsopts -threaded
+   build-Depends:    bling, base, pretty, random, mwc-random
+   ghc-options:
+      -Wall
+      -O2
+      -threaded
+      -with-rtsopts=-N
    
 Executable bling-gui
-   if flag(Gui)
+   if flag(gui)
       Buildable:     True
-      Build-Depends: bling, base, pretty, random, mwc-random, SDL
+      build-Depends: bling, base, pretty, random, mwc-random, SDL
    else
       Buildable:     False
       
-   hs-source-dirs:   src/Graphics/Bling/Main
-   Main-is:          GuiMain.hs
-   
+   hs-source-dirs:   src/gui
+   main-is:          Main.hs
+
    ghc-options:
      -Wall
      -O2
-     -fexcess-precision
      -threaded
      -with-rtsopts=-N
 
