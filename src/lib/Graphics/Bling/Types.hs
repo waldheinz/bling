@@ -22,9 +22,11 @@ type PixelSize = (Int, Int)
 
 -- | spherical coordinates which are given in (phi [0..2pi), theta [0..pi))
 newtype SphericalCoords = Spherical { unSpherical :: (Float, Float) }
+                          deriving ( Eq, Show )
 
 -- | cartesian coordinates which are given in (u [0..1), v [0..1))
-newtype CartesianCoords = Cartesian { unCartesian :: (Float, Float) }
+newtype CartesianCoords =
+  Cartesian { unCartesian :: (Float, Float) } deriving ( Eq, Show )
 
 cartToSph :: CartesianCoords -> SphericalCoords
 {-# INLINE cartToSph #-}

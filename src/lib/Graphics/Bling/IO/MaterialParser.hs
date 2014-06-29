@@ -153,7 +153,7 @@ pScalarTexture = namedBlock $
          t <- pScalarTexture "tex"
          return $! scaleTexture a s t
       
-      _ -> fail ("unknown texture type " ++ tp)
+      _ -> fail $ "unknown texture type " ++ tp
 
 pFbmMap :: JobParser ScalarMap3d
 pFbmMap = fbm <$> namedInt "octaves" <*> namedFloat "omega"
@@ -257,10 +257,12 @@ pDiscSpectrumMap2d = pBlock $ do
          return $ constSpectrumMap2d s
 
       "file" -> do
-         eimg <- pQString >>= liftIO . readTexture
-         case eimg of
-            Left e  -> fail e
-            Right x -> return x
+        fname <- pQString >>= resolveFile
+        liftIO $ putStrLn $ "reading " ++ fname
+        eimg <- liftIO . readTexture $ fname 
+        case eimg of
+          Left e  -> fail e
+          Right x -> return x
 
       "sunSky" -> do
          east <- namedVector "east"

@@ -1,21 +1,18 @@
 
-# plastic
+filter mitchell 2.0 2.0 0.333333 0.333333
+filter gauss 2 2 2
 
-filter mitchell 3.0 3.0 0.333333 0.333333
-# filter box
+imageSize 1280 720
 
-imageSize 640 400
+renderer { sppm photonCount 100000 maxDepth 8 radius 0.2 alpha 0.9 }
 
 renderer {
    sampler
    sampled {
-      sampler { stratified xSamples 8 ySamples 8 }
-      integrator { path maxDepth 5 sampleDepth 3 }
+      sampler { stratified 8 8 }
+      integrator { path maxDepth 7 sampleDepth 3 }
    }
 }
-
-# renderer { metropolis mpp 1 bootstrap 1000 plarge 0.25 separateDirect }
-renderer { sppm photonCount 100000 maxDepth 8 radius 0.2 alpha 0.9 }
 
 transform {
    lookAt {
@@ -33,7 +30,9 @@ camera {
 }
 
 light { infinite { rotateX -90 }
-   l { rgbeFile "envmaps/studio015.hdr" }
+#   l { file "envmaps/studio015.hdr" }
+#   l { file "/mnt/archiv/trem/BT Sync/bling-scenes/envmaps/ennis.hdr" }
+    l { file "/home/trem/Downloads/20060807_wells6_hd.hdr" }
 }
 
 #
@@ -44,9 +43,21 @@ newTransform { rotateX 90 translate 0 1 0 }
 
 material {
    matte
-   kd { constant rgb 0.7 0.7 0.7 }
+   kd { constant rgbR 0.7 0.7 0.7 }
    sigma { constant 0 }
 }
+
+material {
+   matte
+   kd {
+      graphPaper 0.05
+      map { uv 21 21 0 0 }
+      tex1 { constant rgbR 0.8 0.8 0.8 }
+      tex2 { constant rgbR 0.05 0.05 0.05 }
+   }
+   sigma { constant 0 }
+}
+
 
 prim { shape { quad 20 20 } }
 
@@ -61,7 +72,7 @@ newTransform {
 }
 
 material { mirror
-   kr { constant rgb 1 1 1 }
+   kr { constant rgbR 0.7 0.7 0.7 }
 }
 
 prim { shape { sphere radius 2 } }
@@ -76,8 +87,8 @@ newTransform {
 
 material { glass
    ior { constant 1.5 }
-   kr { constant rgb 1 1 1 }
-   kt { constant rgb 1 0.5 0.6 }
+   kr { constant rgbR 0.7 0.7 0.7 }
+   kt { constant rgbR 0.7 0.7 0.7 }
 }
 
 
@@ -154,8 +165,8 @@ newTransform {
 }
 
 material { plastic
-   kd { constant rgb 0.1 0.2 0.4 }
-   ks { constant rgb 0.5 0.5 0.5 }
+   kd { constant rgbR 0.1 0.2 0.4 }
+   ks { constant rgbR 0.5 0.5 0.5 }
    rough { constant 0.003125 }
 }
 
@@ -170,8 +181,8 @@ newTransform {
 }
 
 material { plastic
-   kd { constant rgb 0.3 0.15 0.01 }
-   ks { constant rgb 0.5 0.5 0.5 }
+   kd { constant rgbR 0.3 0.15 0.01 }
+   ks { constant rgbR 0.5 0.5 0.5 }
    rough { constant 0.00078125 }
 }
 
@@ -186,8 +197,8 @@ newTransform {
 }
 
 material { plastic
-   kd { constant rgb 0.01 0.4 0.35 }
-   ks { constant rgb 0.5 0.5 0.5 }
+   kd { constant rgbR 0.01 0.4 0.35 }
+   ks { constant rgbR 0.5 0.5 0.5 }
    rough { constant 0.000195312 }
 }
 

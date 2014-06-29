@@ -16,29 +16,29 @@ module Graphics.Bling.IO.ParserCore (
    
    -- * Reading External Resources
 
-   readFileBS, readFileBS', readFileString
+   readFileBS, readFileBS', readFileString, resolveFile
    
    ) where
 
-import Control.Monad (liftM, liftM3)
-import Control.Monad.IO.Class (liftIO)
+import           Control.Monad (liftM, liftM3, void)
+import           Control.Monad.IO.Class (liftIO)
 import qualified Data.ByteString as BSS
 import qualified Data.ByteString.Lazy as BS
-import Numeric (readHex)
-import System.FilePath as FP
-import Text.Parsec.Prim as PS
-import Text.Parsec.Combinator as PS
-import Text.Parsec.Char as PS
-import Text.Parsec.String()
-import Text.Parsec.ByteString.Lazy()
+import           Numeric (readHex)
+import           System.FilePath as FP
+import           Text.Parsec.ByteString.Lazy()
+import           Text.Parsec.Char as PS
+import           Text.Parsec.Combinator as PS
+import           Text.Parsec.Prim as PS
+import           Text.Parsec.String()
 
-import Graphics.Bling.Camera
-import Graphics.Bling.Filter
-import Graphics.Bling.Light
-import Graphics.Bling.Math
-import Graphics.Bling.Primitive
-import Graphics.Bling.Rendering
-import Graphics.Bling.Reflection
+import           Graphics.Bling.Camera
+import           Graphics.Bling.Filter
+import           Graphics.Bling.Light
+import           Graphics.Bling.Math
+import           Graphics.Bling.Primitive
+import           Graphics.Bling.Reflection
+import           Graphics.Bling.Rendering
 
 type JobParser a = ParsecT String PState IO a
 
@@ -81,7 +81,7 @@ nextId = do
 --------------------------------------------------------------------------------
 
 pString :: JobParser String
-pString = many1 alphaNum >>= \s -> (optional ws >> (return $! s))
+pString = many1 alphaNum >>= \s -> (ws >> (return s))
 
 -- | parses a "quoted" string, and returns it without the quotes
 pQString :: JobParser String
@@ -105,7 +105,10 @@ comment = char '#' >> skipMany (noneOf "\n") >> char '\n' >> return () <?> "comm
 
 -- | skips over whitespace and comments
 ws :: (Monad m) => (ParsecT String u m) ()
-ws = skipMany1 (choice [space >> return (), comment])
+ws = skipMany1 $ choice [void space, comment]
+
+ows :: Monad m => ParsecT String u m ()
+ows = optional ws
 
 -- | parse a floating point number
 flt' :: (Monad m) => (ParsecT String u m) Float
@@ -169,8 +172,8 @@ pBlock :: JobParser a -> JobParser a
 pBlock = between (char '{' >> optional ws) (optional ws >> char '}' >> optional ws)
       
 namedBlock :: JobParser a -> String -> JobParser a
-namedBlock p n = optional ws >> string n >> optional ws >> pBlock p
-   
+namedBlock p n = ows >> string n >> ows >> pBlock p
+
 namedFloat :: String -> JobParser Float
 namedFloat n = do
    _ <- string n <|> fail ("expected " ++ n)
