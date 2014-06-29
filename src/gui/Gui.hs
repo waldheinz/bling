@@ -1,5 +1,5 @@
 
-module Graphics.Bling.Gui (
+module Gui (
    PreviewWindow, mkPreviewWindow, previewProgress, renderWithPreview
 ) where
 

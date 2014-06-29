@@ -1,8 +1,10 @@
 
+module Main ( main ) where
+
 import Graphics.UI.SDL as SDL
 import System.Environment (getArgs)
 
-import Graphics.Bling.Gui
+import Gui
 import Graphics.Bling.IO.RenderJob
 
 main :: IO ()
