@@ -8,13 +8,14 @@ module Graphics.Bling.IO.MaterialParser (
    ) where
 
 import Control.Applicative
+import Control.Monad.IO.Class ( liftIO )
 import Text.ParserCombinators.Parsec
 
 import Graphics.Bling.Reflection
 import Graphics.Bling.SunSky
 import Graphics.Bling.Texture
+import Graphics.Bling.IO.Bitmap
 import Graphics.Bling.IO.ParserCore
-import Graphics.Bling.IO.RGBE
 import Graphics.Bling.IO.TransformParser
 import Graphics.Bling.Material
 
@@ -255,11 +256,11 @@ pDiscSpectrumMap2d = pBlock $ do
          s <- pSpectrum
          return $ constSpectrumMap2d s
 
-      "rgbeFile" -> do
-         rgbe <- pQString >>= readFileBS
-         case parseRGBE rgbe of
-            Left e -> fail e
-            Right x -> return $ (rgbeToTextureMap x)
+      "file" -> do
+         eimg <- pQString >>= liftIO . readTexture
+         case eimg of
+            Left e  -> fail e
+            Right x -> return x
 
       "sunSky" -> do
          east <- namedVector "east"

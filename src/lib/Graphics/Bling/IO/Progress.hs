@@ -4,11 +4,9 @@ module Graphics.Bling.IO.Progress (
    ) where
    
 import System.FilePath
-import System.IO
 import Text.Printf
 
-import Graphics.Bling.Image
-import Graphics.Bling.IO.RGBE
+import Graphics.Bling.IO.Bitmap
 import Graphics.Bling.Rendering
 
 -- | allows to combine two progress reporters into a new one. the new
@@ -28,13 +26,8 @@ progressWriter
 progressWriter baseName (PassDone p img spw) = do
    putStrLn $ "\nWriting " ++ fname ++ "..."
    
-   h1 <- openFile (fname <.> "ppm") WriteMode
-   writePpm img spw h1
-   hClose h1
-   
-   h2 <- openFile (fname <.> ".hdr") WriteMode
-   writeRgbe img spw h2
-   hClose h2
+   writePng img $ fname <.> "png"
+   writeRgbe img $ fname <.> "hdr"
    return True
    
    where

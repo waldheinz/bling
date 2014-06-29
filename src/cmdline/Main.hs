@@ -4,26 +4,20 @@ import System.IO
 import Text.Printf
 import qualified Text.PrettyPrint as PP
 
-import Graphics.Bling.Image
-import Graphics.Bling.IO.RGBE
+import Graphics.Bling.IO.Bitmap
 import Graphics.Bling.Rendering
 import Graphics.Bling.Types
 import Graphics.Bling.IO.RenderJob
 
 prog :: ProgressReporter
 prog (PassDone p img spw) = do
-   putStrLn $ "\nWriting " ++ fname ++ "..."
-   h1 <- openFile (fname ++ ".ppm") WriteMode
-   writePpm img spw h1
-   hClose h1
+  putStrLn $ "\nWriting " ++ fname ++ "..."
+  writePng img $ fname ++ ".ppm"
+  writeRgbe img $ fname ++ ".hdr"
+  return False
    
-   h2 <- openFile (fname ++ ".hdr") WriteMode
-   writeRgbe img spw h2
-   hClose h2
-   return False
-   
-   where
-         fname = "pass-" ++ printf "%05d" p
+  where
+    fname = "pass-" ++ printf "%05d" p
 
 prog (SamplesAdded _ _) = putStr "." >> hFlush stdout >> return True
 prog _ = return True

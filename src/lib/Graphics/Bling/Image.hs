@@ -12,26 +12,25 @@ module Graphics.Bling.Image (
    mkMImage, mkImageTile, addSample, splatSample, addTile, splitMImage,
    scaleSplats,
    
-   imageWidth, imageHeight, sampleExtent, writePpm, 
+   imageWidth, imageHeight, sampleExtent,
    
    thaw, freeze,
    
    ) where
 
-import Control.DeepSeq
-import Control.Monad
-import Control.Monad.Primitive
-import Control.Monad.ST
-import Debug.Trace
+import           Control.DeepSeq
+import           Control.Monad
+import           Control.Monad.Primitive
+import           Control.Monad.ST
 import qualified Data.Vector.Generic as GV
-import qualified Data.Vector.Unboxed as V 
+import qualified Data.Vector.Unboxed as V
 import qualified Data.Vector.Unboxed.Mutable as MV
-import System.IO
+import           Debug.Trace
 
-import Graphics.Bling.Filter
-import Graphics.Bling.Sampling
-import Graphics.Bling.Spectrum
-import Graphics.Bling.Types
+import           Graphics.Bling.Filter
+import           Graphics.Bling.Sampling
+import           Graphics.Bling.Spectrum
+import           Graphics.Bling.Types
 
 -- | size of the precomputed pixel filter table
 filterTableSize :: Int
@@ -276,27 +275,13 @@ getPixel
    -> Int
    -> (Float, Float, Float) -- ^ (r, g, b)
 getPixel (Img _ _ _ p s) sw o
-   | w == 0 = xyzToRgb (sw * sr, sw * sg, sw * sb)
+   | w == 0    = xyzToRgb (sw * sr, sw * sg, sw * sb)
    | otherwise = xyzToRgb (sw * sr + r / w, sw * sg + g / w, sw * sb + b / w)
    where
-      o' = 4 * o
+      o'  = 4 * o
       (w, r, g, b) = (p V.! o', p V.! (o' + 1), p V.! (o' + 2), p V.! (o' + 3))
       os' = 3 * o
       (sr, sg, sb) = (s V.! os', s V.! (os' + 1), s V.! (os' + 2))
-      
--- | writes an image in ppm format
-writePpm
-   :: Image
-   -> Float -- ^ splat weight
-   -> Handle
-   -> IO ()
-writePpm img@(Img w h _ _ _) splatW handle =
-   let
-       header = "P3\n" ++ show w ++ " " ++ show h ++ "\n255\n"
-       pixel p = return $ ppmPixel $ getPixel img splatW p
-   in do
-      hPutStr handle header
-      mapM_ (\p -> pixel p >>= hPutStr handle) [0..(w*h-1)]
       
 -- | applies gamma correction to an RGB triple
 gamma :: Float -> (Float, Float, Float) -> (Float, Float, Float)
@@ -313,10 +298,4 @@ rgbPixels img@(Img w h _ _ _) spw wnd = Prelude.zip xs clamped where
    clamped = map (\(r,g,b) -> (clamp r, clamp g, clamp b)) rgbs
    xs = filter (\(x, y) -> x >= 0 && y >= 0 && x < w && y < h) $ coverWindow wnd
    os = map (\(x,y) -> (y * (imgW img)) + x) xs
-
--- | converts a @WeightedSpectrum@ into what's expected to be found in a ppm file
-ppmPixel :: (Float, Float, Float) -> String
-ppmPixel ws = (toString . gamma 2.2) ws
-   where
-      toString (r, g, b) = show (clamp r) ++ " " ++ show (clamp g) ++ " " ++ show (clamp b) ++ " "
 
