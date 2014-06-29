@@ -54,7 +54,7 @@ mandelInter !order !its !eps !r = intSphere 2 r >>= go where
     | otherwise               = go (d + dist)
     where
       p = rayAt rn d
-      (!dist, !g) = mandelDist order its eps p
+      (dist, g) = mandelDist order its eps p
 
 intSphere :: Float -> Ray -> Maybe Float
 intSphere r2 (Ray ro rd rmin rmax)
@@ -76,6 +76,7 @@ mandelDist
    -> Float             -- ^ epsilon
    -> Point             -- ^ point to estimate distance from
    -> (Float, Vector)   -- ^ (distance to bulb, gradient)
+{-# INLINE mandelDist #-}
 mandelDist !order !mi !eps !p
    | pot == 0 = (0, mkPoint' 0 1 0)
    | otherwise = ((0.5 / exp pot) * (sinh pot) / len gradient, gradient)
@@ -87,6 +88,7 @@ mandelDist !order !mi !eps !p
          (mandelPotential order mi $ p + mkV (0, 0, eps))) - vpromote pot) * vpromote (1 / eps)
 
 mandelPotential :: Int -> Int -> Point -> Float
+{-# INLINE mandelPotential #-}
 mandelPotential !order !its !pos = {-# SCC "mandelPotential" #-} go (its + 1) pos where
    go !n !z
       | n == 1 = 0
@@ -99,6 +101,7 @@ mandelBailout :: Float
 mandelBailout = 2.5
 
 bulbPower :: Point -> Int -> Point
+{-# INLINE bulbPower #-}
 bulbPower p 8
    | k2' <= 0  = mkPoint (0, 0, 0)
    | otherwise = mkPoint (wx, wy, wz)

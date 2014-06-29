@@ -12,7 +12,7 @@ imageSize 1280 720
 renderer {
    sampler
    sampled {
-      sampler { stratified 4 4 }
+      sampler { stratified 5 5 }
       integrator { path maxDepth 5 sampleDepth 2 }
    }
 }
@@ -31,7 +31,7 @@ camera {
    perspective
    fov 40
    lensRadius 0.001
-   focalDistance 0.25
+   focalDistance 0.425
 }
 
 #
