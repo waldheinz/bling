@@ -1,9 +1,11 @@
 
 module Graphics.Bling.AABB (
    AABB(..), mkAABB,
-   emptyAABB, extendAABB, extendAABBP, maximumExtent, centroid, surfaceArea,
+   extendAABBP, maximumExtent, centroid, surfaceArea,
    intersectAABB, splitAABB, boundingSphere, diagonal
 ) where
+
+import Data.Monoid
 
 import Graphics.Bling.Math
 
@@ -16,6 +18,10 @@ data AABB = AABB {
 instance Show AABB where
    show b = "AABB [min=" ++ show (aabbMin b) ++ ", max="
       ++ show (aabbMax b) ++ "]"
+
+instance Monoid AABB where
+  mempty  = emptyAABB
+  mappend = extendAABB
 
 emptyAABB :: AABB
 {-# INLINE emptyAABB #-}

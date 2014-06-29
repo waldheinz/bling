@@ -11,18 +11,19 @@ module Graphics.Bling.Primitive.KdTree (
    ppKdTree, dbgTraverse, TraversalStats(..)
    ) where
 
-import Control.Monad (forM_)
-import Control.Monad.ST
-import Control.Parallel
-import Data.Maybe (fromMaybe)
-import Text.PrettyPrint   
+import           Control.Monad (forM_)
+import           Control.Monad.ST
+import           Control.Parallel
+import           Data.Maybe (fromMaybe)
+import           Data.Monoid
 import qualified Data.Vector as V
 import qualified Data.Vector.Algorithms.Intro as VA
 import qualified Data.Vector.Mutable as MV
+import           Text.PrettyPrint
 
-import Graphics.Bling.AABB
-import Graphics.Bling.Math
-import Graphics.Bling.Primitive
+import           Graphics.Bling.AABB
+import           Graphics.Bling.Math
+import           Graphics.Bling.Primitive
 
 data KdTree = KdTree {-# UNPACK #-} ! AABB ! KdTreeNode deriving (Show)
 
@@ -106,7 +107,7 @@ mkKdTree :: [Primitive] -> KdTree
 mkKdTree psl = {-# SCC "mkKdTree" #-} KdTree bounds root where
    root = buildTree bounds ps md
    ps = V.fromList psl
-   bounds = V.foldl' extendAABB emptyAABB $ V.map worldBounds ps
+   bounds = V.foldl' mappend mempty $ V.map worldBounds ps
    md = round (8 + 3 * log (fromIntegral $ V.length ps :: Float))
    
 buildTree :: AABB -> V.Vector Primitive -> Int -> KdTreeNode

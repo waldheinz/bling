@@ -7,33 +7,35 @@ module Graphics.Bling.Renderer.SPPM (
    
    ) where
 
-import Control.Applicative
-import Control.Monad
-import Control.Monad.Primitive
-import Control.Monad.Reader
-import Control.Monad.ST
-import Control.Parallel.Strategies
-import Data.Bits
-import Data.Function (on)
+import           Control.Applicative
+import           Control.Monad
+import           Control.Monad.Primitive
+import           Control.Monad.Reader
+import           Control.Monad.ST
+import           Control.Parallel.Strategies
+import           Data.Bits
+import           Data.Function ( on )
+import           Data.List ( foldl' )
+import           Data.Monoid
+import qualified Data.Vector as V
 import qualified Data.Vector.Algorithms.Intro as I
 import qualified Data.Vector.Mutable as MV
 import qualified Data.Vector.Unboxed as UV
 import qualified Data.Vector.Unboxed.Mutable as UMV
-import qualified Data.Vector as V
-import GHC.Conc (numCapabilities)
+import           GHC.Conc (numCapabilities)
 import qualified System.Random.MWC as MWC
 import qualified Text.PrettyPrint as PP
 
-import Graphics.Bling.Camera
-import Graphics.Bling.Image
-import Graphics.Bling.Light (le)
-import Graphics.Bling.Primitive
+import           Graphics.Bling.Camera
+import           Graphics.Bling.Image
+import           Graphics.Bling.Light (le)
+import           Graphics.Bling.Primitive
 import qualified Graphics.Bling.Random as R
-import Graphics.Bling.Reflection
-import Graphics.Bling.Rendering
-import Graphics.Bling.Sampling
-import Graphics.Bling.Scene
-import Graphics.Bling.Utils
+import           Graphics.Bling.Reflection
+import           Graphics.Bling.Rendering
+import           Graphics.Bling.Sampling
+import           Graphics.Bling.Scene
+import           Graphics.Bling.Utils
 
 -- | the Stochastic Progressive Photon Mapping Renderer
 data SPPM = SPPM {-# UNPACK #-} !Int {-# UNPACK #-} !Int {-# UNPACK #-} !Float {-# UNPACK #-} !Float 
@@ -320,9 +322,9 @@ mkHash hitlist = {-# SCC "mkHash" #-} do
       pm f = withStrategy (parBuffer numCapabilities rdeepseq) . map f
       cnt = sum $ map (\hits -> V.length hits) hitlist
       invSize = 1 / (2 * r)
-      bounds = foldl extendAABB emptyAABB $ map (\hits -> V.foldl' go emptyAABB hits) hitlist where
+      bounds = foldl' mappend mempty $ map (\hits -> V.foldl' go mempty hits) hitlist where
          go b h = let p = bsdfShadingPoint $ hpBsdf h
-                  in extendAABB b $ mkAABB (p - vpromote r) (p + vpromote r)
+                  in mappend b $ mkAABB (p - vpromote r) (p + vpromote r)
    
    v' <- MV.replicate cnt []
    forM_ hitlist $ \hits -> V.forM_ hits $ \hp -> do      

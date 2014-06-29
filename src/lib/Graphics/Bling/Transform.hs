@@ -281,8 +281,8 @@ transRay t (Ray ro rd tmin tmax) =
 -- | Applies a @Transform@ to an @AABB@
 transBox :: Transform -> AABB -> AABB
 {-# INLINE transBox #-}
-transBox t (AABB (Vector mx my mz) (Vector nx ny nz)) = b' where
-   b' = foldl' extendAABBP emptyAABB [p0, p1, p2, p3, p4, p5, p6, p7]
+transBox t (AABB (Vector mx my mz) (Vector nx ny nz)) = b where
+   b  = foldl' extendAABBP mempty [p0, p1, p2, p3, p4, p5, p6, p7]
    p0 = transPoint t (mkPoint' mx my mz)
    p1 = transPoint t (mkPoint' mx my nz)
    p2 = transPoint t (mkPoint' mx ny mz)

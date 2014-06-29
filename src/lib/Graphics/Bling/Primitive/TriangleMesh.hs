@@ -11,14 +11,15 @@ module Graphics.Bling.Primitive.TriangleMesh (
    
    ) where
 
-import Data.List (foldl', tails)
-import Data.Maybe (fromJust, isNothing)
+import           Data.List (foldl', tails)
+import           Data.Maybe (fromJust, isNothing)
+import           Data.Monoid
 import qualified Data.Vector.Unboxed as V
 
-import Graphics.Bling.DifferentialGeometry
-import Graphics.Bling.Primitive
-import Graphics.Bling.Reflection
-import Graphics.Bling.Utils
+import           Graphics.Bling.DifferentialGeometry
+import           Graphics.Bling.Primitive
+import           Graphics.Bling.Reflection
+import           Graphics.Bling.Utils
 
 triangulate :: [[a]] -> [a]
 triangulate = concatMap go where
@@ -135,7 +136,7 @@ triangleShadingGeometry (n0, n1, n2) dgg o2w = dgg { dgN = ns, dgDPDU = ss, dgDP
                     
 triangleBounds :: TriVerts -> AABB
 {-# INLINE triangleBounds #-}
-triangleBounds (p1, p2, p3) = foldl' extendAABBP emptyAABB [p1, p2, p3]
+triangleBounds (p1, p2, p3) = foldl' extendAABBP mempty [p1, p2, p3]
 
 triangleIntersects :: TriVerts -> Ray -> Bool
 {-# INLINE triangleIntersects #-}
