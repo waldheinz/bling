@@ -5,14 +5,14 @@
 
 filter mitchell 2 2 0.333333 0.333333
 
-imageSize 1920 1080
-# imageSize 1280 720
+# imageSize 1920 1080
+imageSize 1280 720
 # imageSize 640 360
 
 renderer {
    sampler
    sampled {
-      sampler { stratified 8 8 }
+      sampler { stratified 4 4 }
       integrator { path maxDepth 5 sampleDepth 2 }
    }
 }
@@ -30,7 +30,7 @@ transform {
 camera {
    perspective
    fov 40
-   lensRadius 0.003
+   lensRadius 0.001
    focalDistance 0.25
 }
 
@@ -59,8 +59,8 @@ prim { shape { quad 50 50 } }
 #
 
 light { infinite { rotateX -90 }
-   l { sunSky east 0 0 1 sunDir 2 1 -1 turbidity 3 }
-#    l { rgbeFile "/home/trem/Dropbox/bling-scenes/envmaps/ennis.hdr" }
+   l { sunSky east 0 0 1 sunDir 2 0.5 -1 turbidity 3 }
+#    l { rgbeFile "/mnt/archiv/trem/bt_sync/bling-scenes/envmaps/grace-new.hdr" }
 }
 
 material { matte kd { constant rgbR 0.9 0.9 0.9 } sigma { constant 0 } }
@@ -69,5 +69,5 @@ prim {
       mandelbulb
       order 8
       epsilon 0.0001
-      iterations 10
+      iterations 15
 }
