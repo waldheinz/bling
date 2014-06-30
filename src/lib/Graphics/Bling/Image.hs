@@ -1,6 +1,7 @@
 
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Graphics.Bling.Image (
    
@@ -15,6 +16,9 @@ module Graphics.Bling.Image (
    imageWidth, imageHeight, sampleExtent,
    
    thaw, freeze,
+
+   -- * The Image Transformer
+   ImageT, runImageT, evalImageT, execImageT
    
    ) where
 
@@ -299,3 +303,24 @@ rgbPixels img@(Img w h _ _ _) spw wnd = Prelude.zip xs clamped where
    xs = filter (\(x, y) -> x >= 0 && y >= 0 && x < w && y < h) $ coverWindow wnd
    os = map (\(x,y) -> (y * (imgW img)) + x) xs
 
+newtype ImageT m a = ImageT { withImage :: MImage m -> m a }
+
+{-
+instance Monad m => Monad (ImageT m) where
+  return x = ImageT $ \_ -> return x
+  (>>=) (ImageT i1) k = ImageT (\i2 -> k i2)
+
+-}
+
+runImageT :: PrimMonad m => ImageT m a -> Image -> m (a, Image)
+runImageT k img = do
+  mimg      <- thaw img
+  result    <- withImage k mimg
+  (img', _) <- freeze mimg
+  return (result, img')
+  
+execImageT :: PrimMonad m => ImageT m a -> Image -> m Image
+execImageT k i = liftM snd $ runImageT k i
+
+evalImageT :: PrimMonad m => ImageT m a -> Image -> m a
+evalImageT k i = liftM fst $ runImageT k i
