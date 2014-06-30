@@ -37,6 +37,7 @@ Library
       -fexcess-precision
       
    Exposed-Modules:
+      Graphics.Bling,
       Graphics.Bling.AABB,
       Graphics.Bling.Camera,
       Graphics.Bling.DifferentialGeometry,

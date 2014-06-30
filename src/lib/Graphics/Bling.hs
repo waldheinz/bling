@@ -1,9 +1,7 @@
 
-module Graphics.Bling.Edsl (
+module Graphics.Bling (
    module Data.Monoid,
    module Graphics.Bling.Camera,
-   module Graphics.Bling.Gui,
-   module Graphics.Bling.IO.RGBE,
    module Graphics.Bling.Image,
    module Graphics.Bling.Integrator.BidirPath,
    module Graphics.Bling.Integrator.Path,
@@ -29,12 +27,10 @@ import Data.Monoid
 
 import Graphics.Bling.Camera
 import Graphics.Bling.Filter
-import Graphics.Bling.Gui
 import Graphics.Bling.Image
 import Graphics.Bling.Integrator.BidirPath
 import Graphics.Bling.Integrator.Path
 import Graphics.Bling.Light
-import Graphics.Bling.IO.RGBE
 import Graphics.Bling.Material
 import Graphics.Bling.Primitive
 import Graphics.Bling.Primitive.Fractal
