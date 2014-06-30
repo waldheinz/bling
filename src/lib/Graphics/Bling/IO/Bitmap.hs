@@ -10,8 +10,6 @@ import           Graphics.Bling.Math
 import           Graphics.Bling.Spectrum
 import           Graphics.Bling.Texture
 
-import Debug.Trace
-
 readTexture :: FilePath -> IO (Either String DiscreteSpectrumMap2d)
 readTexture fname = do
   edi <- JP.readImage fname
