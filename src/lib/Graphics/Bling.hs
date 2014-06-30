@@ -1,7 +1,9 @@
 
 module Graphics.Bling (
    module Data.Monoid,
+   module Graphics.Bling.IO.Bitmap,
    module Graphics.Bling.Camera,
+   module Graphics.Bling.Filter,
    module Graphics.Bling.Image,
    module Graphics.Bling.Integrator.BidirPath,
    module Graphics.Bling.Integrator.Path,
@@ -25,6 +27,7 @@ import Control.Monad.State
 import qualified Data.ByteString.Lazy as BS
 import Data.Monoid
 
+import Graphics.Bling.IO.Bitmap
 import Graphics.Bling.Camera
 import Graphics.Bling.Filter
 import Graphics.Bling.Image

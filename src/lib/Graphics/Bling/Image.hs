@@ -18,8 +18,7 @@ module Graphics.Bling.Image (
    thaw, freeze,
 
    -- * The Image Transformer
-   ImageT, runImageT, evalImageT, execImageT
-   
+   ImageT, runImageT, evalImageT, execImageT, addSample'
    ) where
 
 import           Control.DeepSeq
@@ -305,22 +304,22 @@ rgbPixels img@(Img w h _ _ _) spw wnd = Prelude.zip xs clamped where
 
 newtype ImageT m a = ImageT { withImage :: MImage m -> m a }
 
-{-
 instance Monad m => Monad (ImageT m) where
   return x = ImageT $ \_ -> return x
-  (>>=) (ImageT i1) k = ImageT (\i2 -> k i2)
-
--}
+  (>>=) (ImageT c1) fc2 = ImageT $ \img -> c1 img >>= \a -> withImage (fc2 a) img
 
 runImageT :: PrimMonad m => ImageT m a -> Image -> m (a, Image)
 runImageT k img = do
   mimg      <- thaw img
   result    <- withImage k mimg
   (img', _) <- freeze mimg
-  return (result, img')
+  img' `seq` return (result, img')
   
 execImageT :: PrimMonad m => ImageT m a -> Image -> m Image
 execImageT k i = liftM snd $ runImageT k i
 
 evalImageT :: PrimMonad m => ImageT m a -> Image -> m a
 evalImageT k i = liftM fst $ runImageT k i
+
+addSample' :: PrimMonad m => Float -> Float -> Spectrum -> ImageT m ()
+addSample' x y s = ImageT $ \img -> addSample img x y s

@@ -26,7 +26,7 @@ Library
       parsec            >= 3.1,
       parallel          >= 3.1,
       pretty            >= 1.0,
-      primitive         >= 0.4,
+      primitive         >= 0.5,
       transformers      >= 0.2,
       vector            >= 0.9,
       vector-algorithms >= 0.5
@@ -94,7 +94,7 @@ Library
 Executable bling
    hs-source-dirs:   src/cmdline
    Main-is:          Main.hs
-   build-Depends:    bling, base, pretty, random, mwc-random
+   build-Depends:    bling, base, pretty, primitive, random, mwc-random
    ghc-options:
       -Wall
       -O2
