@@ -18,7 +18,8 @@ module Graphics.Bling.Image (
    thaw, freeze,
 
    -- * The Image Transformer
-   ImageT, runImageT, evalImageT, execImageT, addSample'
+   ImageT, runImageT, evalImageT, execImageT,
+   addSample', sampleExtent', addUnfilteredSample'
    ) where
 
 import           Control.DeepSeq
@@ -49,10 +50,10 @@ mkTableFilter flt = TableFilter (filterSize flt) $ runST $ do
    v <- MV.new (filterTableSize * filterTableSize)
    let (fw, fh) = filterSize flt
    
-   forM_ [0 .. (filterTableSize -1)] $ \y -> do
+   forM_ [0 .. (filterTableSize - 1)] $ \y -> do
       let fy = (fromIntegral y + 0.5) * fh / fromIntegral filterTableSize
       
-      forM_ [0 .. (filterTableSize -1)] $ \x -> do
+      forM_ [0 .. (filterTableSize - 1)] $ \x -> do
          let fx = (fromIntegral x + 0.5) * fw / fromIntegral filterTableSize
       
          MV.write v (y * filterTableSize + x) $ evalFilter flt fx fy
@@ -219,6 +220,32 @@ splatSample !(MImage !w !h (!iox, !ioy) _ _ !p) !sx !sy !ss
          o = 3 * (px + py * w)
          (dx, dy, dz) = spectrumToXYZ ss
 
+addUnfilteredSample :: PrimMonad m => MImage m -> Float -> Float -> Spectrum -> m ()
+addUnfilteredSample !(MImage !w !h (!iox, !ioy) _ p _) !sx !sy !ss
+   | px >= w || py >= h || px < 0 || py < 0 = return ()
+   | sNaN ss = trace ("ignore unfiltered NaN sample at ("
+      ++ show sx ++ ", " ++ show sy ++ ")") (return () )
+   | sInfinite ss = trace ("ignore unfiltered sample at ("
+      ++ show sx ++ ", " ++ show sy ++ ")") (return () )
+   | otherwise = do
+     
+      ow <- MV.unsafeRead p $ o + 0
+      ox <- MV.unsafeRead p $ o + 1
+      oy <- MV.unsafeRead p $ o + 2
+      oz <- MV.unsafeRead p $ o + 3
+      
+      MV.unsafeWrite p (o + 0) $ ow + 1
+      MV.unsafeWrite p (o + 1) $ ox + dx
+      MV.unsafeWrite p (o + 2) $ oy + dy
+      MV.unsafeWrite p (o + 3) $ oz + dz
+      
+      where
+         px = floor sx - iox
+         py = floor sy - ioy
+         o = 4 * (px + py * w)
+         (dx, dy, dz) = spectrumToXYZ ss
+
+
 -- | adds a sample to the specified image
 addSample :: PrimMonad m => MImage m -> Float -> Float -> Spectrum -> m ()
 {-# INLINE addSample #-}
@@ -308,6 +335,9 @@ instance Monad m => Monad (ImageT m) where
   return x = ImageT $ \_ -> return x
   (>>=) (ImageT c1) fc2 = ImageT $ \img -> c1 img >>= \a -> withImage (fc2 a) img
 
+instance Monad m => Functor (ImageT m) where
+  fmap k (ImageT c1) = ImageT $ \i -> c1 i >>= \a -> return $ k a
+
 runImageT :: PrimMonad m => ImageT m a -> Image -> m (a, Image)
 runImageT k img = do
   mimg      <- thaw img
@@ -323,3 +353,10 @@ evalImageT k i = liftM fst $ runImageT k i
 
 addSample' :: PrimMonad m => Float -> Float -> Spectrum -> ImageT m ()
 addSample' x y s = ImageT $ \img -> addSample img x y s
+
+addUnfilteredSample' :: PrimMonad m => Float -> Float -> Spectrum -> ImageT m ()
+addUnfilteredSample' x y s = ImageT $ \img -> addUnfilteredSample img x y s
+
+
+sampleExtent' :: Monad m => ImageT m SampleWindow
+sampleExtent' = ImageT $ \i -> return $ sampleExtent i

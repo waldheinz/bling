@@ -1,6 +1,7 @@
 
-pass-*.png
-pass-*.hdr
+**#*#
+*.png
+*.hdr
 dist/
 bling.prof
 **~

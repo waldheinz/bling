@@ -27,7 +27,7 @@ prog _ = return True
 -}
 
 main :: IO ()
-main = staple
+main = onePixel
 
 {-
 main = do

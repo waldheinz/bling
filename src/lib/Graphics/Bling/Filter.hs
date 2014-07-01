@@ -24,7 +24,11 @@ data Filter
 mkBoxFilter :: Filter
 mkBoxFilter = Box 
 
-mkGaussFilter :: Float -> Float -> Float -> Filter
+mkGaussFilter
+  :: Float -- ^ width
+  -> Float -- ^ height
+  -> Float -- ^ alpha
+  -> Filter
 mkGaussFilter xw yw alpha = Gauss xw yw (exp $ -alpha * xw * xw) (exp $ -alpha * yw * yw) alpha
 
 -- | creates a Lanczos - Sinc filter
@@ -62,9 +66,12 @@ filterSize (Mitchell w h _ _) = (w, h)
 filterSize (Triangle w h)     = (w, h)
 
 evalFilter :: Filter -> Float -> Float -> Float
-evalFilter Box _ _ = 1
+
+evalFilter Box x y = if abs x < 0.5 && abs y < 0.5 then 1 else 0
+
 evalFilter (Gauss _ _ ex ey a) x y = gaussian x ex * gaussian y ey where
    gaussian d expv = max 0 $ exp (-a * d * d) - expv
+   
 evalFilter (Mitchell w h b c) px py = m1d (px * iw) * m1d (py * ih) where
    (iw, ih) = (1 / w, 1 / h)
    m1d x' = y where
@@ -85,6 +92,5 @@ evalFilter (Sinc _ _ ix iy tau) px py = sinc1D (px * ix) * sinc1D (py * iy) wher
          lanczos = sin (x' * tau) / (x' * tau)
          sinc = sin x' / x'
          
-evalFilter (Triangle w h) x y = f (x, y) where
-   f (px, py) = max 0 (w - abs px) * max 0 (h - abs py)
-
+evalFilter (Triangle w h) px py = v / (w * h) where
+  v = max 0 (w - abs (px * 2)) * max 0 (h - abs (py * 2))
