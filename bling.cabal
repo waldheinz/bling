@@ -52,6 +52,7 @@ Library
       Graphics.Bling.Random,
       Graphics.Bling.Rendering,
       Graphics.Bling.Sampling,
+      Graphics.Bling.SamplingNew,
       Graphics.Bling.Scene,
       Graphics.Bling.Shape,
       Graphics.Bling.Spectrum,
