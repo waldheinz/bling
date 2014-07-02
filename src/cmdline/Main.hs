@@ -27,7 +27,7 @@ prog _ = return True
 -}
 
 main :: IO ()
-main = onePixel
+main = imageFilters
 
 {-
 main = do

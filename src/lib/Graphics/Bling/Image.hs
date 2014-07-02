@@ -258,7 +258,7 @@ addSample (MImage !w !h (!ox, !oy) !ftbl !p _) !sx !sy !ss
    
       let
          (smx, smy, smz) = spectrumToXYZ ss
-         (fw, fh) = tblFltSize ftbl
+         (fw, fh) = let (a, b) = tblFltSize ftbl in (a, b)
          ifw = 1 / fw
          ifh = 1 / fw
          
@@ -266,9 +266,9 @@ addSample (MImage !w !h (!ox, !oy) !ftbl !p _) !sx !sy !ss
          dy = sy - 0.5
          
          x0 = max ox (ceiling $ dx - fw)
-         x1 = min (ox + w-1) (floor $ dx + fw)
+         x1 = min (ox + w - 1) (floor $ dx + fw)
          y0 = max oy (ceiling $ dy - fh)
-         y1 = min (oy + h-1) (floor $ dy + fw)
+         y1 = min (oy + h - 1) (floor $ dy + fh)
       
       unless ((x1 - x0) < 0 || (y1 - y0) < 0) $ do
          let 
@@ -288,12 +288,12 @@ addSample (MImage !w !h (!ox, !oy) !ftbl !p _) !sx !sy !ss
                flto = V.unsafeIndex ify (y - y0) * filterTableSize + V.unsafeIndex ifx (x-x0)
                fltw = V.unsafeIndex (tblVals ftbl) flto
                
-            ow <- MV.unsafeRead p imgo
-            orx <- MV.unsafeRead p $ (imgo + 1)
-            ory <- MV.unsafeRead p $ (imgo + 2)
-            orz <- MV.unsafeRead p $ (imgo + 3)
+            orw <- MV.unsafeRead p imgo
+            orx <- MV.unsafeRead p (imgo + 1)
+            ory <- MV.unsafeRead p (imgo + 2)
+            orz <- MV.unsafeRead p (imgo + 3)
             
-            MV.unsafeWrite p imgo $ ow + fltw
+            MV.unsafeWrite p imgo       $ orw + fltw
             MV.unsafeWrite p (imgo + 1) $ (orx + smx * fltw)
             MV.unsafeWrite p (imgo + 2) $ (ory + smy * fltw)
             MV.unsafeWrite p (imgo + 3) $ (orz + smz * fltw)
@@ -305,13 +305,14 @@ getPixel
    -> Int
    -> (Float, Float, Float) -- ^ (r, g, b)
 getPixel (Img _ _ _ p s) sw o
-   | w == 0    = xyzToRgb (sw * sr, sw * sg, sw * sb)
-   | otherwise = xyzToRgb (sw * sr + r / w, sw * sg + g / w, sw * sb + b / w)
-   where
-      o'  = 4 * o
-      (w, r, g, b) = (p V.! o', p V.! (o' + 1), p V.! (o' + 2), p V.! (o' + 3))
-      os' = 3 * o
-      (sr, sg, sb) = (s V.! os', s V.! (os' + 1), s V.! (os' + 2))
+  | w == 0    = xyzToRgb (sw * sr, sw * sg, sw * sb)
+  | otherwise = xyzToRgb (sw * sr + r * w', sw * sg + g * w', sw * sb + b * w')
+  where
+    w'           = 1 / w 
+    o'           = 4 * o
+    (w, r, g, b) = (p V.! o', p V.! (o' + 1), p V.! (o' + 2), p V.! (o' + 3))
+    os'          = 3 * o
+    (sr, sg, sb) = (s V.! os', s V.! (os' + 1), s V.! (os' + 2))
       
 -- | applies gamma correction to an RGB triple
 gamma :: Float -> (Float, Float, Float) -> (Float, Float, Float)
