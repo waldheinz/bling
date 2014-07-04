@@ -1,52 +1,57 @@
 
-{-# LANGUAGE TypeFamilies #-}
--- {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Graphics.Bling.SamplingNew (
+  main
   ) where
 
-{-
-type Sample1D s = s Float
-type Sample2D s = s (Float, Float)
+import Control.Applicative
+import Control.Monad.State.Strict
+import Control.Monad.Primitive
+import System.Random.MWC as MWC
 
---class Monad m => Sample1D m where
---  get1d :: a -> m Float
+newtype Stratified m a = Stratified (StateT (Int, Int) m a)
+                       deriving ( Functor, Applicative, Monad, MonadState (Int, Int) )
 
---class Monad m => Sample2D m a where
---  get2d :: a -> m (Float, Float)
+type SRunState m = ([Float], Gen (PrimState m))
 
--- a computation which uses sampled values to produce a result
--- newtype Sampled s a = Sampled { runSampled :: s -> a }
+newtype StratRun m a = StratRun (StateT (SRunState m) m a)
+                       deriving ( Functor, Applicative, Monad, MonadState (SRunState m) )
 
--- type Sampled r a = r -> a
+instance MonadTrans StratRun where
+  lift c = StratRun $ lift c
 
-class Monad a => Sampled a where
-  runSampled :: g a -> a
+mk1d :: (Monad m, PrimMonad r, MonadState (SRunState r) (StratRun r)) => Stratified m (StratRun r Float)
+mk1d = do
+  (n1d, n2d) <- get
+  put (n1d + 1, n2d)
   
-class Monad g => SampleGet g where
-  getSample1d :: g (Sample1D r)
-  getSample2d :: g (Sample2D r)
---  mkSampled   :: g a -> a
--}
+  return $ do
+    fs <- gets fst
+    if length fs < n1d
+      then return (fs !! n1d)
+      else gets snd >>= (lift . MWC.uniform)
 
---class Monad s => Sampler s where
---  data Sampled s :: * -> *
---  getSample1d :: s (Sampled s Float)
---  getSample2d :: (Sampled s (Float, Float))
---  evs :: s -> Sampled s a -> a
-
-newtype Sampled s m a = Sampled { runSampled :: s -> m a }
-
-class Monad m => Sampler m where
-  getSample1d :: m (Sampled s m Float)
-  getSample2d :: m (Sampled s m (Float, Float))
+test2d :: (Monad m, PrimMonad r, MonadState (SRunState r) (StratRun r)) => Stratified m (StratRun r (Float, Float))
+test2d = do
+  f1 <- mk1d
+  f2 <- mk1d
   
+  return $ do
+    v1 <- f1
+    v2 <- f2
+    return (v1, v2)
 
-test r = do
-  s1d <- getSample1d -- gives a monadic action that when run provides a Float
---  s2d <- getSample2d -- gives a monadic action that when run provides a (Float, Float)
+runStratified :: (PrimMonad m) => Stratified m a -> m a
+runStratified (Stratified c) = do
+  (StratRun x, (n1d, n2d)) <- runStateT c (0, 0)
+  gen <- MWC.create
   
-  return $ Sampled $ do
-    s1d >>= \x -> if (x > 0.5)
-                  then return $ Just "yo"
-                  else return Nothing
+  --evalStateT x ([0.5 :: Float], undefined)
+  undefined
+
+main :: IO ()
+main = do
+  
+  return ()
