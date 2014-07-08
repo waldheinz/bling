@@ -1,71 +1,70 @@
 
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeFamilies #-}
 
-module Graphics.Bling.SamplingNew (
---  main
-  ) where
+module Graphics.Bling.SamplingNew ( main ) where
 
 import Control.Applicative
 import Control.Monad.State.Strict
-import Control.Monad.Writer.Class as WC
-import Control.Monad.Trans.Writer.Strict
 import Control.Monad.Primitive
 import System.Random.MWC as MWC
 
-import Debug.Trace
+-- allows to generate stratified computations
+type SGenState = (Int, Int)
 
-newtype StratGen m a = StratGen (StateT (Int, Int) m a)
-                       deriving ( Functor, Applicative, Monad, MonadState (Int, Int), MonadTrans )
+newtype StratGen s m a = StratGen (StateT s m a)
+                       deriving ( Functor, Applicative, Monad, MonadState s, MonadTrans )
 
+-- state allowing to evaluate stratified computations
 type SRunState m = ([Float], Gen (PrimState m))
 
-newtype StratRun m a = StratRun (StateT (SRunState m) m a)
-                       deriving ( Functor, Applicative, Monad, MonadState (SRunState m) )
+-- allows to evaluate stratified computations
+newtype StratRun s m a = StratRun (StateT s m a)
+                       deriving ( Functor, Applicative, Monad, MonadState s )
 
-instance MonadTrans StratRun where
-  lift c = StratRun $ lift c
+type Sampled g r m a = StratGen g m (StratRun r m a)
 
-newtype Stratified m a = Stratified { unStratified :: StratGen m (StratRun m a) }
+-- a stratified computation, constructed in StratGen and evaluated in StratRun
+type Stratified m a = Sampled SGenState (SRunState m) m a
 
-mk1d :: PrimMonad m => StratGen m (StratRun m Float)
+mk1d :: PrimMonad m => Stratified m Float
 mk1d = do
   (n1d, n2d) <- get
   put (n1d + 1, n2d)
   
   return $ StratRun $ do
     fs <- gets fst
-    if length fs < n1d
+    if length fs > n1d
       then return (fs !! n1d)
       else gets snd >>= lift . MWC.uniform
 
-mk2d :: PrimMonad m => StratGen m (StratRun m (Float, Float))
-mk2d = do
-  f1 <- mk1d
-  f2 <- mk1d
+mk2d :: (Functor m, PrimMonad m) => Stratified m (Float, Float)
+mk2d = mk1d >>= \f1 -> mk1d >>= \f2 ->
+  return $ (,) <$> f1 <*> f2
   
-  return $ do
-    v1 <- f1
-    v2 <- f2
-    return (v1, v2)
-
 runStratified
-  :: (PrimMonad m, MonadWriter a m)
-  => Int                              -- ^ number of samples
-  -> StratGen m (StratRun m a)
-  -> m () -- ^ computation to evaluate
-runStratified nsamples (StratGen c) = do
+  :: (PrimMonad m)
+  => Int            -- ^ number of samples in one dimension
+  -> Int            -- ^ number of samples in other dimension
+  -> Stratified m a -- ^ computation to evaluate
+  -> m [a]          -- ^ the values produced, a list of nx * ny values
+runStratified nx ny (StratGen c) = do
   (StratRun x, (n1d, n2d)) <- runStateT c (0, 0)
+  -- let's just pretend I'd use n1d and n2d to actually
+  -- compute stratified samples
   gen <- MWC.create
-  replicateM_ nsamples $
-    evalStateT x ([0.5], gen) >>= WC.tell
+  replicateM (nx * ny) $ evalStateT x ([], gen)
   
+-- estimate Pi by Monte Carlo sampling
+mcPi :: (Functor m, PrimMonad m) => Sampled g r m Float
+mcPi = do
+  v <- mk2d
+  return $ v >>= \(x, y) -> return $ if x * x + y * y < 1 then 4 else 0
+
 main :: IO ()
 main = do
-  let
-    mcPi = do
-      v <- mk2d
-      return $ v >>= \(x, y) -> return $ if x * x + y * y < 1 then 1 else (0 :: Float)
-    
-  vs <- (runStratified 10 $ mcPi)
-  return ()
+  vs <- (runStratified 100 100 mcPi) :: IO [Float]
+  print $ sum vs / (fromIntegral $ length vs)
