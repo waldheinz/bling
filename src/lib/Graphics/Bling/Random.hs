@@ -4,20 +4,19 @@
 module Graphics.Bling.Random (
 
    -- * managing the random number generator
-   
+
    Rand, liftR, Rand2D, runRand, runRandIO, runWithSeed, ioSeed, intSeed,
-      
+
    -- * generating random values
-   
+
    rnd2D, rnd, rndList, rndList2D, rndInt, rndIntR, rndIntList, shuffle,
    rndVec, rndVec2D,
-   
+
    -- * State in the Rand Monad
 
    newRandRef, readRandRef, writeRandRef, modifyRandRef
    ) where
 
-import Control.Applicative
 import Control.Monad (forM_, replicateM, ap)
 import Control.Monad.Primitive
 import Control.Monad.ST
@@ -33,18 +32,18 @@ type Rand2D = (Float, Float)
 newtype Rand s a = Rand {
    runRand :: MWC.Gen (PrimState (ST s)) -> ST s a
    }
-   
+
 instance Functor (Rand s) where
    fmap f (Rand x) = Rand (\g -> x g >>= \a -> return (f a))
    {-# INLINE fmap #-}
-   
+
 instance Applicative (Rand s) where
    pure k = Rand (\ _ -> return k)
    {-# INLINE pure #-}
-   
+
    (<*>) = ap -- Rand (\g -> x g >>= \a -> ((runRand f) g) $ a)
    {-# INLINE (<*>) #-}
-   
+
 -- | For allowing monadic syntax when using @Rand@
 instance Monad (Rand s) where
    return k             = pure k

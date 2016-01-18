@@ -2,7 +2,7 @@
 module Graphics.Bling.Transform (
       module Graphics.Bling.Math,
       module Graphics.Bling.AABB,
-      
+
       Transform, translate, scale, inverse, fromMatrix, rotateX,
       rotateY, rotateZ, lookAt, perspective,
       transPoint, transVector, transBox, transRay, transNormal,
@@ -11,13 +11,12 @@ module Graphics.Bling.Transform (
       -- * Utility Functions
 
       solveLinearSystem2x2
-      
+
    ) where
 
 import Graphics.Bling.AABB
 import Graphics.Bling.Math
 
-import Control.Applicative
 import Control.Monad (forM, forM_, unless)
 import Control.Monad.ST
 import Data.Function (on)
@@ -49,39 +48,39 @@ invert m = runST $ do
    indx <- UV.generateM 4 $ const $ do
       (irow, icol) <- readSTRef ipiv >>= pivot minv
       modifySTRef ipiv (filter (/= icol))
-      
+
       -- swap rows irow and icol for pivot
       unless (irow == icol) $ forM_ [0..3] $ \k ->
          MUV.swap minv (idx irow k) (idx icol k)
-         
+
       -- set m[icol][icol] to one by scaling row icol
       pivinv <- (/) 1 <$> MUV.read minv (idx icol icol)
       MUV.write minv (idx icol icol) 1
       forM_ [0..3] $ \j -> let i = idx icol j
          in MUV.read minv i >>= \v -> MUV.write minv i (v * pivinv)
-      
+
       -- subtract this row from others to zero out their columns
       forM_ [0..3] $ \j -> do
          unless (j == icol) $ do
             save <- MUV.read minv $ idx j icol
             MUV.write minv (idx j icol) 0
-            
+
             forM_ [0..3] $ \k -> do
                x <- MUV.read minv $ idx icol k
                old <- MUV.read minv (idx j k)
                MUV.write minv (idx j k ) $ old - x * save
-      
+
       return (irow, icol)
-      
+
    -- swap columns to reflect permutation
    UV.forM_ (UV.reverse indx) $ \(ir, ic) -> unless (ir == ic) $ do
       forM_ [0..3] $ \k -> MUV.swap minv (idx k ir) (idx k ic)
-      
+
    Matrix <$> UV.freeze minv
    where
       idx :: Int -> Int -> Int
       idx r c = c * 4 + r
-      
+
       pivot :: MUV.MVector s Float -> [Int] -> ST s (Int, Int)
       pivot minv is = fst . maximumBy (compare `on` snd) <$>
          forM [(j,k) | j <- is, k <- is] pvt where
@@ -109,14 +108,14 @@ mul m1 m2 = Matrix $ UV.generate 16 go where
 transMatrix :: Matrix -> Matrix
 transMatrix m = Matrix $ UV.generate 16 go where
    go n = let (i, j) = divMod n 4 in mi m j i
-   
+
 idMatrix :: Matrix
 idMatrix = matrix
    1 0 0 0
    0 1 0 0
    0 0 1 0
    0 0 0 1
-      
+
 instance Show Matrix where
    show mt = let (a:b:c:d:e:f:g:h:i:j:k:l:m:n:o:p:[]) = UV.toList (unM mt) in
       show [[a,b,c,d],[e,f,g,h],[i,j,k,l],[m,n,o,p]]
@@ -153,7 +152,7 @@ translate (Vector dx dy dz) = MkTransform m i where
       0 1 0 dy
       0 0 1 dz
       0 0 0 1
-      
+
    i = matrix
       1 0 0 (-dx)
       0 1 0 (-dy)
@@ -183,7 +182,7 @@ rotateX deg = MkTransform m (transMatrix m) where
       0    0       0 1
    sint = sin (radians deg)
    cost = cos (radians deg)
-      
+
 rotateY :: Float -> Transform
 rotateY deg = MkTransform m (transMatrix m) where
    m = matrix
@@ -193,7 +192,7 @@ rotateY deg = MkTransform m (transMatrix m) where
          0    0    0 1
    cost = cos (radians deg)
    sint = sin (radians deg)
-      
+
 rotateZ :: Float -> Transform
 rotateZ deg = MkTransform m (transMatrix m) where
    m = matrix
@@ -234,7 +233,7 @@ lookAt p@(Vector px py pz) l up = MkTransform m (invert m) where
    dir@(Vector dx dy dz) = normalize (l - p)
    left@(Vector lx ly lz) = normalize $ (normalize up) `cross` dir
    (Vector ux uy uz) = dir `cross` left
-   
+
 -- | Creates the inverse of a given @Transform@.
 inverse :: Transform -> Transform
 inverse (MkTransform m i) = MkTransform i m
@@ -305,4 +304,3 @@ solveLinearSystem2x2 (a00, a01, a10, a11) (b0, b1)
       det = a00 * a11 - a01 * a10
       x0 = (a11 * b0 - a01 * b1) / det
       x1 = (a00 * b1 - a10 * b0) / det
-      

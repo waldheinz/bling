@@ -33,6 +33,7 @@ Library
 
    Ghc-Options:
       -Wall
+      -Werror
       -O2
       -fexcess-precision
 
@@ -97,6 +98,7 @@ Executable bling
    build-Depends:    bling, base, pretty, primitive, random, mwc-random
    ghc-options:
       -Wall
+      -Werror
       -O2
       -threaded
       -with-rtsopts=-N
@@ -110,4 +112,4 @@ Executable bling-gui
 
    hs-source-dirs:   src/gui
    main-is:          Main.hs
-   ghc-options: -Wall -O2 -threaded -with-rtsopts=-N
+   ghc-options:     -Wall -Werror -O2 -threaded -with-rtsopts=-N

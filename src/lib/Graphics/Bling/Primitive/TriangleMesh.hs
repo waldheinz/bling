@@ -1,19 +1,18 @@
 
 module Graphics.Bling.Primitive.TriangleMesh (
-   
+
    -- * Triangle
    TriVerts, TriNorms, TriUVs, triangleIntersects, triangleIntersect,
    triangleShadingGeometry, triangleBounds, triangleDefaultUVs,
-     
+
    -- * Triangle Mesh
-   
+
    mkTriangleMesh, triangulate
-   
+
    ) where
 
 import           Data.List (foldl', tails)
 import           Data.Maybe (fromJust, isNothing)
-import           Data.Monoid
 import qualified Data.Vector.Unboxed as V
 
 import           Graphics.Bling.DifferentialGeometry
@@ -59,7 +58,7 @@ mkTriangleMesh o2w mat p i n uv
       p' = V.map (transPoint o2w) p
       n' = n >>= \ns -> return $ V.map (transNormal o2w) ns
       mesh = Mesh i p' n' (fmap flatTuple uv) mat
-      
+
 --------------------------------------------------------------------------------
 -- Triangles
 --------------------------------------------------------------------------------
@@ -96,8 +95,8 @@ triUVs idx m = maybe triangleDefaultUVs go (muvs m) where
    go uvs = (muv (2 * o1), muv (2 * o1 + 1),
              muv (2 * o2), muv (2 * o2 + 1),
              muv (2 * o3), muv (2 * o3 + 1)) where
-             
-         muv i = V.unsafeIndex uvs i             
+
+         muv i = V.unsafeIndex uvs i
 
 mkTri :: Mesh -> Int -> Primitive
 mkTri mesh n
@@ -133,7 +132,7 @@ triangleShadingGeometry (n0, n1, n2) dgg o2w = dgg { dgN = ns, dgDPDU = ss, dgDP
       (ss, ts) = if sqLen ts' > 0
                     then (normalize ts' `cross` ns, normalize ts')
                     else coordinateSystem'' ns
-                    
+
 triangleBounds :: TriVerts -> AABB
 {-# INLINE triangleBounds #-}
 triangleBounds (p1, p2, p3) = foldl' extendAABBP mempty [p1, p2, p3]
@@ -201,9 +200,8 @@ triangleIntersect mat tri (p1, p2, p3) (uv00, uv01, uv10, uv11, uv20, uv21) r@(R
       b0 = 1 - b1 - b2
       tu = b0 * uv00 + b1 * uv10 + b2 * uv20
       tv = b0 * uv01 + b1 * uv11 + b2 * uv21
-      
+
       -- create intersection
       dg = mkDgTri (rayAt r t) tu tv dpdu dpdv (mkV (0, 0, 0)) (mkV (0,0, 0)) (b1, b2)
       e = 1e-3 * t
       int = mkIntersection t e dg tri mat
-

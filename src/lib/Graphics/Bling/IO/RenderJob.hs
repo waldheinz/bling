@@ -5,8 +5,6 @@ module Graphics.Bling.IO.RenderJob (
 
 import System.FilePath
 import Text.Parsec.Error
-import Control.Applicative ((<*>), (<$>))
-import Data.Monoid
 
 import Graphics.Bling.Filter
 import Graphics.Bling.Rendering
@@ -29,7 +27,7 @@ startState base = PState 640 480 defaultRenderer mkBoxFilter
    []
    0
    base
-   
+
 parseJob :: FilePath -> IO (Either ParseError (RenderJob, AnyRenderer))
 parseJob fname = do
    file <- readFile fname
@@ -80,13 +78,13 @@ pFilter = do
    f <- case t of
       "box" -> return mkBoxFilter
       "gauss" -> mkGaussFilter <$> flt <*> flt <*> flt
-      
+
       "sinc" -> do
          xw <- flt
          yw <- flt
          tau <- flt
          return (mkSincFilter xw yw tau)
-         
+
       "triangle" -> do
          xw <- flt
          yw <- flt
@@ -98,8 +96,8 @@ pFilter = do
          b <- flt
          c <- flt
          return (mkMitchellFilter xw yw b c)
-         
+
       _ -> fail ("unknown pixel filter function \"" ++ t ++ "\"")
-   
+
    s <- getState
    setState s { pxFilter = f }

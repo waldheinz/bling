@@ -1,8 +1,8 @@
 
-{-# LANGUAGE Rank2Types, FlexibleContexts #-}
+{-# LANGUAGE Rank2Types, FlexibleContexts, ExistentialQuantification #-}
 
 module Graphics.Bling.Integrator (
-   
+
    SurfaceIntegrator(..)
    ) where
 
@@ -25,13 +25,12 @@ mkContrib
 mkContrib ws splat = do
    cs <- cameraSample
    return $ (splat, (imageX cs, imageY cs, ws))
-   
+
 type Consumer m = Contribution -> ST m ()
 -}
 
 data SurfaceIntegrator = SurfaceIntegrator
-   { surfaceLi       :: (PrimMonad (ST s)) => Scene -> Ray -> Sampled s Spectrum
+   { surfaceLi       :: forall s. (PrimMonad (ST s)) => Scene -> Ray -> Sampled s Spectrum
    , sampleCount1D   :: {-# UNPACK #-} !Int
    , sampleCount2D   :: {-# UNPACK #-} !Int
    }
-

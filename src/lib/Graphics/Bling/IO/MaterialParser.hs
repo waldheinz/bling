@@ -1,13 +1,12 @@
 
 module Graphics.Bling.IO.MaterialParser (
    defaultMaterial, pMaterial, pMaterial',
-   
+
    pDiscSpectrumMap2d, namedDiscSpectrumMap2d,
    pScalarMap2d
-   
+
    ) where
 
-import Control.Applicative
 import Control.Monad.IO.Class ( liftIO )
 import Text.ParserCombinators.Parsec
 
@@ -89,7 +88,7 @@ pMatteMaterial = do
    kd <- pSpectrumTexture "kd"
    sig <- pScalarTexture "sigma"
    return $! mkMatte kd sig
-   
+
 pMatteTranslucent :: JobParser Material
 pMatteTranslucent = do
    kr <- pSpectrumTexture "kr"
@@ -108,7 +107,7 @@ pImageScalar :: JobParser ScalarTexture
 pImageScalar = do
    string "file" >> ws
    texmap <- readImageScalarMap <$> (pQString >>= readFileBS')
-   
+
    case texmap of
       Left err -> fail err
       Right sm -> imageTexture sm <$> pTextureMapping2d "map"
@@ -121,7 +120,7 @@ pScalarTexture = namedBlock $
          return $! constant v
 
       "image" -> pBlock pImageScalar
-   
+
       "cellNoise" -> do
          d <- pString >>= \dn -> return $ case dn of
             "euclidian"    -> euclidianDist
@@ -129,7 +128,7 @@ pScalarTexture = namedBlock $
             "manhattan"    -> manhattanDist
             "chebyshev"    -> chebyshevDist
             _              -> fail $ "unknown distance function " ++ dn
-            
+
          m <- pTextureMapping3d "map"
          return $! cellNoise d m
 
@@ -137,7 +136,7 @@ pScalarTexture = namedBlock $
          f <- pFbmMap
          m <- pTextureMapping3d "map"
          return $! texMap3dToTexture f m
-      
+
       "perlin" -> do
          m <- pTextureMapping3d "map"
          return $! noiseTexture m
@@ -146,13 +145,13 @@ pScalarTexture = namedBlock $
          o <- namedInt "octaves"
          m <- pTextureMapping2d "map"
          return $! quasiCrystal o m
-      
+
       "scale" -> do
          a <- flt
          s <- flt
          t <- pScalarTexture "tex"
          return $! scaleTexture a s t
-      
+
       _ -> fail $ "unknown texture type " ++ tp
 
 pFbmMap :: JobParser ScalarMap3d
@@ -168,14 +167,14 @@ pTextureMapping2d = namedBlock $ do
          ou <- flt
          ov <- flt
          return $ planarMapping (vu, vv) (ou, ov)
-         
+
       "uv"   -> do
          su <- flt
          sv <- flt
          ou <- flt
          ov <- flt
          return $ uvMapping (su, sv) (ou, ov)
-         
+
       _      -> fail $ "unknown 2d mapping " ++ n
 
 pTextureMapping3d :: String -> JobParser TextureMapping3d
@@ -184,46 +183,46 @@ pTextureMapping3d = namedBlock $
               "identity" -> do
                  t <- pTransform
                  return $ identityMapping3d t
-                 
+
               _ -> fail $ "unknown 3d mapping " ++ mt
 
 pImageTexture :: JobParser SpectrumTexture
 pImageTexture = do
    string "file" >> ws
    texmap <- readImageTextureMap <$> (pQString >>= readFileBS')
-      
+
    case texmap of
       Left err -> fail err
       Right sm -> imageTexture sm <$> pTextureMapping2d "map"
 
 pSpectrumTexture :: String -> JobParser SpectrumTexture
-pSpectrumTexture = namedBlock $ 
+pSpectrumTexture = namedBlock $
    pString >>= \tp -> case tp of
       "blend" -> spectrumBlend <$> pSpectrumTexture "tex1" <*> pSpectrumTexture "tex2" <*> pScalarTexture "f"
-      
+
       "image" -> pBlock pImageTexture
-      
+
       "constant" -> do
          s <- pSpectrum
          return $! constant s
-      
+
       "checker" -> checkerBoard <$> pVec <*> pSpectrumTexture "tex1" <*> pSpectrumTexture "tex2"
-      
+
       "gradient" -> do
          f <- pScalarTexture "f"
          steps <- (flip namedBlock) "steps" $ (flip sepBy) (char ',' >> Graphics.Bling.IO.ParserCore.optional ws) $ do
             pos <- flt
             col <- pSpectrum
             return $! (pos, col)
-            
+
          return $! gradient (mkGradient steps) f
-         
+
       "graphPaper" -> graphPaper
          <$> flt
          <*> pTextureMapping2d "map"
          <*> pSpectrumTexture "tex1"
          <*> pSpectrumTexture "tex2"
-         
+
       _ -> fail ("unknown texture type " ++ tp)
 
 --------------------------------------------------------------------------------
@@ -237,14 +236,14 @@ pScalarMap2d = pBlock $ do
          z <- flt
          m <- pFbmMap
          return $! texMap3dTo2d m z
-      
+
       "scale" -> do
          f <- flt
          m <- pScalarMap2d
          return $! (\x -> f * m x)
-      
+
       x -> fail $ "unknown scalar map type" ++ x
-      
+
 namedDiscSpectrumMap2d :: String -> JobParser DiscreteSpectrumMap2d
 namedDiscSpectrumMap2d n = string n >> ws >> pDiscSpectrumMap2d
 
@@ -259,7 +258,7 @@ pDiscSpectrumMap2d = pBlock $ do
       "file" -> do
         fname <- pQString >>= resolveFile
         liftIO $ putStrLn $ "reading " ++ fname
-        eimg <- liftIO . readTexture $ fname 
+        eimg <- liftIO . readTexture $ fname
         case eimg of
           Left e  -> fail e
           Right x -> return x
@@ -269,6 +268,5 @@ pDiscSpectrumMap2d = pBlock $ do
          sunDir <- namedVector "sunDir"
          turb <- namedFloat "turbidity"
          return $ mkSunSkyLight east sunDir turb
-                      
+
       _ -> fail $ "unknown map type " ++ tp
-   

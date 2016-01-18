@@ -5,8 +5,6 @@ module Graphics.Bling.AABB (
    intersectAABB, splitAABB, boundingSphere, diagonal
 ) where
 
-import Data.Monoid
-
 import Graphics.Bling.Math
 
 -- | an axis-aligned bounding box
@@ -14,7 +12,7 @@ data AABB = AABB {
    aabbMin :: {-# UNPACK #-} !Point, -- ^ the box' minimum
    aabbMax :: {-# UNPACK #-} !Point  -- ^ the box' maximum
    }
-   
+
 instance Show AABB where
    show b = "AABB [min=" ++ show (aabbMin b) ++ ", max="
       ++ show (aabbMax b) ++ "]"
@@ -54,7 +52,7 @@ maximumExtent (AABB pmin pmax) = dominant $ pmax - pmin
 
 centroid :: AABB -> Point
 {-# INLINE centroid #-}
-centroid (AABB pmin pmax) = pmin + (pmax - pmin) * 0.5 
+centroid (AABB pmin pmax) = pmin + (pmax - pmin) * 0.5
 
 diagonal :: AABB -> Vector
 {-# INLINE diagonal #-}
@@ -76,7 +74,7 @@ splitAABB :: Float -> Dimension -> AABB -> (AABB, AABB)
 {-# INLINE splitAABB #-}
 splitAABB t axis (AABB pmin pmax) = ((AABB pmin pmax'), (AABB pmin' pmax)) where
    pmin' = setComponent axis t pmin
-   pmax' = setComponent axis t pmax   
+   pmax' = setComponent axis t pmax
 
 intersectAABB :: AABB -> Ray -> Maybe (Float, Float)
 {-# INLINE intersectAABB #-}
@@ -85,7 +83,7 @@ intersectAABB (AABB bMin bMax) (Ray o d tmin tmax) = testSlabs allDimensions tmi
    testSlabs [] n f
       | n > f = Nothing
       | otherwise = Just (n, f)
-      
+
    testSlabs (dim:ds) near far
       | near > far = Nothing
       | otherwise = testSlabs ds (max near near') (min far far') where
@@ -94,4 +92,3 @@ intersectAABB (AABB bMin bMax) (Ray o d tmin tmax) = testSlabs allDimensions tmi
          tNear = (bMin .! dim - oc) * dInv
          oc = o .! dim
          dInv = 1 / d .! dim
-   

@@ -3,32 +3,32 @@
 
 module Graphics.Bling.Math (
    module Graphics.Bling.Types,
-   
+
    -- * Constants
-   
+
    twoPi, invPi, invTwoPi, infinity,
-   
+
    -- * Basic Functions
-   
+
    lerp, remapRand, clamp, radians, solveQuadric, atan2',
-   
+
    -- * Vectors
-   
+
    Vector(..), mkV, mkV', vpromote, dot, cross, normalize, normLen, absDot,
    len, sqLen,
    Normal, mkNormal, Point, mkPoint, mkPoint',
    Dimension, allDimensions, setComponent, (.!), dominant, dimX, dimY, dimZ,
    sphericalDirection, sphericalTheta, sphericalPhi, faceForward,
    sphToDir, dirToSph, sphSinTheta, (*#),
-   
+
    -- * Rays
-   
+
    Ray(..), normalizeRay, rayAt, onRay,
-   
+
    -- * Otrth. Basis
    LocalCoordinates(..), worldToLocal, localToWorld, coordinateSystem,
    coordinateSystem', coordinateSystem''
-   
+
    ) where
 
 import Control.Monad (liftM)
@@ -188,7 +188,7 @@ vpromote :: Float -> Vector
 vpromote x = Vector x x x
 
 instance Show Vector where
-   show (Vector x y z) = "(" ++ show x ++ ", " ++ 
+   show (Vector x y z) = "(" ++ show x ++ ", " ++
       show y ++ ", " ++ show z ++ ")"
 
 instance Num Vector where
@@ -198,7 +198,7 @@ instance Num Vector where
    abs = vmap abs
    signum = vmap signum
    fromInteger = vpromote . fromInteger
-      
+
 instance Fractional Vector where
   (/) = vzip (/)
   recip = vmap recip
@@ -218,13 +218,15 @@ instance V.Unbox Vector
 instance MV.MVector V.MVector Vector where
    basicLength (MV_Vector v) = MV.basicLength v `div` 3
    {-# INLINE basicLength #-}
-   
+
    basicUnsafeSlice s l (MV_Vector v) =
-      MV_Vector $ (MV.unsafeSlice (s * 3) (l * 3) v)
+      MV_Vector (MV.unsafeSlice (s * 3) (l * 3) v)
    {-# INLINE basicUnsafeSlice #-}
 
    basicUnsafeNew l = MV_Vector `liftM` MV.unsafeNew (l * 3)
    {-# INLINE basicUnsafeNew #-}
+
+   basicInitialize _ = return ()
 
    basicOverlaps (MV_Vector v1) (MV_Vector v2) = MV.overlaps v1 v2
    {-# INLINE basicOverlaps #-}
@@ -270,7 +272,7 @@ instance GV.Vector V.Vector Vector where
    {-# INLINE basicUnsafeIndexM #-}
 
 -- types derieved from Vector
-   
+
 type Point = Vector
 
 mkPoint :: (Float, Float, Float) -> Point
@@ -359,7 +361,7 @@ normLen v
    where
       l2 = sqLen v
       l = sqrt l2
-      
+
 faceForward :: Vector -> Vector -> Vector
 {-# INLINE faceForward #-}
 faceForward v v2
@@ -411,12 +413,12 @@ data LocalCoordinates = LocalCoordinates
 coordinateSystem :: Vector -> LocalCoordinates
 {-# INLINE coordinateSystem #-}
 coordinateSystem v@(Vector x y z)
-   | abs x > abs y = 
-      let 
+   | abs x > abs y =
+      let
           invLen = 1.0 / sqrt (x*x + z*z)
           v2 = Vector (-z * invLen) 0 (x * invLen)
       in LocalCoordinates v2 (cross v v2) v
-   | otherwise = 
+   | otherwise =
       let
           invLen = 1.0 / sqrt (y*y + z*z)
           v2 = Vector 0 (z * invLen) (-y * invLen)
@@ -445,4 +447,3 @@ localToWorld (LocalCoordinates (Vector sx sy sz) (Vector tx ty tz) (Vector nx ny
       (sx * x + tx * y + nx * z)
       (sy * x + ty * y + ny * z)
       (sz * x + tz * y + nz * z)
-

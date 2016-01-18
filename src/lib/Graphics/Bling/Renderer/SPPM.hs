@@ -7,7 +7,6 @@ module Graphics.Bling.Renderer.SPPM (
 
    ) where
 
-import           Control.Applicative
 import           Control.DeepSeq
 import           Control.Monad
 import           Control.Monad.Primitive
@@ -17,7 +16,6 @@ import           Control.Parallel.Strategies
 import           Data.Bits
 import           Data.Function ( on )
 import           Data.List ( foldl' )
-import           Data.Monoid
 import qualified Data.Vector as V
 import qualified Data.Vector.Algorithms.Intro as I
 import qualified Data.Vector.Mutable as MV

@@ -5,19 +5,19 @@
 module Graphics.Bling.Spectrum (
 
    Spectrum, WeightedSpectrum(..), ImageSample, Contribution,
-   white, black, 
-   
+   white, black,
+
    -- * Spectrum conversions
    rgbToSpectrumRefl, rgbToSpectrumIllum, unGamma,
-   
+
    -- * Working with SPDs
    Spd, mkSpd, mkSpd', mkSpdFunc, fromCIExy, spdToXYZ, evalSpd,
-   
+
    isBlack, sNaN, sInfinite,
    xyzToRgb,  toRGB, fromSpd, sConst, sBlackBody, sY,
    sScale, sPow, sClamp, sClamp', chromaticityToXYZ,
    spectrumToXYZ, xyzToSpectrum
-   
+
    ) where
 
 import Control.Monad (liftM, forM_)
@@ -61,45 +61,47 @@ instance V.Unbox Spectrum
 instance MV.MVector V.MVector Spectrum where
    basicLength (MV_Spectrum v) = MV.basicLength v `div` bands
    {-# INLINE basicLength #-}
-   
+
    basicUnsafeSlice s l (MV_Spectrum v) =
-      MV_Spectrum $ (MV.unsafeSlice (s * bands) (l * bands) v)
+      MV_Spectrum (MV.unsafeSlice (s * bands) (l * bands) v)
    {-# INLINE basicUnsafeSlice #-}
-   
+
    basicUnsafeNew l = MV_Spectrum `liftM` MV.unsafeNew (l * bands)
    {-# INLINE basicUnsafeNew #-}
-   
+
+   basicInitialize _ = return ()
+
    basicOverlaps (MV_Spectrum v1) (MV_Spectrum v2) = MV.overlaps v1 v2
    {-# INLINE basicOverlaps #-}
-   
+
    basicUnsafeRead (MV_Spectrum v) idx =
       V.generateM bands (\i -> MV.unsafeRead v $(idx * bands) + i)
       >>= \v' -> return (Spectrum v')
    {-# INLINE basicUnsafeRead #-}
-   
-   basicUnsafeWrite (MV_Spectrum v) idx (Spectrum vs) = do
+
+   basicUnsafeWrite (MV_Spectrum v) idx (Spectrum vs) =
       forM_ [0..bands-1] $ \i -> MV.unsafeWrite v ((idx * bands) + i) (V.unsafeIndex vs i)
    {-# INLINE basicUnsafeWrite #-}
-   
+
 instance GV.Vector V.Vector Spectrum where
    basicLength (V_Spectrum v) = GV.basicLength v `div` bands
    {-# INLINE basicLength #-}
-   
+
    basicUnsafeSlice s l (V_Spectrum v) =
       V_Spectrum $ (GV.unsafeSlice (s * bands) (l * bands) v)
    {-# INLINE basicUnsafeSlice #-}
-   
+
    basicUnsafeFreeze (MV_Spectrum v) = V_Spectrum `liftM` (GV.unsafeFreeze v)
    {-# INLINE basicUnsafeFreeze #-}
-   
+
    basicUnsafeThaw (V_Spectrum v) = MV_Spectrum `liftM` (GV.unsafeThaw v)
    {-# INLINE basicUnsafeThaw #-}
-   
+
    basicUnsafeIndexM (V_Spectrum v) idx =
       V.generateM bands (\i -> GV.unsafeIndexM v ((idx * bands) + i))
       >>= \v' -> return (Spectrum v')
    {-# INLINE basicUnsafeIndexM #-}
-   
+
 -- | a "black" @Spectrum@ (no transmittance or emission at all wavelengths)
 black :: Spectrum
 {-# INLINE black #-}
@@ -187,11 +189,11 @@ data Spd
       {-# UNPACK #-} !Float   -- max lambda
       !(V.Vector Float)       -- amplitudes
    | Chromaticity
-      {-# UNPACK #-} !Float   -- M1   
+      {-# UNPACK #-} !Float   -- M1
       {-# UNPACK #-} !Float   -- M2
    | SpdFunc
       !(Float -> Float)       -- defined by a function
-   
+
 -- | creates a SPD from a list of (lambda, value) pairs, which must
 --   not be empty
 mkSpd
@@ -223,7 +225,7 @@ fromCIExy
    -> Spd
 fromCIExy x y = Chromaticity m1 m2 where
    (m1, m2) = chromaParams x y
-   
+
 chromaParams :: Float -> Float -> (Float, Float)
 chromaParams x y = (m1, m2) where
    m1 = (-1.3515 - 1.7703 * x + 5.9114 * y) / (0.0241 + 0.2562 * x - 0.7341 * y)
@@ -247,7 +249,7 @@ chromaticityToXYZ x y = (x', y', z') where
    x' = s0x + m1 * s1x + m2 * s2x
    y' = s0y + m1 * s1y + m2 * s2y
    z' = s0z + m1 * s1z + m2 * s2z
-      
+
 -- | evaluates a SPD at a given wavelength
 evalSpd
    :: Spd -- ^ the SPD to evaluate
@@ -276,7 +278,7 @@ evalSpd (RegularSpd l0 l1 amps) l
       b0 = floor x
       b1 = min (b0 + 1) (V.length amps - 1)
       dx = x - fromIntegral b0
-      
+
 evalSpd (Chromaticity m1 m2) l = s0 + m1 * s1 + m2 * s2 where
    s0 = evalSpd cieS0 l
    s1 = evalSpd cieS1 l
@@ -291,7 +293,7 @@ avgSpd
    -> Float -- ^ the minimum wavelength of interest
    -> Float -- ^ the maximum wavelength of interest, must be >= the minimum
    -> Float
-   
+
 avgSpd (RegularSpd s0 s1 amps) l0 l1
    | l1 <= s0 = V.head amps
    | l0 >= s1 = V.last amps
@@ -310,7 +312,7 @@ avgSpd (IrregularSpd ls vs) l0 l1
       vs' = V.slice i0 (i1 - i0 + 1) vs
       i0 = maybe 0 id $ V.findIndex (>= l0) ls
       i1 = maybe (V.length vs - 1) id $ V.findIndex (>= l1) ls
-      
+
 avgSpd spd l0 l1 = (evalSpd spd l0 + evalSpd spd l1) * 0.5
 
 -- | converts a @Spd@ to CIE XYZ values
@@ -325,8 +327,8 @@ spdToXYZ spd = (x / yint, y / yint, z / yint) where
 
 -- | converts from a @Spd@ to @Spectrum@
 fromSpd
-   :: Spd 
-   -> Spectrum   
+   :: Spd
+   -> Spectrum
 fromSpd spd = Spectrum $ V.generate bands go where
    go i = avgSpd spd l0 l1 where
       l0 = lerp (fromIntegral i / fromIntegral bands) spectrumLambdaStart spectrumLambdaEnd
@@ -355,12 +357,12 @@ spectrumToXYZ s = scale $ V.foldl' (\(a, b, c) (v, x, y, z) -> (a + x * v, b + y
 xyzToSpectrum :: (Float, Float, Float) -> Spectrum
 xyzToSpectrum = rgbToSpectrumIllum . xyzToRgb
 {-
-xyzToSpectrum (x, y, z) = 
+xyzToSpectrum (x, y, z) =
    sScale spectrumCieX (x / spectrumCieYSum) +
    sScale spectrumCieY (y / spectrumCieYSum) +
    sScale spectrumCieZ (z / spectrumCieYSum)
   -}
-   
+
 toRGB :: Spectrum -> (Float, Float, Float)
 {-# INLINE toRGB #-}
 toRGB (Spectrum v) = (v V.! 0, v V.! 1,  v V.! 2)
@@ -421,7 +423,7 @@ instance Fractional Spectrum where
    {-# INLINE (/) #-}
    fromRational i = Spectrum $ V.replicate bands (fromRational i)
    {-# INLINE fromRational #-}
-   
+
 instance Num Spectrum where
    Spectrum v1 + Spectrum v2 = Spectrum $ V.zipWith (+) v1 v2
    {-# INLINE (+) #-}
@@ -437,7 +439,7 @@ instance Num Spectrum where
    {-# INLINE signum #-}
    fromInteger i = Spectrum $ V.replicate bands (fromInteger i)
    {-# INLINE fromInteger #-}
-   
+
 -- | Decides if a @Spectrum@ is black
 isBlack :: Spectrum -> Bool
 {-# INLINE isBlack #-}
@@ -528,10 +530,10 @@ cieStart = 360
 
 cieEnd :: Int
 cieEnd = 830
-    
+
 cieSpd :: [Float] -> Spd
 cieSpd = mkSpd' (fromIntegral cieStart) (fromIntegral cieEnd)
-    
+
 cieX :: Spd
 cieX = cieSpd cieXValues
 
@@ -623,7 +625,7 @@ rgbIllumRed = rgbFunc
       9.8879464276016282e-01, 9.9897449966227203e-01, 9.8605140403564162e-01,
       9.9532502805345202e-01, 9.7433478377305371e-01, 9.9134364616871407e-01,
       9.8866287772174755e-01, 9.9713856089735531e-01 ]
-      
+
 rgbIllumGreen :: Spectrum
 rgbIllumGreen = rgbFunc
    [  2.5168388755514630e-02, 3.9427438169423720e-02, 6.2059571596425793e-03,
@@ -731,7 +733,7 @@ rgbReflRed = rgbFunc
       9.8358296827441216e-01, 1.0085023660099048e+00,
       9.7451138326568698e-01, 9.8543269570059944e-01,
       9.3495763980962043e-01, 9.8713907792319400e-01 ]
-      
+
 rgbReflGreen :: Spectrum
 rgbReflGreen = rgbFunc
    [  2.6494153587602255e-03, -5.0175013429732242e-03,
@@ -891,7 +893,7 @@ cieXValues = [
    0.000002522525,  0.000002351726,  0.000002192415,  0.000002043902,
    0.000001905497,  0.000001776509,  0.000001656215,  0.000001544022,
    0.000001439440, 0.000001341977, 0.000001251141]
-   
+
 cieYValues :: [Float]
 {-# NOINLINE cieYValues #-}
 cieYValues = [
@@ -1013,7 +1015,7 @@ cieYValues = [
    0.0000009109300,  0.0000008492513,  0.0000007917212,  0.0000007380904,
    0.0000006881098,  0.0000006415300,  0.0000005980895,  0.0000005575746,
    0.0000005198080, 0.0000004846123, 0.0000004518100 ]
-   
+
 cieZValues :: [Float]
 {-# NOINLINE cieZValues #-}
 cieZValues = [
@@ -1135,4 +1137,3 @@ cieZValues = [
    0.0,  0.0,  0.0,  0.0,
    0.0,  0.0,  0.0,  0.0,
    0.0,  0.0,  0.0 ]
-   

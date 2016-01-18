@@ -17,12 +17,11 @@ module Graphics.Bling (
    module Graphics.Bling.Spectrum,
    module Graphics.Bling.SunSky,
    module Graphics.Bling.Texture,
-   
+
    buildJob, emit, CanAdd(..), shape, setTransform, setCamera, setMaterial,
    setImageSize, readFileBS, setFilter, io
    ) where
 
-import Control.Applicative
 import Control.Monad.State
 import qualified Data.ByteString.Lazy as BS
 import Data.Monoid
@@ -119,4 +118,3 @@ buildJob :: DslState a -> IO RenderJob
 buildJob f = do
    (MyState ps ls sz filt cam _ _ _ _) <- execStateT f initialState
    return $ mkJob (mkScene ls ps cam) filt sz
-

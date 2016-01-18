@@ -9,10 +9,9 @@ module Graphics.Bling.Primitive (
    -- * Primitives
 
    Primitive(..), nearest, nearest'
-   
+
    ) where
 
-import Data.Monoid
 import qualified Data.Vector as V
 
 import Graphics.Bling.DifferentialGeometry
@@ -75,8 +74,7 @@ intLe (Intersection _ _ dg prim _) wo =
    maybe black (\l -> L.lEmit l p n wo) (light prim) where
       p = dgP dg
       n = dgN dg
-      
+
 intLight :: Intersection -> Maybe Light
 {-# INLINE intLight #-}
 intLight = light . intPrimitive
-

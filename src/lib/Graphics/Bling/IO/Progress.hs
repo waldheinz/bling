@@ -2,7 +2,7 @@
 module Graphics.Bling.IO.Progress (
    (<&>), progressWriter
    ) where
-   
+
 import System.FilePath
 import Text.Printf
 
@@ -23,17 +23,14 @@ import Graphics.Bling.Rendering
 progressWriter
    :: FilePath -- ^ the basename, will get pass number and extension appended
    -> ProgressReporter
-progressWriter baseName (PassDone p img spw) = do
+progressWriter baseName (PassDone p img _) = do
    putStrLn $ "\nWriting " ++ fname ++ "..."
-   
+
    writePng img $ fname <.> "png"
    writeRgbe img $ fname <.> "hdr"
    return True
-   
+
    where
          fname = baseName ++ "-" ++ printf "%05d" p
-         
+
 progressWriter _ _ = return True
-
-
-
