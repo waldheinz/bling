@@ -6,19 +6,19 @@ module Graphics.Bling.Sampling (
    -- * Sampling Types
    SampleWindow(..), Sampler, Sampled, mkRandomSampler, mkStratifiedSampler,
    windowPixels, mkStratifiedSampler',
-   
+
    -- * Sampling
    Sample(..), STVector, mkPrecompSample,
    rnd, rnd2D, rnd', rnd2D', coverWindow, splitWindow, shiftToPixel,
-   
+
    -- * Running Sampled Computations
-   
+
    runSampled, randToSampled, runSample, liftSampled,
-   
+
    -- * Accessing Camera Samples
 
    CameraSample(..), cameraSample
-   
+
    ) where
 
 import Control.DeepSeq
@@ -41,7 +41,7 @@ data SampleWindow = SampleWindow {
    } deriving (Show)
 
 instance NFData SampleWindow where
-   -- all fields are strict, so the default implementation should be sufficient
+    rnf x = seq x ()
 
 data CameraSample = CameraSample {
    imageX :: {-# UNPACK #-} ! Float,
@@ -112,19 +112,19 @@ runSample (Random spp) wnd _ _ c = {-# SCC "sample.Random" #-} do
 runSample (Stratified nu nv) wnd n1d n2d c = {-# SCC "sample.Stratified" #-} do
    v1d <- R.liftR $ V.new (nu * nv * n1d)
    v2d <- R.liftR $ V.new (nu * nv * n2d)
-   
+
    forM_ (coverWindow wnd) $ \ (ix, iy) -> do
       ps <- stratified2D nu nv -- pixel samples
       lens <- stratified2D nu nv >>= \x -> do -- lens samples
          x' <- R.liftR $ UV.thaw x
          R.shuffle x'
          R.liftR $ UV.freeze x'
-         
+
       let (fx, fy) = (fromIntegral ix, fromIntegral iy)
-      
+
       fill v1d n1d (nu*nv) (stratified1D (nu*nv))
       fill v2d n2d (nu*nv) (stratified2D nu nv)
-      
+
       UV.forM_ (UV.izipWith (\i p l -> (p, l, i)) ps lens) $ \((ox, oy), luv, n) ->
          let
             cs = CameraSample (fx + ox) (fy + oy) luv
@@ -140,10 +140,10 @@ fill v n n' gen = {-# SCC "fill" #-} do
          forM_ (zip xs [0..]) $ \(val, i) -> do
             R.liftR $ V.write vv i val
          return vv-}
-      rs <- gen >>= (\x -> R.liftR $ UV.thaw x)
-      
+      rs <- gen >>= R.liftR . UV.thaw
+
       {-# SCC "fill.shuffle" #-} R.shuffle rs
-      
+
       idx <- R.newRandRef 0
       {-# SCC "fill.bottom" #-} R.liftR $ forM_ [0..n'-1] $ \ vidx -> do
          i <- readSTRef idx
@@ -169,10 +169,10 @@ stratified2D nu nv = let (du, dv) = (1 / fromIntegral nu, 1 / fromIntegral nv) i
    js <- R.rndVec2D (nu * nv)
    return $! GV.imap (\i (ju, jv) -> let (u, v) = quotRem i nu in
       (min almostOne ((fromIntegral u + ju)*du), min almostOne ((fromIntegral v + jv)*dv))) js
-   
+
 newtype Sampled m a = Sampled {
    runSampled :: ReaderT (Sample m) (R.Rand m) a
-   } deriving (Monad, MonadReader (Sample m))
+   } deriving (Applicative, Functor, Monad, MonadReader (Sample m))
 
 -- | upgrades from @Rand@ to @Sampled@
 randToSampled

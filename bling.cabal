@@ -10,13 +10,13 @@ Cabal-Version:       >=1.8
 Flag gui
    Description:      enable building the SDL based GUI
    Default:          False
-   
+
 Library
    Hs-Source-Dirs:   src/lib
    Build-Depends:
       base              >= 4.3,
       bytestring        >= 0.9,
-      bytestring-lexing >= 0.4,
+      bytestring-lexing >= 0.5,
       containers        >= 0.4,
       deepseq           >= 1.1,
       filepath          >= 1.2,
@@ -30,12 +30,12 @@ Library
       transformers      >= 0.2,
       vector            >= 0.9,
       vector-algorithms >= 0.5
-      
+
    Ghc-Options:
       -Wall
       -O2
       -fexcess-precision
-      
+
    Exposed-Modules:
       Graphics.Bling,
       Graphics.Bling.AABB,
@@ -52,7 +52,6 @@ Library
       Graphics.Bling.Random,
       Graphics.Bling.Rendering,
       Graphics.Bling.Sampling,
-      Graphics.Bling.SamplingNew,
       Graphics.Bling.Scene,
       Graphics.Bling.Shape,
       Graphics.Bling.Spectrum,
@@ -91,7 +90,7 @@ Library
       Graphics.Bling.Renderer.Metropolis,
       Graphics.Bling.Renderer.SPPM,
       Graphics.Bling.Utils
-      
+
 Executable bling
    hs-source-dirs:   src/cmdline
    Main-is:          Main.hs
@@ -101,20 +100,14 @@ Executable bling
       -O2
       -threaded
       -with-rtsopts=-N
-   
+
 Executable bling-gui
    if flag(gui)
       Buildable:     True
       build-Depends: bling, base, pretty, random, mwc-random, SDL
    else
       Buildable:     False
-      
+
    hs-source-dirs:   src/gui
    main-is:          Main.hs
-
-   ghc-options:
-     -Wall
-     -O2
-     -threaded
-     -with-rtsopts=-N
-
+   ghc-options: -Wall -O2 -threaded -with-rtsopts=-N

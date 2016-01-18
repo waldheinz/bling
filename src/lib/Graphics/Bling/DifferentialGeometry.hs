@@ -2,15 +2,15 @@
 
 module Graphics.Bling.DifferentialGeometry (
    module Graphics.Bling.Transform,
-   
+
    -- * Differential Geometry
 
-   DifferentialGeometry, mkDg, mkDg', 
+   DifferentialGeometry, mkDg, mkDg',
       dgP, dgN, dgU, dgV, dgDPDU, dgDPDV, dgDNDU, dgDNDV,
       transDg,
 
    -- ** special cased for triangles
-   
+
    mkDgTri, dgtriB
 
    ) where
@@ -36,7 +36,7 @@ data DifferentialGeometry = DG {
    } deriving (Show)
 
 instance NFData DifferentialGeometry where
-   -- default implementation should suffice as all fields are strict
+    rnf x = seq x ()
 
 mkDg
    :: Point -- ^ intersection point
@@ -54,7 +54,7 @@ mkDg' :: Point -> Normal -> DifferentialGeometry
 mkDg' p n = DG p n 0 0 dpdu dpdv dn dn Nothing where
    (LocalCoordinates dpdu dpdv _) = coordinateSystem n
    dn = mkV (0, 0, 0)
-   
+
 mkDgTri
    :: Point -- ^ intersection point
    -> Float -- ^ u parameter
@@ -67,7 +67,7 @@ mkDgTri
    -> DifferentialGeometry
 mkDgTri p u v dpdu dpdv dndu dndv bs = DG p n u v dpdu dpdv dndu dndv (Just bs) where
    n = normalize $ dpdu `cross` dpdv
-   
+
 -- | transforms a @DifferentialGeometry@
 transDg :: Transform -> DifferentialGeometry -> DifferentialGeometry
 {-# INLINE transDg #-}
@@ -79,4 +79,3 @@ transDg t (DG p n u v dpdu dpdv dndu dndv bs) = dg' where
    dpdv' = transVector t dpdv
    dndu' = transNormal t dndu
    dndv' = transNormal t dndv
-   

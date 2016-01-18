@@ -1,17 +1,19 @@
 
+{-# LANGUAGE FlexibleContexts #-}
+
 module Graphics.Bling.Montecarlo (
-   
+
    -- * 1D and 2D Distributions
 
    Dist1D, mkDist1D, sampleDiscrete1D, sampleContinuous1D,
    Dist2D, mkDist2D, sampleContinuous2D, pdfDist2D,
-   
+
    -- * MIS Combination Strategies
-   
+
    MisHeuristic, powerHeuristic, balanceHeuristic,
-   
+
    -- * Misc Sampling Functions
-   
+
    uniformSampleCone, uniformConePdf, cosineSampleHemisphere,
    concentricSampleDisk, concentricSampleDisk', uniformSampleSphere,
    uniformSpherePdf, uniformSampleHemisphere, uniformSampleTriangle,
@@ -73,7 +75,7 @@ sampleContinuous1D (MkDist1D func cdf fi) u = (x, pdf, offset) where
 data Dist2D = MkDist2D
                 (BV.Vector Dist1D) -- conditional
                 Dist1D -- marginal
-                  
+
 -- | creates a 2D distribution
 mkDist2D
    :: PixelSize         -- ^ area to cover
@@ -145,7 +147,7 @@ cosineSampleHemisphere :: Rand2D -> Vector
 {-# INLINE cosineSampleHemisphere #-}
 cosineSampleHemisphere u = Vector x y (sqrt (max 0 (1 - x*x - y*y))) where
    (x, y) = concentricSampleDisk u
-   
+
 -- cosine - sample the hemisphere around a vector
 cosineSampleHemisphere'
    :: Vector   -- ^ the normal defining the hemisphere to sample
@@ -154,7 +156,7 @@ cosineSampleHemisphere'
 cosineSampleHemisphere' n u = localToWorld (coordinateSystem n) v where
    v = Vector x y (sqrt (max 0 (1 - x*x - y*y)))
    (x, y) = concentricSampleDisk u
-   
+
 concentricSampleDisk :: Rand2D -> (Float, Float)
 {-# INLINE concentricSampleDisk #-}
 concentricSampleDisk (u1, u2) = concentricSampleDisk' (sx, sy) where
@@ -201,4 +203,3 @@ uniformSampleTriangle
 {-# INLINE uniformSampleTriangle #-}
 uniformSampleTriangle (u1, u2) = (1 - su1, u2 * su1) where
    su1 = sqrt u1
-   

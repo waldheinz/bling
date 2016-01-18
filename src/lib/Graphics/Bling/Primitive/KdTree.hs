@@ -2,11 +2,11 @@
 {-# LANGUAGE BangPatterns #-}
 
 module Graphics.Bling.Primitive.KdTree (
-   
+
    -- * Kd - Trees
    KdTree, mkKdTree, kdTreePrimitive,
 
-   -- * Debugging 
+   -- * Debugging
 
    ppKdTree, dbgTraverse, TraversalStats(..)
    ) where
@@ -19,6 +19,7 @@ import           Data.Monoid
 import qualified Data.Vector as V
 import qualified Data.Vector.Algorithms.Intro as VA
 import qualified Data.Vector.Mutable as MV
+import           Prelude hiding ( traverse )
 import           Text.PrettyPrint
 
 import           Graphics.Bling.AABB
@@ -30,7 +31,7 @@ data KdTree = KdTree {-# UNPACK #-} ! AABB ! KdTreeNode deriving (Show)
 data KdTreeNode
    = Interior !KdTreeNode !KdTreeNode {-# UNPACK #-} !Float {-# UNPACK #-} !Dimension
    | Leaf {-# UNPACK #-} !(V.Vector Primitive)
-   
+
 instance Show KdTreeNode where
    show (Interior l r t a) = "I t=" ++ show t ++ ", a=" ++ show a ++ "("
       ++ show l ++ ") (" ++ show r ++ ")"
@@ -89,7 +90,7 @@ data Edge = Edge
    ! Primitive
    {-# UNPACK #-} ! Float
    ! Bool
-   
+
 instance Eq Edge where
    (Edge _ t1 s1) == (Edge _ t2 s2) = t1 == t2 && s1 == s2
 
@@ -109,19 +110,19 @@ mkKdTree psl = {-# SCC "mkKdTree" #-} KdTree bounds root where
    ps = V.fromList psl
    bounds = V.foldl' mappend mempty $ V.map worldBounds ps
    md = round (8 + 3 * log (fromIntegral $ V.length ps :: Float))
-   
+
 buildTree :: AABB -> V.Vector Primitive -> Int -> KdTreeNode
 buildTree bounds ps depth
    | depth == 0 || V.length ps <= 1 = {-# SCC "buildTree.leaf" #-} leaf
    | otherwise = fromMaybe leaf $ trySplit bounds ps depth
    where
       leaf = Leaf $ V.force ps
-      
+
 trySplit :: AABB -> V.Vector Primitive -> Int -> Maybe KdTreeNode
 trySplit bounds bps depth = {-# SCC "trySplit" #-} go Nothing axii where
    axii = [a `rem` 3 | a <- take 3 [(maximumExtent bounds)..]]
    oldCost = cI * fromIntegral (V.length bps)
-   
+
    go :: Maybe KdTreeNode -> [Int] -> Maybe KdTreeNode
    go o [] = o
    go o (axis:axs)
@@ -146,7 +147,7 @@ partition :: V.Vector Edge -> Int -> (V.Vector Primitive, V.Vector Primitive)
 partition es i = {-# SCC "partition" #-} (lp, rp) where
    lp = V.map (\(Edge p _ _) -> p) $ V.filter (\(Edge _ _ st) -> st) le
    rp = V.map (\(Edge p _ _) -> p) $ V.filter (\(Edge _ _ st) -> not st) re
-   (le, re) = (V.take i es, V.drop (i+1) es) 
+   (le, re) = (V.take i es, V.drop (i+1) es)
 
 -- | a split is (offset into es, t, # prims left, # prims right)
 type Split = (Int, Float, Int, Int)
@@ -164,24 +165,24 @@ allSplits es = {-# SCC "allSplits" #-} go 0 (V.toList es) 0 (V.length es `div` 2
    go !i (Edge _ t False : es') !l !r = (i, t, l, r-1) : go (i+1) es' l (r-1)
    go !i (Edge _ t True  : es') !l !r = (i, t, l, r  ) : go (i+1) es' (l+1) r
    go _ [] _ _ = []
-   
+
 edges :: V.Vector Primitive -> Dimension -> V.Vector Edge
 edges ps axis = {-# SCC "edges" #-} runST $ do
    v <- MV.new (2 * V.length ps)
-   
+
    forM_ [0..V.length ps-1] $ \idx -> do
       let
          p = ps V.! idx
          (AABB pmin pmax) = worldBounds p
          e1 = Edge p (pmin .! axis) True
          e2 = Edge p (pmax .! axis) False
-         
+
       MV.write v (2 * idx + 0) e1
       MV.write v (2 * idx + 1) e2
-   
+
    {-# SCC "edges.sort" #-} VA.sort v
    V.freeze v
-   
+
 -- | the SAH cost function
 cost
    :: AABB        -- ^ the bounds of the region to be split
@@ -235,15 +236,15 @@ traverse ri@(r, _) inv (Interior left right sp axis) mima@(tmin, tmax)
 kdTreePrimitive :: KdTree -> Primitive
 kdTreePrimitive (KdTree b t) = prim where
    prim = Primitive inter inters b Nothing const
-   
+
    inter r@(Ray _ d _ _) = {-# SCC "intersect" #-} intersectAABB b r >>= trav where
       trav ts = snd $ traverse (r, Nothing) invDir t ts
       invDir = mkV (1 / vx d, 1 / vy d, 1 / vz d)
-      
+
    inters r@(Ray _ d _ _) = {-# SCC "intersects" #-} maybe False tr (intersectAABB b r) where
       tr = traverse' r invDir t
       invDir = mkV (1 / vx d, 1 / vy d, 1 / vz d)
-      
+
 --------------------------------------------------------------------------------
 -- Kd - Tree Vision
 --------------------------------------------------------------------------------
@@ -252,7 +253,7 @@ data TraversalStats = TraversalStats
    { nodesTraversed  :: !Int
    , intersections   :: !Int
    }
-   
+
 deeper :: TraversalStats -> TraversalStats
 deeper ts = ts { nodesTraversed = nodesTraversed ts + 1 }
 
@@ -278,4 +279,3 @@ dbgTraverse' ri@(r, mi, ts) inv (Interior left right sp axis) mima@(tmin, tmax)
          tp = (sp - ro .! axis) * inv .! axis
          (fc, sc) = if lf then (left, right) else (right, left)
          lf = (ro .! axis < sp) || (ro .! axis == sp && rd .! axis <= 0)
-         
