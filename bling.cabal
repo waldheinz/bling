@@ -14,28 +14,27 @@ Flag gui
 Library
    Hs-Source-Dirs:   src/lib
    Build-Depends:
-      base              >= 4.3,
-      bytestring        >= 0.9,
-      bytestring-lexing >= 0.5,
-      containers        >= 0.4,
-      deepseq           >= 1.1,
-      filepath          >= 1.2,
-      JuicyPixels       >= 2.0,
-      mtl               >= 2.0,
-      mwc-random        >= 0.10,
-      parsec            >= 3.1,
-      parallel          >= 3.1,
-      pretty            >= 1.0,
-      primitive         >= 0.5,
-      transformers      >= 0.2,
-      vector            >= 0.9,
-      vector-algorithms >= 0.5
+      base,
+      bytestring,
+      bytestring-lexing,
+      containers,
+      deepseq,
+      filepath,
+      JuicyPixels,
+      mtl,
+      mwc-random,
+      parsec,
+      parallel,
+      pretty,
+      primitive,
+      transformers,
+      vector,
+      vector-algorithms
 
    Ghc-Options:
       -Wall
       -Werror
       -O2
-      -fexcess-precision
 
    Exposed-Modules:
       Graphics.Bling,
